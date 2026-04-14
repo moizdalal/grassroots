@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grassroots — ongoing work</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Inter:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/grassroots.css" />
+    <link rel="stylesheet" href="/engagement.css" />
+  </head>
+  <body class="gr-body">
+    <nav class="gr-nav" aria-label="Primary">
+      <div class="gr-nav__inner">
+        <a class="gr-nav__brand" href="/home/">
+          <img class="gr-nav__logo" src="/home/assets/grassroots-icon-syne.svg" width="20" height="34" alt="" />
+          <span class="gr-nav__wordmark">grassroots</span>
+        </a>
+        <ul class="gr-nav__links">
+          <li><a href="/">backyard</a></li>
+          <li><a href="/notifications.html">inbox</a></li>
+          <li><a href="/profile.html">profile</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <main class="gr-shell gr-shell--wide eg-shell">
+      <a href="/notifications.html" class="ld-back">&larr; back to inbox</a>
+
+      <header class="eg-head gr-page-intro">
+        <p class="gr-page-eyebrow">active collaboration</p>
+        <h1 class="gr-title">ongoing work</h1>
+        <p class="gr-subtitle">
+          coordinate your kickoff meeting, keep the work moving, and wrap the engagement with a thoughtful review.
+        </p>
+      </header>
+
+      <p id="eg-gate" class="gr-status" aria-live="polite">loading…</p>
+
+      <div id="eg-detail" class="eg-layout" hidden>
+        <section class="gr-card eg-summary">
+          <div class="eg-summary__top">
+            <div>
+              <p class="eg-kicker">engagement</p>
+              <h2 class="eg-title" id="eg-title"></h2>
+            </div>
+            <span class="eg-status-pill" id="eg-status-pill">awaiting setup</span>
+          </div>
+
+          <div class="eg-meta">
+            <div class="eg-meta__item">
+              <span class="eg-meta__label">business</span>
+              <span class="eg-meta__value" id="eg-owner-name"></span>
+            </div>
+            <div class="eg-meta__item">
+              <span class="eg-meta__label">consultant</span>
+              <span class="eg-meta__value" id="eg-consultant-name"></span>
+            </div>
+            <div class="eg-meta__item">
+              <span class="eg-meta__label">accepted offer</span>
+              <span class="eg-meta__value" id="eg-amount"></span>
+            </div>
+            <div class="eg-meta__item">
+              <span class="eg-meta__label">listing status</span>
+              <span class="eg-meta__value" id="eg-listing-status"></span>
+            </div>
+          </div>
+        </section>
+
+        <div class="eg-main">
+          <section class="gr-card eg-panel" id="eg-meeting-panel">
+            <div class="eg-panel__head">
+              <div>
+                <p class="eg-kicker">meeting coordination</p>
+                <h2 class="eg-panel__title" id="eg-panel-title">set meeting availability</h2>
+              </div>
+              <div class="eg-duration hidden" id="eg-duration-wrap">
+                <label for="eg-duration-select">meeting length</label>
+                <select id="eg-duration-select">
+                  <option value="30">30 min</option>
+                  <option value="60" selected>60 min</option>
+                  <option value="90">90 min</option>
+                </select>
+              </div>
+            </div>
+
+            <p class="eg-panel__body" id="eg-panel-copy"></p>
+
+            <div class="eg-availability-tools hidden" id="eg-owner-tools">
+              <p class="eg-helper">click and drag to mark times that work for you this week.</p>
+              <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="eg-clear-availability">clear all</button>
+            </div>
+
+            <div class="eg-calendar-wrap" id="eg-calendar-wrap">
+              <div class="eg-calendar" id="eg-calendar"></div>
+            </div>
+
+            <div class="eg-meeting-summary hidden" id="eg-meeting-summary">
+              <p class="eg-meeting-summary__time" id="eg-meeting-time"></p>
+              <p class="eg-meeting-summary__body" id="eg-meeting-body"></p>
+            </div>
+
+            <div class="eg-panel__actions" id="eg-panel-actions">
+              <button type="button" class="gr-btn gr-btn--primary hidden" id="eg-save-availability">share availability</button>
+              <button type="button" class="gr-btn gr-btn--primary hidden" id="eg-confirm-time">confirm this time</button>
+              <a class="gr-btn gr-btn--ghost gr-btn--sm hidden" id="eg-download-invite" download="grassroots-kickoff.ics">download calendar invite</a>
+            </div>
+
+            <p id="eg-meeting-status" class="gr-status" aria-live="polite"></p>
+          </section>
+
+          <section class="gr-card eg-panel hidden" id="eg-owner-actions-panel">
+            <div class="eg-panel__head">
+              <div>
+                <p class="eg-kicker">owner actions</p>
+                <h2 class="eg-panel__title">manage ongoing work</h2>
+              </div>
+            </div>
+
+            <div class="eg-owner-actions">
+              <a class="gr-btn gr-btn--ghost gr-btn--sm" id="eg-review-offers-link">review other offers</a>
+              <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="eg-close-listing-btn">close opportunity</button>
+              <button type="button" class="gr-btn gr-btn--primary gr-btn--sm" id="eg-work-completed-btn" disabled>work completed</button>
+            </div>
+
+            <p class="eg-helper">you can keep the listing open while work is underway, or close it once you are ready.</p>
+            <p id="eg-owner-action-status" class="gr-status" aria-live="polite"></p>
+          </section>
+
+          <section class="gr-card eg-panel hidden" id="eg-review-panel">
+            <div class="eg-panel__head">
+              <div>
+                <p class="eg-kicker">consultant review</p>
+                <h2 class="eg-panel__title">leave an intentional review</h2>
+              </div>
+            </div>
+
+            <p class="eg-panel__body">
+              rate the engagement across each dimension out of 5, then optionally add a written endorsement.
+            </p>
+
+            <form id="eg-review-form" class="eg-review-form">
+              <div class="eg-rating-grid" id="eg-rating-grid"></div>
+
+              <label class="gr-label full-width">
+                <span>short written endorsement</span>
+                <textarea
+                  id="eg-endorsement"
+                  rows="4"
+                  maxlength="280"
+                  placeholder="what stood out about working with this consultant?"
+                ></textarea>
+              </label>
+
+              <label class="eg-anon-toggle">
+                <input type="checkbox" id="eg-anon" />
+                <span>share this review anonymously</span>
+              </label>
+
+              <div class="eg-review-actions">
+                <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="eg-skip-endorsement-btn">skip written review</button>
+                <button type="submit" class="gr-btn gr-btn--primary" id="eg-submit-review" disabled>submit review</button>
+              </div>
+            </form>
+
+            <p id="eg-review-status" class="gr-status" aria-live="polite"></p>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <script type="module" src="/engagement.js"></script>
+  </body>
+</html>

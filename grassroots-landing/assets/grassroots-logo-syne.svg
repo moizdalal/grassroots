@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 226 48" role="img" aria-label="grassroots logo">
+  <rect width="226" height="48" fill="none"/>
+  <!-- Icon from Figma 4:4; inner scale to 28px wide, outer nudge for vertical center in 48px strip -->
+  <g fill="#6DBF8A" transform="translate(0, 0.38)">
+    <g transform="scale(0.17177914110429448)">
+      <g transform="translate(72, 130)">
+        <path d="M19 10.15C19 4.54431 14.7467 0 9.5 0C4.25329 0 0 4.54431 0 10.15C7.91804 91.2467 8.44249 120.691 0 134.85C0 140.456 4.25329 145 9.5 145C14.7467 145 19 140.456 19 134.85C16.2169 71.2734 12.3479 23.288 19 10.15Z"/>
+      </g>
+      <g transform="translate(0, 65)">
+        <path d="M84 87C21 71.5333 -6.5625 42.5333 1.3125 0C56.4375 3.86667 84 32.8667 84 87Z"/>
+      </g>
+      <g transform="translate(82, 0)">
+        <path d="M0 147C48.6 116.053 75.6 67.0526 81 0C27 5.1579 0 54.1579 0 147Z"/>
+      </g>
+    </g>
+  </g>
+  <text
+    x="28"
+    y="36"
+    font-family="Syne, sans-serif"
+    font-weight="700"
+    font-size="24"
+    letter-spacing="-0.6"
+    fill="#F4F1EB"
+  >grassroots</text>
+</svg>

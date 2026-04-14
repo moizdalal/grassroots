@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grassroots — register</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Inter:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/grassroots.css" />
+    <link rel="stylesheet" href="/register-flow.css" />
+  </head>
+  <body class="gr-body">
+    <nav class="gr-nav" aria-label="Primary">
+      <div class="gr-nav__inner">
+        <a class="gr-nav__brand" href="/home/">
+          <img class="gr-nav__logo" src="/home/assets/grassroots-icon-syne.svg" width="20" height="34" alt="" />
+          <span class="gr-nav__wordmark">grassroots</span>
+        </a>
+        <ul class="gr-nav__links">
+          <li><a href="/">backyard</a></li>
+          <li><a href="/signin.html">sign in</a></li>
+          <li><a href="/register.html" class="gr-nav__cta" aria-current="page">register</a></li>
+          <li><a href="/profile.html">profile</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <main class="gr-shell">
+      <div class="gr-page-intro">
+        <p class="gr-page-eyebrow">account setup</p>
+        <h1 class="gr-title">create your account</h1>
+        <p class="gr-subtitle">
+          pick a role and set up your credentials — you'll fill in the rest on your profile.
+        </p>
+      </div>
+
+      <div class="gr-card gr-auth-card">
+        <div class="reg-progress" aria-live="polite">
+          <div class="reg-progress__track" id="reg-progress-track">
+            <div class="reg-progress__seg" aria-hidden="true"></div>
+            <div class="reg-progress__seg" aria-hidden="true"></div>
+            <div class="reg-progress__seg" aria-hidden="true"></div>
+          </div>
+          <span class="reg-progress__label" id="reg-progress-label"
+            >pick your path</span
+          >
+        </div>
+
+        <form id="registration-form" enctype="multipart/form-data">
+          <input type="hidden" name="role" id="field-role" value="" />
+
+          <div class="reg-slides">
+            <div
+              class="reg-slide reg-slide--active"
+              data-reg-slide="0"
+              id="reg-slide-role"
+              role="tabpanel"
+            >
+              <p class="gr-section-h">how are you joining?</p>
+              <div class="reg-role-cards">
+                <label class="reg-role-card">
+                  <input type="radio" name="role_choice" value="business_owner" />
+                  <span class="reg-role-card__face">
+                    <span class="reg-role-card__icon" aria-hidden="true">◇</span>
+                    <span class="reg-role-card__title">business owner</span>
+                    <span class="reg-role-card__hint"
+                      >you run a small business and want hands-on help.</span
+                    >
+                  </span>
+                </label>
+                <label class="reg-role-card">
+                  <input type="radio" name="role_choice" value="consultant" />
+                  <span class="reg-role-card__face">
+                    <span class="reg-role-card__icon" aria-hidden="true">✦</span>
+                    <span class="reg-role-card__title">consultant</span>
+                    <span class="reg-role-card__hint"
+                      >you're a student or pro offering scoped work.</span
+                    >
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <div
+              class="reg-slide"
+              data-reg-slide="1"
+              id="reg-slide-account"
+              role="tabpanel"
+              aria-hidden="true"
+            >
+              <p class="gr-section-h">account</p>
+              <div class="gr-field-grid reg-field-grid--2">
+                <label class="gr-label" data-oauth-hide="true">
+                  <span>first name</span>
+                  <input type="text" name="firstName" autocomplete="given-name" required />
+                </label>
+                <label class="gr-label" data-oauth-hide="true">
+                  <span>last name</span>
+                  <input type="text" name="lastName" autocomplete="family-name" required />
+                </label>
+                <label class="gr-label full-width" data-oauth-hide="true">
+                  <span>email</span>
+                  <input type="email" name="email" autocomplete="email" required />
+                </label>
+                <label class="gr-label full-width">
+                  <span>phone number</span>
+                  <input type="tel" name="phoneNumber" autocomplete="tel" inputmode="tel" required />
+                </label>
+                <label class="gr-label" data-oauth-hide="true">
+                  <span>password</span>
+                  <input
+                    type="password"
+                    name="password"
+                    minlength="8"
+                    autocomplete="new-password"
+                    required
+                  />
+                  <span class="reg-pw-hint">8+ chars · upper &amp; lowercase · 1 special character</span>
+                </label>
+                <label class="gr-label" data-oauth-hide="true">
+                  <span>confirm password</span>
+                  <input
+                    type="password"
+                    name="passwordConfirm"
+                    minlength="8"
+                    autocomplete="new-password"
+                    required
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div
+              class="reg-slide"
+              data-reg-slide="2"
+              id="reg-slide-education"
+              role="tabpanel"
+              aria-hidden="true"
+            >
+              <p class="gr-section-h">education</p>
+              <p class="gr-subtitle gr-subtitle--compact">
+                help business owners understand your background.
+              </p>
+              <div class="gr-field-grid reg-field-grid--2">
+                <label class="gr-label">
+                  <span>major</span>
+                  <input type="text" name="major" placeholder="e.g. marketing, computer science" required />
+                </label>
+                <label class="gr-label">
+                  <span>minor <span class="gr-optional">(optional)</span></span>
+                  <input type="text" name="minor" placeholder="e.g. data analytics" />
+                </label>
+                <label class="gr-label full-width">
+                  <span>school</span>
+                  <input type="text" name="school" placeholder="e.g. University of Michigan" required />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="reg-nav">
+            <button type="button" class="gr-btn gr-btn--ghost hidden" id="reg-back">
+              back
+            </button>
+            <div class="gr-action-spacer" aria-hidden="true"></div>
+            <button type="button" class="gr-btn gr-btn--primary" id="reg-next">
+              continue
+            </button>
+            <button
+              type="submit"
+              class="gr-btn gr-btn--primary hidden"
+              id="reg-submit"
+            >
+              create account
+            </button>
+          </div>
+        </form>
+
+        <div id="oauth-slot"></div>
+
+        <p id="status" class="gr-status" aria-live="polite"></p>
+      </div>
+    </main>
+
+    <script type="module" src="/register-flow.js"></script>
+
+    <!-- Suggestion Box -->
+    <button class="gr-suggest-btn" id="gr-suggest-btn" type="button" aria-label="suggestion box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
+    </button>
+    <div class="gr-suggest-overlay" id="gr-suggest-overlay">
+      <div class="gr-suggest-popup">
+        <div id="gr-suggest-form">
+          <p class="gr-suggest-popup__title">grassroots values and takes your feedback seriously&mdash;how can we improve?</p>
+          <textarea class="gr-suggest-popup__textarea" id="gr-suggest-input" placeholder="your suggestion…" maxlength="1000"></textarea>
+          <button class="gr-suggest-popup__submit" id="gr-suggest-submit" type="button">submit</button>
+        </div>
+        <div id="gr-suggest-thanks" hidden>
+          <p class="gr-suggest-popup__thanks">thank you for your feedback!</p>
+        </div>
+      </div>
+    </div>
+    <script src="/suggestion-box.js"></script>
+  </body>
+</html>

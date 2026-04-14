@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grassroots — consultant profile</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Inter:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/grassroots.css" />
+  </head>
+  <body class="gr-body">
+    <nav class="gr-nav" aria-label="Primary">
+      <div class="gr-nav__inner">
+        <a class="gr-nav__brand" href="/home/">
+          <img class="gr-nav__logo" src="/home/assets/grassroots-icon-syne.svg" width="20" height="34" alt="" />
+          <span class="gr-nav__wordmark">grassroots</span>
+        </a>
+        <ul class="gr-nav__links">
+          <li><a href="/">backyard</a></li>
+          <li><a href="/signin.html">sign in</a></li>
+          <li><a href="/register.html" class="gr-nav__cta">register</a></li>
+          <li><a href="/profile.html">profile</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <main class="gr-shell">
+      <div class="gr-page-intro">
+        <p class="gr-page-eyebrow">consultant snapshot</p>
+        <h1 class="gr-title">consultant profile</h1>
+        <p class="gr-subtitle">review shared background, links, and work samples before you reach out.</p>
+      </div>
+      <p id="status" class="gr-status" aria-live="polite">loading profile...</p>
+      <div id="profile-content" class="hidden"></div>
+    </main>
+
+    <script type="module">
+      import { getSupabaseClient } from "/supabase-loader.js";
+
+      function escapeHtml(s) {
+        return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      }
+
+      async function init() {
+        const statusEl = document.getElementById("status");
+        const contentEl = document.getElementById("profile-content");
+        const params = new URLSearchParams(window.location.search);
+        const consultantId = params.get("id");
+
+        if (!consultantId) {
+          statusEl.textContent = "no consultant specified.";
+          statusEl.className = "gr-status error";
+          return;
+        }
+
+        try {
+          const res = await fetch(`/api/consultant-profile/${encodeURIComponent(consultantId)}`);
+          const data = await res.json();
+
+          if (!res.ok || !data.profile) {
+            statusEl.textContent = data.error || "consultant profile not found.";
+            statusEl.className = "gr-status error";
+            return;
+          }
+
+          const profile = data.profile;
+          const edu = data.education || {};
+          const portfolioItems = data.portfolio || [];
+
+          const avatarHtml = profile.avatar_url
+            ? `<img class="pf-bv__avatar" src="${escapeHtml(profile.avatar_url)}" alt="" />`
+            : `<div class="pf-bv__avatar-placeholder">&#128100;</div>`;
+
+          const major = edu.major || "";
+          const minor = edu.minor || "";
+          const school = edu.school || "";
+          let eduLine = "";
+          if (major || school) {
+            const parts = [];
+            if (major) parts.push(major);
+            if (minor) parts.push("minor in " + minor);
+            if (school) parts.push(school);
+            eduLine = parts.join(" \u00b7 ");
+          }
+
+          let portfolioHtml = "";
+          if (portfolioItems.length) {
+            portfolioHtml = `
+              <div class="pf-bv__section">
+                <p class="pf-bv__section-title">past experience</p>
+                <div class="pf-bv__portfolio-grid">
+                  ${portfolioItems.map((item) => {
+                    const fileName = (item.file_path || "").split("/").pop() || "file";
+                    const url = item.url || "#";
+                    return `
+                      <div class="pf-bv__portfolio-card">
+                        <span class="pf-bv__portfolio-card__name">${escapeHtml(fileName)}</span>
+                        ${item.description ? `<span class="pf-bv__portfolio-card__desc">${escapeHtml(item.description)}</span>` : ""}
+                        <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">view</a>
+                      </div>
+                    `;
+                  }).join("")}
+                </div>
+              </div>
+            `;
+          }
+
+          document.title = `grassroots \u2014 ${profile.full_name || "consultant"}`;
+
+          contentEl.innerHTML = `
+            <div class="pf-bv">
+              <div class="pf-bv__header">
+                ${avatarHtml}
+                <div>
+                  <h2 class="pf-bv__name">${escapeHtml(profile.full_name)}</h2>
+                  <p class="pf-bv__meta">${escapeHtml(profile.employment_status || "")}${profile.employment_status && eduLine ? " \u00b7 " : ""}${escapeHtml(eduLine)}</p>
+                </div>
+              </div>
+
+              ${eduLine ? `
+                <div class="pf-bv__section">
+                  <p class="pf-bv__section-title">education</p>
+                  <p class="pf-bv__detail">${escapeHtml(eduLine)}</p>
+                </div>
+              ` : ""}
+
+              ${profile.linkedin_url ? `
+                <div class="pf-bv__section">
+                  <p class="pf-bv__section-title">linkedin</p>
+                  <p class="pf-bv__detail"><a href="${escapeHtml(profile.linkedin_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(profile.linkedin_url)}</a></p>
+                </div>
+              ` : ""}
+
+              ${profile.resume_on_file ? `
+                <div class="pf-bv__section">
+                  <p class="pf-bv__section-title">resume</p>
+                  <p class="pf-bv__detail">resume on file</p>
+                </div>
+              ` : ""}
+
+              ${portfolioHtml}
+
+              ${!profile.linkedin_url && !portfolioItems.length && !profile.resume_on_file && !eduLine ? `
+                <p class="pf-bv__empty">this consultant hasn't shared any public details yet.</p>
+              ` : ""}
+            </div>
+          `;
+
+          statusEl.textContent = "";
+          contentEl.classList.remove("hidden");
+        } catch (err) {
+          statusEl.textContent = err.message || "could not load profile.";
+          statusEl.className = "gr-status error";
+        }
+      }
+
+      init();
+    </script>
+  </body>
+</html>

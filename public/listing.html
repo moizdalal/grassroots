@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grassroots — listing</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Inter:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/grassroots.css" />
+    <link rel="stylesheet" href="/listing.css" />
+  </head>
+  <body class="gr-body">
+    <nav class="gr-nav" aria-label="Primary">
+      <div class="gr-nav__inner">
+        <a class="gr-nav__brand" href="/home/">
+          <img class="gr-nav__logo" src="/home/assets/grassroots-icon-syne.svg" width="20" height="34" alt="" />
+          <span class="gr-nav__wordmark">grassroots</span>
+        </a>
+        <ul class="gr-nav__links">
+          <li><a href="/">backyard</a></li>
+          <li><a href="/signin.html">sign in</a></li>
+          <li><a href="/register.html" class="gr-nav__cta">register</a></li>
+          <li><a href="/profile.html">profile</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <main class="gr-shell gr-shell--wide ld-shell">
+      <a href="/" class="ld-back">&larr; back to backyard</a>
+
+      <div id="listing-gate" class="gr-status" aria-live="polite">loading…</div>
+
+      <div id="listing-detail" class="ld-detail" hidden>
+
+        <!-- ===== COLLAPSIBLE BUSINESS BIO ===== -->
+        <section class="ld-bio" id="ld-bio">
+          <button type="button" class="ld-bio__toggle" id="ld-bio-toggle" aria-expanded="true" aria-controls="ld-bio-body">
+            <span class="ld-bio__toggle-label">about the business</span>
+            <span class="ld-bio__toggle-arrow" aria-hidden="true">&#9662;</span>
+          </button>
+          <div class="ld-bio__body" id="ld-bio-body">
+            <div class="ld-bio__inner">
+              <div id="ld-biz-avatar-wrap" class="ld-bio__avatar-wrap" hidden>
+                <img id="ld-biz-avatar" class="ld-bio__avatar" width="96" height="96" alt="" />
+              </div>
+              <div class="ld-bio__info">
+                <h2 id="ld-biz-name" class="ld-bio__name" hidden></h2>
+                <p id="ld-biz-owner" class="ld-bio__owner"></p>
+                <p id="ld-biz-details" class="ld-bio__about" hidden></p>
+                <a id="ld-biz-website" class="ld-bio__link" target="_blank" rel="noopener noreferrer" hidden>website</a>
+                <div id="ld-biz-socials" class="ld-bio__socials" hidden></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== TWO-COLUMN: CONTENT LEFT + SIDEBAR RIGHT ===== -->
+        <div class="ld-layout">
+
+          <!-- LEFT: opportunity content -->
+          <div class="ld-content">
+            <div class="ld-header">
+              <h1 id="ld-title" class="ld-title"></h1>
+              <p id="ld-budget" class="ld-budget" hidden></p>
+              <div class="ld-header__tags" id="ld-header-tags"></div>
+              <div class="ld-header__meta">
+                <span id="ld-date" class="ld-date"></span>
+                <span id="ld-turnaround" class="ld-turnaround" hidden></span>
+              </div>
+              <div id="ld-status-banner" class="ld-status-banner" hidden>
+                <span id="ld-status-banner-pill" class="ld-status-banner__pill"></span>
+                <div class="ld-status-banner__body">
+                  <p id="ld-status-banner-copy" class="ld-status-banner__copy"></p>
+                  <p id="ld-status-banner-reason" class="ld-status-banner__reason" hidden></p>
+                </div>
+              </div>
+            </div>
+
+            <div id="ld-context-section" class="ld-section" hidden>
+              <h2 class="ld-section-h">issue context</h2>
+              <p id="ld-context" class="ld-body"></p>
+            </div>
+
+            <div class="ld-section">
+              <h2 id="ld-summary-heading" class="ld-section-h">business problem</h2>
+              <p id="ld-summary" class="ld-body"></p>
+            </div>
+
+            <div id="ld-output-section" class="ld-section" hidden>
+              <h2 class="ld-section-h">expected output</h2>
+              <p id="ld-output" class="ld-body"></p>
+            </div>
+
+            <div id="ld-details-section" class="ld-section" hidden>
+              <h2 id="ld-details-heading" class="ld-section-h">additional details</h2>
+              <p id="ld-details" class="ld-body"></p>
+              <div id="ld-attachments" class="ld-attachments" hidden></div>
+            </div>
+
+            <div id="ld-quals-section" class="ld-section" hidden>
+              <h2 class="ld-section-h">qualifications</h2>
+              <ul id="ld-quals" class="ld-quals-list"></ul>
+            </div>
+
+            <!-- Consultant: status banners (accepted / countered) -->
+            <div id="ld-bid-banners" hidden>
+              <div id="ld-bid-accepted-banner" class="ld-accepted-banner" hidden>
+                <span class="ld-accepted-badge">accepted</span>
+                <p id="ld-bid-deadline-text"></p>
+              </div>
+              <div id="ld-bid-countered-banner" class="ld-counter-banner" hidden>
+                <span class="ld-counter-badge">counter-offer</span>
+                <p id="ld-counter-display"></p>
+                <button type="button" id="ld-accept-counter-btn" class="gr-btn gr-btn--primary gr-btn--sm">accept counter</button>
+              </div>
+            </div>
+
+            <!-- "have a question?" — consultant only -->
+            <div id="ld-question-wrap" class="ld-question-wrap" hidden>
+              <button type="button" class="ld-question-btn" id="ld-question-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                have a question?
+              </button>
+            </div>
+
+            <!-- Guest prompt -->
+            <div id="ld-auth-prompt" class="ld-auth-prompt" hidden></div>
+          </div>
+
+          <!-- RIGHT SIDEBAR (sticky) -->
+          <aside class="ld-sidebar" id="ld-sidebar">
+            <section id="ld-owner-actions" class="ld-sidebar__panel ld-owner-actions" hidden>
+              <p class="ld-owner-actions__kicker">listing controls</p>
+              <h2 class="ld-owner-actions__heading">manage listing visibility</h2>
+              <p id="ld-owner-actions-copy" class="ld-owner-actions__copy"></p>
+
+              <div class="ld-owner-actions__buttons">
+                <button type="button" id="ld-pause-listing-btn" class="gr-btn gr-btn--ghost ld-owner-actions__btn">
+                  pause listing
+                </button>
+                <button type="button" id="ld-close-listing-btn" class="gr-btn gr-btn--primary ld-owner-actions__btn">
+                  close listing
+                </button>
+              </div>
+
+              <form id="ld-status-form" class="ld-status-form hidden">
+                <p id="ld-status-form-title" class="ld-status-form__title"></p>
+                <div class="ld-status-form__options" role="radiogroup" aria-labelledby="ld-status-form-title">
+                  <label class="ld-status-option">
+                    <input type="radio" name="listingStatusReason" value="work_completed" />
+                    <span>work completed</span>
+                  </label>
+                  <label class="ld-status-option">
+                    <input type="radio" name="listingStatusReason" value="found_solution_elsewhere" />
+                    <span>found a solution elsewhere</span>
+                  </label>
+                  <label class="ld-status-option">
+                    <input type="radio" name="listingStatusReason" value="didnt_find_good_offer" />
+                    <span>didn't find a good offer</span>
+                  </label>
+                  <label class="ld-status-option">
+                    <input type="radio" name="listingStatusReason" value="other" />
+                    <span>other</span>
+                  </label>
+                </div>
+
+                <label id="ld-status-other-wrap" class="gr-label ld-status-form__other hidden">
+                  <span>tell us more</span>
+                  <textarea
+                    id="ld-status-other-input"
+                    rows="3"
+                    maxlength="280"
+                    placeholder="share a little more context"
+                  ></textarea>
+                </label>
+
+                <div class="ld-status-form__actions">
+                  <button type="submit" id="ld-status-submit-btn" class="gr-btn gr-btn--primary gr-btn--sm">
+                    confirm
+                  </button>
+                  <button type="button" id="ld-status-cancel-btn" class="gr-btn gr-btn--ghost gr-btn--sm">
+                    cancel
+                  </button>
+                </div>
+              </form>
+
+              <p id="ld-owner-action-status" class="gr-status" aria-live="polite"></p>
+            </section>
+
+            <!-- Owner: proposals received -->
+            <section id="ld-bids-owner" class="ld-sidebar__panel ld-bids-owner" hidden>
+              <h2 class="ld-section-h">proposals received</h2>
+              <p id="ld-counter-budget" class="ld-counter-budget"></p>
+              <div id="ld-bids-list" class="ld-bids-list"></div>
+            </section>
+
+            <!-- Consultant: make an offer -->
+            <section id="ld-offer-panel" class="ld-sidebar__panel ld-offer-panel" hidden>
+              <h2 class="ld-offer-panel__heading">make an offer</h2>
+
+              <p id="ld-bid-existing" class="ld-bid-existing" hidden></p>
+
+              <div id="ld-offer-form-wrap">
+                <div class="ld-offer-amount-row">
+                  <label class="ld-offer-amount-label" for="ld-bid-amount">offer amount</label>
+                  <div class="ld-offer-amount-input">
+                    <span class="ld-offer-dollar" aria-hidden="true">$</span>
+                    <input id="ld-bid-amount" type="number" min="0.01" step="0.01" placeholder="0.00" />
+                  </div>
+                </div>
+
+                <div class="ld-offer-msg-section" id="ld-offer-msg-section">
+                  <button type="button" class="cl-add-btn ld-offer-msg-toggle" id="ld-offer-msg-toggle">
+                    + attach a message
+                  </button>
+                  <div class="ld-offer-msg-wrap hidden" id="ld-offer-msg-wrap">
+                    <textarea
+                      id="ld-bid-message"
+                      class="ld-offer-msg-input"
+                      rows="3"
+                      maxlength="250"
+                      placeholder="briefly describe why you're a strong fit…"
+                    ></textarea>
+                    <div class="ld-offer-char-row">
+                      <span class="ld-offer-char-count" id="ld-offer-char-count">250</span>
+                      <button type="button" class="ld-offer-msg-remove" id="ld-offer-msg-remove" aria-label="remove message">&times;</button>
+                    </div>
+                  </div>
+                </div>
+
+                <button id="ld-bid-submit" type="button" class="gr-btn gr-btn--primary ld-offer-submit">submit offer</button>
+              </div>
+
+              <p id="ld-bid-status" class="gr-status" aria-live="polite"></p>
+            </section>
+
+          </aside>
+        </div>
+
+        <!-- ===== CHAT DRAWER (consultant → owner) ===== -->
+        <div class="ld-chat-drawer" id="ld-chat-drawer" hidden aria-hidden="true">
+          <div class="ld-chat-drawer__backdrop" id="ld-chat-backdrop"></div>
+          <div class="ld-chat-drawer__panel" role="dialog" aria-modal="true" aria-labelledby="ld-chat-title">
+            <div class="ld-chat-drawer__head">
+              <h3 class="ld-chat-drawer__title" id="ld-chat-title">message the business</h3>
+              <button type="button" class="ld-chat-drawer__close" id="ld-chat-close" aria-label="close chat">&times;</button>
+            </div>
+            <div class="ld-chat-drawer__thread" id="ld-chat-thread">
+              <p class="ld-msg-empty">no messages yet.</p>
+            </div>
+            <div class="ld-chat-drawer__compose">
+              <!-- Locked listing header (shown on first message only, cannot be removed) -->
+              <div class="ld-chat-context" id="ld-chat-context" hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span class="ld-chat-context__re">re:</span>
+                <span class="ld-chat-context__title" id="ld-chat-context-title"></span>
+              </div>
+              <div class="ld-chat-compose-row">
+                <textarea
+                  id="ld-chat-input"
+                  class="ld-msg-input"
+                  rows="2"
+                  maxlength="200"
+                  placeholder="type your message…"
+                ></textarea>
+                <button type="button" class="gr-btn gr-btn--primary gr-btn--sm" id="ld-chat-send">send</button>
+              </div>
+              <div class="ld-chat-compose-footer">
+                <span class="ld-chat-char-count" id="ld-chat-char-count">200</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <script type="module" src="/listing.js"></script>
+
+    <!-- Suggestion Box -->
+    <button class="gr-suggest-btn" id="gr-suggest-btn" type="button" aria-label="suggestion box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
+    </button>
+    <div class="gr-suggest-overlay" id="gr-suggest-overlay">
+      <div class="gr-suggest-popup">
+        <div id="gr-suggest-form">
+          <p class="gr-suggest-popup__title">grassroots values and takes your feedback seriously&mdash;how can we improve?</p>
+          <textarea class="gr-suggest-popup__textarea" id="gr-suggest-input" placeholder="your suggestion…" maxlength="1000"></textarea>
+          <button class="gr-suggest-popup__submit" id="gr-suggest-submit" type="button">submit</button>
+        </div>
+        <div id="gr-suggest-thanks" hidden>
+          <p class="gr-suggest-popup__thanks">thank you for your feedback!</p>
+        </div>
+      </div>
+    </div>
+    <script src="/suggestion-box.js"></script>
+  </body>
+</html>

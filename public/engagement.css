@@ -1,0 +1,377 @@
+.eg-shell {
+  max-width: 1220px;
+}
+
+.eg-head {
+  margin-bottom: 1.2rem;
+}
+
+.eg-layout {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.eg-summary {
+  display: grid;
+  gap: 1rem;
+}
+
+.eg-summary__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.eg-kicker {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tagline-body);
+}
+
+.eg-title,
+.eg-panel__title {
+  margin: 0;
+  font-family: Fraunces, Georgia, serif;
+  color: var(--green-deep);
+  letter-spacing: -0.02em;
+}
+
+.eg-title {
+  font-size: clamp(1.35rem, 2.5vw, 1.9rem);
+}
+
+.eg-panel__title {
+  font-size: 1.15rem;
+}
+
+.eg-status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(45, 106, 79, 0.1);
+  color: var(--green-deep);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: lowercase;
+  white-space: nowrap;
+}
+
+.eg-status-pill[data-status="scheduled"] {
+  background: rgba(45, 106, 79, 0.16);
+}
+
+.eg-status-pill[data-status="completed"] {
+  background: rgba(109, 191, 138, 0.18);
+}
+
+.eg-meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.eg-meta__item {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.eg-meta__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tagline-body);
+}
+
+.eg-meta__value {
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.eg-main {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.eg-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.eg-panel.hidden,
+.eg-duration.hidden,
+.eg-owner-actions-panel.hidden,
+.eg-review-panel.hidden,
+.eg-owner-tools.hidden,
+.eg-meeting-summary.hidden,
+.gr-btn.hidden {
+  display: none !important;
+}
+
+.eg-panel__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.eg-panel__body,
+.eg-helper,
+.eg-meeting-summary__body {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--tagline-body);
+}
+
+.eg-duration {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.eg-duration label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--tagline-body);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.eg-duration select {
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  font-size: 0.9rem;
+  background: var(--sky);
+}
+
+.eg-availability-tools {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+
+.eg-calendar-wrap {
+  overflow-x: auto;
+}
+
+.eg-calendar {
+  display: grid;
+  grid-template-columns: 72px repeat(7, minmax(96px, 1fr));
+  gap: 0.35rem;
+  min-width: 860px;
+}
+
+.eg-calendar__corner {
+  min-height: 54px;
+}
+
+.eg-calendar__dayhead {
+  display: grid;
+  gap: 0.15rem;
+  align-content: center;
+  justify-items: center;
+  padding: 0.55rem 0.35rem;
+  border-radius: 12px;
+  background: rgba(45, 106, 79, 0.06);
+  border: 1px solid rgba(45, 106, 79, 0.1);
+}
+
+.eg-calendar__dayname {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--green-deep);
+}
+
+.eg-calendar__daydate {
+  font-size: 0.74rem;
+  color: var(--tagline-body);
+}
+
+.eg-calendar__time {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 0.4rem;
+  font-size: 0.76rem;
+  color: var(--tagline-body);
+}
+
+.eg-calendar__slot {
+  min-height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(45, 106, 79, 0.1);
+  background: rgba(255, 255, 255, 0.86);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.eg-calendar__slot:hover {
+  border-color: rgba(45, 106, 79, 0.28);
+  transform: translateY(-1px);
+}
+
+.eg-calendar__slot.is-selected {
+  background: linear-gradient(180deg, rgba(109, 191, 138, 0.9), rgba(45, 106, 79, 0.9));
+  border-color: rgba(45, 106, 79, 0.42);
+}
+
+.eg-calendar__slot.is-available {
+  background: rgba(109, 191, 138, 0.18);
+  border-color: rgba(45, 106, 79, 0.22);
+}
+
+.eg-calendar__slot.is-choice {
+  background: linear-gradient(180deg, rgba(45, 106, 79, 0.94), rgba(27, 67, 50, 0.94));
+  border-color: rgba(27, 67, 50, 0.5);
+}
+
+.eg-calendar__slot[disabled] {
+  cursor: default;
+  opacity: 0.35;
+  transform: none;
+}
+
+.eg-meeting-summary {
+  padding: 0.95rem 1rem;
+  border-radius: 12px;
+  background: rgba(45, 106, 79, 0.06);
+  border: 1px solid rgba(45, 106, 79, 0.12);
+}
+
+.eg-meeting-summary__time {
+  margin: 0 0 0.35rem;
+  font-family: Fraunces, Georgia, serif;
+  font-size: 1rem;
+  color: var(--green-deep);
+}
+
+.eg-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.eg-owner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.eg-review-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.eg-rating-grid {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.eg-rating-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+}
+
+.eg-rating-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.eg-rating-stars {
+  display: inline-flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.eg-rating-star {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 999px;
+  border: 1px solid var(--card-border);
+  background: #fff;
+  color: var(--tagline-body);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.eg-rating-star:hover {
+  transform: translateY(-1px);
+  border-color: rgba(45, 106, 79, 0.28);
+}
+
+.eg-rating-star.is-active {
+  background: linear-gradient(180deg, rgba(109, 191, 138, 0.9), rgba(45, 106, 79, 0.92));
+  border-color: rgba(45, 106, 79, 0.4);
+  color: #fff;
+}
+
+.eg-anon-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.eg-anon-toggle input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--green-mid);
+}
+
+.eg-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .eg-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .eg-panel__head,
+  .eg-availability-tools {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .eg-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .eg-summary__top,
+  .eg-owner-actions,
+  .eg-review-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .eg-rating-row {
+    grid-template-columns: 1fr;
+  }
+}

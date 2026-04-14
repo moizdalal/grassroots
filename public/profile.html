@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grassroots — your profile</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Inter:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/grassroots.css" />
+    <link rel="stylesheet" href="/profile-seedling.css" />
+  </head>
+  <body class="gr-body">
+    <nav class="gr-nav" aria-label="Primary">
+      <div class="gr-nav__inner">
+        <a class="gr-nav__brand" href="/home/">
+          <img class="gr-nav__logo" src="/home/assets/grassroots-icon-syne.svg" width="20" height="34" alt="" />
+          <span class="gr-nav__wordmark">grassroots</span>
+        </a>
+        <ul class="gr-nav__links">
+          <li><a href="/">backyard</a></li>
+          <li><a href="/signin.html">sign in</a></li>
+          <li><a href="/register.html" class="gr-nav__cta">register</a></li>
+          <li><a href="/profile.html" aria-current="page">profile</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <div class="pf-welcome-overlay hidden" id="welcome-overlay">
+      <div class="pf-welcome-popup">
+        <div class="pf-welcome-icon" aria-hidden="true">
+          <img src="/home/assets/grassroots-icon-syne.svg" width="34" height="52" alt="" />
+        </div>
+        <h2 class="pf-welcome-title">welcome to grassroots!</h2>
+        <p class="pf-welcome-body">your account is ready. complete your profile to get noticed on the backyard.</p>
+        <button type="button" class="gr-btn gr-btn--primary" id="welcome-dismiss">get started</button>
+      </div>
+    </div>
+
+    <main class="pf-layout">
+      <div class="pf-main-col">
+        <div class="pf-page-head">
+          <h1 class="gr-title">your profile</h1>
+          <p class="gr-subtitle">
+            update your photo and details. what you save here shows up across the backyard.
+          </p>
+        </div>
+
+        <div class="pf-preview-bar hidden" id="pf-preview-bar">
+          <label class="pf-toggle-label">
+            <input type="checkbox" id="pf-preview-toggle" />
+            <span class="pf-toggle-switch"></span>
+            <span>preview as business</span>
+          </label>
+        </div>
+
+        <div class="pf-business-view hidden" id="pf-business-view"></div>
+
+        <p id="profile-gate" class="gr-status" aria-live="polite"></p>
+
+        <form id="profile-form" class="hidden">
+          <div class="gr-card gr-profile-card">
+            <div class="pf-form-tabs" id="pf-form-tabs" role="tablist" aria-label="profile sections">
+              <button
+                type="button"
+                class="pf-form-tab is-active"
+                id="pf-tab-personal"
+                data-profile-tab="personal"
+                role="tab"
+                aria-selected="true"
+                aria-controls="pf-panel-personal"
+              >
+                personal information
+              </button>
+              <button
+                type="button"
+                class="pf-form-tab hidden"
+                id="pf-tab-business"
+                data-profile-tab="business"
+                role="tab"
+                aria-selected="false"
+                aria-controls="pf-panel-business"
+              >
+                business information
+              </button>
+              <button
+                type="button"
+                class="pf-form-tab hidden"
+                id="pf-tab-credibility"
+                data-profile-tab="credibility"
+                role="tab"
+                aria-selected="false"
+                aria-controls="pf-panel-credibility"
+              >
+                credibility
+              </button>
+            </div>
+
+            <section
+              class="pf-form-panel pf-form-panel--active"
+              id="pf-panel-personal"
+              data-profile-panel="personal"
+              role="tabpanel"
+              aria-labelledby="pf-tab-personal"
+            >
+              <div class="gr-profile-layout">
+                <div class="gr-profile-avatar-block">
+                  <div class="gr-profile-avatar-ring">
+                    <img
+                      id="avatar-preview"
+                      class="gr-profile-avatar-img"
+                      src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect fill='%23e8f0ec' width='120' height='120'/%3E%3C/svg%3E"
+                      alt=""
+                      width="120"
+                      height="120"
+                    />
+                  </div>
+                  <label class="gr-label gr-profile-file">
+                    <span>profile photo</span>
+                    <input
+                      id="avatar-input"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                    />
+                  </label>
+                  <p class="gr-profile-hint">jpeg, png, webp, or gif · up to 2 mb</p>
+                </div>
+
+                <div class="gr-profile-fields">
+                  <div class="gr-field-grid">
+                    <label class="gr-label full-width">
+                      <span>email</span>
+                      <input type="text" id="field-email" readonly />
+                    </label>
+                    <label class="gr-label full-width">
+                      <span>phone number</span>
+                      <input type="text" id="field-phone" readonly />
+                    </label>
+                    <label class="gr-label full-width">
+                      <span>full name</span>
+                      <input type="text" name="fullName" id="field-full-name" required />
+                    </label>
+                    <label class="gr-label full-width" id="field-employment-wrap">
+                      <span>employment status</span>
+                      <input
+                        type="text"
+                        name="employmentStatus"
+                        id="field-employment"
+                        placeholder="student, full-time, freelance…"
+                      />
+                    </label>
+                    <label class="gr-label full-width" id="field-linkedin-wrap">
+                      <span>linkedin</span>
+                      <input
+                        type="url"
+                        name="linkedinUrl"
+                        id="field-linkedin"
+                        placeholder="https://linkedin.com/in/…"
+                      />
+                    </label>
+                  </div>
+
+                  <div id="consultant-education-section" class="hidden">
+                    <p class="gr-section-h">education</p>
+                    <div class="gr-field-grid">
+                      <label class="gr-label">
+                        <span>major</span>
+                        <input type="text" id="field-major" placeholder="e.g. marketing" />
+                      </label>
+                      <label class="gr-label">
+                        <span>minor <span class="gr-optional">(optional)</span></span>
+                        <input type="text" id="field-minor" placeholder="e.g. data analytics" />
+                      </label>
+                      <label class="gr-label full-width">
+                        <span>school</span>
+                        <input type="text" id="field-school" placeholder="e.g. University of Michigan" />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section
+              id="business-section"
+              class="pf-form-panel hidden"
+              data-profile-panel="business"
+              role="tabpanel"
+              aria-labelledby="pf-tab-business"
+            >
+              <div class="gr-field-grid gr-field-grid--business">
+                <label class="gr-label full-width">
+                  <span>business name</span>
+                  <input type="text" name="businessName" id="field-biz-name" />
+                </label>
+                <label class="gr-label full-width">
+                  <span>business bio</span>
+                  <textarea
+                    name="businessDetails"
+                    id="field-biz-details"
+                    rows="2"
+                    placeholder="context, stage, goals…"
+                  ></textarea>
+                </label>
+                <label class="gr-label full-width">
+                  <span>website</span>
+                  <input
+                    type="url"
+                    name="websiteUrl"
+                    id="field-website"
+                    placeholder="https://…"
+                  />
+                </label>
+
+                <div class="gr-social-stack full-width">
+                  <p class="gr-social-stack__caption">social profiles</p>
+                  <p class="gr-social-stack__hint">
+                    paste the link to the page.
+                  </p>
+
+                  <div class="gr-social-platform" data-platform="instagram">
+                    <div class="gr-social-platform__row">
+                      <span class="gr-social-platform__logo" aria-hidden="true"
+                        ><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                          ><defs
+                            ><linearGradient id="pf-ig-grad" x1="0%" y1="100%" x2="100%" y2="0%"
+                              ><stop offset="0%" stop-color="#f09433" /><stop offset="50%" stop-color="#e6683c" /><stop offset="100%" stop-color="#bc1888"
+                            /></linearGradient></defs
+                          ><path
+                            fill="url(#pf-ig-grad)"
+                            d="M12 2.16c3.2 0 3.58.01 4.85.07 3.25.15 4.77 1.69 4.92 4.92.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.15 3.23-1.66 4.77-4.92 4.92-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-3.26-.15-4.77-1.7-4.92-4.92-.06-1.27-.07-1.64-.07-4.85s.01-3.58.07-4.85c.15-3.23 1.66-4.77 4.92-4.92 1.27-.06 1.64-.07 4.85-.07zm0-2.16C8.74 0 8.33.01 7.05.07 2.7.27.27 2.69.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.2 4.36 2.62 6.78 6.98 6.98 1.28.06 1.69.07 4.95.07s3.67-.01 4.95-.07c4.35-.2 6.78-2.62 6.98-6.98.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.2-4.35-2.63-6.78-6.98-6.98C15.67.01 15.26 0 12 0zm0 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zm0 10.16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z"
+                        /></svg
+                      ></span>
+                      <label class="gr-social-platform__check">
+                        <input type="checkbox" id="biz-social-instagram-on" />
+                        <span>instagram</span>
+                      </label>
+                    </div>
+                    <div id="biz-social-instagram-field" class="gr-social-platform__field hidden">
+                      <input
+                        type="url"
+                        name="instagramUrl"
+                        id="field-biz-instagram"
+                        class="gr-input-plain"
+                        placeholder="https://instagram.com/yourhandle"
+                        autocomplete="url"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="gr-social-platform" data-platform="facebook">
+                    <div class="gr-social-platform__row">
+                      <span class="gr-social-platform__logo" aria-hidden="true"
+                        ><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                          ><path
+                            fill="#1877F2"
+                            d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
+                        /></svg
+                      ></span>
+                      <label class="gr-social-platform__check">
+                        <input type="checkbox" id="biz-social-facebook-on" />
+                        <span>facebook</span>
+                      </label>
+                    </div>
+                    <div id="biz-social-facebook-field" class="gr-social-platform__field hidden">
+                      <input
+                        type="url"
+                        name="facebookUrl"
+                        id="field-biz-facebook"
+                        class="gr-input-plain"
+                        placeholder="https://facebook.com/yourpage"
+                        autocomplete="url"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="gr-social-platform" data-platform="linkedin">
+                    <div class="gr-social-platform__row">
+                      <span class="gr-social-platform__logo" aria-hidden="true"
+                        ><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                          ><path
+                            fill="#0A66C2"
+                            d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.95v5.66H9.36V9h3.41v1.56h.05c.47-.9 1.63-1.85 3.35-1.85 3.59 0 4.25 2.36 4.25 5.43v6.31zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.55V9h3.57v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.55C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z"
+                        /></svg
+                      ></span>
+                      <label class="gr-social-platform__check">
+                        <input type="checkbox" id="biz-social-linkedin-on" />
+                        <span>linkedin (company)</span>
+                      </label>
+                    </div>
+                    <div id="biz-social-linkedin-field" class="gr-social-platform__field hidden">
+                      <input
+                        type="url"
+                        name="companyLinkedinUrl"
+                        id="field-biz-company-linkedin"
+                        class="gr-input-plain"
+                        placeholder="https://linkedin.com/company/…"
+                        autocomplete="url"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section
+              id="consultant-section"
+              class="pf-form-panel hidden"
+              data-profile-panel="credibility"
+              role="tabpanel"
+              aria-labelledby="pf-tab-credibility"
+            >
+              <p class="gr-section-h">resume</p>
+              <div class="pf-resume-row">
+                <label class="gr-label pf-file-label">
+                  <span>replace resume (pdf or doc) — optional</span>
+                  <input
+                    id="resume-input"
+                    type="file"
+                    name="resume"
+                    accept=".pdf,.doc,.docx"
+                  />
+                </label>
+                <label class="pf-toggle-label">
+                  <input type="checkbox" id="resume-public-toggle" />
+                  <span class="pf-toggle-switch"></span>
+                  <span>visible to businesses</span>
+                </label>
+              </div>
+              <p id="resume-current" class="gr-profile-hint"></p>
+
+              <p class="gr-section-h">past experience</p>
+              <p class="gr-field-hint">
+                upload documents, images, videos, or presentations of past work. toggle public to let businesses see them.
+              </p>
+              <div id="portfolio-list" class="pf-portfolio-list"></div>
+              <div class="pf-portfolio-add">
+                <label class="gr-label pf-file-label">
+                  <span>add work sample</span>
+                  <input
+                    id="portfolio-input"
+                    type="file"
+                    accept=".pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg,.webp,.gif,.mp4,.mov,.webm"
+                  />
+                </label>
+                <textarea
+                  id="portfolio-desc"
+                  class="pf-portfolio-desc"
+                  maxlength="300"
+                  placeholder="brief explanation of this work (max 300 chars)"
+                  rows="2"
+                ></textarea>
+                <div class="pf-portfolio-add-actions">
+                  <label class="pf-toggle-label">
+                    <input type="checkbox" id="portfolio-public-toggle" />
+                    <span class="pf-toggle-switch"></span>
+                    <span>public</span>
+                  </label>
+                  <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="portfolio-upload-btn">upload</button>
+                </div>
+              </div>
+            </section>
+
+            <div class="gr-profile-actions">
+              <button type="submit" class="gr-btn gr-btn--primary" id="save-btn">
+                save changes
+              </button>
+            </div>
+          </div>
+
+          <p id="status" class="gr-status" aria-live="polite"></p>
+        </form>
+      </div>
+
+      <aside class="pf-sidebar">
+        <div class="gr-card pf-level-card hidden" id="pf-level-card">
+          <p class="pf-level-kicker">consultant progression</p>
+          <h2 class="pf-level-title" id="pf-level-title">stage 0: seedling</h2>
+
+          <div class="pf-level-meta">
+            <p class="pf-level-name" id="pf-level-name">consultant</p>
+            <div class="pf-level-stats">
+              <span class="pf-level-stat" id="pf-level-rating">rating not available yet</span>
+              <span class="pf-level-stat" id="pf-level-engagements">0 engagements completed</span>
+            </div>
+          </div>
+
+          <div class="pf-stage-model" id="pf-stage-model" data-stage="0" aria-hidden="true">
+            <div class="pf-stage-model__scene">
+              <span class="pf-stage-model__glow"></span>
+              <span class="pf-stage-model__soil"></span>
+              <span class="pf-stage-model__shadow"></span>
+              <span class="pf-stage-model__stem"></span>
+              <span class="pf-stage-model__canopy"></span>
+              <span class="pf-stage-model__canopy pf-stage-model__canopy--secondary"></span>
+              <span class="pf-stage-model__canopy pf-stage-model__canopy--tertiary"></span>
+              <span class="pf-stage-model__accent"></span>
+            </div>
+            <p class="pf-stage-model__label" id="pf-stage-model-label">seedling stage placeholder</p>
+          </div>
+
+          <div class="pf-level-progress">
+            <div class="pf-level-progress__row">
+              <span>progress to next stage</span>
+              <span id="pf-level-progress-label">0%</span>
+            </div>
+            <div class="pf-level-progress__track" aria-hidden="true">
+              <span class="pf-level-progress__fill" id="pf-level-progress-fill"></span>
+            </div>
+            <p class="pf-level-progress__copy" id="pf-level-progress-copy">
+              complete 1 free engagement and earn an average rating of at least 4.0 stars.
+            </p>
+          </div>
+        </div>
+
+        <section class="gr-card pf-level-card pf-level-card--owner hidden" id="pf-owner-card">
+          <h2 class="pf-level-title">current and past listings</h2>
+
+          <div class="pf-owner-section">
+            <div class="pf-owner-section__head">
+              <h3 class="pf-owner-section__title">current listings</h3>
+            </div>
+            <div class="pf-owner-list" id="pf-owner-current-list"></div>
+          </div>
+
+          <div class="pf-owner-section">
+            <button
+              type="button"
+              class="pf-owner-history-toggle"
+              id="pf-owner-history-toggle"
+              aria-expanded="false"
+              aria-controls="pf-owner-history"
+            >
+              <span>past listings</span>
+              <span class="pf-owner-history-toggle__arrow" aria-hidden="true">&#9662;</span>
+            </button>
+            <div class="pf-owner-history hidden" id="pf-owner-history">
+              <div class="pf-owner-list" id="pf-owner-past-list"></div>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+    </main>
+
+    <script type="module" src="/profile.js"></script>
+
+    <!-- Suggestion Box -->
+    <button class="gr-suggest-btn" id="gr-suggest-btn" type="button" aria-label="suggestion box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
+    </button>
+    <div class="gr-suggest-overlay" id="gr-suggest-overlay">
+      <div class="gr-suggest-popup">
+        <div id="gr-suggest-form">
+          <p class="gr-suggest-popup__title">grassroots values and takes your feedback seriously&mdash;how can we improve?</p>
+          <textarea class="gr-suggest-popup__textarea" id="gr-suggest-input" placeholder="your suggestion…" maxlength="1000"></textarea>
+          <button class="gr-suggest-popup__submit" id="gr-suggest-submit" type="button">submit</button>
+        </div>
+        <div id="gr-suggest-thanks" hidden>
+          <p class="gr-suggest-popup__thanks">thank you for your feedback!</p>
+        </div>
+      </div>
+    </div>
+    <script src="/suggestion-box.js"></script>
+  </body>
+</html>

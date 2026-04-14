@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grassroots — create opportunity</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Inter:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/grassroots.css" />
+    <link rel="stylesheet" href="/create-listing.css" />
+  </head>
+  <body class="gr-body">
+    <nav class="gr-nav" aria-label="Primary">
+      <div class="gr-nav__inner">
+        <a class="gr-nav__brand" href="/home/">
+          <img class="gr-nav__logo" src="/home/assets/grassroots-icon-syne.svg" width="20" height="34" alt="" />
+          <span class="gr-nav__wordmark">grassroots</span>
+        </a>
+        <ul class="gr-nav__links">
+          <li><a href="/">backyard</a></li>
+          <li><a href="/signin.html">sign in</a></li>
+          <li><a href="/register.html" class="gr-nav__cta">register</a></li>
+          <li><a href="/profile.html">profile</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <main class="gr-shell gr-shell--wide cl-layout-shell">
+      <a href="/" class="ld-back">&larr; back to backyard</a>
+      <div class="gr-page-intro">
+        <p class="gr-page-eyebrow">opportunity setup</p>
+        <h1 class="gr-title">create a new opportunity</h1>
+        <p class="gr-subtitle">describe the opportunity your business is trying to pursue — consultants will see this and submit offers.</p>
+      </div>
+
+      <p id="gate" class="gr-status" aria-live="polite"></p>
+
+      <div class="cl-split hidden" id="cl-split">
+      <form id="listing-form" class="cl-split__form">
+        <div class="gr-card">
+          <div class="cl-progress" aria-live="polite">
+            <div class="cl-progress__track" id="cl-progress-track">
+              <div class="cl-progress__seg" data-step-dot="0" aria-hidden="true"></div>
+              <div class="cl-progress__seg" data-step-dot="1" aria-hidden="true"></div>
+              <div class="cl-progress__seg" data-step-dot="2" aria-hidden="true"></div>
+            </div>
+            <span class="cl-progress__label" id="cl-progress-label">title &amp; type</span>
+          </div>
+
+          <div class="cl-slides">
+            <section class="cl-slide cl-slide--active" data-slide="0">
+              <div class="gr-field-grid">
+                <label class="gr-label full-width">
+                  <span>title *</span>
+                  <input type="text" name="title" required maxlength="120" placeholder="e.g. weekend market sales push for local bakery" />
+                </label>
+
+                <div class="gr-label full-width">
+                  <span class="op-label-row">
+                    <span>type of opportunity *</span>
+                    <button
+                      type="button"
+                      class="op-info-btn"
+                      id="opportunity-info-toggle"
+                      aria-expanded="false"
+                      aria-controls="opportunity-info"
+                      aria-label="what do these mean?"
+                    >?</button>
+                  </span>
+                  <input type="hidden" name="opportunity_type" id="opportunity-type-hidden" />
+                  <div class="op-type-grid" role="group" aria-label="type of opportunity">
+                    <button type="button" class="op-type-btn" data-opportunity-type="do">
+                      <span class="op-type-btn__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/></svg>
+                      </span>
+                      do
+                    </button>
+                    <button type="button" class="op-type-btn" data-opportunity-type="develop">
+                      <span class="op-type-btn__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/><line x1="14.5" y1="4" x2="9.5" y2="20"/></svg>
+                      </span>
+                      develop
+                    </button>
+                    <button type="button" class="op-type-btn" data-opportunity-type="plan">
+                      <span class="op-type-btn__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="m9 15 2-6 6-2-2 6-6 2Z"/><circle cx="12" cy="12" r="1"/></svg>
+                      </span>
+                      plan
+                    </button>
+                    <button type="button" class="op-type-btn" data-opportunity-type="other">
+                      <span class="op-type-btn__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </span>
+                      other
+                    </button>
+                  </div>
+                  <div class="op-info-panel hidden" id="opportunity-info">
+                    <p><strong>do</strong> — hands-on work like tabling at events, making sales calls, or other in-person tasks.</p>
+                    <p><strong>develop</strong> — building something technical: a website, app, inventory system, or other digital tool.</p>
+                    <p><strong>plan</strong> — research and strategy work like a marketing plan, competitive analysis, or growth roadmap.</p>
+                  </div>
+                  <label class="gr-label hidden" id="opportunity-other-wrap">
+                    <span>tell us the opportunity type</span>
+                    <input type="text" name="opportunity_type_other" id="opportunity-type-other" maxlength="80" placeholder="describe the opportunity type" />
+                  </label>
+                </div>
+              </div>
+            </section>
+
+            <section class="cl-slide" data-slide="1">
+              <div class="gr-field-grid">
+                <label class="gr-label full-width">
+                  <span>what is the context of the issue you are trying to solve? *</span>
+                  <textarea
+                    name="issue_context"
+                    rows="4"
+                    required
+                    maxlength="2000"
+                    placeholder="what is happening in the business right now, and what led to this need?"
+                  ></textarea>
+                </label>
+
+                <label class="gr-label full-width">
+                  <span>what is the actual business problem you want to solve? *</span>
+                  <textarea
+                    name="business_problem"
+                    rows="4"
+                    required
+                    maxlength="2000"
+                    placeholder="describe the core business problem as clearly as possible"
+                  ></textarea>
+                </label>
+
+                <label class="gr-label full-width">
+                  <span>what do you expect from the consultant in terms of output? *</span>
+                  <textarea
+                    name="expected_output"
+                    rows="4"
+                    required
+                    maxlength="2000"
+                    placeholder="for example: a write-up, prototype, presentation, spreadsheet model, or implementation plan"
+                  ></textarea>
+                </label>
+
+                <label class="gr-label full-width">
+                  <span>additional details <span class="gr-optional">(optional)</span></span>
+                  <textarea
+                    name="additional_details"
+                    rows="4"
+                    maxlength="3000"
+                    placeholder="context, constraints, previous attempts, or anything consultants should know"
+                  ></textarea>
+                </label>
+                <label class="gr-label full-width">
+                  <span>supporting files <span class="gr-optional">(optional)</span></span>
+                  <input
+                    type="file"
+                    id="listing-attachments"
+                    name="listing_attachments"
+                    multiple
+                  />
+                  <span class="gr-profile-hint">
+                    up to 3 files, 5 mb each, 12 mb total. if larger, please use pdfs or include links in the details.
+                  </span>
+                </label>
+                <div class="cl-file-list hidden" id="cl-file-list" aria-live="polite"></div>
+              </div>
+            </section>
+
+            <section class="cl-slide" data-slide="2">
+              <div class="gr-field-grid">
+                <div class="gr-label full-width">
+                  <span>categories *</span>
+                  <div class="cl-cat-tags" id="cat-tags" aria-live="polite"></div>
+                  <div class="ms-wrap" id="cat-multiselect">
+                    <input type="text" class="ms-search" id="cat-search" placeholder="search categories…" autocomplete="off" />
+                    <div class="ms-dropdown hidden" id="cat-dropdown"></div>
+                  </div>
+                </div>
+
+                <div class="gr-label full-width">
+                  <span>budget range *</span>
+                  <div class="gr-money-range">
+                    <label class="gr-money-input">
+                      <span>$</span>
+                      <input type="number" name="budget_min" min="1" step="1" required placeholder="250" />
+                    </label>
+                    <span class="gr-money-range__divider">to</span>
+                    <label class="gr-money-input">
+                      <span>$</span>
+                      <input type="number" name="budget_max" min="1" step="1" required placeholder="600" />
+                    </label>
+                  </div>
+                </div>
+
+                <label class="gr-label">
+                  <span>turnaround time (days) *</span>
+                  <input type="number" name="turnaround_days" min="1" max="365" required placeholder="e.g. 14" />
+                </label>
+
+                <div class="gr-label full-width">
+                  <span>qualifications needed</span>
+                  <div class="cl-qual-list" id="qual-list">
+                    <div class="cl-qual-row">
+                      <input type="text" name="qual[]" maxlength="120" placeholder="e.g. familiar with social media marketing" class="cl-qual-input" />
+                    </div>
+                  </div>
+                  <button type="button" class="cl-add-btn" id="add-qual-btn">+ add another</button>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div class="cl-nav">
+            <button type="button" class="gr-btn gr-btn--ghost hidden" id="back-btn">back</button>
+            <div class="gr-action-spacer" aria-hidden="true"></div>
+            <button type="button" class="gr-btn gr-btn--primary" id="next-btn">continue</button>
+            <button type="submit" class="gr-btn gr-btn--primary hidden" id="submit-btn">create opportunity</button>
+          </div>
+        </div>
+
+        <p id="status" class="gr-status" aria-live="polite"></p>
+      </form>
+
+      <aside class="cl-split__preview">
+        <div class="cl-preview" id="cl-preview">
+          <p class="cl-preview__label">listing preview</p>
+
+          <!-- Business bio (mirrors ld-bio) -->
+          <div class="cl-preview__bio" id="pv-bio">
+            <div class="cl-preview__bio-inner">
+              <div class="cl-preview__bio-avatar" id="pv-biz-avatar-wrap" hidden>
+                <img id="pv-biz-avatar" width="64" height="64" alt="" />
+              </div>
+              <div class="cl-preview__bio-info">
+                <p class="cl-preview__bio-name" id="pv-biz-name" hidden></p>
+                <p class="cl-preview__bio-owner" id="pv-biz-owner"></p>
+                <p class="cl-preview__bio-about" id="pv-biz-about" hidden></p>
+                <a class="cl-preview__bio-link" id="pv-biz-website" target="_blank" rel="noopener noreferrer" hidden>website</a>
+                <div class="cl-preview__bio-socials" id="pv-biz-socials" hidden></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Opportunity header -->
+          <div class="cl-preview__header">
+            <h2 class="ld-title" id="pv-title">your opportunity title</h2>
+            <div class="cl-preview__chips" id="pv-chips"></div>
+            <div class="cl-preview__meta">
+              <span class="ld-date" id="pv-meta">posted today</span>
+              <span class="ld-turnaround" id="pv-turnaround" hidden></span>
+            </div>
+          </div>
+
+          <!-- Content sections -->
+          <div class="cl-preview__main">
+            <div class="cl-preview__section" id="pv-context-section" hidden>
+              <h3 class="ld-section-h">issue context</h3>
+              <p class="ld-body" id="pv-context"></p>
+            </div>
+            <div class="cl-preview__section" id="pv-problem-section" hidden>
+              <h3 class="ld-section-h">business problem</h3>
+              <p class="ld-body" id="pv-problem"></p>
+            </div>
+            <div class="cl-preview__section" id="pv-output-section" hidden>
+              <h3 class="ld-section-h">expected output</h3>
+              <p class="ld-body" id="pv-output"></p>
+            </div>
+            <div class="cl-preview__section" id="pv-details-section" hidden>
+              <h3 class="ld-section-h">additional details</h3>
+              <p class="ld-body" id="pv-details"></p>
+              <div class="cl-preview__attachments hidden" id="pv-attachments"></div>
+            </div>
+            <div class="cl-preview__section" id="pv-quals-section" hidden>
+              <h3 class="ld-section-h">qualifications</h3>
+              <ul class="ld-body cl-preview__quals" id="pv-quals"></ul>
+            </div>
+            <div class="cl-preview__section" id="pv-budget-section" hidden>
+              <h3 class="ld-section-h">budget</h3>
+              <p class="ld-body" id="pv-budget"></p>
+            </div>
+          </div>
+        </div>
+      </aside>
+      </div>
+    </main>
+
+    <script type="module" src="/create-listing.js"></script>
+
+    <!-- Suggestion Box -->
+    <button class="gr-suggest-btn" id="gr-suggest-btn" type="button" aria-label="suggestion box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
+    </button>
+    <div class="gr-suggest-overlay" id="gr-suggest-overlay">
+      <div class="gr-suggest-popup">
+        <div id="gr-suggest-form">
+          <p class="gr-suggest-popup__title">grassroots values and takes your feedback seriously&mdash;how can we improve?</p>
+          <textarea class="gr-suggest-popup__textarea" id="gr-suggest-input" placeholder="your suggestion…" maxlength="1000"></textarea>
+          <button class="gr-suggest-popup__submit" id="gr-suggest-submit" type="button">submit</button>
+        </div>
+        <div id="gr-suggest-thanks" hidden>
+          <p class="gr-suggest-popup__thanks">thank you for your feedback!</p>
+        </div>
+      </div>
+    </div>
+    <script src="/suggestion-box.js"></script>
+  </body>
+</html>

@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>about — grassroots</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./index.css" />
+    <style>
+      .about-page {
+        background:
+          radial-gradient(120% 120% at 50% 0%, rgba(47, 82, 67, 0.36) 0%, rgba(33, 37, 45, 0) 54%),
+          radial-gradient(120% 80% at 50% 0%, #343a47 0%, var(--bg-mid) 45%, var(--bg-deep) 100%);
+      }
+
+      .about-shell {
+        width: min(1200px, calc(100% - 2.25rem));
+        margin: 0 auto;
+        padding: 7.5rem 0 5rem;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 240px;
+        gap: clamp(1.5rem, 4vw, 3rem);
+        align-items: start;
+      }
+
+      .about-content {
+        display: grid;
+        gap: 1.75rem;
+      }
+
+      .about-panel {
+        background: rgba(20, 24, 30, 0.52);
+        border: 1px solid rgba(223, 231, 242, 0.12);
+        border-radius: 1.5rem;
+        padding: clamp(2rem, 4vw, 3rem);
+        box-shadow: 0 24px 60px rgba(4, 9, 16, 0.18);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+      }
+
+      .about-panel[id] {
+        scroll-margin-top: 6.5rem;
+      }
+
+      .about-kicker {
+        margin: 0 0 0.75rem;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #9ed0ff;
+      }
+
+      .about-heading {
+        margin: 0;
+        font-family: "Syne", sans-serif;
+        font-size: clamp(2rem, 5vw, 3.35rem);
+        line-height: 1.05;
+        letter-spacing: -0.04em;
+        color: #fff;
+      }
+
+      .about-body {
+        font-family: "Inter", sans-serif;
+        font-size: 1.02rem;
+        line-height: 1.75;
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .about-body p {
+        margin: 0;
+      }
+
+      .about-body p + p {
+        margin-top: 1.15rem;
+      }
+
+      .about-mission {
+        display: grid;
+        grid-template-columns: minmax(0, 1.02fr) minmax(280px, 0.98fr);
+        gap: clamp(1.5rem, 4vw, 2.75rem);
+        align-items: center;
+      }
+
+      .about-mission__copy .about-body {
+        margin-top: 1.3rem;
+        max-width: 38rem;
+      }
+
+      .about-mission__art {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+      }
+
+      .about-mission__art .mission-supercharge {
+        max-width: min(470px, 100%);
+        transform: none;
+      }
+
+      .about-founder {
+        display: grid;
+        grid-template-columns: 180px minmax(0, 1fr);
+        gap: clamp(1.4rem, 3vw, 2.25rem);
+        align-items: start;
+      }
+
+      .founder-avatar {
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        background: linear-gradient(145deg, rgba(143, 215, 180, 0.2), rgba(158, 208, 255, 0.16));
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        display: grid;
+        place-items: center;
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #dff4e8;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+      }
+
+      .about-stats__head,
+      .about-reviews__head {
+        max-width: 42rem;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+        margin-top: 2rem;
+      }
+
+      .stat-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 1.2rem;
+        padding: 1.75rem 1.35rem;
+      }
+
+      .stat-card__number {
+        margin-bottom: 0.45rem;
+        font-family: "Syne", sans-serif;
+        font-size: clamp(2.4rem, 5vw, 3.4rem);
+        font-weight: 800;
+        line-height: 1;
+        color: #9ed0ff;
+      }
+
+      .stat-card__label {
+        font-family: "Inter", sans-serif;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      .about-note {
+        margin: 1rem 0 0;
+        font-family: "Inter", sans-serif;
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.46);
+      }
+
+      .reviews-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+        margin-top: 2rem;
+      }
+
+      .review-card {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 1.1rem;
+        padding: 1.5rem 1.35rem;
+      }
+
+      .review-card__avatar {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
+        margin-bottom: 0.9rem;
+      }
+
+      .review-card__name {
+        margin-bottom: 0.55rem;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      .review-card__stars {
+        display: flex;
+        gap: 0.25rem;
+        margin-bottom: 0.85rem;
+      }
+
+      .review-card__stars svg {
+        width: 16px;
+        height: 16px;
+        stroke: rgba(255, 255, 255, 0.26);
+        fill: none;
+        stroke-width: 1.5;
+      }
+
+      .review-card__quote {
+        margin: 0;
+        font-family: "Inter", sans-serif;
+        font-size: 0.95rem;
+        line-height: 1.7;
+        color: rgba(255, 255, 255, 0.62);
+      }
+
+      .about-toc {
+        position: sticky;
+        top: 6.25rem;
+        background: rgba(12, 16, 22, 0.44);
+        border: 1px solid rgba(223, 231, 242, 0.12);
+        border-radius: 1.2rem;
+        padding: 1rem;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        box-shadow: 0 18px 40px rgba(5, 10, 18, 0.16);
+      }
+
+      .about-toc__title {
+        margin: 0 0 0.85rem;
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.52);
+      }
+
+      .about-toc__list {
+        display: grid;
+        gap: 0.45rem;
+      }
+
+      .about-toc__link {
+        display: block;
+        padding: 0.7rem 0.8rem;
+        border-radius: 0.9rem;
+        color: rgba(255, 255, 255, 0.84);
+        text-decoration: none;
+        font-size: 0.95rem;
+        line-height: 1.35;
+        transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+      }
+
+      .about-toc__link:hover,
+      .about-toc__link:focus-visible {
+        background: rgba(158, 208, 255, 0.14);
+        color: #fff;
+        transform: translateX(2px);
+        outline: none;
+      }
+
+      @media (max-width: 980px) {
+        .about-shell {
+          grid-template-columns: 1fr;
+          padding-top: 6.5rem;
+        }
+
+        .about-toc {
+          order: -1;
+          position: sticky;
+          top: 5.4rem;
+          z-index: 8;
+        }
+
+        .about-toc__list {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .about-mission,
+        .about-founder {
+          grid-template-columns: 1fr;
+        }
+
+        .about-mission__art {
+          justify-content: center;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .about-shell {
+          width: min(100%, calc(100% - 1.1rem));
+          padding-bottom: 3.5rem;
+        }
+
+        .about-panel {
+          padding: 1.5rem 1.2rem;
+          border-radius: 1.2rem;
+        }
+
+        .about-toc__list,
+        .stats-grid,
+        .reviews-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .founder-avatar {
+          width: 132px;
+          height: 132px;
+          font-size: 2.1rem;
+        }
+      }
+    </style>
+  </head>
+  <body class="beta-page about-page">
+    <nav class="site-nav" aria-label="Primary">
+      <div class="site-nav__inner">
+        <div class="site-nav__start">
+          <a class="site-nav__brand" href="./index.html">
+            <img class="site-nav__logo" src="./assets/grassroots-icon-syne.svg" width="24" height="40" alt="grassroots" />
+            <span class="site-nav__wordmark">grassroots</span>
+          </a>
+        </div>
+        <ul class="site-nav__links">
+          <li><a href="http://localhost:3000/">backyard</a></li>
+          <li><a href="/home/about.html" aria-current="page">about</a></li>
+          <li><a href="http://localhost:3000/signin.html">sign in</a></li>
+          <li><a class="site-nav__cta" href="http://localhost:3000/register.html">join grassroots</a></li>
+        </ul>
+        <div class="site-nav__end">
+          <a class="site-nav__sticky-cta" href="http://localhost:3000/register.html">join grassroots</a>
+          <button class="site-nav__menu-button" type="button" aria-expanded="false" aria-label="Open menu">
+            <span></span><span></span><span></span>
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <main class="about-shell">
+      <div class="about-content">
+        <section class="about-panel about-mission" id="about-mission" aria-labelledby="about-mission-heading">
+          <div class="about-mission__copy">
+            <p class="about-kicker">our mission</p>
+            <h1 class="about-heading" id="about-mission-heading">small business growth powered by students</h1>
+            <div class="about-body">
+              <p>grassroots connects small businesses with high-intent student talent so meaningful work, practical experience, and local growth happen at the same time.</p>
+            </div>
+          </div>
+
+          <div class="about-mission__art">
+            <div
+              class="mission-supercharge"
+              role="img"
+              aria-label="Illustration: a labeled student and your-business storefront; the graduate plugs in a cord and the building lights up with energy and brief cyan sparks"
+            >
+              <svg
+                class="mission-supercharge__svg"
+                viewBox="0 0 400 300"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <defs>
+                  <pattern
+                    id="about-ms-brickface"
+                    width="48"
+                    height="22"
+                    patternUnits="userSpaceOnUse"
+                    patternTransform="translate(207 96)"
+                  >
+                    <rect width="48" height="22" fill="#c9b2a8" />
+                    <rect x="1" y="1" width="14" height="8.5" rx="0.5" fill="#a3625a" stroke="#5c2a24" stroke-width="0.35" opacity="0.92" />
+                    <rect x="16" y="1" width="14" height="8.5" rx="0.5" fill="#8a5048" stroke="#4e2420" stroke-width="0.35" opacity="0.92" />
+                    <rect x="31" y="1" width="16" height="8.5" rx="0.5" fill="#ae7068" stroke="#5c3028" stroke-width="0.35" opacity="0.92" />
+                    <rect x="1" y="11" width="11" height="8.5" rx="0.5" fill="#955850" stroke="#4a221c" stroke-width="0.35" opacity="0.92" />
+                    <rect x="13" y="11" width="14" height="8.5" rx="0.5" fill="#bc8278" stroke="#62342c" stroke-width="0.35" opacity="0.92" />
+                    <rect x="28" y="11" width="14" height="8.5" rx="0.5" fill="#824840" stroke="#4a201c" stroke-width="0.35" opacity="0.92" />
+                    <rect x="43" y="11" width="4" height="8.5" rx="0.4" fill="#a6665c" stroke="#523028" stroke-width="0.35" opacity="0.92" />
+                  </pattern>
+                  <clipPath id="about-ms-brick-clip" clipPathUnits="userSpaceOnUse">
+                    <path
+                      fill-rule="evenodd"
+                      d="M207,96 L385,96 L385,262 L207,262 Z M218,136 L322,136 L322,218 L218,218 Z M332,136 L372,136 L372,250 L332,250 Z"
+                    />
+                  </clipPath>
+                  <clipPath id="about-ms-plug-prong-clip" clipPathUnits="userSpaceOnUse">
+                    <rect x="0" y="0" width="206.75" height="300" />
+                  </clipPath>
+                  <linearGradient id="about-ms-awning" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#6b7585" />
+                    <stop offset="100%" stop-color="#454c58" />
+                  </linearGradient>
+                  <linearGradient id="about-ms-glass" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#a5c3dc" stop-opacity="0.35" />
+                    <stop offset="45%" stop-color="#1c2430" stop-opacity="0.92" />
+                    <stop offset="100%" stop-color="#141a22" stop-opacity="0.96" />
+                  </linearGradient>
+                  <linearGradient id="about-ms-glow" x1="0%" y1="100%" x2="0%" y2="0%">
+                    <stop offset="0%" stop-color="#8fd7b4" stop-opacity="0" />
+                    <stop offset="0.55" stop-color="#9ed0ff" stop-opacity="0.55" />
+                    <stop offset="1" stop-color="#e8f4ff" stop-opacity="0.9" />
+                  </linearGradient>
+                </defs>
+
+                <g class="mission-supercharge__store">
+                  <g class="mission-supercharge__facade-shake">
+                    <path
+                      class="mission-supercharge__cable"
+                      fill="none"
+                      stroke="rgba(55, 62, 72, 0.92)"
+                      stroke-width="3.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M62,206 C74,226 102,232 132,218 C140,214 152,210 171,207"
+                    />
+                    <path
+                      class="mission-supercharge__cable mission-supercharge__cable--inner"
+                      fill="none"
+                      stroke="rgba(200, 210, 225, 0.35)"
+                      stroke-width="1.2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M62,206 C74,226 102,232 132,218 C140,214 152,210 171,207"
+                    />
+
+                    <g clip-path="url(#about-ms-plug-prong-clip)">
+                      <g class="mission-supercharge__plug-prongs">
+                        <rect x="27" y="8.8" width="7.5" height="2.4" rx="0.6" fill="#c8d4e0" />
+                        <rect x="27" y="13.8" width="7.5" height="2.4" rx="0.6" fill="#c8d4e0" />
+                      </g>
+                    </g>
+
+                    <g class="mission-supercharge__facade">
+                      <rect x="207" y="96" width="178" height="166" rx="3" fill="#c9b2a8" stroke="rgba(0,0,0,0.4)" stroke-width="1.2" />
+                      <rect x="207" y="96" width="178" height="166" rx="3" fill="url(#about-ms-brickface)" clip-path="url(#about-ms-brick-clip)" />
+                      <rect x="203" y="92" width="186" height="8" rx="2" fill="#6e6258" stroke="rgba(0,0,0,0.22)" stroke-width="0.8" />
+                      <rect x="207" y="98" width="178" height="4" fill="rgba(255,248,240,0.08)" />
+                      <path d="M198,110 L392,110 L386,128 L204,128 Z" fill="url(#about-ms-awning)" stroke="rgba(0,0,0,0.28)" stroke-width="0.8" />
+                      <text
+                        x="296"
+                        y="90"
+                        text-anchor="middle"
+                        fill="rgba(255,255,255,0.5)"
+                        font-size="8"
+                        font-family="Syne, sans-serif"
+                        font-weight="700"
+                        style="text-transform: lowercase"
+                      >
+                        your business
+                      </text>
+                      <rect x="220" y="138" width="100" height="78" rx="1" fill="#161b21" />
+                      <rect x="218" y="136" width="104" height="82" rx="2" fill="url(#about-ms-glass)" stroke="rgba(30,26,22,0.55)" stroke-width="2" />
+                      <rect x="224" y="142" width="92" height="70" rx="1" fill="rgba(10,14,18,0.62)" />
+                      <line x1="270" y1="142" x2="270" y2="212" stroke="rgba(30,26,22,0.35)" stroke-width="1.6" />
+                      <rect x="218" y="218" width="104" height="5" rx="1" fill="rgba(88, 80, 72, 0.98)" stroke="rgba(0,0,0,0.25)" stroke-width="0.55" />
+                      <rect x="332" y="136" width="40" height="114" rx="2" fill="#2c2622" stroke="rgba(30,26,22,0.55)" stroke-width="2" />
+                      <rect x="335" y="139" width="34" height="108" rx="1" fill="#252019" />
+                      <circle cx="362" cy="192" r="2.2" fill="rgba(212, 200, 180, 0.65)" />
+                      <rect x="332" y="132" width="40" height="6" rx="1" fill="#4a4038" />
+                      <rect x="322" y="254" width="56" height="8" rx="1" fill="#6e6860" stroke="rgba(0,0,0,0.28)" stroke-width="0.7" />
+                      <rect x="326" y="250" width="48" height="4" rx="1" fill="#787068" stroke="rgba(0,0,0,0.22)" stroke-width="0.65" />
+                      <rect x="330" y="246" width="42" height="4" rx="1" fill="#827a72" stroke="rgba(0,0,0,0.2)" stroke-width="0.6" />
+                    </g>
+
+                    <g class="mission-supercharge__plug-body">
+                      <rect x="0" y="5" width="27" height="15" rx="3" fill="#3a424c" stroke="rgba(200, 210, 225, 0.45)" stroke-width="1" />
+                    </g>
+
+                    <g class="mission-supercharge__click-flash" transform="translate(204, 207)">
+                      <circle class="mission-supercharge__click-core" r="4" fill="#f4fbff" opacity="0" />
+                      <circle class="mission-supercharge__click-ring" r="10" fill="none" stroke="rgba(180, 230, 255, 0.95)" stroke-width="2" opacity="0" />
+                    </g>
+
+                    <rect
+                      x="207"
+                      y="96"
+                      width="178"
+                      height="166"
+                      rx="3"
+                      fill="url(#about-ms-glow)"
+                      class="mission-supercharge__facade-glow"
+                    />
+                    <rect
+                      x="207"
+                      y="96"
+                      width="178"
+                      height="166"
+                      rx="3"
+                      fill="none"
+                      stroke="rgba(158, 208, 255, 0.4)"
+                      stroke-width="1.2"
+                      class="mission-supercharge__facade-crackle"
+                    />
+
+                    <g class="mission-supercharge__lightning" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path
+                        class="mission-supercharge__bolt mission-supercharge__bolt--a"
+                        stroke="rgba(110, 235, 255, 0.95)"
+                        stroke-width="1.15"
+                        d="M238,99 L244,90 L240,84 M256,97 L264,86 L260,80 M276,101 L284,91 L280,84 M298,96 L306,86 L302,80 M318,99 L326,90 L322,84 M340,97 L348,88 L344,82"
+                      />
+                      <path
+                        class="mission-supercharge__bolt mission-supercharge__bolt--b"
+                        stroke="rgba(170, 250, 255, 0.9)"
+                        stroke-width="0.85"
+                        d="M220,104 L224,96 L221,91 M352,103 L358,95 L354,89 M268,88 L272,82 L269,77 M308,88 L314,80 L310,75"
+                      />
+                    </g>
+
+                    <g class="mission-supercharge__sparks" stroke-linecap="round" fill="none">
+                      <path
+                        class="mission-supercharge__spark"
+                        stroke="rgba(180, 230, 255, 0.85)"
+                        stroke-width="1.4"
+                        d="M216,118 L228,106 M236,116 L248,100 M258,114 L270,98 M284,116 L298,102"
+                      />
+                      <path
+                        class="mission-supercharge__spark mission-supercharge__spark--b"
+                        stroke="rgba(143, 215, 180, 0.75)"
+                        stroke-width="1.1"
+                        d="M308,122 L324,110 M336,120 L350,104"
+                      />
+                      <path
+                        class="mission-supercharge__spark mission-supercharge__spark--c"
+                        stroke="rgba(220, 240, 255, 0.65)"
+                        stroke-width="0.9"
+                        d="M220,148 L234,140 M248,150 L262,142 M274,150 L288,142"
+                      />
+                    </g>
+                  </g>
+                </g>
+
+                <g class="mission-supercharge__student">
+                  <text
+                    x="48"
+                    y="152"
+                    text-anchor="middle"
+                    fill="rgba(255,255,255,0.5)"
+                    font-size="8"
+                    font-family="Syne, sans-serif"
+                    font-weight="700"
+                    style="text-transform: lowercase"
+                  >
+                    student
+                  </text>
+                  <ellipse cx="48" cy="248" rx="22" ry="5" fill="rgba(0,0,0,0.12)" />
+                  <circle cx="48" cy="192" r="11" fill="#e8d8ca" stroke="rgba(40,32,28,0.15)" stroke-width="0.8" />
+                  <path
+                    d="M34,203 Q48,195 62,203 L60,241 Q48,247 36,241 Z"
+                    fill="#2a4067"
+                    stroke="rgba(255,255,255,0.05)"
+                    stroke-width="0.6"
+                  />
+                  <path
+                    d="M41,202.5 L55,202.5 L56.5,215.5 L48,228 L39.5,215.5 Z"
+                    fill="#f5f4f0"
+                    opacity="0.98"
+                  />
+                  <path d="M48,207 L52.3,216 L48,227 L43.7,216 Z" fill="#25364f" />
+                  <path d="M34.5,214 L42,216" fill="none" stroke="rgba(18,27,42,0.32)" stroke-width="1.1" stroke-linecap="round" />
+                  <path d="M61.5,214 L54,216" fill="none" stroke="rgba(18,27,42,0.32)" stroke-width="1.1" stroke-linecap="round" />
+                  <rect x="40.5" y="236" width="6.2" height="13.5" rx="2.2" fill="#4c6997" />
+                  <rect x="49.3" y="236" width="6.2" height="13.5" rx="2.2" fill="#456189" />
+                  <rect x="39.6" y="248.2" width="7.8" height="2.9" rx="1.45" fill="#1d2330" />
+                  <rect x="48.8" y="248.2" width="7.8" height="2.9" rx="1.45" fill="#1d2330" />
+                  <g transform="translate(48,181)">
+                    <path
+                      d="M0,-9 L18,0 L0,9 L-18,0 Z"
+                      fill="#1a1e26"
+                      stroke="rgba(255,248,240,0.22)"
+                      stroke-width="0.55"
+                      stroke-linejoin="miter"
+                    />
+                    <path
+                      d="M-15,0 Q0,4 15,0 L14,5 Q0,10 -14,5 Z"
+                      fill="#252a34"
+                      stroke="rgba(255,248,240,0.18)"
+                      stroke-width="0.45"
+                    />
+                    <g class="mission-supercharge__tassel">
+                      <line x1="18" y1="0" x2="18" y2="5.5" stroke="#d4af37" stroke-width="1.35" stroke-linecap="round" />
+                      <path
+                        d="M18,5.5 Q19.2,11.5 19.8,17.5"
+                        stroke="#c9a227"
+                        stroke-width="1.15"
+                        stroke-linecap="round"
+                        fill="none"
+                      />
+                      <path
+                        d="M16.8,17.5 L17.8,22 L18.8,17.5 L19.8,22 L20.8,17.5 L21.8,22 L22.8,17.5"
+                        stroke="#e8c84a"
+                        stroke-width="1.05"
+                        stroke-linecap="round"
+                        fill="none"
+                      />
+                      <ellipse cx="19.8" cy="22.8" rx="2.2" ry="1.45" fill="#e8c84a" opacity="0.95" />
+                    </g>
+                  </g>
+                  <path d="M57.5,210 L65.5,212 L68.5,202.5" fill="none" stroke="#2a4067" stroke-width="8" stroke-linecap="round" />
+                  <circle cx="68" cy="201" r="5.5" fill="#e8d8ca" stroke="rgba(55,62,72,0.25)" stroke-width="0.6" />
+                </g>
+              </svg>
+            </div>
+          </div>
+        </section>
+
+        <section class="about-panel about-founder" id="about-founder" aria-labelledby="about-founder-heading">
+          <div class="founder-avatar" aria-label="Moiz Dalal">MD</div>
+          <div>
+            <p class="about-kicker">meet the founder</p>
+            <h2 class="about-heading" id="about-founder-heading">moiz dalal</h2>
+            <div class="about-body" style="margin-top: 1.3rem">
+              <p>While serving on the leadership team of the UF Rho Epsilon Mu (REM) on-campus chapter, Moiz saw firsthand how many small businesses were desperate for consultative services like marketing strategy, financial planning, and operations support but could not afford traditional agency rates.</p>
+              <p>At the same time, he noticed an incredible pool of motivated students eager to apply what they were learning in real-world settings and hungry for experience, portfolio pieces, and the kind of work that actually moves the needle.</p>
+              <p>grassroots was born from that realization: the gap between small business need and student ambition is a bridge worth building. By connecting businesses with talented consultants at accessible price points, grassroots creates a win-win with real growth for businesses and invaluable experience for consultants.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="about-panel about-stats" id="about-stats" aria-labelledby="about-stats-heading">
+          <div class="about-stats__head">
+            <p class="about-kicker">grassroots by the numbers</p>
+            <h2 class="about-heading" id="about-stats-heading">the platform so far</h2>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-card__number">0</div>
+              <div class="stat-card__label">businesses onboarded</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card__number">0</div>
+              <div class="stat-card__label">consultants active</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card__number">0</div>
+              <div class="stat-card__label">opportunities completed</div>
+            </div>
+          </div>
+          <p class="about-note">live stats — updated in real time</p>
+        </section>
+
+        <section class="about-panel about-reviews" id="about-reviews" aria-labelledby="about-reviews-heading">
+          <div class="about-reviews__head">
+            <p class="about-kicker">reviews</p>
+            <h2 class="about-heading" id="about-reviews-heading">what businesses are saying</h2>
+          </div>
+          <div class="reviews-grid">
+            <article class="review-card">
+              <div class="review-card__avatar" aria-hidden="true"></div>
+              <div class="review-card__name">—</div>
+              <div class="review-card__stars" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+              </div>
+              <p class="review-card__quote">review coming soon...</p>
+            </article>
+            <article class="review-card">
+              <div class="review-card__avatar" aria-hidden="true"></div>
+              <div class="review-card__name">—</div>
+              <div class="review-card__stars" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+              </div>
+              <p class="review-card__quote">review coming soon...</p>
+            </article>
+            <article class="review-card">
+              <div class="review-card__avatar" aria-hidden="true"></div>
+              <div class="review-card__name">—</div>
+              <div class="review-card__stars" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+              </div>
+              <p class="review-card__quote">review coming soon...</p>
+            </article>
+          </div>
+          <p class="about-note">reviews will appear here as businesses share their grassroots experience.</p>
+        </section>
+      </div>
+
+      <aside class="about-toc" aria-label="About page guide">
+        <p class="about-toc__title">on this page</p>
+        <div class="about-toc__list">
+          <a class="about-toc__link" href="#about-mission">our mission</a>
+          <a class="about-toc__link" href="#about-founder">meet the founder</a>
+          <a class="about-toc__link" href="#about-stats">the platform so far</a>
+          <a class="about-toc__link" href="#about-reviews">what businesses are saying</a>
+        </div>
+      </aside>
+    </main>
+  </body>
+</html>

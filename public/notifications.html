@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grassroots — notifications</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Inter:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/grassroots.css" />
+  </head>
+  <body class="gr-body">
+    <nav class="gr-nav" aria-label="Primary">
+      <div class="gr-nav__inner">
+        <a class="gr-nav__brand" href="/home/">
+          <img class="gr-nav__logo" src="/home/assets/grassroots-icon-syne.svg" width="20" height="34" alt="" />
+          <span class="gr-nav__wordmark">grassroots</span>
+        </a>
+        <ul class="gr-nav__links">
+          <li><a href="/">backyard</a></li>
+          <li><a href="/signin.html">sign in</a></li>
+          <li><a href="/register.html" class="gr-nav__cta">register</a></li>
+          <li><a href="/profile.html">profile</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <main class="gr-shell">
+      <div class="gr-page-intro">
+        <p class="gr-page-eyebrow">activity and follow-up</p>
+        <h1 class="gr-title">notifications</h1>
+        <p class="gr-subtitle">stay in the loop on your bids, meetings, and messages.</p>
+      </div>
+
+      <p id="gate" class="gr-status" aria-live="polite">loading…</p>
+      <div id="notif-list" class="gr-notification-feed"></div>
+    </main>
+
+    <script type="module" src="/notifications.js"></script>
+
+    <!-- Suggestion Box -->
+    <button class="gr-suggest-btn" id="gr-suggest-btn" type="button" aria-label="suggestion box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
+    </button>
+    <div class="gr-suggest-overlay" id="gr-suggest-overlay">
+      <div class="gr-suggest-popup">
+        <div id="gr-suggest-form">
+          <p class="gr-suggest-popup__title">grassroots values and takes your feedback seriously&mdash;how can we improve?</p>
+          <textarea class="gr-suggest-popup__textarea" id="gr-suggest-input" placeholder="your suggestion…" maxlength="1000"></textarea>
+          <button class="gr-suggest-popup__submit" id="gr-suggest-submit" type="button">submit</button>
+        </div>
+        <div id="gr-suggest-thanks" hidden>
+          <p class="gr-suggest-popup__thanks">thank you for your feedback!</p>
+        </div>
+      </div>
+    </div>
+    <script src="/suggestion-box.js"></script>
+  </body>
+</html>

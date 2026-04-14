@@ -1,0 +1,176 @@
+/* --- Password hint --- */
+.reg-pw-hint {
+  font-size: 0.72rem;
+  color: var(--tagline-body);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  opacity: 0.85;
+}
+
+/* --- Progress Bar --- */
+.reg-progress {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.reg-progress__track {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 0.6rem;
+}
+
+.reg-progress__seg {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(27, 67, 50, 0.1);
+  transition: background 0.4s var(--ease-framer);
+}
+
+.reg-progress__seg.is-done {
+  background: linear-gradient(90deg, var(--green-mid), var(--green-light));
+}
+
+.reg-progress__seg.is-active {
+  background: var(--green-pale);
+}
+
+.reg-progress__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--tagline-body);
+  text-transform: uppercase;
+}
+
+/* --- Slides --- */
+.reg-slides {
+  position: relative;
+}
+
+.reg-slide {
+  display: none;
+}
+
+.reg-slide--active {
+  display: block;
+  animation: slide-in 0.45s var(--ease-framer) both;
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* --- Role Cards --- */
+.reg-role-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding: 0.25rem;
+}
+
+.reg-role-card {
+  cursor: pointer;
+}
+
+.reg-role-card input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.reg-role-card__face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.55rem;
+  padding: 1.35rem 1rem;
+  border: 2px solid var(--card-border);
+  border-radius: 14px;
+  background: var(--sky);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+}
+
+.reg-role-card__face:hover {
+  border-color: rgba(45, 106, 79, 0.3);
+  box-shadow: 0 4px 16px rgba(27, 67, 50, 0.08);
+}
+
+.reg-role-card input:checked + .reg-role-card__face {
+  border-color: var(--green-mid);
+  background: rgba(45, 106, 79, 0.04);
+  box-shadow: 0 0 0 3px var(--input-focus), 0 4px 16px rgba(27, 67, 50, 0.1);
+}
+
+.reg-role-card__icon {
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--green-light);
+}
+
+.reg-role-card__title {
+  font-family: Fraunces, Georgia, serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--green-deep);
+}
+
+.reg-role-card__hint {
+  font-size: 0.8rem;
+  color: var(--tagline-body);
+  line-height: 1.4;
+}
+
+/* --- Field Grid Variants --- */
+.reg-field-grid--2 {
+  grid-template-columns: 1fr 1fr;
+  gap: 1.35rem 1rem;
+  padding: 0.25rem;
+  min-width: 0;
+}
+
+.reg-field-grid--2 .gr-label {
+  min-width: 0;
+}
+
+.reg-field-grid--2 .gr-label input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* --- Registration Nav --- */
+.reg-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--card-border);
+}
+
+/* --- Responsive --- */
+@media (max-width: 520px) {
+  .reg-role-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .reg-field-grid--2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reg-slide--active {
+    animation: none;
+  }
+}

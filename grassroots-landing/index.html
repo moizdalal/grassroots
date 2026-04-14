@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>grassroots beta</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Inter:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="./index.css" />
+</head>
+
+<body class="beta-page is-loading" data-audience="business">
+  <canvas id="starfield" class="starfield" aria-hidden="true"></canvas>
+  <div class="hero-clouds" id="hero-clouds" aria-hidden="true">
+    <div class="hero-clouds__layer hero-clouds__layer--far">
+      <div class="hero-clouds__scroll">
+        <div class="hero-clouds__pane hero-clouds__pane--far">
+          <span class="hero-clouds__blob hero-clouds__blob--a"></span>
+          <span class="hero-clouds__blob hero-clouds__blob--b"></span>
+          <span class="hero-clouds__blob hero-clouds__blob--c"></span>
+          <span class="hero-clouds__blob hero-clouds__blob--d"></span>
+        </div>
+        <div class="hero-clouds__pane hero-clouds__pane--far">
+          <span class="hero-clouds__blob hero-clouds__blob--a"></span>
+          <span class="hero-clouds__blob hero-clouds__blob--b"></span>
+          <span class="hero-clouds__blob hero-clouds__blob--c"></span>
+          <span class="hero-clouds__blob hero-clouds__blob--d"></span>
+        </div>
+      </div>
+    </div>
+    <div class="hero-clouds__layer hero-clouds__layer--mid">
+      <div class="hero-clouds__scroll">
+        <div class="hero-clouds__pane hero-clouds__pane--mid">
+          <span class="hero-clouds__blob hero-clouds__blob--e"></span>
+          <span class="hero-clouds__blob hero-clouds__blob--f"></span>
+          <span class="hero-clouds__blob hero-clouds__blob--g"></span>
+          <span class="hero-clouds__blob hero-clouds__blob--h"></span>
+          <span class="hero-clouds__blob hero-clouds__blob--i"></span>
+        </div>
+        <div class="hero-clouds__pane hero-clouds__pane--mid">
+          <span class="hero-clouds__blob hero-clouds__blob--e"></span>
+          <span class="hero-clouds__blob hero-clouds__blob--f"></span>
+          <span class="hero-clouds__blob hero-clouds__blob--g"></span>
+          <span class="hero-clouds__blob hero-clouds__blob--h"></span>
+          <span class="hero-clouds__blob hero-clouds__blob--i"></span>
+        </div>
+      </div>
+    </div>
+    <div class="hero-clouds__layer hero-clouds__layer--near">
+      <div class="hero-clouds__scroll">
+        <div class="hero-clouds__pane hero-clouds__pane--near">
+          <span class="hero-clouds__blob hero-clouds__blob--j"></span>
+          <span class="hero-clouds__blob hero-clouds__blob--k"></span>
+          <span class="hero-clouds__blob hero-clouds__blob--l"></span>
+          <span class="hero-clouds__blob hero-clouds__blob--m"></span>
+        </div>
+        <div class="hero-clouds__pane hero-clouds__pane--near">
+          <span class="hero-clouds__blob hero-clouds__blob--j"></span>
+          <span class="hero-clouds__blob hero-clouds__blob--k"></span>
+          <span class="hero-clouds__blob hero-clouds__blob--l"></span>
+          <span class="hero-clouds__blob hero-clouds__blob--m"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="intro-wipe" id="intro-wipe" aria-hidden="true">
+    <div class="intro-wipe__title">
+      <img class="intro-wipe__logo" src="./assets/grassroots-icon-syne.svg" width="32" height="54" alt="" />
+      grassroots <span class="intro-wipe__beta">[beta]</span>
+    </div>
+  </div>
+
+  <nav class="site-nav" aria-label="Primary">
+    <div class="site-nav__inner">
+      <div class="site-nav__start">
+        <a class="site-nav__brand" href="./index.html">
+          <img class="site-nav__logo" src="./assets/grassroots-icon-syne.svg" width="24" height="40" alt="grassroots" />
+          <span class="site-nav__wordmark">grassroots</span>
+        </a>
+      </div>
+      <ul class="site-nav__links">
+        <li><a href="http://localhost:3000/">backyard</a></li>
+        <li><a href="/home/about.html">about</a></li>
+        <li><a href="http://localhost:3000/signin.html">sign in</a></li>
+        <li><a class="site-nav__cta" href="http://localhost:3000/register.html">join grassroots</a></li>
+      </ul>
+      <div class="site-nav__end">
+        <a class="site-nav__sticky-cta" id="site-sticky-cta" href="http://localhost:3000/register.html">join
+          grassroots</a>
+        <button class="site-nav__menu-button" id="site-menu-button" type="button" aria-expanded="false"
+          aria-controls="site-menu-panel" aria-label="Open menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </nav>
+  <div class="site-menu-panel" id="site-menu-panel" hidden>
+    <a href="http://localhost:3000/">backyard</a>
+    <a href="/home/about.html">about</a>
+    <a href="http://localhost:3000/signin.html">sign in</a>
+    <a href="http://localhost:3000/register.html">join grassroots</a>
+  </div>
+
+  <main class="hero" aria-label="Beta intro" id="top">
+    <div class="hero__track">
+      <div class="hero__content">
+        <div class="hero__float hero__float--title">
+          <h1 class="hero-line">
+            <span class="hero-line__static">the small business solution for:</span>
+            <span class="hero-line__cycle-row">
+              <span class="word-cycle" id="word-cycle-slot" aria-live="polite">
+                <span class="word-cycle__inner" id="word-cycle-target">strategy</span>
+                <span class="word-cycle__icon" id="word-cycle-icon" aria-hidden="true">✧</span>
+              </span>
+            </span>
+          </h1>
+        </div>
+        <div class="hero__float hero__float--sub">
+          <p class="hero-subscript">
+            register your business as a grassroots partner and<br aria-hidden="true" />
+            <strong class="hero-subscript__emphasis">join the backyard</strong>
+          </p>
+        </div>
+        <div class="hero__cta-wrap">
+          <a class="hero__cta" href="http://localhost:3000/register.html"><span class="hero__cta__text">join
+              grassroots</span></a>
+        </div>
+      </div>
+    </div>
+  </main>
+  <div class="grass-bed" aria-hidden="true">
+    <canvas id="grass-overlay" class="grass-overlay"></canvas>
+  </div>
+  <button class="scroll-cue" id="scroll-cue" type="button" aria-label="Scroll down">
+    <span class="scroll-cue__dot" aria-hidden="true"></span>
+    <span class="scroll-cue__arrow" aria-hidden="true">⌄</span>
+  </button>
+
+  <section class="mission-section mission-section--dirt mission-section--backyard" id="mission"
+    aria-labelledby="mission-heading">
+    <div class="mission-section__roots" aria-hidden="true">
+      <svg class="mission-section__roots-svg" viewBox="0 0 1200 88" preserveAspectRatio="none"
+        xmlns="http://www.w3.org/2000/svg">
+        <path class="mission-section__root" fill="none" stroke="rgba(214, 190, 160, 0.86)" stroke-width="1.78"
+          stroke-linecap="round" d="M24,0 C18,16 18,34 26,72" />
+        <path class="mission-section__root" fill="none" stroke="rgba(190, 164, 134, 0.78)" stroke-width="1.16"
+          stroke-linecap="round" d="M72,0 C76,14 78,30 74,58" />
+        <path class="mission-section__root" fill="none" stroke="rgba(220, 198, 170, 0.84)" stroke-width="1.92"
+          stroke-linecap="round" d="M120,0 C114,20 116,38 124,80" />
+        <path class="mission-section__root" fill="none" stroke="rgba(184, 158, 126, 0.78)" stroke-width="1.2"
+          stroke-linecap="round" d="M168,0 C172,14 176,28 170,50" />
+        <path class="mission-section__root" fill="none" stroke="rgba(208, 184, 152, 0.84)" stroke-width="1.7"
+          stroke-linecap="round" d="M216,0 C210,18 212,38 220,68" />
+        <path class="mission-section__root" fill="none" stroke="rgba(172, 146, 116, 0.76)" stroke-width="1.08"
+          stroke-linecap="round" d="M264,0 C268,12 272,26 266,44" />
+        <path class="mission-section__root" fill="none" stroke="rgba(214, 190, 160, 0.84)" stroke-width="1.8"
+          stroke-linecap="round" d="M312,0 C306,18 306,36 316,76" />
+        <path class="mission-section__root" fill="none" stroke="rgba(194, 168, 138, 0.8)" stroke-width="1.24"
+          stroke-linecap="round" d="M360,0 C364,14 366,30 362,56" />
+        <path class="mission-section__root" fill="none" stroke="rgba(224, 202, 174, 0.84)" stroke-width="1.96"
+          stroke-linecap="round" d="M408,0 C402,18 404,40 412,82" />
+        <path class="mission-section__root" fill="none" stroke="rgba(186, 160, 128, 0.78)" stroke-width="1.18"
+          stroke-linecap="round" d="M456,0 C462,14 464,26 458,48" />
+        <path class="mission-section__root" fill="none" stroke="rgba(204, 180, 148, 0.82)" stroke-width="1.6"
+          stroke-linecap="round" d="M504,0 C498,18 500,34 508,64" />
+        <path class="mission-section__root" fill="none" stroke="rgba(172, 146, 116, 0.74)" stroke-width="1.04"
+          stroke-linecap="round" d="M552,0 C556,12 558,24 554,42" />
+        <path class="mission-section__root" fill="none" stroke="rgba(216, 192, 160, 0.84)" stroke-width="1.84"
+          stroke-linecap="round" d="M600,0 C594,16 596,38 604,78" />
+        <path class="mission-section__root" fill="none" stroke="rgba(194, 168, 138, 0.78)" stroke-width="1.22"
+          stroke-linecap="round" d="M648,0 C652,14 654,30 650,56" />
+        <path class="mission-section__root" fill="none" stroke="rgba(222, 200, 170, 0.84)" stroke-width="1.9"
+          stroke-linecap="round" d="M696,0 C690,20 692,40 700,84" />
+        <path class="mission-section__root" fill="none" stroke="rgba(186, 160, 130, 0.78)" stroke-width="1.14"
+          stroke-linecap="round" d="M744,0 C750,14 752,26 746,46" />
+        <path class="mission-section__root" fill="none" stroke="rgba(208, 184, 154, 0.82)" stroke-width="1.66"
+          stroke-linecap="round" d="M792,0 C786,18 786,34 796,66" />
+        <path class="mission-section__root" fill="none" stroke="rgba(170, 144, 114, 0.74)" stroke-width="1.02"
+          stroke-linecap="round" d="M840,0 C844,12 846,24 842,44" />
+        <path class="mission-section__root" fill="none" stroke="rgba(216, 192, 162, 0.84)" stroke-width="1.86"
+          stroke-linecap="round" d="M888,0 C882,18 884,38 892,80" />
+        <path class="mission-section__root" fill="none" stroke="rgba(192, 166, 136, 0.78)" stroke-width="1.2"
+          stroke-linecap="round" d="M936,0 C942,14 944,30 938,56" />
+        <path class="mission-section__root" fill="none" stroke="rgba(224, 202, 174, 0.84)" stroke-width="1.94"
+          stroke-linecap="round" d="M984,0 C978,20 980,40 988,82" />
+        <path class="mission-section__root" fill="none" stroke="rgba(184, 158, 128, 0.78)" stroke-width="1.16"
+          stroke-linecap="round" d="M1032,0 C1038,14 1040,26 1034,48" />
+        <path class="mission-section__root" fill="none" stroke="rgba(208, 184, 154, 0.82)" stroke-width="1.68"
+          stroke-linecap="round" d="M1080,0 C1074,18 1076,34 1084,68" />
+        <path class="mission-section__root" fill="none" stroke="rgba(172, 146, 116, 0.74)" stroke-width="1.04"
+          stroke-linecap="round" d="M1128,0 C1132,12 1134,28 1130,52" />
+        <path class="mission-section__root" fill="none" stroke="rgba(214, 190, 160, 0.84)" stroke-width="1.82"
+          stroke-linecap="round" d="M1176,0 C1170,18 1172,36 1180,74" />
+      </svg>
+    </div>
+    <div class="mission-inner mission-inner--backyard">
+      <div class="mission-copy mission-copy--backyard">
+        <span class="mission-kicker">the backyard</span>
+        <h2 id="mission-heading">a marketplace for the one-off intern.</h2>
+      </div>
+
+      <section class="backyard-demo" id="marketplace-preview" aria-labelledby="backyard-demo-heading">
+        <div class="backyard-demo__meta">
+          <span class="backyard-demo__eyebrow">consultant marketplace simulation</span>
+          <div class="backyard-demo__tooltip">
+            <button type="button" class="backyard-demo__tooltip-trigger" aria-describedby="backyard-demo-tooltip">
+              interactive
+            </button>
+            <div class="backyard-demo__tooltip-bubble" id="backyard-demo-tooltip" role="tooltip">
+              click any listing, move between pages, type your own offer details, and submit without saving anything.
+            </div>
+          </div>
+        </div>
+
+        <div class="mac-desktop backyard-desktop">
+          <div class="backyard-desktop__menu" aria-hidden="true">
+            <span>finder</span>
+            <span>file</span>
+            <span>edit</span>
+            <span>view</span>
+            <span class="backyard-desktop__menu-spacer"></span>
+            <span>Tue 9:41 AM</span>
+          </div>
+
+          <div class="mac-preview backyard-browser">
+            <div class="mac-preview__chrome backyard-browser__chrome">
+              <div class="backyard-browser__lights" aria-hidden="true">
+                <i class="backyard-browser__light backyard-browser__light--yellow"></i>
+                <i class="backyard-browser__light backyard-browser__light--green"></i>
+              </div>
+              <div class="backyard-browser__tabs">
+                <div class="backyard-browser__tab is-active">backyard</div>
+              </div>
+              <div class="backyard-browser__address">grassroots.local/backyard</div>
+            </div>
+
+            <div class="mac-preview__body backyard-browser__body" id="backyard-sim-root" data-view="grid">
+              <div class="backyard-sim__stage backyard-sim__stage--grid" id="backyard-grid-stage">
+                <div class="backyard-sim__market-head">
+                  <div>
+                    <p class="backyard-sim__crumb">backyard</p>
+                    <h3 class="backyard-sim__market-title" id="backyard-demo-heading">browse open opportunities</h3>
+                  </div>
+                  <button type="button" class="backyard-sim__ghost" id="backyard-reset-btn">restart demo</button>
+                </div>
+
+                <div class="backyard-sim__filters" aria-hidden="true">
+                  <span class="backyard-sim__search">search opportunities…</span>
+                  <span class="backyard-sim__filter-pill">all types</span>
+                  <span class="backyard-sim__filter-pill">all categories</span>
+                  <span class="backyard-sim__filter-pill">$ min-max</span>
+                </div>
+
+                <div class="backyard-sim__grid" id="backyard-sim-grid" aria-live="polite"></div>
+              </div>
+
+              <div class="backyard-sim__stage backyard-sim__stage--detail" id="backyard-detail-stage" hidden>
+                <div class="backyard-sim__detail-shell">
+                  <div class="backyard-sim__detail-main">
+                    <button type="button" class="backyard-sim__back" id="backyard-back-btn">&larr; back to
+                      backyard</button>
+
+                    <section class="backyard-sim__about-card">
+                      <div class="backyard-sim__about-brand">
+                        <div class="backyard-sim__logo backyard-sim__logo--detail" id="backyard-detail-logo"
+                          aria-hidden="true"></div>
+                        <div class="backyard-sim__about-brand-copy">
+                          <p class="backyard-sim__about-kicker">about the business</p>
+                          <h3 class="backyard-sim__about-name" id="backyard-detail-business"></h3>
+                          <p class="backyard-sim__about-owner" id="backyard-detail-owner"></p>
+                        </div>
+                      </div>
+                      <p class="backyard-sim__about-copy" id="backyard-detail-about"></p>
+                    </section>
+
+                    <section class="backyard-sim__opportunity">
+                      <p class="backyard-sim__opportunity-label">opportunity</p>
+                      <div class="backyard-sim__tag-row" id="backyard-detail-tags"></div>
+                      <h3 class="backyard-sim__opportunity-title" id="backyard-detail-title"></h3>
+                      <p class="backyard-sim__opportunity-budget" id="backyard-detail-budget"></p>
+                      <div class="backyard-sim__meta-row">
+                        <span id="backyard-detail-posted"></span>
+                        <span id="backyard-detail-turnaround"></span>
+                      </div>
+
+                      <div class="backyard-sim__detail-section">
+                        <h4>the challenge</h4>
+                        <p id="backyard-detail-summary"></p>
+                      </div>
+
+                      <div class="backyard-sim__detail-section">
+                        <h4>details</h4>
+                        <p id="backyard-detail-details"></p>
+                      </div>
+
+                      <div class="backyard-sim__detail-section">
+                        <h4>qualifications</h4>
+                        <ul id="backyard-detail-quals"></ul>
+                      </div>
+
+                      <button type="button" class="backyard-sim__question-btn" id="backyard-question-btn">have a
+                        question?</button>
+                    </section>
+                  </div>
+
+                  <aside class="backyard-sim__offer-panel">
+                    <p class="backyard-sim__offer-kicker">make an offer</p>
+                    <label class="backyard-sim__offer-label" for="backyard-offer-input">offer amount</label>
+                    <div class="backyard-sim__offer-input-wrap">
+                      <span>$</span>
+                      <input id="backyard-offer-input" type="number" min="0" step="1" placeholder="0" />
+                    </div>
+
+                    <label class="backyard-sim__offer-label" for="backyard-offer-note">note</label>
+                    <textarea id="backyard-offer-note" class="backyard-sim__offer-note" rows="3" maxlength="300"
+                      placeholder="briefly describe why you are a fit..."></textarea>
+
+                    <button type="button" class="backyard-sim__primary" id="backyard-offer-submit">submit offer</button>
+                    <p class="backyard-sim__offer-status" id="backyard-offer-status" aria-live="polite"></p>
+                  </aside>
+                </div>
+              </div>
+
+              <div class="backyard-sim__chat" id="backyard-chat" hidden>
+                <button type="button" class="backyard-sim__chat-backdrop" id="backyard-chat-backdrop"
+                  aria-label="Close chat"></button>
+                <div class="backyard-sim__chat-window">
+                  <div class="backyard-sim__chat-head">
+                    <span>message the business</span>
+                    <button type="button" class="backyard-sim__chat-close" id="backyard-chat-close"
+                      aria-label="Close chat">&times;</button>
+                  </div>
+                  <div class="backyard-sim__chat-thread">
+                    <p class="backyard-sim__chat-empty">no messages in the simulation thread.</p>
+                  </div>
+                  <label class="backyard-sim__offer-label" for="backyard-chat-input">message</label>
+                  <textarea id="backyard-chat-input" class="backyard-sim__chat-input" rows="2"
+                    disabled>simulation doesn't support messaging (yet)</textarea>
+                </div>
+              </div>
+
+              <div class="backyard-sim__toast" id="backyard-toast" hidden>offer submitted</div>
+            </div>
+          </div>
+
+          <div class="mac-desktop__dock" aria-hidden="true">
+            <span class="mac-desktop__dock-icon mac-desktop__dock-icon--finder"></span>
+            <span class="mac-desktop__dock-icon mac-desktop__dock-icon--safari"></span>
+            <span class="mac-desktop__dock-icon mac-desktop__dock-icon--messages"></span>
+            <span class="mac-desktop__dock-icon mac-desktop__dock-icon--mail"></span>
+            <span class="mac-desktop__dock-icon mac-desktop__dock-icon--notes"></span>
+          </div>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <section class="community-band audience-theme-surface audience-only--consultant" id="student-community"
+    aria-labelledby="student-community-heading">
+    <div class="community-band__inner">
+      <div class="community-band__copy">
+        <span class="mission-kicker">for students</span>
+        <h2 id="student-community-heading">campus is just the starting point.</h2>
+        <p class="community-band__lede">
+          Gainesville is full of local businesses that want student help. Real projects can build hands-on experience,
+          connect you to your neighbors, and give you a way to give back beyond class.
+        </p>
+        <div class="community-band__chips" aria-hidden="true">
+          <span class="community-band__chip">hands-on work</span>
+          <span class="community-band__chip">local community</span>
+          <span class="community-band__chip">real impact</span>
+        </div>
+      </div>
+
+      <div class="community-map" id="community-map" data-map-state="campus">
+        <div class="community-map__hud">
+          <span class="community-map__pill community-map__pill--you">you</span>
+          <span class="community-map__pill">UF campus</span>
+          <span class="community-map__pill community-map__pill--muted">zooming out to nearby opportunities</span>
+          <button type="button" class="community-map__reset" id="community-map-reset">reset view</button>
+        </div>
+
+        <div class="community-map__frame">
+          <div class="community-map__canvas" id="community-map-canvas"
+            aria-label="Interactive minimalist map of the University of Florida campus and nearby business opportunity pins within about one and a half miles."></div>
+
+          <div class="community-map__overlay" aria-hidden="true">
+            <div class="community-map__overlay-card">
+              <span class="community-map__overlay-kicker">opportunity field</span>
+              <strong>start in the campus core, then explore the nearby businesses around it</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="community-map__legend">
+          <p class="community-map__legend-title">the map opens in the UF core, then zooms out to a simple 1.5 mile view of nearby businesses and landmarks.</p>
+          <div class="community-map__legend-row">
+            <span class="community-map__legend-dot"></span>
+            <span>local business opportunity</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="student-values audience-theme-surface audience-only--consultant" id="student-values"
+    aria-labelledby="student-values-heading">
+    <div class="student-values__inner">
+      <div class="student-values__intro">
+        <span class="mission-kicker">for students</span>
+        <h2 id="student-values-heading">why students use grassroots.</h2>
+        <p class="student-values__lede">Three clear reasons to turn the skills you already have into real local momentum.</p>
+      </div>
+
+      <div class="student-values__grid" role="list">
+        <article class="student-value-card student-value-card--experience" role="listitem">
+          <div class="student-value-card__icon" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="40" height="40" xmlns="http://www.w3.org/2000/svg" fill="none">
+              <rect x="7" y="9" width="26" height="22" rx="6" stroke="currentColor" stroke-width="2" />
+              <path d="M14 15h12M14 20h8M14 25h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <path d="M27 12l5 5-9 9h-5v-5l9-9Z" fill="currentColor" opacity="0.22" />
+            </svg>
+          </div>
+          <h3 class="student-value-card__title"><strong>Real-world experience</strong> from businesses already looking for student help.</h3>
+          <p class="student-value-card__body">Take on <strong>hands-on projects</strong>, build client context, and learn by doing instead of waiting for an internship cycle.</p>
+        </article>
+
+        <article class="student-value-card student-value-card--resume" role="listitem">
+          <div class="student-value-card__icon" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="40" height="40" xmlns="http://www.w3.org/2000/svg" fill="none">
+              <rect x="8" y="10" width="24" height="20" rx="5" stroke="currentColor" stroke-width="2" />
+              <path d="M14 17h12M14 22h12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <circle cx="15" cy="15" r="2" fill="currentColor" opacity="0.3" />
+            </svg>
+          </div>
+          <h3 class="student-value-card__title"><strong>Monetize your skills</strong> while building experience you can actually point to.</h3>
+          <p class="student-value-card__body">Earn from your current skill set and turn completed work into <strong>resume-ready credibility</strong>.</p>
+
+          <div class="student-role-card" aria-label="Mock Grassroots consultant position card">
+            <div class="student-role-card__head">
+              <div class="student-role-card__logo-wrap">
+                <img src="./assets/grassroots-icon-syne.svg" width="24" height="34" alt="" />
+              </div>
+              <div class="student-role-card__meta">
+                <strong>Grassroots Consultant</strong>
+                <span>Grassroots</span>
+              </div>
+            </div>
+            <div class="student-role-card__details">
+              <span>Freelance</span>
+              <span>Gainesville, FL</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="student-value-card student-value-card--community" role="listitem">
+          <div class="student-value-card__icon" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="40" height="40" xmlns="http://www.w3.org/2000/svg" fill="none">
+              <path d="M20 31s-8-4.9-8-12.1A5.1 5.1 0 0 1 20 15a5.1 5.1 0 0 1 8 3.9C28 26.1 20 31 20 31Z"
+                stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+              <path d="M12 24c1.8-1.8 4.2-2.7 8-2.7s6.2.9 8 2.7" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" opacity="0.4" />
+              <circle cx="20" cy="18" r="1.8" fill="currentColor" />
+            </svg>
+          </div>
+          <h3 class="student-value-card__title"><strong>Show up in your college town</strong> and create value beyond campus.</h3>
+          <p class="student-value-card__body">Work with local owners, support nearby organizations, and make a <strong>meaningful impact</strong> in the community you live in.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="prop-section audience-theme-surface" id="value-prop" aria-labelledby="prop-heading">
+    <div class="prop-section__inner">
+      <div class="audience-panel audience-panel--business prop-section__grid" data-audience-panel="business">
+        <div class="prop-section__intro">
+          <span class="mission-kicker">for your shop</span>
+          <h2 id="prop-heading" class="prop-heading-brand">
+            <span class="prop-heading-brand__why">why</span>
+            <span class="prop-heading-brand__lockup">
+              <img class="prop-heading-brand__icon" src="./assets/grassroots-icon-syne.svg" width="36" height="52"
+                alt="" />
+              <span class="prop-heading-brand__wordmark">grassroots</span>
+            </span>
+            <svg class="prop-heading-brand__brush" data-brush-replay width="64" height="78" viewBox="0 0 72 92"
+              aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+              <path class="prop-heading-brand__brushstroke prop-heading-brand__brushstroke--q" pathLength="1"
+                fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"
+                d="M22 20 C20 6 38 4 52 14 C66 26 62 50 40 56 C28 60 24 72 28 82" />
+              <circle class="prop-heading-brand__brushdot" cx="32" cy="91" r="5" fill="currentColor" />
+            </svg>
+          </h2>
+        </div>
+        <div class="value-cards" role="list">
+          <article class="value-card value-card--sage" role="listitem">
+            <div class="value-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 40 40" width="40" height="40" xmlns="http://www.w3.org/2000/svg" fill="none">
+                <path stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M8 28V14l8-4 8 4v14" />
+                <path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 18h8M12 22h8" />
+                <circle cx="28" cy="12" r="3.5" fill="currentColor" opacity="0.35" />
+                <path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M26 26l6-6M26 20l6 6" />
+              </svg>
+            </div>
+            <h3 class="value-card__title">open market</h3>
+            <p class="value-card__body">for consultative work—you post; students bid.</p>
+          </article>
+          <article class="value-card value-card--warm" role="listitem">
+            <div class="value-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 40 40" width="40" height="40" xmlns="http://www.w3.org/2000/svg" fill="none">
+                <path stroke="currentColor" stroke-width="2" stroke-linejoin="round"
+                  d="M12 14l8-6 8 6v12a4 4 0 01-4 4h-8a4 4 0 01-4-4V14z" />
+                <path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M16 26h8M20 22v8" />
+              </svg>
+            </div>
+            <h3 class="value-card__title">lower cost</h3>
+            <p class="value-card__body">than typical agency or retained help.</p>
+          </article>
+          <article class="value-card value-card--green" role="listitem">
+            <div class="value-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 40 40" width="40" height="40" xmlns="http://www.w3.org/2000/svg" fill="none">
+                <path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M10 28L18 12l6 10 6-6 6 12" />
+                <circle cx="18" cy="11" r="3" fill="currentColor" />
+              </svg>
+            </div>
+            <h3 class="value-card__title">light onboarding</h3>
+            <p class="value-card__body">compared with heavy hiring platforms.</p>
+          </article>
+        </div>
+      </div>
+
+      <div class="audience-panel audience-panel--consultant prop-section__grid" data-audience-panel="consultant">
+        <div class="prop-section__intro prop-section__intro--consultant-why">
+          <h2 id="prop-heading-consultant" class="prop-heading-brand prop-heading-brand--consultant-mission-scale">
+            <span class="prop-heading-brand__why">how does</span>
+            <span class="prop-heading-brand__lockup">
+              <img class="prop-heading-brand__icon" src="./assets/grassroots-icon-syne.svg" width="36" height="52"
+                alt="" />
+              <span class="prop-heading-brand__wordmark">grassroots</span>
+            </span>
+            <span class="prop-heading-brand__tail">work</span>
+            <svg class="prop-heading-brand__brush" data-brush-replay width="64" height="78" viewBox="0 0 72 92"
+              aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+              <path class="prop-heading-brand__brushstroke prop-heading-brand__brushstroke--q" pathLength="1"
+                fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"
+                d="M22 20 C20 6 38 4 52 14 C66 26 62 50 40 56 C28 60 24 72 28 82" />
+              <circle class="prop-heading-brand__brushdot" cx="32" cy="91" r="5" fill="currentColor" />
+            </svg>
+          </h2>
+        </div>
+
+        <div class="escrow-model" aria-labelledby="prop-heading-consultant">
+          <div class="escrow-model__diagram" aria-label="Escrow flow from business to grassroots to consultant">
+            <article class="escrow-node escrow-node--business">
+              <span class="escrow-node__icon-wrap" aria-hidden="true">
+                <svg class="escrow-node__icon" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="none">
+                  <path d="M8 18l16-8 16 8v17a3 3 0 0 1-3 3H11a3 3 0 0 1-3-3V18Z" stroke="currentColor"
+                    stroke-width="2.4" stroke-linejoin="round" />
+                  <path d="M14 24h10M14 29h16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+                  <path d="M31 11v9" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+                </svg>
+              </span>
+              <p class="escrow-node__eyebrow">business</p>
+              <h3 class="escrow-node__title"><span class="escrow-node__accent">accepts</span> an offer</h3>
+            </article>
+
+            <div class="escrow-link escrow-link--in" aria-hidden="true">
+              <span class="escrow-link__coin">$</span>
+              <span class="escrow-link__line"></span>
+              <p class="escrow-link__label">1. payment in</p>
+            </div>
+
+            <article class="escrow-node escrow-node--grassroots">
+              <span class="escrow-node__icon-wrap escrow-node__icon-wrap--logo" aria-hidden="true">
+                <img class="escrow-node__logo" src="./assets/grassroots-icon-syne.svg" width="40" height="66" alt="" />
+              </span>
+              <p class="escrow-node__eyebrow">grassroots</p>
+              <h3 class="escrow-node__title">holds funds in escrow</h3>
+              <div class="escrow-node__badge">
+                <span class="escrow-node__badge-title">release after confirmation</span>
+              </div>
+            </article>
+
+            <div class="escrow-link escrow-link--out" aria-hidden="true">
+              <span class="escrow-link__coin">$</span>
+              <span class="escrow-link__line"></span>
+              <p class="escrow-link__label">3. payout</p>
+            </div>
+
+            <article class="escrow-node escrow-node--consultant">
+              <span class="escrow-node__icon-wrap" aria-hidden="true">
+                <svg class="escrow-node__icon" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="none">
+                  <circle cx="24" cy="16" r="7" stroke="currentColor" stroke-width="2.4" />
+                  <path d="M13 38c2.6-6.7 7.2-10 11-10s8.4 3.3 11 10" stroke="currentColor" stroke-width="2.4"
+                    stroke-linecap="round" />
+                  <path d="M34 11l4 4 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                </svg>
+              </span>
+              <p class="escrow-node__eyebrow">consultant</p>
+              <h3 class="escrow-node__title"><span class="escrow-node__accent">delivers</span> the work</h3>
+            </article>
+
+            <div class="escrow-model__milestone" aria-hidden="true">
+              <span class="escrow-model__milestone-step">2</span>
+              <p>work happens while funds stay in escrow</p>
+            </div>
+          </div>
+
+          <article class="escrow-support">
+            <span class="escrow-support__icon-wrap" aria-hidden="true">
+              <svg class="escrow-support__icon" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="none">
+                <path d="M12 25a12 12 0 0 1 24 0" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+                <rect x="10" y="24" width="8" height="12" rx="4" stroke="currentColor" stroke-width="2.4" />
+                <rect x="30" y="24" width="8" height="12" rx="4" stroke="currentColor" stroke-width="2.4" />
+                <path d="M24 37h4a5 5 0 0 0 5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+              </svg>
+            </span>
+            <div>
+              <p class="escrow-support__eyebrow">support team</p>
+              <h3 class="escrow-support__title">steps in before payout</h3>
+              <p class="escrow-support__copy">issues get reviewed before funds move.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="beta-band beta-band--night beta-band--stars audience-theme-surface" id="reviews"
+    aria-labelledby="reviews-heading">
+    <canvas id="section-sparkles" class="section-sparkles" aria-hidden="true"></canvas>
+    <div class="beta-band__inner">
+      <header class="beta-section-head">
+        <span class="mission-kicker beta-kicker--on-dark">trust</span>
+        <h2 id="reviews-heading">scores &amp; stories</h2>
+        <p class="beta-lead beta-lead--narrow">
+          after each job, <strong>both sides</strong> leave feedback—stars travel with every name.
+        </p>
+      </header>
+      <div class="audience-panel audience-panel--business" data-audience-panel="business">
+        <div class="trust-grid trust-grid--split">
+          <div class="trust-card">
+            <h3 class="trust-card__title">rating consultants you hire</h3>
+            <p>you’ll see the same <strong>★ chip</strong> on bids and profiles. drill in for the six-dimension
+              breakdown students are scored on.</p>
+            <ul class="pill-list">
+              <li>work product</li>
+              <li>communication</li>
+              <li>timeliness</li>
+              <li>professionalism</li>
+              <li>collaboration</li>
+              <li>value</li>
+            </ul>
+          </div>
+          <div class="trust-card">
+            <h3 class="trust-card__title">your voice on the record</h3>
+            <p>a few sentences of <strong>public</strong> feedback on their profile helps the next shop decide.</p>
+            <div class="review-snippet" aria-hidden="true">
+              <p>“shipped early, great comms on inventory.”</p>
+              <span class="review-snippet__meta">— you · 5★</span>
+            </div>
+          </div>
+          <div class="trust-card trust-card--wide">
+            <h3 class="trust-card__title">perks for shops (tbd)</h3>
+            <p class="beta-note">policy still in motion.</p>
+            <ul class="value-list value-list--dark">
+              <li><strong>three solid reviews</strong> you leave → <strong>premium listing</strong> unlock.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="audience-panel audience-panel--consultant" data-audience-panel="consultant">
+        <div class="trust-grid trust-grid--split">
+          <div class="trust-card trust-card--wide">
+            <h3 class="trust-card__title">how you’re measured</h3>
+            <p>buyers see an overall score plus <strong>six dimensions</strong> so you’re not reduced to one vague
+              number.</p>
+            <ul class="pill-list">
+              <li>work product</li>
+              <li>communication</li>
+              <li>timeliness</li>
+              <li>professionalism</li>
+              <li>collaboration</li>
+              <li>value</li>
+            </ul>
+            <div class="stars-row" aria-hidden="true">
+              <span class="stars-row__icon">★★★★★</span>
+              <span class="stars-row__label">next to your name everywhere</span>
+            </div>
+          </div>
+          <div class="trust-card">
+            <h3 class="trust-card__title">write‑ups from shops</h3>
+            <p>short <strong>public</strong> quotes on your full profile back up the stars.</p>
+            <div class="review-snippet" aria-hidden="true">
+              <p>“clear comms, would hire again for the next sprint.”</p>
+              <span class="review-snippet__meta">— corner cafe · 5★</span>
+            </div>
+          </div>
+          <div class="trust-card">
+            <h3 class="trust-card__title">closing the loop (tbd)</h3>
+            <p class="beta-note">policy still in motion.</p>
+            <p>payout may wait until you’ve <strong>submitted your review</strong> of the engagement.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="audience-flip-bar audience-theme-surface" id="audience-flip-bottom" aria-label="Switch audience view">
+    <div class="audience-flip-bar__inner">
+      <p class="audience-flip-bar__q" id="audience-flip-question"></p>
+      <button type="button" class="audience-flip-bar__action" id="audience-flip-button"></button>
+    </div>
+  </section>
+
+  <footer class="beta-footer beta-footer--full audience-theme-surface" role="contentinfo">
+    <div class="beta-footer__grid">
+      <a class="beta-footer__brand" href="#top" aria-label="grassroots beta home">
+        <img src="./assets/grassroots-icon-syne.svg" width="36" height="61" alt="" />
+        <span>grassroots</span>
+      </a>
+      <nav class="beta-footer__nav" aria-label="Site pages">
+        <p class="beta-footer__nav-title">on this page</p>
+        <ul>
+          <li><a href="#top">hero</a></li>
+          <li><a href="#mission">the backyard</a></li>
+          <li><a href="#value-prop">value</a></li>
+          <li><a href="#marketplace-preview">backyard simulation</a></li>
+          <li><a href="#reviews">trust &amp; reviews</a></li>
+        </ul>
+        <p class="beta-footer__nav-title">elsewhere</p>
+        <ul>
+          <li><a href="./index.html">homepage</a></li>
+          <li><a href="http://localhost:3000/">backyard</a></li>
+          <li><a href="/home/about.html">about</a></li>
+          <li><a href="http://localhost:3000/register.html">join grassroots</a></li>
+          <li><a href="http://localhost:3000/signin.html">sign in</a></li>
+        </ul>
+      </nav>
+    </div>
+    <p class="beta-footer__tagline">grassroots beta — small business work, student consultants.</p>
+  </footer>
+
+  <div class="depth-scroll-spacer" aria-hidden="true"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+  <script src="./uf-campus-map-data.js" defer></script>
+  <script src="./index.js" defer></script>
+
+  <!-- Suggestion Box -->
+  <style>
+    .gr-suggest-btn {
+      position: fixed;
+      bottom: 1.25rem;
+      right: 1.25rem;
+      z-index: 900;
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      border: none;
+      background: rgba(15, 31, 26, .72);
+      color: rgba(255, 255, 255, .85);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, .2);
+      transition: transform .25s cubic-bezier(.22, 1, .36, 1), background .2s ease, box-shadow .2s ease
+    }
+
+    .gr-suggest-btn:hover {
+      transform: scale(1.1);
+      background: rgba(15, 31, 26, .88);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, .3)
+    }
+
+    .gr-suggest-btn svg {
+      width: 22px;
+      height: 22px
+    }
+
+    .gr-suggest-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 31, 26, .5);
+      backdrop-filter: blur(4px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s ease
+    }
+
+    .gr-suggest-overlay.is-open {
+      opacity: 1;
+      pointer-events: auto
+    }
+
+    .gr-suggest-popup {
+      background: #fff;
+      border-radius: 18px;
+      padding: 2rem 1.75rem;
+      max-width: 420px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .2);
+      transform: translateY(20px);
+      transition: transform .35s cubic-bezier(.22, 1, .36, 1);
+      text-align: center
+    }
+
+    .gr-suggest-overlay.is-open .gr-suggest-popup {
+      transform: translateY(0)
+    }
+
+    .gr-suggest-popup__title {
+      font-family: Syne, Inter, system-ui, sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #1b4332;
+      margin: 0 0 1rem;
+      line-height: 1.4
+    }
+
+    .gr-suggest-popup__textarea {
+      width: 100%;
+      box-sizing: border-box;
+      min-height: 100px;
+      border: 1.5px solid rgba(27, 67, 50, .15);
+      border-radius: 12px;
+      padding: .75rem;
+      font: inherit;
+      font-size: .9rem;
+      color: #1b4332;
+      resize: vertical;
+      transition: border-color .2s ease
+    }
+
+    .gr-suggest-popup__textarea:focus {
+      outline: none;
+      border-color: #2d6a4f;
+      box-shadow: 0 0 0 3px rgba(45, 106, 79, .1)
+    }
+
+    .gr-suggest-popup__submit {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: .85rem;
+      padding: .65rem 1.5rem;
+      font: inherit;
+      font-size: .9rem;
+      font-weight: 600;
+      color: #fff;
+      background: linear-gradient(145deg, #2d6a4f, #1b4332);
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: transform .2s ease, box-shadow .2s ease
+    }
+
+    .gr-suggest-popup__submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(27, 67, 50, .2)
+    }
+
+    .gr-suggest-popup__thanks {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #2d6a4f;
+      padding: 1rem 0
+    }
+  </style>
+  <button class="gr-suggest-btn" id="gr-suggest-btn" type="button" aria-label="suggestion box">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+      stroke-linejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      <line x1="9" y1="9" x2="15" y2="9" />
+      <line x1="9" y1="13" x2="13" y2="13" />
+    </svg>
+  </button>
+  <div class="gr-suggest-overlay" id="gr-suggest-overlay">
+    <div class="gr-suggest-popup">
+      <div id="gr-suggest-form">
+        <p class="gr-suggest-popup__title">grassroots values and takes your feedback seriously&mdash;how can we improve?
+        </p>
+        <textarea class="gr-suggest-popup__textarea" id="gr-suggest-input" placeholder="your suggestion…"
+          maxlength="1000"></textarea>
+        <button class="gr-suggest-popup__submit" id="gr-suggest-submit" type="button">submit</button>
+      </div>
+      <div id="gr-suggest-thanks" hidden>
+        <p class="gr-suggest-popup__thanks">thank you for your feedback!</p>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const btn = document.getElementById('gr-suggest-btn'), overlay = document.getElementById('gr-suggest-overlay'), submit = document.getElementById('gr-suggest-submit'), input = document.getElementById('gr-suggest-input'), form = document.getElementById('gr-suggest-form'), thanks = document.getElementById('gr-suggest-thanks');
+      btn.addEventListener('click', () => overlay.classList.add('is-open'));
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('is-open') });
+      submit.addEventListener('click', () => { if (!input.value.trim()) return; form.hidden = true; thanks.hidden = false; setTimeout(() => { overlay.classList.remove('is-open'); setTimeout(() => { form.hidden = false; thanks.hidden = true; input.value = '' }, 400) }, 2000) });
+    })();
+  </script>
+</body>
+
+</html>
