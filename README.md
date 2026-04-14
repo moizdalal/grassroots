@@ -61,6 +61,16 @@ npm run dev
 
 Open `http://localhost:3000` (marketplace). Register at `/register.html`.
 
+## 3) Vercel deployment
+
+Add these project environment variables in Vercel before deploying production:
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_ANON_KEY` or `SUPABASE_PUBLISHABLE_KEY`
+
+Without them, the API will return `503` configuration errors and Supabase-backed features will not work.
+
 ## API
 
 - `GET /api/public-config` — returns `supabaseUrl` + `supabaseAnonKey` for browser clients

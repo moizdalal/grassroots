@@ -17,20 +17,29 @@ const SUPABASE_SERVICE_ROLE_KEY = envTrim("SUPABASE_SERVICE_ROLE_KEY");
 const SUPABASE_ANON_KEY =
   envTrim("SUPABASE_ANON_KEY") || envTrim("SUPABASE_PUBLISHABLE_KEY");
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env");
-  process.exit(1);
+const SUPABASE_ADMIN_CONFIG_ERROR =
+  "Server missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. Add them as environment variables (.env locally, Vercel Project Settings in production).";
+const SUPABASE_BROWSER_CONFIG_ERROR =
+  "Server missing SUPABASE_URL or SUPABASE_ANON_KEY (or SUPABASE_PUBLISHABLE_KEY). Add them as environment variables (.env locally, Vercel Project Settings in production).";
+const hasSupabaseAdminConfig = Boolean(
+  SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
+);
+
+if (!hasSupabaseAdminConfig) {
+  console.error(SUPABASE_ADMIN_CONFIG_ERROR);
 }
 
-if (!SUPABASE_ANON_KEY) {
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   console.warn(
-    "SUPABASE_ANON_KEY (or SUPABASE_PUBLISHABLE_KEY) is not set: sign-in and marketplace client calls will fail until you add it."
+    "SUPABASE_URL and SUPABASE_ANON_KEY (or SUPABASE_PUBLISHABLE_KEY) are required for browser sign-in and marketplace client calls."
   );
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false },
-});
+const supabase = hasSupabaseAdminConfig
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false },
+    })
+  : null;
 
 const { syncInstagramProfileAvatar } = require("./lib/instagram-profile-pic");
 
@@ -45,20 +54,33 @@ app.use(express.urlencoded({ extended: true }));
 const sanitizeFileName = (name) => name.replace(/[^a-zA-Z0-9._-]/g, "_");
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true });
+  res.json({ ok: true, supabaseConfigured: hasSupabaseAdminConfig });
 });
 
 app.get("/api/public-config", (_req, res) => {
-  if (!SUPABASE_ANON_KEY) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     return res.status(503).json({
-      error:
-        "Server missing SUPABASE_ANON_KEY or SUPABASE_PUBLISHABLE_KEY. Add it to .env for browser sign-in.",
+      error: SUPABASE_BROWSER_CONFIG_ERROR,
     });
   }
   res.json({
     supabaseUrl: SUPABASE_URL,
     supabaseAnonKey: SUPABASE_ANON_KEY,
   });
+});
+
+app.use("/api", (req, res, next) => {
+  if (req.path === "/public-config") {
+    return next();
+  }
+
+  if (!supabase) {
+    return res.status(503).json({
+      error: SUPABASE_ADMIN_CONFIG_ERROR,
+    });
+  }
+
+  next();
 });
 
 /**
