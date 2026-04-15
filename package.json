@@ -4,6 +4,7 @@
   "description": "MVP consultative gig platform registration flow with Supabase",
   "main": "server.js",
   "scripts": {
+    "build": "npm run build:contract-help",
     "build:contract-help": "esbuild src/contract-help.tsx --bundle --format=esm --jsx=automatic --minify --outfile=public/contract-help.js",
     "dev": "node server.js",
     "start": "node server.js"
