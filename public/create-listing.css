@@ -214,6 +214,25 @@
   white-space: pre-wrap;
 }
 
+.cl-field-label {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.cl-field-label__title {
+  font-family: Fraunces, Georgia, serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--green-deep);
+}
+
+.cl-field-label__subtext {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--tagline-body);
+}
+
 .cl-file-list {
   display: grid;
   gap: 0.55rem;
@@ -301,6 +320,51 @@
 .cl-preview__quals li::before {
   content: "\2022\00a0";
   color: var(--green-mid);
+}
+
+.ct-help-hint {
+  margin-top: 0.75rem;
+}
+
+.ct-help-hint a {
+  color: var(--green-mid);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.ct-help-hint a:hover {
+  text-decoration: underline;
+}
+
+.cl-inline-money {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--input-border);
+  border-radius: 10px;
+  background: var(--sky);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.cl-inline-money:focus-within {
+  border-color: var(--green-mid);
+  box-shadow: 0 0 0 3px var(--input-focus);
+}
+
+.cl-inline-money__prefix {
+  padding-left: 0.9rem;
+  font-weight: 700;
+  color: var(--green-deep);
+}
+
+.cl-inline-money input {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding-left: 0.45rem;
+}
+
+.cl-inline-money input:focus {
+  box-shadow: none;
 }
 
 /* placeholder styling for empty preview fields */

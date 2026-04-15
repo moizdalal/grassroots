@@ -12,13 +12,7 @@ const backBtn = document.getElementById("back-btn");
 const slides = [...document.querySelectorAll(".cl-slide")];
 const stepDots = [...document.querySelectorAll(".cl-progress__seg")];
 const progressLabel = document.getElementById("cl-progress-label");
-const STEP_LABELS = ["title & type", "description", "details"];
-const typeButtons = [...document.querySelectorAll(".op-type-btn")];
-const typeHidden = document.getElementById("opportunity-type-hidden");
-const typeOtherWrap = document.getElementById("opportunity-other-wrap");
-const typeOtherInput = document.getElementById("opportunity-type-other");
-const infoToggle = document.getElementById("opportunity-info-toggle");
-const infoPanel = document.getElementById("opportunity-info");
+const STEP_LABELS = ["title", "description", "details"];
 const attachmentInput = document.getElementById("listing-attachments");
 const attachmentList = document.getElementById("cl-file-list");
 
@@ -105,6 +99,62 @@ function formatFileSize(bytes) {
   if (value < 1024) return `${value} b`;
   if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} kb`;
   return `${(value / (1024 * 1024)).toFixed(1)} mb`;
+}
+
+function getSelectedContractMode() {
+  return String(form.elements.contract_type?.value || "standard").trim();
+}
+
+function getSelectedContractPhases() {
+  return String(form.elements.contract_phases?.value || "proposal,solution")
+    .split(",")
+    .map((phase) => phase.trim())
+    .filter(Boolean);
+}
+
+function isAdvancedContractSelected() {
+  const mode = getSelectedContractMode();
+  return mode === "phased" || mode === "retainer";
+}
+
+function isPhasedContractSelected() {
+  return getSelectedContractMode() === "phased";
+}
+
+function isRetainerContractSelected() {
+  return getSelectedContractMode() === "retainer";
+}
+
+function hasMaintenancePhase() {
+  return getSelectedContractPhases().includes("maintenance");
+}
+
+function isValidMaintenanceTerms(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!normalized) return false;
+  if (/^per business discretion\.?$/.test(normalized)) return true;
+  return /\$\s*\d/.test(normalized) && /\bper\s+(hour|day|week|month)\b/.test(normalized) && /\bfor\b/.test(normalized);
+}
+
+function syncContractDetailFields() {
+  const proposalWrap = document.getElementById("advanced-proposal-budget-wrap");
+  const proposalInput = document.getElementById("proposal-budget");
+  const maintenanceWrap = document.getElementById("maintenance-terms-wrap");
+  const maintenanceInput = document.getElementById("maintenance-terms");
+  const phasedSelected = isPhasedContractSelected();
+  const maintenanceSelected = phasedSelected && hasMaintenancePhase();
+
+  if (proposalWrap) proposalWrap.classList.toggle("hidden", !phasedSelected);
+  if (proposalInput) {
+    proposalInput.toggleAttribute("disabled", !phasedSelected);
+    if (!phasedSelected) proposalInput.value = "";
+  }
+
+  if (maintenanceWrap) maintenanceWrap.classList.toggle("hidden", !maintenanceSelected);
+  if (maintenanceInput) {
+    maintenanceInput.toggleAttribute("disabled", !maintenanceSelected);
+    if (!maintenanceSelected) maintenanceInput.value = "";
+  }
 }
 
 function attachmentKindLabel(file) {
@@ -311,18 +361,6 @@ function renderCategoryTags() {
   });
 }
 
-function setOpportunityType(value) {
-  typeHidden.value = value;
-  typeButtons.forEach((button) => {
-    button.classList.toggle("is-selected", button.dataset.opportunityType === value);
-  });
-
-  const isOther = value === "other";
-  typeOtherWrap.classList.toggle("hidden", !isOther);
-  typeOtherInput.toggleAttribute("required", isOther);
-  if (!isOther) typeOtherInput.value = "";
-  updatePreview();
-}
 
 function updateWizardUI() {
   slides.forEach((slide, index) => {
@@ -349,12 +387,7 @@ function validateSlide(index) {
 
   if (index === 0) {
     const title = form.elements.title.value.trim();
-    const type = typeHidden.value.trim();
-    const typeOther = typeOtherInput.value.trim();
-
     if (!title) throw new Error("please add a title for this opportunity.");
-    if (!type) throw new Error("please choose the type of opportunity.");
-    if (type === "other" && !typeOther) throw new Error("please describe the opportunity type.");
     return;
   }
 
@@ -362,9 +395,25 @@ function validateSlide(index) {
     const issueContext = form.elements.issue_context.value.trim();
     const businessProblem = form.elements.business_problem.value.trim();
     const expectedOutput = form.elements.expected_output.value.trim();
+    const proposalBudget = String(form.elements.proposal_budget?.value || "").trim();
+    const maintenanceTerms = String(form.elements.maintenance_terms?.value || "").trim();
     if (!issueContext) throw new Error("please add the context behind the issue you want to solve.");
     if (!businessProblem) throw new Error("please describe the business problem you want to solve.");
-    if (!expectedOutput) throw new Error("please explain what output you expect from the consultant.");
+    if (!expectedOutput) throw new Error("please explain the standards of work you expect from the consultant.");
+    if (isPhasedContractSelected() && !proposalBudget) {
+      throw new Error("please enter the budget per proposal for this advanced contract.");
+    }
+    if (isPhasedContractSelected() && Number(proposalBudget) < 0) {
+      throw new Error("please enter a valid proposal budget.");
+    }
+    if (isPhasedContractSelected() && hasMaintenancePhase()) {
+      if (!maintenanceTerms) {
+        throw new Error('please outline the maintenance terms or write "per business discretion."');
+      }
+      if (!isValidMaintenanceTerms(maintenanceTerms)) {
+        throw new Error('maintenance terms should look like "$X per hour/day/week/month for X [amount of time]" or "per business discretion."');
+      }
+    }
     return;
   }
 
@@ -476,36 +525,31 @@ function populatePreviewBiz() {
   }
 }
 
-function typeTagSvg(type) {
-  const icons = {
-    do: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/></svg>',
-    develop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
-    plan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="m9 15 2-6 6-2-2 6-6 2Z"/></svg>',
-  };
-  return icons[type] || "";
-}
-
 function buildStructuredListingDetails({
-  opportunityType,
+  contractType,
   budgetMin,
   budgetMax,
   issueContext,
   businessProblem,
   expectedOutput,
+  proposalBudget,
+  maintenanceTerms,
   additionalDetails,
 }) {
   return [
-    `opportunity type: ${opportunityType}`,
+    `contract type: ${contractType}`,
     `budget range: $${budgetMin} to $${budgetMax}`,
+    ...(proposalBudget ? [`proposal budget: $${proposalBudget}`, ""] : []),
     "",
-    "issue context:",
+    "context:",
     issueContext,
     "",
     "business problem:",
     businessProblem,
     "",
-    "expected output:",
+    "standards of work:",
     expectedOutput,
+    ...(maintenanceTerms ? ["", "maintenance terms:", maintenanceTerms] : []),
     ...(additionalDetails ? ["", "additional details:", additionalDetails] : []),
   ].join("\n");
 }
@@ -516,14 +560,8 @@ function updatePreview() {
   pvTitle.textContent = title || "your opportunity title";
   pvTitle.classList.toggle("cl-preview__placeholder", !title);
 
-  // tags: opportunity type + categories
+  // tags: categories
   let chipsHtml = "";
-  const typeVal = typeHidden.value.trim();
-  const typeLabel = typeVal === "other" ? typeOtherInput.value.trim() : typeVal;
-  if (typeLabel) {
-    const icon = typeTagSvg(typeLabel);
-    chipsHtml += `<span class="cl-preview__chip cl-preview__chip--type">${icon ? icon + " " : ""}${escapeHtml(typeLabel)}</span>`;
-  }
   [...selectedCategories].forEach((c) => {
     chipsHtml += `<span class="cl-preview__chip">${escapeHtml(c)}</span>`;
   });
@@ -608,6 +646,7 @@ function updatePreview() {
 
 // listen for input changes across the form to update preview live
 form.addEventListener("input", updatePreview);
+form.addEventListener("input", syncContractDetailFields);
 
 if (attachmentInput) {
   attachmentInput.addEventListener("change", () => {
@@ -648,17 +687,100 @@ backBtn.addEventListener("click", () => {
   updateWizardUI();
 });
 
-typeButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    setOpportunityType(button.dataset.opportunityType);
-  });
-});
+/* ── Contract type / chain builder ──────────────────────── */
+(function setupContractType() {
+  const advancedDetails = document.getElementById("ct-advanced");
+  const standardRadio = document.querySelector('input[name="contract_type"][value="standard"]');
+  const phasedRadio = document.getElementById("ct-phased-radio");
+  const retainerRadio = document.getElementById("ct-retainer-radio");
+  const phasesInput = document.getElementById("ct-phases");
+  const toggleBtn = document.getElementById("ct-add-maintenance");
+  const maintConnector = document.getElementById("ct-chain-connector-maintenance");
+  const builderHint = document.getElementById("ct-builder-hint");
+  const builderArea = advancedDetails ? advancedDetails.querySelector(".ct-builder") : null;
+  const retainerGroup = document.querySelector('.ct-suboption-group[data-mode="retainer"]');
 
-infoToggle.addEventListener("click", () => {
-  const willOpen = infoPanel.classList.contains("hidden");
-  infoPanel.classList.toggle("hidden", !willOpen);
-  infoToggle.setAttribute("aria-expanded", String(willOpen));
-});
+  if (!advancedDetails || !phasedRadio || !retainerRadio || !toggleBtn) return;
+
+  const labelEl = toggleBtn.querySelector(".ct-chain__add-label");
+  const hintEl = toggleBtn.querySelector(".ct-chain__add-hint");
+
+  function syncPhases(hasMaintenance) {
+    const phases = ["proposal", "solution"];
+    if (hasMaintenance) phases.push("maintenance");
+    phasesInput.value = phases.join(",");
+    syncContractDetailFields();
+  }
+
+  function selectPhased() {
+    phasedRadio.checked = true;
+    if (!advancedDetails.open) advancedDetails.open = true;
+    syncContractDetailFields();
+  }
+
+  function selectRetainer() {
+    retainerRadio.checked = true;
+    if (!advancedDetails.open) advancedDetails.open = true;
+    syncContractDetailFields();
+  }
+
+  function setMaintenance(present) {
+    toggleBtn.setAttribute("aria-pressed", present ? "true" : "false");
+    if (present) {
+      maintConnector.removeAttribute("hidden");
+      if (labelEl) labelEl.textContent = "maintenance added";
+      if (hintEl) hintEl.textContent = "remove";
+      builderHint.innerHTML = "maintenance extends your chain with ongoing support. click again to remove.";
+    } else {
+      maintConnector.setAttribute("hidden", "");
+      if (labelEl) labelEl.textContent = "add maintenance";
+      if (hintEl) hintEl.textContent = "optional";
+      builderHint.innerHTML = "maintenance is an optional follow-on phase for ongoing support.";
+    }
+    syncPhases(present);
+  }
+
+  toggleBtn.addEventListener("click", () => {
+    const currentlyOn = toggleBtn.getAttribute("aria-pressed") === "true";
+    setMaintenance(!currentlyOn);
+    selectPhased();
+  });
+
+  standardRadio.addEventListener("change", () => {
+    if (standardRadio.checked) {
+      advancedDetails.open = false;
+      syncContractDetailFields();
+    }
+  });
+
+  standardRadio.closest("label").addEventListener("click", () => {
+    standardRadio.checked = true;
+    syncContractDetailFields();
+  });
+
+  // clicking anywhere inside the phased builder selects phased
+  if (builderArea) {
+    builderArea.addEventListener("click", () => selectPhased());
+  }
+
+  // clicking anywhere inside the retainer group selects retainer
+  if (retainerGroup) {
+    retainerGroup.addEventListener("click", () => selectRetainer());
+  }
+
+  // keep details open when a sub-option is chosen via keyboard/label
+  phasedRadio.addEventListener("change", () => {
+    if (phasedRadio.checked && !advancedDetails.open) advancedDetails.open = true;
+    syncContractDetailFields();
+  });
+  retainerRadio.addEventListener("change", () => {
+    if (retainerRadio.checked && !advancedDetails.open) advancedDetails.open = true;
+    syncContractDetailFields();
+  });
+
+  syncPhases(false);
+  syncContractDetailFields();
+})();
 
 addQualBtn.addEventListener("click", () => {
   const row = document.createElement("div");
@@ -693,13 +815,11 @@ form.addEventListener("submit", async (event) => {
     validateAttachmentSelection(selectedAttachments);
 
     const fd = new FormData(form);
+    const contractMode = String(fd.get("contract_type") || "standard").trim();
+    const contractPhases = String(fd.get("contract_phases") || "proposal,solution").trim();
+    const contractType = contractMode === "advanced" ? contractPhases : "standard";
     const budgetMin = Number(fd.get("budget_min"));
     const budgetMax = Number(fd.get("budget_max"));
-    const opportunityTypeRaw = String(fd.get("opportunity_type") || "").trim();
-    const opportunityType =
-      opportunityTypeRaw === "other"
-        ? String(fd.get("opportunity_type_other") || "").trim()
-        : opportunityTypeRaw;
 
     submitBtn.disabled = true;
     submitBtn.textContent = "creating…";
@@ -707,14 +827,18 @@ form.addEventListener("submit", async (event) => {
     const issueContext = String(fd.get("issue_context") || "").trim();
     const businessProblem = String(fd.get("business_problem") || "").trim();
     const expectedOutput = String(fd.get("expected_output") || "").trim();
+    const proposalBudget = String(fd.get("proposal_budget") || "").trim();
+    const maintenanceTerms = String(fd.get("maintenance_terms") || "").trim();
     const additionalDetails = String(fd.get("additional_details") || "").trim();
     const details = buildStructuredListingDetails({
-      opportunityType,
+      contractType,
       budgetMin,
       budgetMax,
       issueContext,
       businessProblem,
       expectedOutput,
+      proposalBudget,
+      maintenanceTerms,
       additionalDetails,
     });
 

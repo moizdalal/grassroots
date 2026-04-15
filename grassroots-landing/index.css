@@ -1341,6 +1341,8 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 .escrow-node {
   display: grid;
   gap: 0.75rem;
+  justify-items: center;
+  text-align: center;
   padding: 1.25rem 1.1rem 1.15rem;
   border-radius: 24px;
   min-height: 215px;
@@ -1704,23 +1706,27 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   color: #2b3d44;
 }
 
-.backyard-demo {
+.marketplace-demo {
   width: 100%;
   max-width: 1040px;
   display: grid;
   gap: 0.95rem;
-  justify-self: start;
+  justify-self: center;
 }
 
-.backyard-demo__meta {
+.marketplace-demo__meta {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: center;
   gap: 0.9rem 1.2rem;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+  text-align: center;
 }
 
-.backyard-demo__eyebrow {
+.marketplace-demo__eyebrow {
   display: inline-block;
   font-size: 0.72rem;
   font-weight: 700;
@@ -1729,11 +1735,11 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   color: rgba(244, 239, 233, 0.72);
 }
 
-.backyard-demo__tooltip {
+.marketplace-demo__tooltip {
   position: relative;
 }
 
-.backyard-demo__tooltip-trigger {
+.marketplace-demo__tooltip-trigger {
   min-height: 34px;
   padding: 0.45rem 0.85rem;
   border-radius: 999px;
@@ -1748,7 +1754,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   cursor: help;
 }
 
-.backyard-demo__tooltip-bubble {
+.marketplace-demo__tooltip-bubble {
   position: absolute;
   right: 0;
   top: calc(100% + 0.65rem);
@@ -1769,79 +1775,51 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   z-index: 3;
 }
 
-.backyard-demo__tooltip:hover .backyard-demo__tooltip-bubble,
-.backyard-demo__tooltip-trigger:focus-visible + .backyard-demo__tooltip-bubble {
+.marketplace-demo__tooltip:hover .marketplace-demo__tooltip-bubble,
+.marketplace-demo__tooltip-trigger:focus-visible + .marketplace-demo__tooltip-bubble {
   opacity: 1;
   transform: translateY(0);
 }
 
-.backyard-demo__tooltip-trigger:focus-visible {
+.marketplace-demo__tooltip-trigger:focus-visible {
   outline: 2px solid rgba(158, 208, 255, 0.7);
   outline-offset: 2px;
 }
 
-.backyard-desktop {
+.marketplace-browser {
   width: 100%;
-  padding: 0.95rem 0.95rem 1.05rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background:
-    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.32), transparent 24%),
-    linear-gradient(135deg, #f0b36f 0%, #d98b6b 18%, #ae83ac 40%, #8fa3d4 64%, #6ca7c9 100%);
-}
-
-.backyard-desktop__menu {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  min-height: 26px;
-  padding: 0 0.15rem 0.7rem;
-  font-size: 0.67rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
-  text-transform: none;
-}
-
-.backyard-desktop__menu-spacer {
-  margin-left: auto;
-}
-
-.backyard-browser {
   border-radius: 18px;
   overflow: hidden;
 }
 
-.backyard-browser__chrome {
+.marketplace-browser__chrome {
   gap: 0.7rem;
 }
 
-.backyard-browser__lights {
+.marketplace-browser__lights {
   display: flex;
   align-items: center;
   gap: 7px;
 }
 
-.backyard-browser__light {
+.marketplace-browser__light {
   width: 9px;
   height: 9px;
   border-radius: 50%;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
 }
 
-.backyard-browser__light--yellow {
-  background: #f5c04a;
+.marketplace-browser__light--red {
+  background: #f25c54;
 }
 
-.backyard-browser__light--green {
-  background: #37c76a;
-}
-
-.backyard-browser__tabs {
+.marketplace-browser__tabs {
   display: flex;
   align-items: center;
   gap: 0.45rem;
 }
 
-.backyard-browser__tab {
+.marketplace-browser__tab {
   display: inline-flex;
   align-items: center;
   min-height: 24px;
@@ -1853,12 +1831,12 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   background: rgba(255, 255, 255, 0.72);
 }
 
-.backyard-browser__tab.is-active {
+.marketplace-browser__tab.is-active {
   background: #ffffff;
   box-shadow: inset 0 0 0 1px rgba(42, 52, 68, 0.08);
 }
 
-.backyard-browser__address {
+.marketplace-browser__address {
   margin-left: auto;
   padding: 0.28rem 0.8rem;
   border-radius: 999px;
@@ -1868,7 +1846,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   color: rgba(52, 60, 70, 0.82);
 }
 
-.backyard-browser__body {
+.marketplace-browser__body {
   height: 585px;
   min-height: 585px;
   max-height: 585px;
@@ -1879,22 +1857,22 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   overflow: hidden;
 }
 
-.backyard-sim__stage {
+.marketplace-sim__stage {
   height: 100%;
   overflow: hidden;
 }
 
-.backyard-sim__stage--detail {
+.marketplace-sim__stage--detail {
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
 }
 
-.backyard-sim__stage:not([hidden]) {
-  animation: backyard-stage-in 240ms cubic-bezier(0.22, 1, 0.36, 1);
+.marketplace-sim__stage:not([hidden]) {
+  animation: marketplace-stage-in 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-@keyframes backyard-stage-in {
+@keyframes marketplace-stage-in {
   from {
     opacity: 0;
     transform: translateY(8px);
@@ -1905,7 +1883,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   }
 }
 
-.backyard-sim__market-head {
+.marketplace-sim__market-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -1913,7 +1891,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   padding: 1.1rem 1.15rem 0.8rem;
 }
 
-.backyard-sim__crumb {
+.marketplace-sim__crumb {
   margin: 0 0 0.25rem;
   font-size: 0.66rem;
   font-weight: 700;
@@ -1922,7 +1900,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   color: #6d7d83;
 }
 
-.backyard-sim__market-title {
+.marketplace-sim__market-title {
   margin: 0;
   font-family: Fraunces, Georgia, serif;
   font-size: 1.15rem;
@@ -1930,7 +1908,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   color: #173b31;
 }
 
-.backyard-sim__ghost {
+.marketplace-sim__ghost {
   padding: 0.52rem 0.8rem;
   border-radius: 999px;
   border: 1px solid rgba(46, 90, 72, 0.14);
@@ -1943,23 +1921,23 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
-.backyard-sim__ghost:hover,
-.backyard-sim__ghost:focus-visible {
+.marketplace-sim__ghost:hover,
+.marketplace-sim__ghost:focus-visible {
   transform: translateY(-1px);
   border-color: rgba(46, 90, 72, 0.28);
   background: rgba(255, 255, 255, 0.94);
   outline: none;
 }
 
-.backyard-sim__filters {
+.marketplace-sim__filters {
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) repeat(3, auto);
   gap: 0.55rem;
   padding: 0 1.15rem 1rem;
 }
 
-.backyard-sim__search,
-.backyard-sim__filter-pill {
+.marketplace-sim__search,
+.marketplace-sim__filter-pill {
   display: inline-flex;
   align-items: center;
   min-height: 38px;
@@ -1972,18 +1950,18 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   font-size: 0.76rem;
 }
 
-.backyard-sim__search {
+.marketplace-sim__search {
   color: #8a979b;
 }
 
-.backyard-sim__grid {
+.marketplace-sim__grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.82rem;
   padding: 0 1.15rem 1.15rem;
 }
 
-.backyard-card {
+.marketplace-card {
   min-height: 176px;
   padding: 0.95rem;
   border-radius: 18px;
@@ -1998,7 +1976,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
 }
 
-.backyard-card__shell {
+.marketplace-card__shell {
   display: grid;
   grid-template-columns: 56px minmax(0, 1fr);
   gap: 0.9rem;
@@ -2006,7 +1984,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   flex: 1;
 }
 
-.backyard-sim__logo {
+.marketplace-sim__logo {
   width: 56px;
   height: 56px;
   border-radius: 14px;
@@ -2020,18 +1998,18 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
-.backyard-sim__logo-icon {
+.marketplace-sim__logo-icon {
   display: inline-flex;
   width: 28px;
   height: 28px;
 }
 
-.backyard-sim__logo-icon svg {
+.marketplace-sim__logo-icon svg {
   width: 100%;
   height: 100%;
 }
 
-.backyard-sim__logo-mark {
+.marketplace-sim__logo-mark {
   width: 22px;
   height: 22px;
   border-radius: 999px;
@@ -2039,7 +2017,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   position: relative;
 }
 
-.backyard-sim__logo-mark::before {
+.marketplace-sim__logo-mark::before {
   content: "";
   position: absolute;
   inset: 5px;
@@ -2047,27 +2025,67 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   background: rgba(255, 255, 255, 0.88);
 }
 
-.backyard-sim__logo--detail {
+.marketplace-sim__logo--detail {
   width: 56px;
   height: 56px;
   border-radius: 16px;
   flex-shrink: 0;
 }
 
-.backyard-card:hover,
-.backyard-card:focus-visible {
+.community-map__tooltip-logo,
+.community-map__popup-logo {
+  flex-shrink: 0;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 10px 24px rgba(7, 12, 20, 0.12);
+}
+
+.community-map__tooltip-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+}
+
+.community-map__tooltip-logo .marketplace-sim__logo-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.community-map__tooltip-logo .marketplace-sim__logo-mark {
+  width: 14px;
+  height: 14px;
+}
+
+.community-map__popup-logo {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+}
+
+.community-map__popup-logo .marketplace-sim__logo-icon {
+  width: 21px;
+  height: 21px;
+}
+
+.community-map__popup-logo .marketplace-sim__logo-mark {
+  width: 16px;
+  height: 16px;
+}
+
+.marketplace-card:hover,
+.marketplace-card:focus-visible {
   transform: translateY(-2px);
   border-color: rgba(46, 90, 72, 0.24);
   box-shadow: 0 18px 38px rgba(45, 64, 72, 0.14);
   outline: none;
 }
 
-.backyard-card.is-highlighted {
+.marketplace-card.is-highlighted {
   border-color: rgba(46, 90, 72, 0.34);
   box-shadow: 0 0 0 2px rgba(143, 215, 180, 0.22), 0 18px 38px rgba(45, 64, 72, 0.14);
 }
 
-.backyard-card__content {
+.marketplace-card__content {
   display: flex;
   flex-direction: column;
   gap: 0.54rem;
@@ -2075,12 +2093,12 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   height: 100%;
 }
 
-.backyard-card__topline {
+.marketplace-card__topline {
   display: flex;
   justify-content: flex-start;
 }
 
-.backyard-card__brand {
+.marketplace-card__brand {
   margin: 0;
   font-family: Inter, system-ui, sans-serif;
   font-size: 0.74rem;
@@ -2088,7 +2106,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   color: #4c5e66;
 }
 
-.backyard-card__detail-label {
+.marketplace-card__detail-label {
   font-family: Inter, system-ui, sans-serif;
   font-size: 0.61rem;
   font-weight: 700;
@@ -2097,14 +2115,14 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   color: #7a8a90;
 }
 
-.backyard-card__detail-copy {
+.marketplace-card__detail-copy {
   font-family: Inter, system-ui, sans-serif;
   font-size: 0.74rem;
   font-weight: 600;
   color: #455861;
 }
 
-.backyard-card__budget {
+.marketplace-card__budget {
   display: inline-flex;
   align-items: center;
   min-height: 24px;
@@ -2114,7 +2132,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   color: #235643;
 }
 
-.backyard-card__title {
+.marketplace-card__title {
   margin: 0;
   font-family: Fraunces, Georgia, serif;
   font-size: 0.98rem;
@@ -2122,20 +2140,20 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   color: #16392f;
 }
 
-.backyard-card__meta {
+.marketplace-card__meta {
   display: grid;
   gap: 0.36rem;
 }
 
-.backyard-card__meta-row {
+.marketplace-card__meta-row {
   display: flex;
   align-items: center;
   gap: 0.42rem;
   flex-wrap: wrap;
 }
 
-.backyard-card__pill,
-.backyard-card__tag {
+.marketplace-card__pill,
+.marketplace-card__tag {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -2147,31 +2165,31 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   font-weight: 700;
 }
 
-.backyard-card__pill {
+.marketplace-card__pill {
   background: rgba(46, 90, 72, 0.1);
   color: #215340;
 }
 
-.backyard-card__tag {
+.marketplace-card__tag {
   background: rgba(52, 73, 83, 0.08);
   color: #4f6268;
 }
 
-.backyard-card__type-icon,
-.backyard-sim__tag-icon {
+.marketplace-card__type-icon,
+.marketplace-sim__tag-icon {
   display: inline-flex;
   width: 13px;
   height: 13px;
   flex-shrink: 0;
 }
 
-.backyard-card__type-icon svg,
-.backyard-sim__tag-icon svg {
+.marketplace-card__type-icon svg,
+.marketplace-sim__tag-icon svg {
   width: 100%;
   height: 100%;
 }
 
-.backyard-card__cta {
+.marketplace-card__cta {
   margin-top: auto;
   display: inline-flex;
   align-items: center;
@@ -2182,7 +2200,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   color: #255946;
 }
 
-.backyard-sim__detail-shell {
+.marketplace-sim__detail-shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 250px;
   gap: 0.95rem;
@@ -2193,14 +2211,14 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   align-items: start;
 }
 
-.backyard-sim__detail-main {
+.marketplace-sim__detail-main {
   display: grid;
   gap: 0.8rem;
   min-width: 0;
   min-height: 0;
 }
 
-.backyard-sim__back {
+.marketplace-sim__back {
   justify-self: start;
   padding: 0;
   border: 0;
@@ -2212,32 +2230,32 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   cursor: pointer;
 }
 
-.backyard-sim__about-card,
-.backyard-sim__opportunity,
-.backyard-sim__offer-panel {
+.marketplace-sim__about-card,
+.marketplace-sim__opportunity,
+.marketplace-sim__offer-panel {
   border-radius: 18px;
   border: 1px solid rgba(126, 149, 156, 0.18);
   background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 14px 34px rgba(45, 64, 72, 0.08);
 }
 
-.backyard-sim__about-card {
+.marketplace-sim__about-card {
   padding: 0.9rem 1rem;
 }
 
-.backyard-sim__about-brand {
+.marketplace-sim__about-brand {
   display: flex;
   align-items: center;
   gap: 0.9rem;
 }
 
-.backyard-sim__about-brand-copy {
+.marketplace-sim__about-brand-copy {
   min-width: 0;
 }
 
-.backyard-sim__about-kicker,
-.backyard-sim__offer-kicker,
-.backyard-sim__opportunity-label {
+.marketplace-sim__about-kicker,
+.marketplace-sim__offer-kicker,
+.marketplace-sim__opportunity-label {
   margin: 0 0 0.35rem;
   font-family: Fraunces, Georgia, serif;
   font-size: 0.66rem;
@@ -2246,7 +2264,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   color: #6b7e84;
 }
 
-.backyard-sim__about-name {
+.marketplace-sim__about-name {
   margin: 0;
   font-family: Fraunces, Georgia, serif;
   font-size: 1rem;
@@ -2254,8 +2272,8 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   color: #173c31;
 }
 
-.backyard-sim__about-owner,
-.backyard-sim__about-copy {
+.marketplace-sim__about-owner,
+.marketplace-sim__about-copy {
   margin: 0.35rem 0 0;
   font-family: Inter, system-ui, sans-serif;
   font-size: 0.76rem;
@@ -2263,13 +2281,13 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   color: #576b72;
 }
 
-.backyard-sim__opportunity {
+.marketplace-sim__opportunity {
   padding: 1rem;
   display: grid;
   gap: 0.85rem;
 }
 
-.backyard-sim__opportunity-title {
+.marketplace-sim__opportunity-title {
   margin: 0;
   font-family: Syne, system-ui, sans-serif;
   font-size: 1.22rem;
@@ -2277,7 +2295,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   color: #173c31;
 }
 
-.backyard-sim__opportunity-budget {
+.marketplace-sim__opportunity-budget {
   margin: 0.25rem 0 0;
   font-family: Inter, system-ui, sans-serif;
   font-size: 0.92rem;
@@ -2285,13 +2303,13 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   color: #215944;
 }
 
-.backyard-sim__tag-row {
+.marketplace-sim__tag-row {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
 }
 
-.backyard-sim__tag {
+.marketplace-sim__tag {
   display: inline-flex;
   align-items: center;
   min-height: 24px;
@@ -2305,12 +2323,12 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   font-weight: 700;
 }
 
-.backyard-sim__tag--muted {
+.marketplace-sim__tag--muted {
   background: rgba(52, 73, 83, 0.08);
   color: #4f6268;
 }
 
-.backyard-sim__meta-row {
+.marketplace-sim__meta-row {
   display: flex;
   flex-wrap: wrap;
   gap: 0.55rem 1rem;
@@ -2319,12 +2337,12 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   color: #6b7f86;
 }
 
-.backyard-sim__detail-section {
+.marketplace-sim__detail-section {
   display: grid;
   gap: 0.3rem;
 }
 
-.backyard-sim__detail-section h4 {
+.marketplace-sim__detail-section h4 {
   margin: 0;
   font-family: Fraunces, Georgia, serif;
   font-size: 0.74rem;
@@ -2333,8 +2351,8 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   text-transform: lowercase;
 }
 
-.backyard-sim__detail-section p,
-.backyard-sim__detail-section ul {
+.marketplace-sim__detail-section p,
+.marketplace-sim__detail-section ul {
   margin: 0;
   font-family: Inter, system-ui, sans-serif;
   font-size: 0.76rem;
@@ -2342,12 +2360,12 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   color: #556a72;
 }
 
-.backyard-sim__detail-section ul {
+.marketplace-sim__detail-section ul {
   padding-left: 1rem;
 }
 
-.backyard-sim__question-btn,
-.backyard-sim__primary {
+.marketplace-sim__question-btn,
+.marketplace-sim__primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2361,29 +2379,29 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
 
-.backyard-sim__question-btn {
+.marketplace-sim__question-btn {
   justify-self: start;
   border: 1px solid rgba(46, 90, 72, 0.16);
   background: rgba(46, 90, 72, 0.08);
   color: #275742;
 }
 
-.backyard-sim__primary {
+.marketplace-sim__primary {
   border: 0;
   background: linear-gradient(180deg, #2e5a48, #234838);
   color: #f5fbf7;
   box-shadow: 0 14px 28px rgba(34, 72, 56, 0.18);
 }
 
-.backyard-sim__question-btn:hover,
-.backyard-sim__question-btn:focus-visible,
-.backyard-sim__primary:hover,
-.backyard-sim__primary:focus-visible {
+.marketplace-sim__question-btn:hover,
+.marketplace-sim__question-btn:focus-visible,
+.marketplace-sim__primary:hover,
+.marketplace-sim__primary:focus-visible {
   transform: translateY(-1px);
   outline: none;
 }
 
-.backyard-sim__offer-panel {
+.marketplace-sim__offer-panel {
   padding: 1rem;
   display: flex;
   flex-direction: column;
@@ -2391,14 +2409,14 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   align-self: start;
 }
 
-.backyard-sim__offer-label {
+.marketplace-sim__offer-label {
   font-family: Fraunces, Georgia, serif;
   font-size: 0.7rem;
   font-weight: 700;
   color: #60767c;
 }
 
-.backyard-sim__offer-input-wrap {
+.marketplace-sim__offer-input-wrap {
   display: flex;
   align-items: center;
   gap: 0.3rem;
@@ -2409,15 +2427,15 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   background: rgba(248, 250, 250, 0.96);
 }
 
-.backyard-sim__offer-input-wrap span {
+.marketplace-sim__offer-input-wrap span {
   font-size: 0.82rem;
   font-weight: 800;
   color: #235643;
 }
 
-.backyard-sim__offer-input-wrap input,
-.backyard-sim__offer-note,
-.backyard-sim__chat-input {
+.marketplace-sim__offer-input-wrap input,
+.marketplace-sim__offer-note,
+.marketplace-sim__chat-input {
   width: 100%;
   border: 0;
   background: transparent;
@@ -2426,13 +2444,13 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   font-size: 0.82rem;
 }
 
-.backyard-sim__offer-input-wrap input:focus,
-.backyard-sim__offer-note:focus {
+.marketplace-sim__offer-input-wrap input:focus,
+.marketplace-sim__offer-note:focus {
   outline: none;
 }
 
-.backyard-sim__offer-note,
-.backyard-sim__chat-input {
+.marketplace-sim__offer-note,
+.marketplace-sim__chat-input {
   min-height: 88px;
   resize: none;
   padding: 0.7rem 0.8rem;
@@ -2442,7 +2460,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   line-height: 1.5;
 }
 
-.backyard-sim__offer-status {
+.marketplace-sim__offer-status {
   margin: 0;
   min-height: 1.2rem;
   font-family: Fraunces, Georgia, serif;
@@ -2451,7 +2469,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   color: #2e5a48;
 }
 
-.backyard-sim__chat {
+.marketplace-sim__chat {
   position: absolute;
   inset: 0;
   z-index: 8;
@@ -2462,11 +2480,11 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   background: rgba(12, 16, 22, 0.22);
 }
 
-.backyard-sim__chat[hidden] {
+.marketplace-sim__chat[hidden] {
   display: none !important;
 }
 
-.backyard-sim__chat-backdrop {
+.marketplace-sim__chat-backdrop {
   position: absolute;
   inset: 0;
   border: 0;
@@ -2474,7 +2492,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   cursor: pointer;
 }
 
-.backyard-sim__chat-window {
+.marketplace-sim__chat-window {
   position: relative;
   width: min(320px, 100%);
   border-radius: 18px;
@@ -2484,7 +2502,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   padding: 0.95rem;
 }
 
-.backyard-sim__chat-head {
+.marketplace-sim__chat-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2495,7 +2513,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   color: #28404b;
 }
 
-.backyard-sim__chat-close {
+.marketplace-sim__chat-close {
   width: 28px;
   height: 28px;
   border-radius: 8px;
@@ -2506,25 +2524,25 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   cursor: pointer;
 }
 
-.backyard-sim__chat-thread {
+.marketplace-sim__chat-thread {
   margin-bottom: 0.7rem;
   padding: 0.75rem;
   border-radius: 14px;
   background: rgba(232, 238, 244, 0.72);
 }
 
-.backyard-sim__chat-empty {
+.marketplace-sim__chat-empty {
   margin: 0;
   font-family: Inter, system-ui, sans-serif;
   font-size: 0.72rem;
   color: #62757c;
 }
 
-.backyard-sim__chat-input {
+.marketplace-sim__chat-input {
   color: #5f7077;
 }
 
-.backyard-sim__toast {
+.marketplace-sim__toast {
   position: absolute;
   left: 50%;
   bottom: 1.15rem;
@@ -2741,6 +2759,10 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   height: 22px !important;
   margin-left: -11px !important;
   margin-top: -11px !important;
+  --pin-core: #d6ae47;
+  --pin-pulse: rgba(229, 197, 111, 0.18);
+  --pin-glow: rgba(214, 174, 71, 0.18);
+  --pin-duration: 2.8s;
   opacity: 0;
   transform: scale(0.68);
   transform-origin: 50% 50%;
@@ -2800,8 +2822,9 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   position: absolute;
   inset: 0;
   border-radius: 999px;
-  background: rgba(229, 197, 111, 0.18);
-  animation: community-pin-pulse 2.8s ease-out infinite;
+  background: var(--pin-pulse);
+  box-shadow: 0 0 0 1px var(--pin-glow);
+  animation: community-pin-pulse var(--pin-duration) ease-out infinite;
   animation-delay: var(--pin-delay, 0s);
 }
 
@@ -2813,16 +2836,18 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   height: 10px;
   border-radius: 999px;
   transform: translate(-50%, -50%);
-  background: #d6ae47;
+  background: var(--pin-core);
   border: 3px solid rgba(255, 252, 245, 0.98);
-  box-shadow: 0 6px 16px rgba(5, 10, 18, 0.14);
+  box-shadow:
+    0 0 0 5px var(--pin-glow),
+    0 6px 16px rgba(5, 10, 18, 0.14);
 }
 
 .community-map__leaflet-tip.leaflet-tooltip {
-  padding: 0.45rem 0.65rem;
+  padding: 0.45rem 0.55rem;
   border: none;
-  border-radius: 12px;
-  background: rgba(12, 17, 24, 0.86);
+  border-radius: 14px;
+  background: rgba(12, 17, 24, 0.9);
   color: #f6f4ef;
   font-size: 0.78rem;
   line-height: 1.4;
@@ -2844,6 +2869,31 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   text-transform: uppercase;
 }
 
+.community-map__tooltip-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.community-map__tooltip-copy {
+  display: grid;
+  gap: 0.05rem;
+}
+
+.community-map__tooltip-name {
+  color: #f8f5ef;
+  font-family: Fraunces, Georgia, serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.community-map__tooltip-kind {
+  color: rgba(232, 236, 241, 0.76);
+  font-size: 0.72rem;
+  text-transform: lowercase;
+}
+
 .community-map .leaflet-popup-content-wrapper {
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.96);
@@ -2859,9 +2909,19 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   line-height: 1.45;
 }
 
+.community-map__popup-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.community-map__popup-copy {
+  display: grid;
+  gap: 0.08rem;
+}
+
 .community-map .leaflet-popup-content strong {
   display: block;
-  margin-bottom: 0.22rem;
   color: #1f2937;
   font-family: Fraunces, Georgia, serif;
   font-size: 0.98rem;
@@ -3007,30 +3067,33 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 .student-values__grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 1.15rem;
 }
 
 .student-value-card {
   display: grid;
   align-content: start;
-  gap: 1rem;
+  gap: 1.15rem;
   min-height: 100%;
-  padding: 1.4rem;
-  border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1.55rem 1.5rem 1.45rem;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   background:
-    linear-gradient(180deg, rgba(17, 22, 29, 0.92), rgba(10, 13, 18, 0.98)),
+    linear-gradient(180deg, rgba(20, 26, 35, 0.88), rgba(10, 13, 18, 0.96)),
     rgba(14, 18, 24, 0.92);
-  box-shadow: 0 22px 44px rgba(3, 7, 18, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 22px 44px rgba(3, 7, 18, 0.2);
 }
 
 .student-value-card__icon {
-  width: 3.2rem;
-  height: 3.2rem;
+  width: 3.4rem;
+  height: 3.4rem;
   display: grid;
   place-items: center;
-  border-radius: 18px;
+  border-radius: 20px;
   color: #f6f4ef;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
 .student-value-card__icon svg {
@@ -3038,25 +3101,63 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   height: 1.95rem;
 }
 
+.student-value-card__copy {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.student-value-card__kicker {
+  margin: 0;
+  color: rgba(221, 231, 238, 0.72);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
 .student-value-card__title {
   margin: 0;
   color: #f6f4ef;
-  font-size: 1.28rem;
-  line-height: 1.26;
+  font-family: Fraunces, Georgia, serif;
+  font-size: 1.2rem;
+  line-height: 1.32;
   letter-spacing: -0.03em;
+  display: grid;
+  gap: 0.22rem;
+  max-width: 18ch;
+}
+
+.student-value-card__title-lead {
+  display: block;
+  color: #fffaf1;
+  font-size: 1.34em;
+  line-height: 1.05;
+  font-weight: 700;
+}
+
+.student-value-card__title-sub {
+  display: block;
+  color: rgba(238, 233, 226, 0.88);
+  font-size: 0.82em;
+  line-height: 1.38;
+  letter-spacing: -0.01em;
+  font-weight: 600;
 }
 
 .student-value-card__body {
   margin: 0;
-  color: rgba(236, 230, 222, 0.8);
+  max-width: 31ch;
+  color: rgba(236, 230, 222, 0.86);
+  font-family: Inter, system-ui, sans-serif;
   font-size: 0.98rem;
-  line-height: 1.65;
+  line-height: 1.72;
+  text-wrap: pretty;
 }
 
-.student-value-card__title strong,
 .student-value-card__body strong {
-  color: #fffaf1;
-  font-weight: 800;
+  color: #ffffff;
+  font-weight: 700;
 }
 
 .student-value-card--experience .student-value-card__icon {
@@ -3074,13 +3175,14 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 .student-role-card {
   display: grid;
   gap: 0.7rem;
-  margin-top: 0.25rem;
-  padding: 0.95rem 1rem;
+  margin-top: 0.15rem;
+  padding: 1rem 1rem 0.95rem;
   border-radius: 22px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
-    rgba(248, 250, 252, 0.04);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+    rgba(248, 250, 252, 0.05);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .student-role-card__head {
@@ -3109,13 +3211,16 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 
 .student-role-card__meta strong {
   color: #f7f5f2;
+  font-family: Syne, system-ui, sans-serif;
   font-size: 0.98rem;
-  line-height: 1.25;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
 }
 
 .student-role-card__meta span,
 .student-role-card__details span {
   color: rgba(223, 245, 231, 0.78);
+  font-family: Inter, system-ui, sans-serif;
   font-size: 0.84rem;
   line-height: 1.4;
 }
@@ -3130,7 +3235,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   display: inline-flex;
   align-items: center;
   min-height: 1.9rem;
-  padding: 0.26rem 0.62rem;
+  padding: 0.26rem 0.68rem;
   border-radius: 999px;
   background: rgba(109, 191, 138, 0.12);
   border: 1px solid rgba(109, 191, 138, 0.18);
@@ -4975,30 +5080,30 @@ body[data-audience="business"] .footer-nav--consultant-only {
   text-align: left;
 }
 
-.mission-section--backyard {
+.mission-section--marketplace {
   min-height: auto;
   padding-bottom: clamp(3.25rem, 7vw, 5rem);
 }
 
-.mission-inner--backyard {
+.mission-inner--marketplace {
   max-width: min(1320px, calc(100vw - 2.8rem));
   grid-template-columns: 1fr;
   gap: clamp(1.3rem, 3vw, 2rem);
   align-items: start;
 }
 
-.mission-copy--backyard {
+.mission-copy--marketplace {
   margin-left: 0;
   max-width: min(84rem, 100%);
 }
 
-.mission-copy--backyard h2 {
+.mission-copy--marketplace h2 {
   max-width: min(22ch, 100%);
   font-size: clamp(2.3rem, 5.5vw, 4.2rem);
   line-height: 1.03;
 }
 
-.mission-copy--backyard p {
+.mission-copy--marketplace p {
   max-width: 56ch;
   font-size: clamp(0.98rem, 1.5vw, 1.08rem);
 }
@@ -6775,15 +6880,15 @@ body[data-audience="business"] .footer-nav--consultant-only {
     height: 30rem;
   }
 
-  .backyard-browser__address {
+  .marketplace-browser__address {
     display: none;
   }
 
-  .backyard-sim__detail-shell {
+  .marketplace-sim__detail-shell {
     grid-template-columns: 1fr;
   }
 
-  .backyard-sim__offer-panel {
+  .marketplace-sim__offer-panel {
     align-self: stretch;
   }
 }
@@ -6838,57 +6943,57 @@ body[data-audience="business"] .footer-nav--consultant-only {
     max-width: none;
   }
 
-  .mission-section--backyard {
+  .mission-section--marketplace {
     padding-inline: 0.9rem;
   }
 
-  .backyard-demo {
+  .marketplace-demo {
     overflow-x: auto;
     padding-bottom: 0.35rem;
   }
 
-  .backyard-demo::-webkit-scrollbar {
+  .marketplace-demo::-webkit-scrollbar {
     height: 8px;
   }
 
-  .backyard-demo::-webkit-scrollbar-thumb {
+  .marketplace-demo::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.22);
     border-radius: 999px;
   }
 
-  .backyard-desktop {
+  .marketplace-browser {
     min-width: 760px;
   }
 
-  .backyard-browser__chrome {
+  .marketplace-browser__chrome {
     padding-right: 12px;
   }
 
-  .backyard-sim__filters {
+  .marketplace-sim__filters {
     grid-template-columns: minmax(0, 1fr) repeat(3, auto);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .backyard-card,
-  .backyard-sim__ghost,
-  .backyard-sim__question-btn,
-  .backyard-sim__primary {
+  .marketplace-card,
+  .marketplace-sim__ghost,
+  .marketplace-sim__question-btn,
+  .marketplace-sim__primary {
     transition: none;
   }
 
-  .backyard-sim__stage:not([hidden]) {
+  .marketplace-sim__stage:not([hidden]) {
     animation: none;
   }
 
-  .backyard-card:hover,
-  .backyard-card:focus-visible,
-  .backyard-sim__ghost:hover,
-  .backyard-sim__ghost:focus-visible,
-  .backyard-sim__question-btn:hover,
-  .backyard-sim__question-btn:focus-visible,
-  .backyard-sim__primary:hover,
-  .backyard-sim__primary:focus-visible {
+  .marketplace-card:hover,
+  .marketplace-card:focus-visible,
+  .marketplace-sim__ghost:hover,
+  .marketplace-sim__ghost:focus-visible,
+  .marketplace-sim__question-btn:hover,
+  .marketplace-sim__question-btn:focus-visible,
+  .marketplace-sim__primary:hover,
+  .marketplace-sim__primary:focus-visible {
     transform: none;
   }
 }

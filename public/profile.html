@@ -21,7 +21,7 @@
           <span class="gr-nav__wordmark">grassroots</span>
         </a>
         <ul class="gr-nav__links">
-          <li><a href="/">backyard</a></li>
+          <li><a href="/">marketplace</a></li>
           <li><a href="/signin.html">sign in</a></li>
           <li><a href="/register.html" class="gr-nav__cta">register</a></li>
           <li><a href="/profile.html" aria-current="page">profile</a></li>
@@ -35,7 +35,7 @@
           <img src="/home/assets/grassroots-icon-syne.svg" width="34" height="52" alt="" />
         </div>
         <h2 class="pf-welcome-title">welcome to grassroots!</h2>
-        <p class="pf-welcome-body">your account is ready. complete your profile to get noticed on the backyard.</p>
+        <p class="pf-welcome-body">your account is ready. complete your profile to get noticed on the marketplace.</p>
         <button type="button" class="gr-btn gr-btn--primary" id="welcome-dismiss">get started</button>
       </div>
     </div>
@@ -45,7 +45,7 @@
         <div class="pf-page-head">
           <h1 class="gr-title">your profile</h1>
           <p class="gr-subtitle">
-            update your photo and details. what you save here shows up across the backyard.
+            update your photo and details. what you save here shows up across the marketplace.
           </p>
         </div>
 
@@ -143,15 +143,6 @@
                       <span>full name</span>
                       <input type="text" name="fullName" id="field-full-name" required />
                     </label>
-                    <label class="gr-label full-width" id="field-employment-wrap">
-                      <span>employment status</span>
-                      <input
-                        type="text"
-                        name="employmentStatus"
-                        id="field-employment"
-                        placeholder="student, full-time, freelance…"
-                      />
-                    </label>
                     <label class="gr-label full-width" id="field-linkedin-wrap">
                       <span>linkedin</span>
                       <input
@@ -195,6 +186,15 @@
                 <label class="gr-label full-width">
                   <span>business name</span>
                   <input type="text" name="businessName" id="field-biz-name" />
+                </label>
+                <label class="gr-label full-width">
+                  <span>business address</span>
+                  <input
+                    type="text"
+                    name="businessAddress"
+                    id="field-biz-address"
+                    placeholder="street, city, state, zip"
+                  />
                 </label>
                 <label class="gr-label full-width">
                   <span>business bio</span>
@@ -316,12 +316,12 @@
               <p class="gr-section-h">resume</p>
               <div class="pf-resume-row">
                 <label class="gr-label pf-file-label">
-                  <span>replace resume (pdf or doc) — optional</span>
+                  <span>replace resume (pdf only) — optional</span>
                   <input
                     id="resume-input"
                     type="file"
                     name="resume"
-                    accept=".pdf,.doc,.docx"
+                    accept=".pdf,application/pdf"
                   />
                 </label>
                 <label class="pf-toggle-label">
@@ -334,7 +334,7 @@
 
               <p class="gr-section-h">past experience</p>
               <p class="gr-field-hint">
-                upload documents, images, videos, or presentations of past work. toggle public to let businesses see them.
+                upload documents, images, videos, or presentations of past work. pdf preferred. toggle public to let businesses see them.
               </p>
               <div id="portfolio-list" class="pf-portfolio-list"></div>
               <div class="pf-portfolio-add">
@@ -446,6 +446,42 @@
 
     </main>
 
+    <div class="pf-resume-viewer hidden" id="pf-resume-viewer" aria-hidden="true">
+      <div class="pf-resume-viewer__backdrop" data-resume-viewer-close></div>
+      <div class="pf-resume-viewer__dialog" role="dialog" aria-modal="true" aria-labelledby="pf-resume-viewer-title">
+        <div class="pf-resume-viewer__bar">
+          <div>
+            <p class="pf-resume-viewer__eyebrow">resume preview</p>
+            <h2 class="pf-resume-viewer__title" id="pf-resume-viewer-title">resume</h2>
+          </div>
+          <div class="pf-resume-viewer__controls">
+            <a
+              class="pf-resume-viewer__icon-btn"
+              id="pf-resume-viewer-download"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              download
+              aria-label="download resume"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 4v10"></path>
+                <path d="m8 10 4 4 4-4"></path>
+                <path d="M5 19h14"></path>
+              </svg>
+            </a>
+            <button type="button" class="pf-resume-viewer__close" data-resume-viewer-close aria-label="close preview">
+              &times;
+            </button>
+          </div>
+        </div>
+        <div class="pf-resume-viewer__stage">
+          <iframe id="pf-resume-viewer-frame" class="pf-resume-viewer__frame" title="resume preview"></iframe>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/nav-session.js"></script>
     <script type="module" src="/profile.js"></script>
 
     <!-- Suggestion Box -->

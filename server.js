@@ -52,6 +52,55 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const sanitizeFileName = (name) => name.replace(/[^a-zA-Z0-9._-]/g, "_");
+const getBearerToken = (req) => {
+  const authHeader = req.headers.authorization;
+  return typeof authHeader === "string" && authHeader.startsWith("Bearer ")
+    ? authHeader.slice(7).trim()
+    : "";
+};
+const getStorageFileName = (filePath) => String(filePath || "").split("/").pop() || "resume";
+
+async function getViewerFromRequest(req) {
+  const token = getBearerToken(req);
+  if (!token) return null;
+
+  const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+  if (userErr || !userData?.user?.id) return null;
+
+  const viewerId = userData.user.id;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", viewerId)
+    .maybeSingle();
+
+  return {
+    id: viewerId,
+    role: profile?.role || null,
+  };
+}
+
+async function createResumeSignedUrl(resumePath, expiresInSeconds = 60 * 30) {
+  if (!resumePath) return null;
+  const { data, error } = await supabase.storage
+    .from("resumes")
+    .createSignedUrl(resumePath, expiresInSeconds);
+  if (error) {
+    console.warn("[resume-signed-url]", error.message || error);
+    return null;
+  }
+  return data?.signedUrl || null;
+}
+
+function canViewerAccessResume(viewer, consultantId, profile) {
+  return Boolean(
+    profile?.resume_path &&
+    (
+      viewer?.id === consultantId ||
+      profile?.resume_public
+    )
+  );
+}
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true, supabaseConfigured: hasSupabaseAdminConfig });
@@ -88,11 +137,7 @@ app.use("/api", (req, res, next) => {
  * web_profile_info endpoint and store it as profiles.avatar_path. Fails softly (JSON ok: false).
  */
 app.post("/api/profile/instagram-avatar", express.json(), async (req, res) => {
-  const authHeader = req.headers.authorization;
-  const token =
-    typeof authHeader === "string" && authHeader.startsWith("Bearer ")
-      ? authHeader.slice(7).trim()
-      : "";
+  const token = getBearerToken(req);
   if (!token) {
     return res.status(401).json({ ok: false, error: "missing token" });
   }
@@ -141,7 +186,6 @@ app.post("/api/register", upload.single("resume"), async (req, res) => {
     role,
     fullName,
     phoneNumber,
-    employmentStatus,
     linkedinUrl,
     businessName,
     websiteUrl,
@@ -186,6 +230,14 @@ app.post("/api/register", upload.single("resume"), async (req, res) => {
 
     if (req.file) {
       const safeName = sanitizeFileName(req.file.originalname);
+      const lowerName = safeName.toLowerCase();
+      const isPdf =
+        req.file.mimetype === "application/pdf" || lowerName.endsWith(".pdf");
+      if (!isPdf) {
+        await supabase.auth.admin.deleteUser(userId);
+        return res.status(400).json({ error: "Resume must be a PDF." });
+      }
+
       resumePath = `${userId}/${Date.now()}-${safeName}`;
       const { error: uploadError } = await supabase.storage
         .from("resumes")
@@ -205,7 +257,6 @@ app.post("/api/register", upload.single("resume"), async (req, res) => {
       role,
       full_name: fullName,
       phone_number: String(phoneNumber || "").trim(),
-      employment_status: employmentStatus || null,
       linkedin_url: linkedinUrl || null,
       resume_path: resumePath,
     });
@@ -305,6 +356,71 @@ app.post("/api/oauth-complete", express.json(), async (req, res) => {
   }
 });
 
+app.get("/api/listings/:id/owner-bids", async (req, res) => {
+  const listingId = req.params.id;
+  if (!listingId) {
+    return res.status(400).json({ error: "Missing listing ID." });
+  }
+
+  try {
+    const viewer = await getViewerFromRequest(req);
+    if (!viewer?.id || viewer.role !== "business_owner") {
+      return res.status(403).json({ error: "Business owners only." });
+    }
+
+    const { data: listing, error: listingError } = await supabase
+      .from("listings")
+      .select("id, owner_id")
+      .eq("id", listingId)
+      .maybeSingle();
+
+    if (listingError || !listing) {
+      return res.status(404).json({ error: "Listing not found." });
+    }
+
+    if (listing.owner_id !== viewer.id) {
+      return res.status(403).json({ error: "You do not have access to these proposals." });
+    }
+
+    const { data: bids, error: bidsError } = await supabase
+      .from("bids")
+      .select(
+        `id, listing_id, consultant_id, amount_cents, message, status,
+         counter_offer_cents, counter_offer_message, accepted_at, proposal_due_at, proposal_path, created_at,
+         profiles!bids_consultant_id_fkey ( id, full_name, linkedin_url, avatar_path )`
+      )
+      .eq("listing_id", listingId)
+      .order("created_at", { ascending: true });
+
+    if (bidsError) {
+      return res.status(500).json({ error: bidsError.message || "Could not load proposals." });
+    }
+
+    const consultantIds = [...new Set((bids || []).map((bid) => bid.consultant_id).filter(Boolean))];
+    let educationMap = new Map();
+
+    if (consultantIds.length) {
+      const { data: educationRows, error: educationError } = await supabase
+        .from("consultant_profiles")
+        .select("user_id, major, minor, school")
+        .in("user_id", consultantIds);
+
+      if (!educationError && Array.isArray(educationRows)) {
+        educationMap = new Map(educationRows.map((row) => [row.user_id, row]));
+      }
+    }
+
+    return res.json({
+      bids: (bids || []).map((bid) => ({
+        ...bid,
+        education: educationMap.get(bid.consultant_id) || null,
+      })),
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || "Server error." });
+  }
+});
+
 app.get("/api/consultant-profile/:id", async (req, res) => {
   const consultantId = req.params.id;
   if (!consultantId) {
@@ -317,7 +433,7 @@ app.get("/api/consultant-profile/:id", async (req, res) => {
     {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, employment_status, linkedin_url, avatar_path, resume_path, resume_public")
+        .select("id, full_name, linkedin_url, avatar_path, resume_path, resume_public")
         .eq("id", consultantId)
         .eq("role", "consultant")
         .maybeSingle();
@@ -327,7 +443,7 @@ app.get("/api/consultant-profile/:id", async (req, res) => {
         // Column likely missing — retry without resume_public
         const { data: fallback, error: fbErr } = await supabase
           .from("profiles")
-          .select("id, full_name, employment_status, linkedin_url, avatar_path, resume_path")
+          .select("id, full_name, linkedin_url, avatar_path, resume_path")
           .eq("id", consultantId)
           .eq("role", "consultant")
           .maybeSingle();
@@ -376,17 +492,58 @@ app.get("/api/consultant-profile/:id", async (req, res) => {
       return { ...item, url: pub?.publicUrl || null };
     });
 
+    const viewer = await getViewerFromRequest(req);
+    const canViewResume = canViewerAccessResume(viewer, consultantId, profile);
+
     return res.json({
       profile: {
         id: profile.id,
         full_name: profile.full_name,
-        employment_status: profile.employment_status,
         linkedin_url: profile.linkedin_url,
         avatar_url: avatarUrl,
         resume_on_file: profile.resume_public && Boolean(profile.resume_path),
+        resume_available: canViewResume,
+        resume_file_name: profile.resume_path ? getStorageFileName(profile.resume_path) : null,
       },
       education: consultantProfile || {},
       portfolio: portfolioWithUrls,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || "Server error." });
+  }
+});
+
+app.get("/api/consultant-profile/:id/resume", async (req, res) => {
+  const consultantId = req.params.id;
+  if (!consultantId) {
+    return res.status(400).json({ error: "Missing consultant ID." });
+  }
+
+  try {
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("id, role, resume_path, resume_public")
+      .eq("id", consultantId)
+      .eq("role", "consultant")
+      .maybeSingle();
+
+    if (error || !profile?.resume_path) {
+      return res.status(404).json({ error: "Resume not found." });
+    }
+
+    const viewer = await getViewerFromRequest(req);
+    if (!canViewerAccessResume(viewer, consultantId, profile)) {
+      return res.status(403).json({ error: "Resume is not available to this viewer." });
+    }
+
+    const resumeUrl = await createResumeSignedUrl(profile.resume_path);
+    if (!resumeUrl) {
+      return res.status(500).json({ error: "Could not generate resume access." });
+    }
+
+    return res.json({
+      url: resumeUrl,
+      file_name: getStorageFileName(profile.resume_path),
     });
   } catch (error) {
     return res.status(500).json({ error: error.message || "Server error." });

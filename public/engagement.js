@@ -66,14 +66,6 @@ const reviewRatings = Object.create(null);
 let consultantChosen = null;
 let dragState = { active: false, nextValue: false };
 
-function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
 function formatUsd(cents) {
   const n = Number(cents);
   if (!Number.isFinite(n)) return "—";
@@ -92,11 +84,6 @@ function isMissing(error) {
 
 function getBidId() {
   return new URLSearchParams(window.location.search).get("bid");
-}
-
-function getFirstName(fullName) {
-  const trimmed = String(fullName || "").trim();
-  return trimmed ? trimmed.split(/\s+/)[0] : "partner";
 }
 
 function scheduleStorageKey(bidId) {

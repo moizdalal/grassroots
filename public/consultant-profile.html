@@ -20,7 +20,7 @@
           <span class="gr-nav__wordmark">grassroots</span>
         </a>
         <ul class="gr-nav__links">
-          <li><a href="/">backyard</a></li>
+          <li><a href="/">marketplace</a></li>
           <li><a href="/signin.html">sign in</a></li>
           <li><a href="/register.html" class="gr-nav__cta">register</a></li>
           <li><a href="/profile.html">profile</a></li>
@@ -38,6 +38,42 @@
       <div id="profile-content" class="hidden"></div>
     </main>
 
+    <div class="pf-resume-viewer hidden" id="pf-resume-viewer" aria-hidden="true">
+      <div class="pf-resume-viewer__backdrop" data-resume-viewer-close></div>
+      <div class="pf-resume-viewer__dialog" role="dialog" aria-modal="true" aria-labelledby="pf-resume-viewer-title">
+        <div class="pf-resume-viewer__bar">
+          <div>
+            <p class="pf-resume-viewer__eyebrow">resume preview</p>
+            <h2 class="pf-resume-viewer__title" id="pf-resume-viewer-title">resume</h2>
+          </div>
+          <div class="pf-resume-viewer__controls">
+            <a
+              class="pf-resume-viewer__icon-btn"
+              id="pf-resume-viewer-download"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              download
+              aria-label="download resume"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 4v10"></path>
+                <path d="m8 10 4 4 4-4"></path>
+                <path d="M5 19h14"></path>
+              </svg>
+            </a>
+            <button type="button" class="pf-resume-viewer__close" data-resume-viewer-close aria-label="close preview">
+              &times;
+            </button>
+          </div>
+        </div>
+        <div class="pf-resume-viewer__stage">
+          <iframe id="pf-resume-viewer-frame" class="pf-resume-viewer__frame" title="resume preview"></iframe>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/nav-session.js"></script>
     <script type="module">
       import { getSupabaseClient } from "/supabase-loader.js";
 
@@ -45,11 +81,100 @@
         return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
       }
 
+      function escapeAttr(s) {
+        return String(s ?? "").replace(/"/g, "&quot;");
+      }
+
+      function getResumeActionMarkup(fileName, consultantId, previewLabel = "preview resume") {
+        if (!consultantId) return "";
+        const safeFileName = fileName || "resume";
+        return `
+          <span class="pf-bv__resume-actions">
+            <button
+              type="button"
+              class="pf-bv__resume-btn"
+              data-resume-action="preview"
+              data-resume-consultant-id="${escapeAttr(consultantId)}"
+              data-resume-file-name="${escapeAttr(safeFileName)}"
+            >${escapeHtml(previewLabel)}</button>
+            <button
+              type="button"
+              class="pf-bv__resume-download"
+              data-resume-action="download"
+              data-resume-consultant-id="${escapeAttr(consultantId)}"
+              data-resume-file-name="${escapeAttr(safeFileName)}"
+              aria-label="download resume"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 4v10"></path>
+                <path d="m8 10 4 4 4-4"></path>
+                <path d="M5 19h14"></path>
+              </svg>
+            </button>
+          </span>
+        `;
+      }
+
+      const resumeViewer = document.getElementById("pf-resume-viewer");
+      const resumeViewerFrame = document.getElementById("pf-resume-viewer-frame");
+      const resumeViewerTitle = document.getElementById("pf-resume-viewer-title");
+      const resumeViewerDownload = document.getElementById("pf-resume-viewer-download");
+
+      function openResumeViewer(url, fileName = "resume") {
+        if (!resumeViewer || !resumeViewerFrame || !resumeViewerTitle || !resumeViewerDownload || !url) return;
+        resumeViewerTitle.textContent = fileName;
+        resumeViewerFrame.src = url;
+        resumeViewerDownload.href = url;
+        resumeViewerDownload.setAttribute("download", fileName);
+        resumeViewer.classList.remove("hidden");
+        resumeViewer.setAttribute("aria-hidden", "false");
+        document.body.classList.add("gr-modal-open");
+      }
+
+      function closeResumeViewer() {
+        if (!resumeViewer || !resumeViewerFrame) return;
+        resumeViewer.classList.add("hidden");
+        resumeViewer.setAttribute("aria-hidden", "true");
+        resumeViewerFrame.src = "about:blank";
+        document.body.classList.remove("gr-modal-open");
+      }
+
+      function triggerResumeDownload(url, fileName = "resume") {
+        const link = document.createElement("a");
+        link.href = url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+
+      async function requestResumeAccess(supabase, consultantId) {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const headers = {};
+        if (session?.access_token) {
+          headers.Authorization = `Bearer ${session.access_token}`;
+        }
+
+        const res = await fetch(`/api/consultant-profile/${encodeURIComponent(consultantId)}/resume`, {
+          headers,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.url) {
+          throw new Error(data.error || "Resume is not available.");
+        }
+        return data;
+      }
+
       async function init() {
         const statusEl = document.getElementById("status");
         const contentEl = document.getElementById("profile-content");
         const params = new URLSearchParams(window.location.search);
         const consultantId = params.get("id");
+        const supabase = await getSupabaseClient();
 
         if (!consultantId) {
           statusEl.textContent = "no consultant specified.";
@@ -58,7 +183,17 @@
         }
 
         try {
-          const res = await fetch(`/api/consultant-profile/${encodeURIComponent(consultantId)}`);
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+          const headers = {};
+          if (session?.access_token) {
+            headers.Authorization = `Bearer ${session.access_token}`;
+          }
+
+          const res = await fetch(`/api/consultant-profile/${encodeURIComponent(consultantId)}`, {
+            headers,
+          });
           const data = await res.json();
 
           if (!res.ok || !data.profile) {
@@ -117,7 +252,7 @@
                 ${avatarHtml}
                 <div>
                   <h2 class="pf-bv__name">${escapeHtml(profile.full_name)}</h2>
-                  <p class="pf-bv__meta">${escapeHtml(profile.employment_status || "")}${profile.employment_status && eduLine ? " \u00b7 " : ""}${escapeHtml(eduLine)}</p>
+                  ${eduLine ? `<p class="pf-bv__meta">${escapeHtml(eduLine)}</p>` : ""}
                 </div>
               </div>
 
@@ -138,7 +273,10 @@
               ${profile.resume_on_file ? `
                 <div class="pf-bv__section">
                   <p class="pf-bv__section-title">resume</p>
-                  <p class="pf-bv__detail">resume on file</p>
+                  <div class="pf-bv__resume-row">
+                    ${profile.resume_file_name ? `<span class="pf-bv__detail">${escapeHtml(profile.resume_file_name)}</span>` : ""}
+                    ${getResumeActionMarkup(profile.resume_file_name, profile.id)}
+                  </div>
                 </div>
               ` : ""}
 
@@ -157,6 +295,43 @@
           statusEl.className = "gr-status error";
         }
       }
+
+      document.addEventListener("click", async (event) => {
+        const resumeAction = event.target.closest("[data-resume-action]");
+        if (resumeAction instanceof HTMLElement) {
+          event.preventDefault();
+          try {
+            const action = resumeAction.getAttribute("data-resume-action") || "preview";
+            const fileName = resumeAction.getAttribute("data-resume-file-name") || "resume";
+            const consultantId = resumeAction.getAttribute("data-resume-consultant-id") || "";
+            const access = await requestResumeAccess(await getSupabaseClient(), consultantId);
+            if (action === "download") {
+              triggerResumeDownload(access.url, access.file_name || fileName);
+            } else {
+              openResumeViewer(access.url, access.file_name || fileName);
+            }
+          } catch (err) {
+            const statusEl = document.getElementById("status");
+            if (statusEl) {
+              statusEl.textContent = err.message || "Resume is not available.";
+              statusEl.className = "gr-status error";
+            }
+          }
+          return;
+        }
+
+        const closeTrigger = event.target.closest("[data-resume-viewer-close]");
+        if (closeTrigger instanceof HTMLElement) {
+          event.preventDefault();
+          closeResumeViewer();
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && resumeViewer && !resumeViewer.classList.contains("hidden")) {
+          closeResumeViewer();
+        }
+      });
 
       init();
     </script>

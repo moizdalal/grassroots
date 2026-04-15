@@ -4,6 +4,7 @@
   "description": "MVP consultative gig platform registration flow with Supabase",
   "main": "server.js",
   "scripts": {
+    "build:contract-help": "esbuild src/contract-help.tsx --bundle --format=esm --jsx=automatic --minify --outfile=public/contract-help.js",
     "dev": "node server.js",
     "start": "node server.js"
   },
@@ -16,5 +17,11 @@
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "multer": "^2.1.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "typescript": "^6.0.2"
   }
 }

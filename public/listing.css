@@ -160,9 +160,12 @@
 /* --- Two-column layout --- */
 .ld-layout {
   display: grid;
-  grid-template-columns: 1fr 340px;
   gap: clamp(1.5rem, 4vw, 2.5rem);
   align-items: start;
+}
+
+.ld-layout--with-rail {
+  grid-template-columns: minmax(0, 1fr) 340px;
 }
 
 .ld-content {
@@ -195,6 +198,13 @@
 /* --- Opportunity header tags --- */
 .ld-header {
   margin-bottom: 1.75rem;
+}
+
+.ld-header__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
 }
 
 .ld-header__tags {
@@ -249,73 +259,48 @@
   margin-top: 0.45rem;
 }
 
-.ld-status-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.85rem;
-  margin-top: 1rem;
-  padding: 0.95rem 1rem;
-  border-radius: 14px;
-  background: rgba(45, 106, 79, 0.05);
-  border: 1px solid rgba(45, 106, 79, 0.14);
-}
-
-.ld-status-banner__pill {
+.ld-status-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 1.85rem;
-  padding: 0.15rem 0.72rem;
+  min-height: 2rem;
+  padding: 0.22rem 0.8rem;
   border-radius: 999px;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   white-space: nowrap;
-}
-
-.ld-status-banner[data-status="paused"] {
-  background: rgba(224, 162, 73, 0.08);
-  border-color: rgba(224, 162, 73, 0.22);
-}
-
-.ld-status-banner[data-status="paused"] .ld-status-banner__pill {
-  background: rgba(224, 162, 73, 0.18);
-  color: #7f5515;
-}
-
-.ld-status-banner[data-status="closed"] {
-  background: rgba(95, 111, 132, 0.08);
-  border-color: rgba(95, 111, 132, 0.2);
-}
-
-.ld-status-banner[data-status="closed"] .ld-status-banner__pill {
-  background: rgba(95, 111, 132, 0.18);
-  color: #425164;
-}
-
-.ld-status-banner__body {
-  display: grid;
-  gap: 0.3rem;
-}
-
-.ld-status-banner__copy,
-.ld-status-banner__reason {
-  margin: 0;
-  font-size: 0.88rem;
-  line-height: 1.5;
-}
-
-.ld-status-banner__copy {
+  border: 1px solid transparent;
+  background: rgba(45, 106, 79, 0.14);
   color: var(--green-deep);
 }
 
-.ld-status-banner__reason {
-  color: var(--tagline-body);
+.ld-status-pill[data-tone="active"] {
+  background: rgba(45, 106, 79, 0.14);
+  border-color: rgba(45, 106, 79, 0.22);
+  color: #1b5d3d;
+}
+
+.ld-status-pill[data-tone="paused"] {
+  background: rgba(224, 162, 73, 0.18);
+  border-color: rgba(224, 162, 73, 0.26);
+  color: #8a5412;
+}
+
+.ld-status-pill[data-tone="closed"] {
+  background: rgba(201, 61, 64, 0.14);
+  border-color: rgba(201, 61, 64, 0.2);
+  color: #a4282a;
 }
 
 /* --- Sticky sidebar --- */
 .ld-sidebar {
+  position: sticky;
+  top: 5rem;
+}
+
+.ld-rail {
   position: sticky;
   top: 5rem;
 }
@@ -333,33 +318,26 @@
   overflow-y: auto;
 }
 
-.ld-owner-actions {
-  display: grid;
-  gap: 0.95rem;
-  margin-bottom: 1rem;
+/* owner-actions sits bare — no card chrome */
+#ld-owner-actions.ld-sidebar__panel {
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0.25rem 0;
 }
 
-.ld-owner-actions__kicker {
+.ld-owner-actions {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.ld-owner-actions__heading {
   margin: 0;
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--tagline-body);
-}
-
-.ld-owner-actions__heading {
-  margin: 0;
-  font-family: Fraunces, Georgia, serif;
-  font-size: 1.08rem;
-  font-weight: 700;
-  color: var(--green-deep);
-}
-
-.ld-owner-actions__copy {
-  margin: 0;
-  font-size: 0.85rem;
-  line-height: 1.55;
   color: var(--tagline-body);
 }
 
@@ -372,6 +350,38 @@
 
 .ld-owner-actions__btn {
   flex: 1 1 0;
+}
+
+/* pause button — yellow-orange */
+#ld-pause-listing-btn {
+  color: #b45309;
+  background: transparent;
+  border: 1px solid #f59e0b;
+}
+#ld-pause-listing-btn:hover {
+  color: #92400e;
+  background: rgba(245, 158, 11, 0.1);
+  border-color: #d97706;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.18);
+}
+#ld-pause-listing-btn:active {
+  transform: translateY(0);
+}
+
+/* cancel button — red */
+#ld-close-listing-btn {
+  color: #fff;
+  background: linear-gradient(145deg, #ef4444, #b91c1c);
+  border: none;
+  box-shadow: 0 2px 10px rgba(185, 28, 28, 0.18);
+}
+#ld-close-listing-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(185, 28, 28, 0.28);
+}
+#ld-close-listing-btn:active {
+  transform: translateY(0);
 }
 
 .ld-status-form {
@@ -422,7 +432,6 @@
 }
 
 
-/* --- Offer panel (consultant sidebar) --- */
 .ld-offer-panel__heading {
   font-family: Fraunces, Georgia, serif;
   font-size: 1.1rem;
@@ -1041,12 +1050,18 @@
 
 /* --- Responsive --- */
 @media (max-width: 820px) {
-  .ld-layout {
+  .ld-layout,
+  .ld-layout--with-rail {
     grid-template-columns: 1fr;
   }
 
-  .ld-sidebar {
+  .ld-sidebar,
+  .ld-rail {
     position: static;
+  }
+
+  .ld-header__title-row {
+    align-items: flex-start;
   }
 
   .ld-bio__inner {

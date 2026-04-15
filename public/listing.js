@@ -4,10 +4,10 @@ import { formatBudgetRange, getSimulatedBudgetRange } from "/sim-budget.js";
 
 const gate = document.getElementById("listing-gate");
 const detail = document.getElementById("listing-detail");
-const statusBanner = document.getElementById("ld-status-banner");
-const statusBannerPill = document.getElementById("ld-status-banner-pill");
-const statusBannerCopy = document.getElementById("ld-status-banner-copy");
-const statusBannerReason = document.getElementById("ld-status-banner-reason");
+const layout = document.querySelector(".ld-layout");
+const ownerSidebar = document.getElementById("ld-sidebar");
+const offerRail = document.getElementById("ld-offer-rail");
+const statusPill = document.getElementById("ld-status-pill");
 const ownerActionsPanel = document.getElementById("ld-owner-actions");
 const ownerActionsCopy = document.getElementById("ld-owner-actions-copy");
 const pauseListingBtn = document.getElementById("ld-pause-listing-btn");
@@ -63,16 +63,6 @@ function relativeDate(iso) {
   if (diff === 1) return "yesterday";
   if (diff < 30) return `${diff} days ago`;
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
-
-function friendlyDeadline(iso) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const diff = Math.ceil((d - Date.now()) / 86400000);
-  const formatted = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  if (diff < 0) return `overdue (was ${formatted})`;
-  if (diff === 0) return `due today (${formatted})`;
-  return `${diff} day${diff === 1 ? "" : "s"} left — due ${formatted}`;
 }
 
 function isMissing(error) {
@@ -159,6 +149,29 @@ async function loadMyBid(client, listingId) {
 }
 
 async function loadOwnerBids(client, listingId) {
+  const {
+    data: { session },
+  } = await client.auth.getSession();
+  const headers = {};
+  if (session?.access_token) {
+    headers.Authorization = `Bearer ${session.access_token}`;
+  }
+
+  if (headers.Authorization) {
+    try {
+      const res = await fetch(`/api/listings/${encodeURIComponent(listingId)}/owner-bids`, {
+        headers,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && Array.isArray(data.bids)) {
+        return { bids: data.bids, available: true };
+      }
+      console.warn("owner bids api:", data.error || res.statusText);
+    } catch (error) {
+      console.warn("owner bids api:", error);
+    }
+  }
+
   const { data, error } = await client
     .from("bids")
     .select(
@@ -227,40 +240,32 @@ function detectPlatform(url) {
   return "linkedin";
 }
 
-/* Opportunity-type tag icon (small inline) */
-function typeTagIcon(type) {
-  const icons = {
-    do: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/></svg>',
-    develop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
-    plan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="m9 15 2-6 6-2-2 6-6 2Z"/></svg>',
-  };
-  return icons[type] || "";
-}
 
 function parseStructuredListingDetails(text) {
   const raw = String(text || "").replace(/\r/g, "");
   const sectionLabels = [
-    { key: "issueContext", label: "issue context:" },
-    { key: "businessProblem", label: "business problem:" },
-    { key: "expectedOutput", label: "expected output:" },
-    { key: "additionalDetails", label: "additional details:" },
+    { key: "issueContext", labels: ["context:", "issue context:"] },
+    { key: "businessProblem", labels: ["business problem:"] },
+    { key: "expectedOutput", labels: ["standards of work:", "expected output:"] },
+    { key: "additionalDetails", labels: ["additional details:"] },
   ];
 
   const lines = raw.split("\n");
   const normalized = lines.map((line) => line.trim().toLowerCase());
   const indexes = sectionLabels
-    .map((section) => ({ ...section, index: normalized.findIndex((line) => line === section.label) }))
+    .map((section) => ({
+      ...section,
+      index: normalized.findIndex((line) => section.labels.includes(line)),
+    }))
     .filter((section) => section.index >= 0)
     .sort((a, b) => a.index - b.index);
 
   const parsed = {
-    opportunityType: (raw.match(/^opportunity type:\s*(.+)$/im) || [])[1]?.trim() || "",
     issueContext: "",
     businessProblem: "",
     expectedOutput: "",
     additionalDetails: "",
     legacyDetails: raw
-      .replace(/^opportunity type:\s*.+$/im, "")
       .replace(/^budget range:\s*.+$/im, "")
       .replace(/\n{3,}/g, "\n\n")
       .trim(),
@@ -285,6 +290,19 @@ function getListingStatusLabel(status) {
   return "open";
 }
 
+function getListingStatusTone(status) {
+  const normalized = getListingStatusLabel(status);
+  if (normalized === "paused") return "paused";
+  if (normalized === "open") return "active";
+  return "closed";
+}
+
+function getListingStatusDisplay(status) {
+  const normalized = getListingStatusLabel(status);
+  if (normalized === "open") return "active";
+  return normalized;
+}
+
 function getListingReasonLabel(reason) {
   return STATUS_REASON_LABELS[String(reason || "").trim()] || "";
 }
@@ -301,6 +319,24 @@ function getListingReasonText(listing) {
 
 function getListingAttachments(listing) {
   return Array.isArray(listing?.attachments) ? listing.attachments.filter(Boolean) : [];
+}
+
+function syncLayoutRail() {
+  if (!layout) return;
+  const showRail = Boolean(!ownerSidebar?.hidden || !offerRail?.hidden);
+  layout.classList.toggle("ld-layout--with-rail", showRail);
+}
+
+function setOwnerSidebarVisible(visible) {
+  if (!ownerSidebar) return;
+  ownerSidebar.hidden = !visible;
+  syncLayoutRail();
+}
+
+function setOfferRailVisible(visible) {
+  if (!offerRail) return;
+  offerRail.hidden = !visible;
+  syncLayoutRail();
 }
 
 function renderListingAttachments(listing) {
@@ -341,49 +377,12 @@ function renderListingAttachments(listing) {
   attachmentsWrap.hidden = false;
 }
 
-function renderListingStatusBanner(listing, viewer = {}) {
-  if (!statusBanner || !statusBannerPill || !statusBannerCopy || !statusBannerReason) return;
-
-  const status = getListingStatusLabel(listing?.status);
-  if (status === "open") {
-    statusBanner.hidden = true;
-    statusBannerReason.hidden = true;
-    return;
-  }
-
-  const isOwner = Boolean(viewer.isOwner);
-  const hasExistingBid = Boolean(viewer.hasExistingBid);
-  let copy = "This listing is no longer accepting new offers.";
-
-  if (status === "paused") {
-    copy = isOwner
-      ? "This listing is hidden from backyard browsing, but your existing proposals stay available below."
-      : hasExistingBid
-        ? "This listing is paused. Your existing offer stays on file, but new offer activity is turned off."
-        : "This listing is paused and no longer appears in backyard browsing.";
-  } else if (status === "closed") {
-    copy = isOwner
-      ? "This listing is closed. It is out of backyard browsing, but you can still review the proposal history here."
-      : hasExistingBid
-        ? "This listing is closed. Your earlier offer stays visible here for reference."
-        : "This listing is closed.";
-  } else if (status === "filled") {
-    copy = "This listing has already been filled.";
-  }
-
-  statusBanner.dataset.status = status;
-  statusBannerPill.textContent = status;
-  statusBannerCopy.textContent = copy;
-
-  const reasonText = getListingReasonText(listing);
-  if (reasonText) {
-    statusBannerReason.textContent = `Reason: ${reasonText}.`;
-    statusBannerReason.hidden = false;
-  } else {
-    statusBannerReason.hidden = true;
-  }
-
-  statusBanner.hidden = false;
+function renderListingStatusPill(listing) {
+  if (!statusPill) return;
+  const tone = getListingStatusTone(listing?.status);
+  statusPill.dataset.tone = tone;
+  statusPill.textContent = getListingStatusDisplay(listing?.status);
+  statusPill.hidden = false;
 }
 
 function populateListing(listing) {
@@ -468,12 +467,6 @@ function populateListing(listing) {
   /* --- Tags (type + categories) --- */
   const tagsEl = document.getElementById("ld-header-tags");
   let tagsHtml = "";
-
-  if (parsedDetails.opportunityType) {
-    const typeVal = parsedDetails.opportunityType.trim().toLowerCase();
-    const icon = typeTagIcon(typeVal);
-    tagsHtml += `<span class="ld-tag ld-tag--type">${icon ? icon + " " : ""}${escapeHtml(typeVal)}</span>`;
-  }
 
   if (listing.category) {
     listing.category.split(",").map((c) => c.trim()).filter(Boolean).forEach((cat) => {
@@ -564,8 +557,8 @@ function openOwnerStatusForm(action) {
   ownerActionStatus.textContent = "";
   ownerActionStatus.className = "gr-status";
   statusFormTitle.textContent =
-    action === "paused" ? "Why are you pausing this listing?" : "Why are you closing this listing?";
-  statusSubmitBtn.textContent = action === "paused" ? "pause listing" : "close listing";
+    action === "paused" ? "Why are you pausing this listing?" : "Why are you cancelling this listing?";
+  statusSubmitBtn.textContent = action === "paused" ? "pause listing" : "cancel listing";
   statusForm.classList.remove("hidden");
   syncOwnerStatusOtherField();
 }
@@ -577,10 +570,11 @@ function renderOwnerActionSummary(listing) {
 
   if (status === "paused") {
     ownerActionsCopy.textContent = reasonText
-      ? `This listing is paused because of "${reasonText}". Resume it any time or close it permanently.`
-      : "This listing is paused. Existing proposals stay in place while it stays out of backyard browsing.";
+      ? `This listing is paused because of "${reasonText}". Resume it any time or cancel it permanently.`
+      : "This listing is paused. Existing proposals stay in place while it stays out of marketplace browsing.";
     pauseListingBtn.textContent = "resume listing";
     pauseListingBtn.disabled = false;
+    closeListingBtn.textContent = "cancel listing";
     closeListingBtn.disabled = false;
     return;
   }
@@ -590,6 +584,7 @@ function renderOwnerActionSummary(listing) {
       ? `This listing is closed because of "${reasonText}". Existing participants can still refer back to it here.`
       : "This listing is closed. Existing participants can still refer back to it here.";
     pauseListingBtn.textContent = "pause listing";
+    closeListingBtn.textContent = "cancel listing";
     pauseListingBtn.disabled = true;
     closeListingBtn.disabled = true;
     resetOwnerStatusForm();
@@ -597,8 +592,9 @@ function renderOwnerActionSummary(listing) {
   }
 
   ownerActionsCopy.textContent =
-    "Pause this listing to hide it from backyard browsing while keeping current proposals in place, or close it when you're done.";
+    "Pause this listing to hide it from marketplace browsing while keeping current proposals in place, or cancel it when you're done.";
   pauseListingBtn.textContent = "pause listing";
+  closeListingBtn.textContent = "cancel listing";
   pauseListingBtn.disabled = false;
   closeListingBtn.disabled = false;
 }
@@ -626,6 +622,7 @@ async function persistListingStatus(client, listing, nextStatus, reason = null, 
 
 function setupOwnerListingActions(client, listing) {
   if (
+    !ownerSidebar ||
     !ownerActionsPanel ||
     !pauseListingBtn ||
     !closeListingBtn ||
@@ -636,6 +633,7 @@ function setupOwnerListingActions(client, listing) {
     return;
   }
 
+  setOwnerSidebarVisible(true);
   ownerActionsPanel.hidden = false;
   renderOwnerActionSummary(listing);
 
@@ -648,9 +646,9 @@ function setupOwnerListingActions(client, listing) {
         try {
           await persistListingStatus(client, listing, "open", null, null);
           renderOwnerActionSummary(listing);
-          renderListingStatusBanner(listing, { isOwner: true });
+          renderListingStatusPill(listing);
           resetOwnerStatusForm();
-          showOwnerActionFeedback("listing resumed. it is visible in backyard browsing again.");
+          showOwnerActionFeedback("listing resumed. it is visible in marketplace browsing again.");
         } catch (error) {
           showOwnerActionFeedback(error.message || "could not resume listing.", "error");
         } finally {
@@ -704,12 +702,12 @@ function setupOwnerListingActions(client, listing) {
       try {
         await persistListingStatus(client, listing, action, reason, otherReason || null);
         renderOwnerActionSummary(listing);
-        renderListingStatusBanner(listing, { isOwner: true });
+        renderListingStatusPill(listing);
         resetOwnerStatusForm();
         showOwnerActionFeedback(
           action === "paused"
-            ? "listing paused. it is now hidden from backyard browsing, but current proposals remain in place."
-            : "listing closed. it is out of backyard browsing and marked closed for existing participants."
+            ? "listing paused. it is now hidden from marketplace browsing, but current proposals remain in place."
+            : "listing cancelled. it is out of marketplace browsing and marked closed for existing participants."
         );
       } catch (error) {
         showOwnerActionFeedback(error.message || "could not update listing status.", "error");
@@ -748,6 +746,7 @@ function renderMsgThread(container, messages, myId) {
 
 function showConsultantView(client, session, listing, existingBid) {
   const panel = document.getElementById("ld-offer-panel");
+  setOfferRailVisible(true);
   panel.hidden = false;
 
   const amountInput = document.getElementById("ld-bid-amount");
@@ -1034,7 +1033,7 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
     const card = document.createElement("div");
     card.className = "ld-bid-card";
     const p = b.profiles;
-    const education = educationMap.get(b.consultant_id) || null;
+    const education = b.education || educationMap.get(b.consultant_id) || null;
     const educationLine = formatConsultantEducationLine(education);
     const minor = education?.minor?.trim?.() || "";
     const rawName = p?.full_name || "Consultant";
@@ -1265,24 +1264,37 @@ async function init() {
     if (error) { gate.textContent = error.message; gate.className = "gr-status error"; return; }
     if (!listing) { gate.textContent = "listing not found."; gate.className = "gr-status error"; return; }
 
+    const uid = session?.user?.id ?? null;
+    const isOwner = Boolean(uid && listing.owner_id === uid);
+    const listingStatus = getListingStatusLabel(listing.status);
+    const viewerRole = uid && !isOwner ? await loadSessionRole(client, uid) : null;
+    let existingBid = null;
+    let hasExistingBid = false;
+    let bidsAvailable = false;
+
+    if (viewerRole === "consultant") {
+      const { bid, available } = await loadMyBid(client, listingId);
+      existingBid = bid;
+      hasExistingBid = Boolean(bid);
+      bidsAvailable = available;
+    }
+
+    if (listingStatus !== "open" && !isOwner && !hasExistingBid) {
+      gate.textContent = "this listing is no longer available from marketplace browsing.";
+      gate.className = "gr-status error";
+      return;
+    }
+
     const { profile } = populateListing(listing);
     populateAvatarIfAvailable(client, profile);
-
-    const uid = session?.user?.id ?? null;
-    const isOwner = uid && listing.owner_id === uid;
-    let hasExistingBid = false;
+    renderListingStatusPill(listing);
+    setOwnerSidebarVisible(isOwner);
+    if (!isOwner) setOfferRailVisible(false);
 
     if (uid && !isOwner) {
-      const role = await loadSessionRole(client, uid);
-      if (role === "consultant") {
-        const { bid, available } = await loadMyBid(client, listingId);
-        hasExistingBid = Boolean(bid);
-        if (available) {
-          if (getListingStatusLabel(listing.status) === "open" || bid) {
-            showConsultantView(client, session, listing, bid);
-          } else {
-            showHint(`this listing is ${escapeHtml(getListingStatusLabel(listing.status))} and is not taking new offers right now.`);
-          }
+      if (viewerRole === "consultant") {
+        if (bidsAvailable) {
+          showConsultantView(client, session, listing, existingBid);
         } else {
           showHint("run <code>supabase/setup_v2.sql</code> to enable bidding.");
         }
@@ -1293,14 +1305,19 @@ async function init() {
       setupOwnerListingActions(client, listing);
       const { bids, available } = await loadOwnerBids(client, listingId);
       if (available) {
-        const educationMap = await loadConsultantEducationMap(client, bids.map((b) => b.consultant_id));
+        const embeddedEducation = bids.some((b) => b.education);
+        const educationMap = embeddedEducation
+          ? new Map(
+              bids
+                .filter((b) => b.consultant_id && b.education)
+                .map((b) => [b.consultant_id, b.education])
+            )
+          : await loadConsultantEducationMap(client, bids.map((b) => b.consultant_id));
         showOwnerBids(client, session, listing, bids, educationMap);
       }
     } else {
       showHint('<a href="/signin.html">sign in</a> as a consultant to submit a proposal.');
     }
-
-    renderListingStatusBanner(listing, { isOwner, hasExistingBid });
 
     gate.hidden = true;
     detail.hidden = false;

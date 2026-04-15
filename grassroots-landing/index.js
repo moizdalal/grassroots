@@ -422,14 +422,6 @@ function initStarfield() {
     if (!starfieldRafId) starfieldRafId = window.requestAnimationFrame(render);
   }
 
-  function stopStarfieldLoop() {
-    if (starfieldRafId) {
-      window.cancelAnimationFrame(starfieldRafId);
-      starfieldRafId = 0;
-    }
-    ctx.clearRect(0, 0, width, height);
-  }
-
   window.addEventListener("mousemove", (e) => {
     cursor.x = e.clientX;
     cursor.y = e.clientY;
@@ -971,7 +963,7 @@ function initHeroParallax() {
   tick();
 }
 
-const BACKYARD_SIM_OPPORTUNITIES = [
+const MARKETPLACE_SIM_OPPORTUNITIES = [
   {
     id: "northside-cafe",
     business: "northside cafe",
@@ -1094,7 +1086,7 @@ function formatSimOffer(amount) {
   return `$${raw}`;
 }
 
-function scaleBackyardBudgetRange(text, maxCap = 150) {
+function scaleMarketplaceBudgetRange(text, maxCap = 150) {
   const match = String(text ?? "").match(/^\$(\d+)\s*[-–]\s*\$(\d+)$/);
   if (!match) return String(text ?? "");
 
@@ -1109,6 +1101,9 @@ function scaleBackyardBudgetRange(text, maxCap = 150) {
   const safeMin = Math.min(scaledMin, scaledMax);
   return `$${safeMin}-$${scaledMax}`;
 }
+
+const COMMUNITY_MAP_RADIUS_MILES = 2.5;
+const COMMUNITY_MAP_RADIUS_METERS = Math.round(COMMUNITY_MAP_RADIUS_MILES * 1609.344);
 
 function getOpportunityTypeIcon(type) {
   const icons = {
@@ -1127,47 +1122,160 @@ function getBusinessLogoInner(logo) {
     scales: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v15"/><path d="M7 7h10"/><path d="M9 7 6 12h6Z"/><path d="m15 7 3 5h-6Z"/><path d="M8 19h8"/></svg>',
     vase: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6"/><path d="M10 4v3c0 1.5-2.5 2.4-2.5 5.2V16a4 4 0 0 0 4 4h1a4 4 0 0 0 4-4v-3.8C16.5 9.4 14 8.5 14 7V4"/><path d="M8 13h8"/></svg>',
     book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6.5A2.5 2.5 0 0 1 7.5 4H19v15H7.5A2.5 2.5 0 0 0 5 21Z"/><path d="M5 6.5V21"/><path d="M9 8h6"/><path d="M9 11h4"/></svg>',
+    print: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 7V4h8v3"/><rect x="6" y="9" width="12" height="7" rx="2"/><path d="M9 13h6"/><path d="M8 16h8v4H8z"/></svg>',
+    sprout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20v-7"/><path d="M12 13c0-3.8 2.5-6 6.5-6 .2 4-2.1 6.5-6.5 6Z"/><path d="M12 15c0-3.2-2-5.2-5.5-5.2-.1 3.5 1.9 5.7 5.5 5.7Z"/></svg>',
+    camera: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h2l1.2-2h3.6L15 7h2a3 3 0 0 1 3 3v6.5a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V10a3 3 0 0 1 3-3Z"/><circle cx="12" cy="13" r="3.2"/><path d="M17.5 10.5h.01"/></svg>',
+    needle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m19 5-9.2 9.2a3 3 0 1 0 4.2 4.2L23 9.4"/><path d="m16 8 2.3-2.3"/><path d="M4 20c3.2-2.4 5.5-2.8 8-2.8"/></svg>',
+    record: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.6"/><path d="M16.8 7.2 21 3"/></svg>',
   };
   if (logo.kind === "icon" && logo.icon && businessIcons[logo.icon]) {
-    return `<span class="backyard-sim__logo-icon">${businessIcons[logo.icon]}</span>`;
+    return `<span class="marketplace-sim__logo-icon">${businessIcons[logo.icon]}</span>`;
   }
   if (logo.kind === "mark") {
-    return '<span class="backyard-sim__logo-mark" aria-hidden="true"></span>';
+    return '<span class="marketplace-sim__logo-mark" aria-hidden="true"></span>';
   }
   return logo.text;
 }
 
+function getLogoData(entity) {
+  const label = String(entity?.business || entity?.name || "").trim();
+  return entity?.logo || {
+    kind: "initials",
+    text: label.slice(0, 2).toUpperCase(),
+    colors: ["#4d7c66", "#9fd4c1"],
+  };
+}
+
 function getLogoMarkup(opportunity, extraClass = "") {
-  const logo = opportunity.logo || { kind: "initials", text: opportunity.business.slice(0, 2).toUpperCase(), colors: ["#4d7c66", "#9fd4c1"] };
+  const logo = getLogoData(opportunity);
   const style = `style="background: linear-gradient(145deg, ${logo.colors[0]}, ${logo.colors[1]});"`;
-  return `<div class="backyard-sim__logo ${extraClass}" ${style}>${getBusinessLogoInner(logo)}</div>`;
+  return `<div class="marketplace-sim__logo ${extraClass}" ${style}>${getBusinessLogoInner(logo)}</div>`;
 }
 
 function applyLogoToSlot(slot, opportunity, extraClass = "") {
-  const logo = opportunity.logo || { kind: "initials", text: opportunity.business.slice(0, 2).toUpperCase(), colors: ["#4d7c66", "#9fd4c1"] };
-  slot.className = `backyard-sim__logo ${extraClass}`.trim();
+  const logo = getLogoData(opportunity);
+  slot.className = `marketplace-sim__logo ${extraClass}`.trim();
   slot.style.background = `linear-gradient(145deg, ${logo.colors[0]}, ${logo.colors[1]})`;
   slot.innerHTML = getBusinessLogoInner(logo);
 }
 
-function initBackyardSimulation() {
-  const root = document.getElementById("backyard-sim-root");
+const MARKETPLACE_SIM_BUSINESS_LOOKUP = new Map(
+  MARKETPLACE_SIM_OPPORTUNITIES.map((opportunity) => [opportunity.id, opportunity])
+);
+
+const COMMUNITY_MAP_BUSINESSES = [
+  { sourceId: "northside-cafe", kind: "cafe", label: "student lunch rush", pulseDuration: 2.9 },
+  { sourceId: "elm-street-bakery", kind: "bakery", label: "morning pastry line", pulseDuration: 3.2 },
+  { sourceId: "cedar-bike-shop", kind: "retail", label: "repair + tune-up shop", pulseDuration: 2.7 },
+  { sourceId: "harbor-ceramics", kind: "studio", label: "workshop studio", pulseDuration: 3.5 },
+  { sourceId: "ridge-legal", kind: "office", label: "client intake office", pulseDuration: 3.1 },
+  { sourceId: "summit-tutoring", kind: "education", label: "family support hub", pulseDuration: 2.85 },
+  {
+    id: "lantern-copy-house",
+    business: "lantern copy house",
+    kind: "print shop",
+    label: "printing + take-home kits",
+    pulseDuration: 3.25,
+    logo: { kind: "icon", icon: "print", colors: ["#5369d8", "#b9c6ff"] },
+  },
+  {
+    id: "moss-and-mortar-florals",
+    business: "moss & mortar florals",
+    kind: "florist",
+    label: "events + walk-in bouquets",
+    pulseDuration: 3.45,
+    logo: { kind: "icon", icon: "sprout", colors: ["#4e8f63", "#c4e8c7"] },
+  },
+  {
+    id: "signal-photo-lab",
+    business: "signal photo lab",
+    kind: "photo studio",
+    label: "portraits + product shoots",
+    pulseDuration: 2.95,
+    logo: { kind: "icon", icon: "camera", colors: ["#7b5a4a", "#dfbba4"] },
+  },
+  {
+    id: "stitchline-alterations",
+    business: "stitchline alterations",
+    kind: "tailor",
+    label: "rush hems + fittings",
+    pulseDuration: 3.3,
+    logo: { kind: "icon", icon: "needle", colors: ["#8f527e", "#ddbcdf"] },
+  },
+  {
+    id: "daybreak-records",
+    business: "daybreak records",
+    kind: "record shop",
+    label: "listening room + merch wall",
+    pulseDuration: 3.55,
+    logo: { kind: "icon", icon: "record", colors: ["#d08f3c", "#f5d596"] },
+  },
+  {
+    id: "juniper-study-hall",
+    business: "juniper study hall",
+    kind: "study cafe",
+    label: "late-night study tables",
+    pulseDuration: 2.75,
+    logo: { kind: "mark", colors: ["#3e6c7c", "#b7dae3"] },
+  },
+];
+
+function hexToRgba(hex, alpha) {
+  const value = String(hex || "").replace("#", "").trim();
+  if (!value) return `rgba(214, 174, 71, ${alpha})`;
+  const normalized =
+    value.length === 3
+      ? value
+          .split("")
+          .map((part) => `${part}${part}`)
+          .join("")
+      : value.slice(0, 6);
+  const number = Number.parseInt(normalized, 16);
+  if (!Number.isFinite(number)) return `rgba(214, 174, 71, ${alpha})`;
+  const red = (number >> 16) & 255;
+  const green = (number >> 8) & 255;
+  const blue = number & 255;
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
+function buildCommunityMapBusinesses(pinCount) {
+  return COMMUNITY_MAP_BUSINESSES.slice(0, pinCount).map((entry, index) => {
+    const baseBusiness = entry.sourceId ? MARKETPLACE_SIM_BUSINESS_LOOKUP.get(entry.sourceId) : null;
+    const business = { ...baseBusiness, ...entry };
+    const logo = getLogoData(business);
+    const [primaryColor, secondaryColor] = logo.colors;
+    return {
+      ...business,
+      kind: business.kind || baseBusiness?.type || "business",
+      name: business.business,
+      logo,
+      pinCore: primaryColor,
+      pinPulse: hexToRgba(secondaryColor || primaryColor, 0.28),
+      pinGlow: hexToRgba(primaryColor, 0.18),
+      pinDuration: `${business.pulseDuration || 3}s`,
+      delay: Number.isFinite(business.delay) ? business.delay : index * 0.09,
+    };
+  });
+}
+
+function initMarketplaceSimulation() {
+  const root = document.getElementById("marketplace-sim-root");
   if (!root) return;
 
-  const gridStage = document.getElementById("backyard-grid-stage");
-  const detailStage = document.getElementById("backyard-detail-stage");
-  const grid = document.getElementById("backyard-sim-grid");
-  const resetBtn = document.getElementById("backyard-reset-btn");
-  const backBtn = document.getElementById("backyard-back-btn");
-  const questionBtn = document.getElementById("backyard-question-btn");
-  const offerInput = document.getElementById("backyard-offer-input");
-  const offerNote = document.getElementById("backyard-offer-note");
-  const offerSubmit = document.getElementById("backyard-offer-submit");
-  const offerStatus = document.getElementById("backyard-offer-status");
-  const chat = document.getElementById("backyard-chat");
-  const chatClose = document.getElementById("backyard-chat-close");
-  const chatBackdrop = document.getElementById("backyard-chat-backdrop");
-  const toast = document.getElementById("backyard-toast");
+  const gridStage = document.getElementById("marketplace-grid-stage");
+  const detailStage = document.getElementById("marketplace-detail-stage");
+  const grid = document.getElementById("marketplace-sim-grid");
+  const resetBtn = document.getElementById("marketplace-reset-btn");
+  const backBtn = document.getElementById("marketplace-back-btn");
+  const questionBtn = document.getElementById("marketplace-question-btn");
+  const offerInput = document.getElementById("marketplace-offer-input");
+  const offerNote = document.getElementById("marketplace-offer-note");
+  const offerSubmit = document.getElementById("marketplace-offer-submit");
+  const offerStatus = document.getElementById("marketplace-offer-status");
+  const chat = document.getElementById("marketplace-chat");
+  const chatClose = document.getElementById("marketplace-chat-close");
+  const chatBackdrop = document.getElementById("marketplace-chat-backdrop");
+  const toast = document.getElementById("marketplace-toast");
 
   if (
     !gridStage ||
@@ -1188,18 +1296,18 @@ function initBackyardSimulation() {
     return;
   }
 
-  const detailLogo = document.getElementById("backyard-detail-logo");
-  const detailBusiness = document.getElementById("backyard-detail-business");
-  const detailOwner = document.getElementById("backyard-detail-owner");
-  const detailAbout = document.getElementById("backyard-detail-about");
-  const detailTitle = document.getElementById("backyard-detail-title");
-  const detailBudget = document.getElementById("backyard-detail-budget");
-  const detailTags = document.getElementById("backyard-detail-tags");
-  const detailPosted = document.getElementById("backyard-detail-posted");
-  const detailTurnaround = document.getElementById("backyard-detail-turnaround");
-  const detailSummary = document.getElementById("backyard-detail-summary");
-  const detailDetails = document.getElementById("backyard-detail-details");
-  const detailQuals = document.getElementById("backyard-detail-quals");
+  const detailLogo = document.getElementById("marketplace-detail-logo");
+  const detailBusiness = document.getElementById("marketplace-detail-business");
+  const detailOwner = document.getElementById("marketplace-detail-owner");
+  const detailAbout = document.getElementById("marketplace-detail-about");
+  const detailTitle = document.getElementById("marketplace-detail-title");
+  const detailBudget = document.getElementById("marketplace-detail-budget");
+  const detailTags = document.getElementById("marketplace-detail-tags");
+  const detailPosted = document.getElementById("marketplace-detail-posted");
+  const detailTurnaround = document.getElementById("marketplace-detail-turnaround");
+  const detailSummary = document.getElementById("marketplace-detail-summary");
+  const detailDetails = document.getElementById("marketplace-detail-details");
+  const detailQuals = document.getElementById("marketplace-detail-quals");
 
   if (
     !detailLogo ||
@@ -1218,7 +1326,7 @@ function initBackyardSimulation() {
     return;
   }
 
-  const featured = BACKYARD_SIM_OPPORTUNITIES[1];
+  const featured = MARKETPLACE_SIM_OPPORTUNITIES[1];
   const state = {
     selectedId: featured.id,
     highlightedId: null,
@@ -1230,7 +1338,7 @@ function initBackyardSimulation() {
   let toastTimeout = 0;
 
   function getOpportunity(id) {
-    return BACKYARD_SIM_OPPORTUNITIES.find((item) => item.id === id) || BACKYARD_SIM_OPPORTUNITIES[0];
+    return MARKETPLACE_SIM_OPPORTUNITIES.find((item) => item.id === id) || MARKETPLACE_SIM_OPPORTUNITIES[0];
   }
 
   function clearToast() {
@@ -1252,34 +1360,34 @@ function initBackyardSimulation() {
   }
 
   function renderGrid() {
-    grid.innerHTML = BACKYARD_SIM_OPPORTUNITIES.map((item) => {
-      const classes = ["backyard-card"];
-      const displayBudget = scaleBackyardBudgetRange(item.budget);
+    grid.innerHTML = MARKETPLACE_SIM_OPPORTUNITIES.map((item) => {
+      const classes = ["marketplace-card"];
+      const displayBudget = scaleMarketplaceBudgetRange(item.budget);
       if (state.highlightedId === item.id) classes.push("is-highlighted");
       return `
         <button type="button" class="${classes.join(" ")}" data-open-listing="${item.id}">
-          <div class="backyard-card__shell">
+          <div class="marketplace-card__shell">
             ${getLogoMarkup(item)}
-            <div class="backyard-card__content">
-              <div class="backyard-card__topline">
-                <span class="backyard-card__pill">
-                  <span class="backyard-card__type-icon">${getOpportunityTypeIcon(item.type)}</span>
+            <div class="marketplace-card__content">
+              <div class="marketplace-card__topline">
+                <span class="marketplace-card__pill">
+                  <span class="marketplace-card__type-icon">${getOpportunityTypeIcon(item.type)}</span>
                   ${item.type}
                 </span>
               </div>
-              <p class="backyard-card__brand">${item.business}</p>
-              <h4 class="backyard-card__title">${item.title}</h4>
-              <div class="backyard-card__meta">
-                <div class="backyard-card__meta-row">
-                  <span class="backyard-card__detail-label">budget</span>
-                  <span class="backyard-card__budget">${displayBudget}</span>
+              <p class="marketplace-card__brand">${item.business}</p>
+              <h4 class="marketplace-card__title">${item.title}</h4>
+              <div class="marketplace-card__meta">
+                <div class="marketplace-card__meta-row">
+                  <span class="marketplace-card__detail-label">budget</span>
+                  <span class="marketplace-card__budget">${displayBudget}</span>
                 </div>
-                <div class="backyard-card__meta-row">
-                  <span class="backyard-card__detail-label">category</span>
-                  <span class="backyard-card__tag">${item.categories[0]}</span>
+                <div class="marketplace-card__meta-row">
+                  <span class="marketplace-card__detail-label">category</span>
+                  <span class="marketplace-card__tag">${item.categories[0]}</span>
                 </div>
               </div>
-              <span class="backyard-card__cta">view opportunity →</span>
+              <span class="marketplace-card__cta">view opportunity →</span>
             </div>
           </div>
         </button>
@@ -1289,9 +1397,9 @@ function initBackyardSimulation() {
 
   function renderDetail() {
     const selected = getOpportunity(state.selectedId);
-    const displayBudget = scaleBackyardBudgetRange(selected.budget);
+    const displayBudget = scaleMarketplaceBudgetRange(selected.budget);
 
-    applyLogoToSlot(detailLogo, selected, "backyard-sim__logo--detail");
+    applyLogoToSlot(detailLogo, selected, "marketplace-sim__logo--detail");
     detailBusiness.textContent = selected.business;
     detailOwner.textContent = selected.owner;
     detailAbout.textContent = selected.about;
@@ -1303,11 +1411,11 @@ function initBackyardSimulation() {
     detailDetails.textContent = selected.details;
     detailQuals.innerHTML = selected.qualifications.map((item) => `<li>${item}</li>`).join("");
     detailTags.innerHTML = `
-      <span class="backyard-sim__tag backyard-sim__tag--type">
-        <span class="backyard-sim__tag-icon">${getOpportunityTypeIcon(selected.type)}</span>
+      <span class="marketplace-sim__tag marketplace-sim__tag--type">
+        <span class="marketplace-sim__tag-icon">${getOpportunityTypeIcon(selected.type)}</span>
         ${selected.type}
       </span>
-      ${selected.categories.map((item) => `<span class="backyard-sim__tag backyard-sim__tag--muted">${item}</span>`).join("")}
+      ${selected.categories.map((item) => `<span class="marketplace-sim__tag marketplace-sim__tag--muted">${item}</span>`).join("")}
     `;
 
     offerInput.value = "";
@@ -1419,11 +1527,24 @@ function initCommunityMap() {
       .join(" ");
 
   const campusLatLng = Leaflet.latLng(data.center.lat, data.center.lng);
-  const pins = data.pins.map((pin) => ({ ...pin, latLng: Leaflet.latLng(pin.lat, pin.lng) }));
-  const mapBounds = Leaflet.latLngBounds(
+  const mapBusinessPins = buildCommunityMapBusinesses(data.pins.length);
+  const pins = data.pins.slice(0, mapBusinessPins.length).map((pin, index) => ({
+    ...pin,
+    ...mapBusinessPins[index],
+    latLng: Leaflet.latLng(pin.lat, pin.lng),
+  }));
+  const sourceBounds = Leaflet.latLngBounds(
     Leaflet.latLng(data.bounds.south, data.bounds.west),
     Leaflet.latLng(data.bounds.north, data.bounds.east)
   );
+  const radiusLatDelta = COMMUNITY_MAP_RADIUS_METERS / 111320;
+  const radiusLngDelta =
+    COMMUNITY_MAP_RADIUS_METERS / (111320 * Math.cos((campusLatLng.lat * Math.PI) / 180));
+  const radiusBounds = Leaflet.latLngBounds(
+    [campusLatLng.lat - radiusLatDelta, campusLatLng.lng - radiusLngDelta],
+    [campusLatLng.lat + radiusLatDelta, campusLatLng.lng + radiusLngDelta]
+  );
+  const mapBounds = sourceBounds.extend(radiusBounds);
   const latSpan = data.bounds.north - data.bounds.south;
   const lngSpan = data.bounds.east - data.bounds.west;
   const introBounds = Leaflet.latLngBounds(
@@ -1576,14 +1697,33 @@ function initCommunityMap() {
     }).addTo(map);
 
     marker.on("add", () => {
-      marker.getElement()?.style.setProperty("--pin-delay", `${pin.delay ?? 0}s`);
+      const markerElement = marker.getElement();
+      if (!markerElement) return;
+      markerElement.style.setProperty("--pin-delay", `${pin.delay ?? 0}s`);
+      markerElement.style.setProperty("--pin-core", pin.pinCore || "#d6ae47");
+      markerElement.style.setProperty("--pin-pulse", pin.pinPulse || "rgba(229, 197, 111, 0.18)");
+      markerElement.style.setProperty("--pin-glow", pin.pinGlow || "rgba(214, 174, 71, 0.18)");
+      markerElement.style.setProperty("--pin-duration", pin.pinDuration || "2.8s");
     });
 
-    const tooltipLabel = pin.name;
+    const tooltipLabel = [
+      '<span class="community-map__tooltip-row">',
+      getLogoMarkup(pin, "community-map__tooltip-logo"),
+      '<span class="community-map__tooltip-copy">',
+      `<strong class="community-map__tooltip-name">${pin.name}</strong>`,
+      `<span class="community-map__tooltip-kind">${pin.label || formatTitle(pin.kind)}</span>`,
+      "</span>",
+      "</span>",
+    ].join("");
     const popupMarkup = [
+      '<div class="community-map__popup-card">',
+      getLogoMarkup(pin, "community-map__popup-logo"),
+      '<div class="community-map__popup-copy">',
       `<strong>${pin.name}</strong>`,
-      `<span>${formatTitle(pin.kind)} nearby</span>`,
-    ].join("<br />");
+      `<span>${pin.label || `${formatTitle(pin.kind)} nearby`}</span>`,
+      "</div>",
+      "</div>",
+    ].join("");
 
     marker.bindTooltip(tooltipLabel, {
       direction: "top",
@@ -2289,7 +2429,7 @@ function boot() {
   initInteractiveGrass();
   initSectionSparkles();
   initHeroParallax();
-  initBackyardSimulation();
+  initMarketplaceSimulation();
   initCommunityMap();
   initAudienceToggle();
   initReplayableBrushMarks();

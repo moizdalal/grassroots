@@ -364,20 +364,6 @@ Most profile form field styling still comes from `grassroots.css`.
   - renders them using shared bid-card styles
   - marks unread notifications as read
 
-## Legacy / Likely Older Files
-
-These appear to be earlier-generation assets and are not linked from the current pages above.
-
-### `public/app.js`
-
-- `1-39`: Older registration-page script with simple role toggling and `/api/register` submit flow.
-
-### `public/styles.css`
-
-- `1-221`: Older generic app styles using `.container`, `.grid`, `.listing-card`, etc.
-
-If you are editing the current marketplace UI, prefer `grassroots.css` and the page-specific CSS files instead of these legacy files.
-
 ## Quick Prompt Templates
 
 Use these when directing future CLIs:

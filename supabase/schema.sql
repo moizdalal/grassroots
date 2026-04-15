@@ -14,6 +14,7 @@ create table if not exists public.profiles (
 create table if not exists public.business_profiles (
   user_id uuid primary key references public.profiles(id) on delete cascade,
   business_name text,
+  business_address text,
   website_url text,
   social_links text[],
   business_details text,

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grassroots — contract type guide</title>
+    <meta
+      name="description"
+      content="Learn when to choose the Standard contract versus the Advanced Contract Builder when creating a grassroots listing."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Inter:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/grassroots.css" />
+    <script>
+      tailwind = {
+        config: {
+          theme: {
+            extend: {
+              fontFamily: {
+                sans: ["Inter", "system-ui", "sans-serif"],
+                display: ["Fraunces", "Georgia", "serif"],
+                brand: ["Syne", "Inter", "system-ui", "sans-serif"]
+              },
+              colors: {
+                moss: {
+                  50: "#f4f9f6",
+                  100: "#e5f3ec",
+                  200: "#c8e4d5",
+                  300: "#95d5b2",
+                  500: "#40916c",
+                  600: "#2d6a4f",
+                  700: "#1b4332",
+                  800: "#153528",
+                  900: "#10241d"
+                },
+                sand: "#f4f1eb",
+                ink: "#0f1f1a"
+              },
+              boxShadow: {
+                soft: "0 24px 60px rgba(16, 36, 29, 0.08)",
+                lift: "0 28px 80px rgba(27, 67, 50, 0.14)"
+              },
+              keyframes: {
+                float: {
+                  "0%, 100%": { transform: "translateY(0px)" },
+                  "50%": { transform: "translateY(-10px)" }
+                },
+                pulseSlow: {
+                  "0%, 100%": { opacity: "0.65", transform: "scale(1)" },
+                  "50%": { opacity: "1", transform: "scale(1.06)" }
+                }
+              },
+              animation: {
+                float: "float 6s ease-in-out infinite",
+                pulseSlow: "pulseSlow 3.2s ease-in-out infinite"
+              },
+              backgroundImage: {
+                "hero-grid":
+                  "radial-gradient(circle at top, rgba(149, 213, 178, 0.22), transparent 38%), linear-gradient(to right, rgba(27, 67, 50, 0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(27, 67, 50, 0.06) 1px, transparent 1px)"
+              }
+            }
+          }
+        }
+      };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="gr-body">
+    <div id="contract-help-root"></div>
+    <noscript>
+      <main style="max-width: 760px; margin: 48px auto; padding: 0 20px; font-family: Inter, sans-serif;">
+        <h1 style="font-family: Fraunces, Georgia, serif;">Contract Type Guide</h1>
+        <p>
+          This page needs JavaScript enabled to show the full interactive guide for choosing between
+          Standard and Advanced contracts.
+        </p>
+      </main>
+    </noscript>
+    <script type="module" src="/contract-help.js"></script>
+  </body>
+</html>

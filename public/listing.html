@@ -21,7 +21,7 @@
           <span class="gr-nav__wordmark">grassroots</span>
         </a>
         <ul class="gr-nav__links">
-          <li><a href="/">backyard</a></li>
+          <li><a href="/">marketplace</a></li>
           <li><a href="/signin.html">sign in</a></li>
           <li><a href="/register.html" class="gr-nav__cta">register</a></li>
           <li><a href="/profile.html">profile</a></li>
@@ -30,7 +30,7 @@
     </nav>
 
     <main class="gr-shell gr-shell--wide ld-shell">
-      <a href="/" class="ld-back">&larr; back to backyard</a>
+      <a href="/" class="ld-back">&larr; back to marketplace</a>
 
       <div id="listing-gate" class="gr-status" aria-live="polite">loading…</div>
 
@@ -64,24 +64,20 @@
           <!-- LEFT: opportunity content -->
           <div class="ld-content">
             <div class="ld-header">
-              <h1 id="ld-title" class="ld-title"></h1>
+              <div class="ld-header__title-row">
+                <h1 id="ld-title" class="ld-title"></h1>
+                <span id="ld-status-pill" class="ld-status-pill" hidden></span>
+              </div>
               <p id="ld-budget" class="ld-budget" hidden></p>
               <div class="ld-header__tags" id="ld-header-tags"></div>
               <div class="ld-header__meta">
                 <span id="ld-date" class="ld-date"></span>
                 <span id="ld-turnaround" class="ld-turnaround" hidden></span>
               </div>
-              <div id="ld-status-banner" class="ld-status-banner" hidden>
-                <span id="ld-status-banner-pill" class="ld-status-banner__pill"></span>
-                <div class="ld-status-banner__body">
-                  <p id="ld-status-banner-copy" class="ld-status-banner__copy"></p>
-                  <p id="ld-status-banner-reason" class="ld-status-banner__reason" hidden></p>
-                </div>
-              </div>
             </div>
 
             <div id="ld-context-section" class="ld-section" hidden>
-              <h2 class="ld-section-h">issue context</h2>
+              <h2 class="ld-section-h">context</h2>
               <p id="ld-context" class="ld-body"></p>
             </div>
 
@@ -91,7 +87,7 @@
             </div>
 
             <div id="ld-output-section" class="ld-section" hidden>
-              <h2 class="ld-section-h">expected output</h2>
+              <h2 class="ld-section-h">standards of work</h2>
               <p id="ld-output" class="ld-body"></p>
             </div>
 
@@ -132,18 +128,17 @@
           </div>
 
           <!-- RIGHT SIDEBAR (sticky) -->
-          <aside class="ld-sidebar" id="ld-sidebar">
+          <aside class="ld-sidebar" id="ld-sidebar" hidden>
             <section id="ld-owner-actions" class="ld-sidebar__panel ld-owner-actions" hidden>
-              <p class="ld-owner-actions__kicker">listing controls</p>
-              <h2 class="ld-owner-actions__heading">manage listing visibility</h2>
-              <p id="ld-owner-actions-copy" class="ld-owner-actions__copy"></p>
+              <h2 class="ld-owner-actions__heading">listing controls</h2>
+              <p id="ld-owner-actions-copy" class="ld-owner-actions__copy" hidden></p>
 
               <div class="ld-owner-actions__buttons">
                 <button type="button" id="ld-pause-listing-btn" class="gr-btn gr-btn--ghost ld-owner-actions__btn">
                   pause listing
                 </button>
                 <button type="button" id="ld-close-listing-btn" class="gr-btn gr-btn--primary ld-owner-actions__btn">
-                  close listing
+                  cancel listing
                 </button>
               </div>
 
@@ -198,7 +193,9 @@
               <div id="ld-bids-list" class="ld-bids-list"></div>
             </section>
 
-            <!-- Consultant: make an offer -->
+          </aside>
+
+          <aside class="ld-rail" id="ld-offer-rail" hidden>
             <section id="ld-offer-panel" class="ld-sidebar__panel ld-offer-panel" hidden>
               <h2 class="ld-offer-panel__heading">make an offer</h2>
 
@@ -237,7 +234,6 @@
 
               <p id="ld-bid-status" class="gr-status" aria-live="polite"></p>
             </section>
-
           </aside>
         </div>
 
@@ -279,6 +275,7 @@
       </div>
     </main>
 
+    <script type="module" src="/nav-session.js"></script>
     <script type="module" src="/listing.js"></script>
 
     <!-- Suggestion Box -->

@@ -160,7 +160,7 @@ async function loadCurrentProfile(client, userId) {
     const { data, error } = await client
       .from("profiles")
       .select(
-        "id, full_name, role, employment_status, linkedin_url, avatar_path, consultant_profiles(*), business_profiles(business_name, website_url, business_details, instagram_url, facebook_url, company_linkedin_url)"
+        "id, full_name, role, linkedin_url, avatar_path, consultant_profiles(*), business_profiles(business_name, website_url, business_details, instagram_url, facebook_url, company_linkedin_url)"
       )
       .eq("id", userId)
       .maybeSingle();
@@ -411,7 +411,7 @@ function buildProfileSummary(profileRow, engagementsCompleted) {
     eyebrow: businessProfile?.business_name || "business owner",
     title: firstName,
     meta: [
-      profileRow?.employment_status || "profile in progress",
+      businessProfile?.website_url ? "website on file" : "profile in progress",
       `${engagementsCompleted} active ${engagementsCompleted === 1 ? "engagement" : "engagements"}`,
     ],
     progressPercent: null,

@@ -23,8 +23,11 @@ const portfolioUploadBtn = document.getElementById("portfolio-upload-btn");
 const previewBar = document.getElementById("pf-preview-bar");
 const previewToggle = document.getElementById("pf-preview-toggle");
 const businessView = document.getElementById("pf-business-view");
+const resumeViewer = document.getElementById("pf-resume-viewer");
+const resumeViewerFrame = document.getElementById("pf-resume-viewer-frame");
+const resumeViewerTitle = document.getElementById("pf-resume-viewer-title");
+const resumeViewerDownload = document.getElementById("pf-resume-viewer-download");
 const saveBtn = document.getElementById("save-btn");
-const employmentFieldWrap = document.getElementById("field-employment-wrap");
 const linkedinFieldWrap = document.getElementById("field-linkedin-wrap");
 const levelCard = document.getElementById("pf-level-card");
 const ownerCard = document.getElementById("pf-owner-card");
@@ -59,6 +62,7 @@ let currentResumePath = null;
 let pendingAvatarFile = null;
 /** Last saved business Instagram URL (for change detection). */
 let loadedInstagramUrl = null;
+let businessAddressSupported = true;
 let portfolioItems = [];
 let availableProfileTabs = ["personal"];
 let activeProfileTab = "personal";
@@ -179,6 +183,14 @@ function isMissingResumePublic(error) {
   return msg.includes("resume_public") && msg.includes("schema cache");
 }
 
+function isMissingBusinessAddress(error) {
+  const msg = String(error?.message || "").toLowerCase();
+  return (
+    msg.includes("business_address") &&
+    (msg.includes("schema cache") || msg.includes("does not exist") || msg.includes("could not find"))
+  );
+}
+
 function getFirstName(fullName) {
   const trimmed = String(fullName || "").trim();
   return trimmed ? trimmed.split(/\s+/)[0] : "consultant";
@@ -252,10 +264,6 @@ function syncProfileTabsForRole(currentRole) {
 
   if (businessSection) {
     businessSection.classList.toggle("hidden", currentRole !== "business_owner");
-  }
-
-  if (employmentFieldWrap) {
-    employmentFieldWrap.classList.toggle("hidden", currentRole === "business_owner");
   }
 
   if (linkedinFieldWrap) {
@@ -589,6 +597,107 @@ function escapeAttr(s) {
   return String(s ?? "").replace(/"/g, "&quot;");
 }
 
+function getStorageFileName(filePath) {
+  return String(filePath || "").split("/").pop() || "resume";
+}
+
+function getResumeActionMarkup(fileName, options = {}) {
+  const { previewLabel = "preview resume", source = "self", consultantId = "" } = options;
+  const safeFileName = fileName || "resume";
+  return `
+    <span class="pf-bv__resume-actions">
+      <button
+        type="button"
+        class="pf-bv__resume-btn"
+        data-resume-action="preview"
+        data-resume-source="${escapeAttr(source)}"
+        ${consultantId ? `data-resume-consultant-id="${escapeAttr(consultantId)}"` : ""}
+        data-resume-file-name="${escapeAttr(safeFileName)}"
+      >${escapeHtml(previewLabel)}</button>
+      <button
+        type="button"
+        class="pf-bv__resume-download"
+        data-resume-action="download"
+        data-resume-source="${escapeAttr(source)}"
+        ${consultantId ? `data-resume-consultant-id="${escapeAttr(consultantId)}"` : ""}
+        data-resume-file-name="${escapeAttr(safeFileName)}"
+        aria-label="download resume"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 4v10"></path>
+          <path d="m8 10 4 4 4-4"></path>
+          <path d="M5 19h14"></path>
+        </svg>
+      </button>
+    </span>
+  `;
+}
+
+function openResumeViewer(url, fileName = "resume") {
+  if (!resumeViewer || !resumeViewerFrame || !resumeViewerTitle || !resumeViewerDownload || !url) return;
+  resumeViewerTitle.textContent = fileName;
+  resumeViewerFrame.src = url;
+  resumeViewerDownload.href = url;
+  resumeViewerDownload.setAttribute("download", fileName);
+  resumeViewer.classList.remove("hidden");
+  resumeViewer.setAttribute("aria-hidden", "false");
+  document.body.classList.add("gr-modal-open");
+}
+
+function closeResumeViewer() {
+  if (!resumeViewer || !resumeViewerFrame) return;
+  resumeViewer.classList.add("hidden");
+  resumeViewer.setAttribute("aria-hidden", "true");
+  resumeViewerFrame.src = "about:blank";
+  document.body.classList.remove("gr-modal-open");
+}
+
+function triggerResumeDownload(url, fileName = "resume") {
+  const link = document.createElement("a");
+  link.href = url;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+async function getOwnResumeSignedUrl(resumePath) {
+  if (!supabase || !resumePath) return null;
+  try {
+    const { data, error } = await supabase.storage
+      .from("resumes")
+      .createSignedUrl(resumePath, 60 * 30);
+    if (error) throw error;
+    return data?.signedUrl || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function renderResumeCurrentLabel(messagePrefix = "") {
+  if (!resumeCurrent) return;
+  if (!currentResumePath) {
+    resumeCurrent.textContent = "no resume uploaded yet.";
+    return;
+  }
+
+  const resumeUrl = await getOwnResumeSignedUrl(currentResumePath);
+  const prefix = messagePrefix ? `${escapeHtml(messagePrefix)} ` : "";
+  const fileName = getStorageFileName(currentResumePath);
+
+  if (resumeUrl) {
+    resumeCurrent.innerHTML = `
+      ${prefix}${escapeHtml(fileName)}
+      ${getResumeActionMarkup(fileName, { previewLabel: "preview", source: "self" })}
+    `;
+    return;
+  }
+
+  resumeCurrent.textContent = messagePrefix || "current resume on file.";
+}
+
 async function loadPortfolioItems() {
   try {
     const { data, error } = await supabase
@@ -719,7 +828,7 @@ async function handlePortfolioUpload() {
    Business preview of consultant profile
    ================================================================ */
 
-function renderBusinessPreview() {
+async function renderBusinessPreview() {
   if (!businessView || !profileRow) return;
   const cp = getRelatedRow(profileRow.consultant_profiles);
 
@@ -731,12 +840,15 @@ function renderBusinessPreview() {
     : `<div class="pf-bv__avatar-placeholder" aria-hidden="true">👤</div>`;
 
   const name = profileRow.full_name || "consultant";
-  const employment = profileRow.employment_status || "";
   const linkedin = profileRow.linkedin_url || "";
   const major = cp?.major || "";
   const minor = cp?.minor || "";
   const school = cp?.school || "";
-  const resumePublic = profileRow.resume_public || resumePublicToggle?.checked || false;
+  const resumePublic = resumePublicToggle
+    ? resumePublicToggle.checked
+    : Boolean(profileRow.resume_public);
+  const hasVisibleResume = resumePublic && currentResumePath;
+  const resumeFileName = currentResumePath ? getStorageFileName(currentResumePath) : "";
 
   let eduLine = "";
   if (major || school) {
@@ -777,7 +889,7 @@ function renderBusinessPreview() {
         ${avatarHtml}
         <div>
           <h2 class="pf-bv__name">${escapeHtml(name)}</h2>
-          <p class="pf-bv__meta">${escapeHtml(employment)}${employment && eduLine ? " · " : ""}${escapeHtml(eduLine)}</p>
+          ${eduLine ? `<p class="pf-bv__meta">${escapeHtml(eduLine)}</p>` : ""}
         </div>
       </div>
 
@@ -795,20 +907,72 @@ function renderBusinessPreview() {
         </div>
       ` : ""}
 
-      ${resumePublic && currentResumePath ? `
+      ${hasVisibleResume ? `
         <div class="pf-bv__section">
           <p class="pf-bv__section-title">resume</p>
-          <p class="pf-bv__detail">resume on file</p>
+          <div class="pf-bv__resume-row">
+            ${resumeFileName ? `<span class="pf-bv__detail">${escapeHtml(resumeFileName)}</span>` : ""}
+            ${getResumeActionMarkup(resumeFileName, { source: "self" })}
+          </div>
         </div>
       ` : ""}
 
       ${portfolioHtml}
 
-      ${!linkedin && !publicPortfolio.length && !(resumePublic && currentResumePath) && !eduLine ? `
+      ${!linkedin && !publicPortfolio.length && !hasVisibleResume && !eduLine ? `
         <p class="pf-bv__empty">this consultant hasn't shared any public details yet.</p>
       ` : ""}
     </div>
   `;
+}
+
+async function persistResumeVisibilityPreference(nextValue) {
+  if (!supabase || !userId || role !== "consultant") return false;
+
+  const previousValue = Boolean(profileRow?.resume_public);
+  if (resumePublicToggle) {
+    resumePublicToggle.disabled = true;
+  }
+
+  try {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ resume_public: nextValue })
+      .eq("id", userId);
+
+    if (error) {
+      if (isMissingResumePublic(error)) {
+        throw new Error(
+          "resume visibility settings need the latest Supabase migration before they can be stored."
+        );
+      }
+      throw error;
+    }
+
+    if (profileRow) {
+      profileRow.resume_public = nextValue;
+    }
+    statusEl.textContent = nextValue
+      ? "resume is now visible to businesses."
+      : "resume is now hidden from businesses.";
+    statusEl.className = "gr-status success";
+
+    if (previewToggle?.checked) {
+      await renderBusinessPreview();
+    }
+    return true;
+  } catch (err) {
+    if (resumePublicToggle) {
+      resumePublicToggle.checked = previousValue;
+    }
+    statusEl.textContent = err.message || "could not update resume visibility.";
+    statusEl.className = "gr-status error";
+    return false;
+  } finally {
+    if (resumePublicToggle) {
+      resumePublicToggle.disabled = false;
+    }
+  }
 }
 
 /* ================================================================
@@ -819,13 +983,14 @@ function computeCompletion(profileRow) {
   const commonFields = ["full_name", "avatar_path"];
   const bizFields = [
     "business_name",
+    "business_address",
     "business_details",
     "website_url",
     "instagram_url",
     "facebook_url",
     "company_linkedin_url",
   ];
-  const consultantFields = ["employment_status", "linkedin_url", "resume_path"];
+  const consultantFields = ["linkedin_url", "resume_path"];
 
   let fields = [...commonFields];
   let biz = null;
@@ -922,13 +1087,35 @@ async function loadProfile() {
   emailField.value = session.user.email || "";
   if (phoneField) phoneField.value = "";
 
-  const { data: row, error } = await supabase
+  let row = null;
+  let error = null;
+
+  ({
+    data: row,
+    error,
+  } = await supabase
     .from("profiles")
     .select(
-      "*, consultant_profiles ( * ), business_profiles ( business_name, website_url, business_details, social_links, instagram_url, facebook_url, company_linkedin_url )"
+      "*, consultant_profiles ( * ), business_profiles ( business_name, business_address, website_url, business_details, social_links, instagram_url, facebook_url, company_linkedin_url )"
     )
     .eq("id", userId)
-    .single();
+    .single());
+
+  if (error && isMissingBusinessAddress(error)) {
+    businessAddressSupported = false;
+    ({
+      data: row,
+      error,
+    } = await supabase
+      .from("profiles")
+      .select(
+        "*, consultant_profiles ( * ), business_profiles ( business_name, website_url, business_details, social_links, instagram_url, facebook_url, company_linkedin_url )"
+      )
+      .eq("id", userId)
+      .single());
+  } else {
+    businessAddressSupported = true;
+  }
 
   if (error) {
     gateEl.textContent =
@@ -946,7 +1133,6 @@ async function loadProfile() {
 
   document.getElementById("field-full-name").value = row.full_name || "";
   if (phoneField) phoneField.value = row.phone_number || "";
-  document.getElementById("field-employment").value = row.employment_status || "";
   document.getElementById("field-linkedin").value = row.linkedin_url || "";
 
   if (currentAvatarPath) {
@@ -961,24 +1147,30 @@ async function loadProfile() {
     const b = Array.isArray(bp) ? bp[0] : bp;
     if (b) {
       document.getElementById("field-biz-name").value = b.business_name || "";
+      document.getElementById("field-biz-address").value = b.business_address || "";
       document.getElementById("field-website").value = b.website_url || "";
       applyBizSocialFromRow(b);
       document.getElementById("field-biz-details").value = b.business_details || "";
       const rawIg = (b.instagram_url || "").trim();
       loadedInstagramUrl = rawIg ? normalizeBusinessInstagramUrl(rawIg) || rawIg : null;
     } else {
+      document.getElementById("field-biz-address").value = "";
       applyBizSocialFromRow(null);
       loadedInstagramUrl = null;
     }
     await renderOwnerListingSidebar();
+
+    if (!businessAddressSupported) {
+      statusEl.textContent =
+        "business address is in the UI, but your database still needs `supabase/migrations/add_business_address.sql` before that field can load or save.";
+      statusEl.className = "gr-status";
+    }
   } else {
     loadedInstagramUrl = null;
   }
 
   if (role === "consultant") {
-    resumeCurrent.textContent = currentResumePath
-      ? "current file on file — choose a new file to replace it."
-      : "no resume uploaded yet.";
+    await renderResumeCurrentLabel("current resume on file —");
 
     // Education fields
     const cp = getRelatedRow(row.consultant_profiles);
@@ -1041,8 +1233,6 @@ form.addEventListener("submit", async (e) => {
     }
 
     const fullName = document.getElementById("field-full-name").value.trim();
-    const employmentStatus =
-      role === "consultant" ? document.getElementById("field-employment").value.trim() : "";
     const linkedinUrl =
       role === "consultant" ? document.getElementById("field-linkedin").value.trim() : "";
 
@@ -1050,7 +1240,6 @@ form.addEventListener("submit", async (e) => {
       full_name: fullName,
     };
     if (role === "consultant") {
-      profileUpdate.employment_status = employmentStatus || null;
       profileUpdate.linkedin_url = linkedinUrl || null;
     }
     if (role === "consultant") {
@@ -1062,6 +1251,7 @@ form.addEventListener("submit", async (e) => {
 
     let profileAvatarMigrationWarning = false;
     let resumePublicMissingWarning = false;
+    let businessAddressMissingWarning = false;
     let res = await supabase.from("profiles").update(profileUpdate).eq("id", userId);
     let pErr = res.error;
 
@@ -1113,18 +1303,35 @@ form.addEventListener("submit", async (e) => {
       const socialLinks = buildBizSocialLinksArray(instagramUrl, facebookUrl, companyLinkedinUrl);
       const previousInstagramUrl = loadedInstagramUrl;
 
-      const { error: bErr } = await supabase
+      const businessProfileUpdate = {
+        business_name: document.getElementById("field-biz-name").value.trim() || null,
+        business_address: document.getElementById("field-biz-address").value.trim() || null,
+        website_url: document.getElementById("field-website").value.trim() || null,
+        instagram_url: instagramUrl,
+        facebook_url: facebookUrl,
+        company_linkedin_url: companyLinkedinUrl,
+        social_links: socialLinks,
+        business_details: document.getElementById("field-biz-details").value.trim() || null,
+      };
+
+      let { error: bErr } = await supabase
         .from("business_profiles")
-        .update({
-          business_name: document.getElementById("field-biz-name").value.trim() || null,
-          website_url: document.getElementById("field-website").value.trim() || null,
-          instagram_url: instagramUrl,
-          facebook_url: facebookUrl,
-          company_linkedin_url: companyLinkedinUrl,
-          social_links: socialLinks,
-          business_details: document.getElementById("field-biz-details").value.trim() || null,
-        })
+        .update(businessProfileUpdate)
         .eq("user_id", userId);
+
+      if (bErr && isMissingBusinessAddress(bErr)) {
+        businessAddressSupported = false;
+        businessAddressMissingWarning = true;
+        const { business_address: _dropBusinessAddress, ...fallbackBusinessProfileUpdate } =
+          businessProfileUpdate;
+        ({ error: bErr } = await supabase
+          .from("business_profiles")
+          .update(fallbackBusinessProfileUpdate)
+          .eq("user_id", userId));
+      } else if (!bErr) {
+        businessAddressSupported = true;
+      }
+
       if (bErr) throw bErr;
 
       if (instagramUrl && igRaw && instagramUrl !== igRaw) {
@@ -1183,6 +1390,11 @@ form.addEventListener("submit", async (e) => {
 
     if (role === "consultant" && resumeInput.files?.[0]) {
       const file = resumeInput.files[0];
+      const fileName = String(file.name || "").toLowerCase();
+      const isPdf = file.type === "application/pdf" || fileName.endsWith(".pdf");
+      if (!isPdf) {
+        throw new Error("resume must be a pdf.");
+      }
       if (file.size > 5 * 1024 * 1024) {
         throw new Error("resume must be 5 mb or smaller.");
       }
@@ -1203,7 +1415,7 @@ form.addEventListener("submit", async (e) => {
       if (prErr) throw prErr;
       currentResumePath = rpath;
       resumeInput.value = "";
-      resumeCurrent.textContent = "resume updated.";
+      await renderResumeCurrentLabel("resume updated.");
     }
 
     if (!profileAvatarMigrationWarning) {
@@ -1219,6 +1431,10 @@ form.addEventListener("submit", async (e) => {
         statusEl.textContent =
           "saved. resume visibility settings need the latest Supabase migration before they can be stored.";
         statusEl.className = "gr-status";
+      } else if (businessAddressMissingWarning) {
+        statusEl.textContent =
+          "saved, but business address could not be stored yet. run `supabase/migrations/add_business_address.sql` in Supabase, then save again.";
+        statusEl.className = "gr-status";
       } else {
         statusEl.textContent = instagramAvatarApplied
           ? "saved. profile photo updated from instagram."
@@ -1231,7 +1447,6 @@ form.addEventListener("submit", async (e) => {
     const freshRow = {
       ...profileRow,
       full_name: fullName,
-      employment_status: role === "consultant" ? employmentStatus || null : profileRow?.employment_status || null,
       linkedin_url: role === "consultant" ? linkedinUrl || null : profileRow?.linkedin_url || null,
       avatar_path: currentAvatarPath,
       resume_path: currentResumePath,
@@ -1251,6 +1466,10 @@ form.addEventListener("submit", async (e) => {
         : null;
       freshRow.business_profiles = {
         business_name: document.getElementById("field-biz-name").value.trim() || null,
+        business_address:
+          businessAddressMissingWarning || !businessAddressSupported
+            ? null
+            : document.getElementById("field-biz-address").value.trim() || null,
         website_url: document.getElementById("field-website").value.trim() || null,
         instagram_url: instagramUrl,
         facebook_url: facebookUrl,
@@ -1263,6 +1482,9 @@ form.addEventListener("submit", async (e) => {
     if (role === "consultant") {
       const consultantStats = await loadConsultantProgressStats(freshRow);
       renderConsultantLevelSidebar(freshRow, consultantStats);
+      if (previewToggle?.checked) {
+        await renderBusinessPreview();
+      }
     } else {
       await renderOwnerListingSidebar();
     }
@@ -1284,9 +1506,9 @@ form.addEventListener("submit", async (e) => {
    ================================================================ */
 
 if (previewToggle) {
-  previewToggle.addEventListener("change", () => {
+  previewToggle.addEventListener("change", async () => {
     if (previewToggle.checked) {
-      renderBusinessPreview();
+      await renderBusinessPreview();
       businessView.classList.remove("hidden");
       form.classList.add("hidden");
     } else {
@@ -1295,6 +1517,44 @@ if (previewToggle) {
     }
   });
 }
+
+if (resumePublicToggle) {
+  resumePublicToggle.addEventListener("change", async () => {
+    await persistResumeVisibilityPreference(resumePublicToggle.checked);
+  });
+}
+
+document.addEventListener("click", async (event) => {
+  const resumeAction = event.target.closest("[data-resume-action]");
+  if (resumeAction instanceof HTMLElement) {
+    event.preventDefault();
+    const action = resumeAction.getAttribute("data-resume-action") || "preview";
+    const source = resumeAction.getAttribute("data-resume-source") || "self";
+    const fileName = resumeAction.getAttribute("data-resume-file-name") || "resume";
+    if (source === "self" && currentResumePath) {
+      const resumeUrl = await getOwnResumeSignedUrl(currentResumePath);
+      if (!resumeUrl) return;
+      if (action === "download") {
+        triggerResumeDownload(resumeUrl, fileName);
+      } else {
+        openResumeViewer(resumeUrl, fileName);
+      }
+    }
+    return;
+  }
+
+  const closeTrigger = event.target.closest("[data-resume-viewer-close]");
+  if (closeTrigger instanceof HTMLElement) {
+    event.preventDefault();
+    closeResumeViewer();
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && resumeViewer && !resumeViewer.classList.contains("hidden")) {
+    closeResumeViewer();
+  }
+});
 
 /* ================================================================
    Portfolio upload wiring

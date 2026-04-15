@@ -28,20 +28,10 @@ function publicAvatarUrl(client, path) {
   return data?.publicUrl ?? null;
 }
 
-function typeTagIcon(type) {
-  const t = type.toLowerCase();
-  if (t === "do") return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>';
-  if (t === "develop") return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>';
-  if (t === "plan") return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>';
-  return "";
-}
-
 function parseDetails(row) {
   const detailsStr = row.details || "";
-  const typeMatch = detailsStr.match(/^opportunity type:\s*(.+)/im);
-  const oppType = typeMatch ? typeMatch[1].trim().toLowerCase() : "";
   const budgetRange = getSimulatedBudgetRange(detailsStr);
-  return { oppType, budgetRange };
+  return { budgetRange };
 }
 
 function renderSession(client, session) {
@@ -55,9 +45,7 @@ function renderSession(client, session) {
     session.user.user_metadata?.full_name || session.user.email || "Signed in";
 
   sessionSlot.innerHTML = `
-    <span>${escapeHtml(label)}</span>
-    · <a href="/profile.html">profile</a>
-    <button type="button" class="gr-link-btn" id="logout-btn">sign out</button>
+    <span>signed in as ${escapeHtml(label)}</span>
   `;
 
   client.from("profiles").select("role").eq("id", session.user.id).single().then(({ data }) => {
@@ -70,11 +58,6 @@ function renderSession(client, session) {
       link.textContent = "create opportunity";
       slot.appendChild(link);
     }
-  });
-
-  document.getElementById("logout-btn").addEventListener("click", async () => {
-    await client.auth.signOut();
-    window.location.reload();
   });
 }
 
@@ -104,7 +87,7 @@ function renderListings(rows, client) {
     const businessName = biz?.business_name || poster;
     const avatarPath = profile?.avatar_path || null;
     const avatarUrl = publicAvatarUrl(client, avatarPath);
-    const { oppType, budgetRange } = parseDetails(row);
+    const { budgetRange } = parseDetails(row);
     const initial = escapeHtml((businessName || poster).charAt(0).toUpperCase());
 
     const categories = row.category
@@ -114,10 +97,6 @@ function renderListings(rows, client) {
     const avatarHtml = avatarUrl
       ? `<img class="gr-listing-logo" src="${escapeHtml(avatarUrl)}" alt="" />`
       : `<div class="gr-listing-logo-placeholder">${initial}</div>`;
-
-    const typePill = oppType
-      ? `<span class="gr-listing-type-pill">${typeTagIcon(oppType)}${escapeHtml(oppType)}</span>`
-      : "";
 
     const budgetHtml = budgetRange
       ? `<p class="gr-listing-budget">${escapeHtml(formatBudgetRange(budgetRange))}</p>`
@@ -137,7 +116,6 @@ function renderListings(rows, client) {
       <div class="gr-listing-card-body">
         <div class="gr-listing-title-row">
           <h2 class="gr-listing-title">${escapeHtml(row.title)}</h2>
-          ${typePill}
         </div>
         <div class="gr-listing-subs">
           <p class="gr-listing-biz-name">${escapeHtml(businessName)}</p>
@@ -172,13 +150,11 @@ function populateCategoryDropdown() {
 
 function applyFilters() {
   const searchEl = document.getElementById("filter-search");
-  const typeEl = document.getElementById("filter-type");
   const catEl = document.getElementById("filter-category");
   const budgetMinEl = document.getElementById("filter-budget-min");
   const budgetMaxEl = document.getElementById("filter-budget-max");
 
   const searchTerm = (searchEl?.value || "").toLowerCase();
-  const typeFilter = (typeEl?.value || "").toLowerCase();
   const catFilter = (catEl?.value || "");
   const filterBudgetMin = budgetMinEl?.value ? parseInt(budgetMinEl.value, 10) : null;
   const filterBudgetMax = budgetMaxEl?.value ? parseInt(budgetMaxEl.value, 10) : null;
@@ -188,7 +164,7 @@ function applyFilters() {
     const poster = profile?.full_name || "";
     const biz = bizMap[row.owner_id];
     const businessName = biz?.business_name || poster;
-    const { oppType, budgetRange } = parseDetails(row);
+    const { budgetRange } = parseDetails(row);
 
     // Text search
     if (searchTerm) {
@@ -198,9 +174,6 @@ function applyFilters() {
         .toLowerCase();
       if (!haystack.includes(searchTerm)) return false;
     }
-
-    // Type filter
-    if (typeFilter && oppType !== typeFilter) return false;
 
     // Category filter
     if (catFilter) {
@@ -283,7 +256,7 @@ async function init() {
 
     await refreshListings(client);
   } catch (error) {
-    listingsStatus.textContent = error.message || "Could not initialize backyard.";
+    listingsStatus.textContent = error.message || "Could not initialize marketplace.";
     listingsStatus.className = "gr-status error";
   }
 }

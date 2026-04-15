@@ -21,7 +21,7 @@
           <span class="gr-nav__wordmark">grassroots</span>
         </a>
         <ul class="gr-nav__links">
-          <li><a href="/">backyard</a></li>
+          <li><a href="/">marketplace</a></li>
           <li><a href="/signin.html">sign in</a></li>
           <li><a href="/register.html" class="gr-nav__cta">register</a></li>
           <li><a href="/profile.html">profile</a></li>
@@ -30,7 +30,7 @@
     </nav>
 
     <main class="gr-shell gr-shell--wide cl-layout-shell">
-      <a href="/" class="ld-back">&larr; back to backyard</a>
+      <a href="/" class="ld-back">&larr; back to marketplace</a>
       <div class="gr-page-intro">
         <p class="gr-page-eyebrow">opportunity setup</p>
         <h1 class="gr-title">create a new opportunity</h1>
@@ -60,61 +60,119 @@
                 </label>
 
                 <div class="gr-label full-width">
-                  <span class="op-label-row">
-                    <span>type of opportunity *</span>
-                    <button
-                      type="button"
-                      class="op-info-btn"
-                      id="opportunity-info-toggle"
-                      aria-expanded="false"
-                      aria-controls="opportunity-info"
-                      aria-label="what do these mean?"
-                    >?</button>
-                  </span>
-                  <input type="hidden" name="opportunity_type" id="opportunity-type-hidden" />
-                  <div class="op-type-grid" role="group" aria-label="type of opportunity">
-                    <button type="button" class="op-type-btn" data-opportunity-type="do">
-                      <span class="op-type-btn__icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/></svg>
-                      </span>
-                      do
-                    </button>
-                    <button type="button" class="op-type-btn" data-opportunity-type="develop">
-                      <span class="op-type-btn__icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/><line x1="14.5" y1="4" x2="9.5" y2="20"/></svg>
-                      </span>
-                      develop
-                    </button>
-                    <button type="button" class="op-type-btn" data-opportunity-type="plan">
-                      <span class="op-type-btn__icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="m9 15 2-6 6-2-2 6-6 2Z"/><circle cx="12" cy="12" r="1"/></svg>
-                      </span>
-                      plan
-                    </button>
-                    <button type="button" class="op-type-btn" data-opportunity-type="other">
-                      <span class="op-type-btn__icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                      </span>
-                      other
-                    </button>
+                  <span>contract type</span>
+
+                  <div class="ct-options">
+
+                    <!-- Default option -->
+                    <label class="ct-option ct-option--standard">
+                      <input type="radio" name="contract_type" value="standard" checked />
+                      <span class="ct-option__radio" aria-hidden="true"></span>
+                      <span class="ct-option__text">standard one-time transaction</span>
+                      <span class="ct-option__badge">default</span>
+                    </label>
+
+                    <!-- Advanced contracts (collapsible) -->
+                    <details class="ct-advanced" id="ct-advanced">
+                      <summary class="ct-advanced__summary">
+                        <span class="ct-option__radio" aria-hidden="true"></span>
+                        <span class="ct-advanced__title">advanced contracts</span>
+                        <span class="ct-advanced__active-pill" aria-hidden="true">active</span>
+                        <svg class="ct-advanced__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                      </summary>
+                      <div class="ct-advanced__body">
+                        <p class="ct-advanced__desc">Pick a contract model that matches the shape of the engagement.</p>
+
+                        <!-- Sub-option 1: phase-based contract -->
+                        <div class="ct-suboption-group" data-mode="phased">
+                          <label class="ct-suboption">
+                            <input type="radio" name="contract_type" value="phased" id="ct-phased-radio" class="ct-suboption__radio" />
+                            <span class="ct-option__radio" aria-hidden="true"></span>
+                            <span class="ct-suboption__header">
+                              <span class="ct-suboption__title">phase-based contract</span>
+                              <span class="ct-suboption__desc">structure the engagement around clear milestones — proposal and solution, with optional maintenance.</span>
+                            </span>
+                          </label>
+                          <div class="ct-suboption__body">
+                            <div class="ct-builder">
+                              <p class="ct-builder__heading">your contract chain</p>
+
+                              <div class="ct-chain" id="ct-chain">
+                                <div class="ct-chain__node ct-chain__node--required" data-phase="proposal">
+                                  <span class="ct-chain__step">1</span>
+                                  <span class="ct-chain__name">proposal</span>
+                                  <span class="ct-chain__lock" aria-label="required phase" title="required">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                                  </span>
+                                </div>
+
+                                <span class="ct-chain__connector" aria-hidden="true">
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+                                </span>
+
+                                <div class="ct-chain__node ct-chain__node--required" data-phase="solution">
+                                  <span class="ct-chain__step">2</span>
+                                  <span class="ct-chain__name">solution</span>
+                                  <span class="ct-chain__lock" aria-label="required phase" title="required">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                                  </span>
+                                </div>
+
+                                <span class="ct-chain__connector ct-chain__connector--maintenance" id="ct-chain-connector-maintenance" hidden aria-hidden="true">
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+                                </span>
+
+                                <button type="button" class="ct-chain__add" id="ct-add-maintenance" aria-pressed="false">
+                                  <span class="ct-chain__add-icon" aria-hidden="true">
+                                    <svg class="ct-chain__add-icon-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                    <svg class="ct-chain__add-icon-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+                                  </span>
+                                  <span class="ct-chain__add-label">add maintenance</span>
+                                  <span class="ct-chain__add-hint">optional</span>
+                                </button>
+                              </div>
+
+                              <p class="ct-builder__hint" id="ct-builder-hint">maintenance is an optional follow-on phase for ongoing support.</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Sub-option 2: retainer contract -->
+                        <div class="ct-suboption-group" data-mode="retainer">
+                          <label class="ct-suboption">
+                            <input type="radio" name="contract_type" value="retainer" id="ct-retainer-radio" class="ct-suboption__radio" />
+                            <span class="ct-option__radio" aria-hidden="true"></span>
+                            <span class="ct-suboption__header">
+                              <span class="ct-suboption__title">retainer contract</span>
+                              <span class="ct-suboption__desc">for recurring workflows — an ongoing engagement billed on a repeating cadence.</span>
+                            </span>
+                          </label>
+                          <div class="ct-suboption__body">
+                            <p class="ct-retainer-note">retainers work well for ongoing marketing, weekly operations, content production, and other workflows where a consistent cadence matters more than fixed deliverables. you'll outline cadence and scope expectations in the description.</p>
+                          </div>
+                        </div>
+
+                        <input type="hidden" name="contract_phases" id="ct-phases" value="proposal,solution" />
+                      </div>
+                    </details>
+
                   </div>
-                  <div class="op-info-panel hidden" id="opportunity-info">
-                    <p><strong>do</strong> — hands-on work like tabling at events, making sales calls, or other in-person tasks.</p>
-                    <p><strong>develop</strong> — building something technical: a website, app, inventory system, or other digital tool.</p>
-                    <p><strong>plan</strong> — research and strategy work like a marketing plan, competitive analysis, or growth roadmap.</p>
-                  </div>
-                  <label class="gr-label hidden" id="opportunity-other-wrap">
-                    <span>tell us the opportunity type</span>
-                    <input type="text" name="opportunity_type_other" id="opportunity-type-other" maxlength="80" placeholder="describe the opportunity type" />
-                  </label>
+                  <p class="gr-field-hint ct-help-hint">
+                    not sure which to choose?
+                    <a href="/contract-help.html" target="_blank" rel="noopener noreferrer">read the contract type guide</a>.
+                  </p>
                 </div>
+
               </div>
             </section>
 
             <section class="cl-slide" data-slide="1">
               <div class="gr-field-grid">
                 <label class="gr-label full-width">
-                  <span>what is the context of the issue you are trying to solve? *</span>
+                  <span class="cl-field-label">
+                    <span class="cl-field-label__title">context *</span>
+                    <span class="cl-field-label__subtext">what is the context of the issue you are trying to solve?</span>
+                  </span>
                   <textarea
                     name="issue_context"
                     rows="4"
@@ -125,7 +183,10 @@
                 </label>
 
                 <label class="gr-label full-width">
-                  <span>what is the actual business problem you want to solve? *</span>
+                  <span class="cl-field-label">
+                    <span class="cl-field-label__title">business problem *</span>
+                    <span class="cl-field-label__subtext">what is the actual business problem you want to solve?</span>
+                  </span>
                   <textarea
                     name="business_problem"
                     rows="4"
@@ -136,13 +197,49 @@
                 </label>
 
                 <label class="gr-label full-width">
-                  <span>what do you expect from the consultant in terms of output? *</span>
+                  <span class="cl-field-label">
+                    <span class="cl-field-label__title">standards of work *</span>
+                    <span class="cl-field-label__subtext">what do you expect from the consultant in terms of output?</span>
+                  </span>
                   <textarea
                     name="expected_output"
                     rows="4"
                     required
                     maxlength="2000"
-                    placeholder="for example: a write-up, prototype, presentation, spreadsheet model, or implementation plan"
+                    placeholder="for example: deliverables, level of rigor, format, ownership, or implementation expectations"
+                  ></textarea>
+                </label>
+
+                <label class="gr-label full-width hidden" id="advanced-proposal-budget-wrap">
+                  <span class="cl-field-label">
+                    <span class="cl-field-label__title">budget per proposal *</span>
+                    <span class="cl-field-label__subtext">if you use an advanced contract, what should the student charge for the proposal or discovery phase?</span>
+                  </span>
+                  <div class="cl-inline-money">
+                    <span class="cl-inline-money__prefix">$</span>
+                    <input
+                      type="number"
+                      name="proposal_budget"
+                      id="proposal-budget"
+                      min="0"
+                      step="1"
+                      inputmode="numeric"
+                      placeholder="e.g. 250"
+                    />
+                  </div>
+                </label>
+
+                <label class="gr-label full-width hidden" id="maintenance-terms-wrap">
+                  <span class="cl-field-label">
+                    <span class="cl-field-label__title">maintenance terms *</span>
+                    <span class="cl-field-label__subtext">outline maintenance as "$X per hour/day/week/month for X [amount of time]" or write "per business discretion."</span>
+                  </span>
+                  <textarea
+                    name="maintenance_terms"
+                    id="maintenance-terms"
+                    rows="3"
+                    maxlength="300"
+                    placeholder='e.g. $150 per week for 8 weeks or "per business discretion"'
                   ></textarea>
                 </label>
 
@@ -259,7 +356,7 @@
           <!-- Content sections -->
           <div class="cl-preview__main">
             <div class="cl-preview__section" id="pv-context-section" hidden>
-              <h3 class="ld-section-h">issue context</h3>
+              <h3 class="ld-section-h">context</h3>
               <p class="ld-body" id="pv-context"></p>
             </div>
             <div class="cl-preview__section" id="pv-problem-section" hidden>
@@ -267,7 +364,7 @@
               <p class="ld-body" id="pv-problem"></p>
             </div>
             <div class="cl-preview__section" id="pv-output-section" hidden>
-              <h3 class="ld-section-h">expected output</h3>
+              <h3 class="ld-section-h">standards of work</h3>
               <p class="ld-body" id="pv-output"></p>
             </div>
             <div class="cl-preview__section" id="pv-details-section" hidden>
@@ -289,6 +386,7 @@
       </div>
     </main>
 
+    <script type="module" src="/nav-session.js"></script>
     <script type="module" src="/create-listing.js"></script>
 
     <!-- Suggestion Box -->
