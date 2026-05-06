@@ -2759,9 +2759,9 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   height: 22px !important;
   margin-left: -11px !important;
   margin-top: -11px !important;
-  --pin-core: #d6ae47;
-  --pin-pulse: rgba(229, 197, 111, 0.18);
-  --pin-glow: rgba(214, 174, 71, 0.18);
+  --pin-core: #6dbf8a;
+  --pin-pulse: rgba(173, 221, 188, 0.22);
+  --pin-glow: rgba(109, 191, 138, 0.2);
   --pin-duration: 2.8s;
   opacity: 0;
   transform: scale(0.68);

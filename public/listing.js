@@ -1069,12 +1069,15 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
         ${img}
         <div class="ld-bid-card__info">
           <span class="ld-bid-card__name">${nameHtml} ${statusBadge}</span>
-          <span class="ld-bid-card__amount">${formatUsd(b.amount_cents)}</span>
+          <span class="ld-bid-card__pricing">
+            <span class="ld-bid-card__amount">${formatUsd(b.amount_cents)}</span>
+            <span class="ld-bid-card__date">${date}</span>
+          </span>
           ${educationLine ? `<span class="ld-bid-card__edu">${escapeHtml(educationLine)}</span>` : ""}
           ${minor ? `<span class="ld-bid-card__minor">minor in ${escapeHtml(minor)}</span>` : ""}
         </div>
       </div>
-      <div class="ld-bid-card__meta">${li}<span class="ld-bid-card__date">${date}</span></div>
+      ${li ? `<div class="ld-bid-card__meta">${li}</div>` : ""}
       ${msg}
       ${counterInfo}
       ${proposalIndicator}

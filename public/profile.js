@@ -1,6 +1,7 @@
 import { getSupabaseClient } from "/supabase-loader.js";
 import { initControlPanel } from "/control-panel.js";
 import { formatBudgetRange, getSimulatedBudgetRange } from "/sim-budget.js";
+import { openW9Modal } from "/w9-form.js";
 
 const form = document.getElementById("profile-form");
 const gateEl = document.getElementById("profile-gate");
@@ -47,6 +48,9 @@ const levelProgressCopy = document.getElementById("pf-level-progress-copy");
 
 const welcomeOverlay = document.getElementById("welcome-overlay");
 const welcomeDismiss = document.getElementById("welcome-dismiss");
+const w9Card = document.getElementById("pf-w9-card");
+const w9CardLabel = document.getElementById("pf-w9-card-label");
+const w9OpenBtn = document.getElementById("pf-w9-open-btn");
 
 const PLACEHOLDER =
   "data:image/svg+xml," +
@@ -663,6 +667,21 @@ function triggerResumeDownload(url, fileName = "resume") {
   link.remove();
 }
 
+function renderW9Card() {
+  if (!w9Card) return;
+  if (w9CardLabel) {
+    w9CardLabel.textContent =
+      "open the official IRS W-9 in a browser PDF viewer, edit it there, then download it with your changes.";
+  }
+  if (w9OpenBtn) w9OpenBtn.textContent = "open w-9";
+}
+
+function launchW9Modal() {
+  openW9Modal({
+    templateUrl: "/w9.pdf",
+  });
+}
+
 async function getOwnResumeSignedUrl(resumePath) {
   if (!supabase || !resumePath) return null;
   try {
@@ -1171,6 +1190,7 @@ async function loadProfile() {
 
   if (role === "consultant") {
     await renderResumeCurrentLabel("current resume on file —");
+    renderW9Card();
 
     // Education fields
     const cp = getRelatedRow(row.consultant_profiles);
@@ -1379,13 +1399,33 @@ form.addEventListener("submit", async (e) => {
       const majorVal = document.getElementById("field-major")?.value.trim() || null;
       const minorVal = document.getElementById("field-minor")?.value.trim() || null;
       const schoolVal = document.getElementById("field-school")?.value.trim() || null;
-      try {
-        await supabase.from("consultant_profiles").update({
+      const { error: consultantProfileError } = await supabase
+        .from("consultant_profiles")
+        .upsert({
+          user_id: userId,
           major: majorVal,
           minor: minorVal,
           school: schoolVal,
-        }).eq("user_id", userId);
-      } catch (_) { /* columns may not exist yet */ }
+        }, {
+          onConflict: "user_id",
+        });
+
+      if (consultantProfileError) {
+        const message = String(consultantProfileError.message || "").toLowerCase();
+        if (
+          message.includes("major") ||
+          message.includes("minor") ||
+          message.includes("school") ||
+          message.includes("schema cache") ||
+          message.includes("does not exist") ||
+          message.includes("could not find")
+        ) {
+          throw new Error(
+            "education fields need the latest Supabase migration before they can be saved. run `supabase/migrations/add_consultant_education_portfolio.sql` and try again."
+          );
+        }
+        throw consultantProfileError;
+      }
     }
 
     if (role === "consultant" && resumeInput.files?.[0]) {
@@ -1480,6 +1520,16 @@ form.addEventListener("submit", async (e) => {
     }
     profileRow = freshRow;
     if (role === "consultant") {
+      const majorVal = document.getElementById("field-major")?.value.trim() || null;
+      const minorVal = document.getElementById("field-minor")?.value.trim() || null;
+      const schoolVal = document.getElementById("field-school")?.value.trim() || null;
+      freshRow.consultant_profiles = {
+        ...(getRelatedRow(profileRow?.consultant_profiles) || {}),
+        major: majorVal,
+        minor: minorVal,
+        school: schoolVal,
+      };
+      profileRow = freshRow;
       const consultantStats = await loadConsultantProgressStats(freshRow);
       renderConsultantLevelSidebar(freshRow, consultantStats);
       if (previewToggle?.checked) {
@@ -1555,6 +1605,13 @@ document.addEventListener("keydown", (event) => {
     closeResumeViewer();
   }
 });
+
+if (w9OpenBtn) {
+  w9OpenBtn.addEventListener("click", (event) => {
+    event.preventDefault();
+    launchW9Modal();
+  });
+}
 
 /* ================================================================
    Portfolio upload wiring

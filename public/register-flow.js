@@ -237,11 +237,15 @@ form.addEventListener("submit", async (e) => {
       // Save education for consultant
       if (selectedRole === "consultant" && (eduMajor || eduSchool)) {
         try {
-          await supabase.from("consultant_profiles").update({
+          const { error } = await supabase.from("consultant_profiles").upsert({
+            user_id: user.id,
             major: eduMajor || null,
             minor: eduMinor || null,
             school: eduSchool || null,
-          }).eq("user_id", user.id);
+          }, {
+            onConflict: "user_id",
+          });
+          if (error) throw error;
         } catch (_) { /* non-blocking */ }
       }
 
@@ -301,11 +305,15 @@ form.addEventListener("submit", async (e) => {
     // Save education fields for consultant
     if (selectedRole === "consultant" && (eduMajor || eduSchool)) {
       try {
-        await supabase.from("consultant_profiles").update({
+        const { error } = await supabase.from("consultant_profiles").upsert({
+          user_id: body.userId,
           major: eduMajor || null,
           minor: eduMinor || null,
           school: eduSchool || null,
-        }).eq("user_id", body.userId);
+        }, {
+          onConflict: "user_id",
+        });
+        if (error) throw error;
       } catch (_) { /* non-blocking */ }
     }
 

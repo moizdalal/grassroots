@@ -657,6 +657,307 @@
   margin: 0 0 1.4rem;
 }
 
+.pf-w9-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 0.7rem;
+  padding: 0.95rem 1.1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(45, 106, 79, 0.14);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.pf-w9-card--complete {
+  border-color: rgba(109, 191, 138, 0.5);
+  background: rgba(215, 235, 219, 0.55);
+}
+
+.pf-w9-card__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.9rem;
+  color: var(--tagline-body, #5c6e63);
+}
+
+.pf-w9-card__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(45, 106, 79, 0.3);
+}
+
+.pf-w9-card--complete .pf-w9-card__dot {
+  background: #2d6a4f;
+  box-shadow: 0 0 0 3px rgba(109, 191, 138, 0.28);
+}
+
+.pf-w9-card__actions {
+  display: inline-flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pf-w9-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+}
+
+.pf-w9-modal.hidden {
+  display: none;
+}
+
+.pf-w9-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 38, 28, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.pf-w9-modal__dialog {
+  position: relative;
+  z-index: 1;
+  margin: 2rem;
+  width: 100%;
+  max-width: 1120px;
+  max-height: calc(100vh - 4rem);
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 28px 80px rgba(15, 38, 28, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pf-w9-modal__dialog--viewer {
+  max-width: 1180px;
+}
+
+.pf-w9-modal__bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.4rem;
+  border-bottom: 1px solid rgba(45, 106, 79, 0.1);
+  background: linear-gradient(180deg, rgba(234, 242, 232, 0.9), rgba(255, 255, 255, 0.9));
+}
+
+.pf-w9-modal__eyebrow {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted, #5c6e63);
+}
+
+.pf-w9-modal__title {
+  margin: 0.1rem 0 0.2rem;
+  font-family: Fraunces, Georgia, serif;
+  font-size: 1.4rem;
+  color: var(--green-deep, #1b4332);
+}
+
+.pf-w9-modal__hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--tagline-body, #5c6e63);
+}
+
+.pf-w9-modal__close {
+  border: 0;
+  background: transparent;
+  font-size: 1.8rem;
+  line-height: 1;
+  color: var(--muted, #5c6e63);
+  cursor: pointer;
+  padding: 0 0.35rem;
+  border-radius: 8px;
+}
+
+.pf-w9-modal__close:hover,
+.pf-w9-modal__close:focus-visible {
+  background: rgba(45, 106, 79, 0.08);
+  color: var(--green-deep, #1b4332);
+}
+
+.pf-w9-modal__stage {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+}
+
+.pf-w9-form {
+  padding: 1.2rem 1.4rem 1.4rem;
+  overflow-y: auto;
+  display: grid;
+  gap: 1.1rem;
+  align-content: start;
+  border-right: 1px solid rgba(45, 106, 79, 0.1);
+  background: #fff;
+}
+
+.pf-w9-mode-switch {
+  display: inline-flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.pf-w9-mode-btn {
+  border: 1px solid rgba(45, 106, 79, 0.14);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--green-deep, #1b4332);
+  border-radius: 999px;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.pf-w9-mode-btn.is-active {
+  background: linear-gradient(145deg, #2d6a4f, #1b4332);
+  color: #fff;
+  border-color: transparent;
+}
+
+.pf-w9-panel.hidden {
+  display: none;
+}
+
+.pf-w9-fieldset {
+  border: 1px solid rgba(45, 106, 79, 0.12);
+  border-radius: 14px;
+  padding: 0.9rem 1rem 1.05rem;
+  display: grid;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.pf-w9-fieldset legend {
+  padding: 0 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--green-deep, #1b4332);
+}
+
+.pf-w9-sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--green-deep, #1b4332);
+}
+
+.pf-w9-helper {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--tagline-body, #5c6e63);
+}
+
+.pf-w9-radio-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem 0.75rem;
+}
+
+.pf-w9-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.86rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.pf-w9-radio:hover {
+  background: rgba(45, 106, 79, 0.05);
+}
+
+.pf-w9-radio input[type="radio"] {
+  accent-color: #2d6a4f;
+}
+
+.pf-w9-conditional.hidden {
+  display: none;
+}
+
+.pf-w9-status {
+  margin: 0;
+  min-height: 1.2em;
+}
+
+.pf-w9-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.pf-w9-actions--start {
+  justify-content: flex-start;
+}
+
+.pf-w9-preview {
+  display: flex;
+  flex-direction: column;
+  background: #f3f5f2;
+  min-height: 0;
+}
+
+.pf-w9-preview--standalone {
+  flex: 1;
+}
+
+.pf-w9-viewer-note {
+  padding: 0.85rem 1.4rem;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--tagline-body, #5c6e63);
+  background: rgba(244, 249, 246, 0.92);
+  border-bottom: 1px solid rgba(45, 106, 79, 0.1);
+}
+
+.pf-w9-preview__label {
+  margin: 0;
+  padding: 0.8rem 1rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted, #5c6e63);
+}
+
+.pf-w9-preview__frame-wrap {
+  flex: 1;
+  min-height: 0;
+  padding: 0 1rem 1rem;
+}
+
+.pf-w9-preview__frame {
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  border: 1px solid rgba(45, 106, 79, 0.14);
+  border-radius: 14px;
+  background: #fff;
+}
+
 @keyframes pf-overlay-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -677,6 +978,24 @@
     position: static;
     width: auto;
   }
+
+  .pf-w9-modal__dialog {
+    margin: 1rem;
+    max-height: calc(100vh - 2rem);
+  }
+
+  .pf-w9-modal__stage {
+    grid-template-columns: 1fr;
+  }
+
+  .pf-w9-form {
+    border-right: 0;
+    border-bottom: 1px solid rgba(45, 106, 79, 0.1);
+  }
+
+  .pf-w9-radio-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 720px) {
@@ -690,6 +1009,10 @@
 
   .pf-stage-model__scene {
     min-height: 300px;
+  }
+
+  .pf-w9-preview__frame {
+    min-height: 360px;
   }
 }
 

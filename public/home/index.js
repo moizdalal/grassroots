@@ -454,6 +454,8 @@ function initInteractiveGrass() {
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
+  const heightRatio = Number(canvas.dataset.heightRatio || 0.62);
+  const maxHeight = Number(canvas.dataset.maxHeight || 620);
 
   const prefersReduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   let width = 0;
@@ -461,13 +463,13 @@ function initInteractiveGrass() {
   const cursor = { x: -9999, y: -9999 };
 
   const blades = [];
-  const DENSITY = 1.45;
+  const DENSITY = 0.8;
   const INTERACTION_RADIUS = 90;
 
   function sizeCanvas() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     width = window.innerWidth;
-    height = Math.min(window.innerHeight * 0.62, 620);
+    height = Math.min(window.innerHeight * heightRatio, maxHeight);
     canvas.width = Math.floor(width * dpr);
     canvas.height = Math.floor(height * dpr);
     canvas.style.height = `${height}px`;
@@ -478,18 +480,18 @@ function initInteractiveGrass() {
     blades.length = 0;
     const count = Math.floor(width * DENSITY);
     for (let i = 0; i < count; i += 1) {
-      const x = (i / count) * width + (Math.random() - 0.5) * 10;
+      const x = (i / count) * width + (Math.random() - 0.5) * 18;
       const r = Math.random();
-      let h = 50 + Math.random() * 56;
-      if (r > 0.68) h = 76 + Math.random() * 52;
-      if (r > 0.93) h = 102 + Math.random() * 48;
+      let h = 64 + Math.random() * 68;
+      if (r > 0.68) h = 96 + Math.random() * 58;
+      if (r > 0.93) h = 128 + Math.random() * 54;
       const depth = Math.random();
       const shadeOffset = (Math.random() - 0.5) * 32;
       blades.push({
         x,
         baseY: height,
         h,
-        width: (0.85 + Math.random() * 1.75) * 2,
+        width: (1.45 + Math.random() * 2.3) * 2,
         seed: Math.random() * Math.PI * 2,
         swaySpeed: 0.45 + Math.random() * 0.65,
         tilt: (Math.random() - 0.5) * 0.2,
@@ -1102,7 +1104,7 @@ function scaleMarketplaceBudgetRange(text, maxCap = 150) {
   return `$${safeMin}-$${scaledMax}`;
 }
 
-const COMMUNITY_MAP_RADIUS_MILES = 2.5;
+const COMMUNITY_MAP_RADIUS_MILES = 3.75;
 const COMMUNITY_MAP_RADIUS_METERS = Math.round(COMMUNITY_MAP_RADIUS_MILES * 1609.344);
 
 function getOpportunityTypeIcon(type) {
@@ -1220,6 +1222,15 @@ const COMMUNITY_MAP_BUSINESSES = [
   },
 ];
 
+const COMMUNITY_MAP_PIN_PALETTE = [
+  { core: "#4e8f63", pulse: "rgba(136, 193, 150, 0.28)", glow: "rgba(78, 143, 99, 0.2)" },
+  { core: "#5369d8", pulse: "rgba(185, 198, 255, 0.26)", glow: "rgba(83, 105, 216, 0.2)" },
+  { core: "#b56749", pulse: "rgba(240, 194, 167, 0.28)", glow: "rgba(181, 103, 73, 0.2)" },
+  { core: "#8f527e", pulse: "rgba(221, 188, 223, 0.28)", glow: "rgba(143, 82, 126, 0.2)" },
+  { core: "#3e6c7c", pulse: "rgba(183, 218, 227, 0.26)", glow: "rgba(62, 108, 124, 0.2)" },
+  { core: "#d08f3c", pulse: "rgba(245, 213, 150, 0.3)", glow: "rgba(208, 143, 60, 0.22)" },
+];
+
 function hexToRgba(hex, alpha) {
   const value = String(hex || "").replace("#", "").trim();
   if (!value) return `rgba(214, 174, 71, ${alpha})`;
@@ -1238,20 +1249,30 @@ function hexToRgba(hex, alpha) {
   return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
+function getCommunityMapPinColors(index, primaryColor, secondaryColor) {
+  const palette = COMMUNITY_MAP_PIN_PALETTE[index % COMMUNITY_MAP_PIN_PALETTE.length] || {};
+  const core = primaryColor || palette.core || "#6dbf8a";
+  const pulseSource = secondaryColor || palette.core || core;
+  return {
+    pinCore: core,
+    pinPulse: palette.pulse || hexToRgba(pulseSource, 0.28),
+    pinGlow: palette.glow || hexToRgba(core, 0.2),
+  };
+}
+
 function buildCommunityMapBusinesses(pinCount) {
   return COMMUNITY_MAP_BUSINESSES.slice(0, pinCount).map((entry, index) => {
     const baseBusiness = entry.sourceId ? MARKETPLACE_SIM_BUSINESS_LOOKUP.get(entry.sourceId) : null;
     const business = { ...baseBusiness, ...entry };
     const logo = getLogoData(business);
     const [primaryColor, secondaryColor] = logo.colors;
+    const pinColors = getCommunityMapPinColors(index, primaryColor, secondaryColor);
     return {
       ...business,
       kind: business.kind || baseBusiness?.type || "business",
       name: business.business,
       logo,
-      pinCore: primaryColor,
-      pinPulse: hexToRgba(secondaryColor || primaryColor, 0.28),
-      pinGlow: hexToRgba(primaryColor, 0.18),
+      ...pinColors,
       pinDuration: `${business.pulseDuration || 3}s`,
       delay: Number.isFinite(business.delay) ? business.delay : index * 0.09,
     };
@@ -1545,11 +1566,15 @@ function initCommunityMap() {
     [campusLatLng.lat + radiusLatDelta, campusLatLng.lng + radiusLngDelta]
   );
   const mapBounds = sourceBounds.extend(radiusBounds);
-  const latSpan = data.bounds.north - data.bounds.south;
-  const lngSpan = data.bounds.east - data.bounds.west;
   const introBounds = Leaflet.latLngBounds(
-    [data.center.lat - latSpan * 0.18, data.center.lng - lngSpan * 0.16],
-    [data.center.lat + latSpan * 0.18, data.center.lng + lngSpan * 0.16]
+    [
+      data.center.lat - radiusLatDelta * (compactViewport ? 0.56 : 0.48),
+      data.center.lng - radiusLngDelta * (compactViewport ? 0.56 : 0.48),
+    ],
+    [
+      data.center.lat + radiusLatDelta * (compactViewport ? 0.56 : 0.48),
+      data.center.lng + radiusLngDelta * (compactViewport ? 0.56 : 0.48),
+    ]
   );
   const fullPadding = compactViewport ? [22, 22] : [38, 38];
   const introPadding = compactViewport ? [26, 26] : [44, 44];
@@ -1567,7 +1592,7 @@ function initCommunityMap() {
     keyboard: true,
     zoomSnap: 0.25,
     zoomDelta: 0.5,
-    minZoom: 13,
+    minZoom: 12.25,
     maxZoom: 18.5,
   });
   map.attributionControl.setPrefix(false);
@@ -1575,7 +1600,11 @@ function initCommunityMap() {
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   );
   map.setMaxBounds(mapBounds.pad(0.12));
-  map.fitBounds(introBounds, { padding: introPadding, animate: false, maxZoom: compactViewport ? 15.25 : 16.1 });
+  map.fitBounds(introBounds, {
+    padding: introPadding,
+    animate: false,
+    maxZoom: compactViewport ? 14.35 : 14.9,
+  });
   window.requestAnimationFrame(() => map.invalidateSize());
 
   [
@@ -1694,7 +1723,7 @@ function initCommunityMap() {
         iconAnchor: [11, 11],
       }),
       keyboard: false,
-    }).addTo(map);
+    });
 
     marker.on("add", () => {
       const markerElement = marker.getElement();
@@ -1705,6 +1734,8 @@ function initCommunityMap() {
       markerElement.style.setProperty("--pin-glow", pin.pinGlow || "rgba(214, 174, 71, 0.18)");
       markerElement.style.setProperty("--pin-duration", pin.pinDuration || "2.8s");
     });
+
+    marker.addTo(map);
 
     const tooltipLabel = [
       '<span class="community-map__tooltip-row">',

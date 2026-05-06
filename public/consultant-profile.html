@@ -85,7 +85,7 @@
         return String(s ?? "").replace(/"/g, "&quot;");
       }
 
-      function getResumeActionMarkup(fileName, consultantId, previewLabel = "preview resume") {
+      function getResumeActionMarkup(fileName, consultantId, previewLabel = "resume") {
         if (!consultantId) return "";
         const safeFileName = fileName || "resume";
         return `
@@ -112,6 +112,25 @@
               </svg>
             </button>
           </span>
+        `;
+      }
+
+      function getLinkedinIconMarkup(url) {
+        if (!url) return "";
+        return `
+          <a
+            href="${escapeAttr(url)}"
+            class="pf-bv__linkedin-icon"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="open linkedin profile"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"></path>
+              <rect x="2" y="9" width="4" height="12"></rect>
+              <circle cx="4" cy="4" r="2"></circle>
+            </svg>
+          </a>
         `;
       }
 
@@ -213,14 +232,10 @@
           const major = edu.major || "";
           const minor = edu.minor || "";
           const school = edu.school || "";
-          let eduLine = "";
-          if (major || school) {
-            const parts = [];
-            if (major) parts.push(major);
-            if (minor) parts.push("minor in " + minor);
-            if (school) parts.push(school);
-            eduLine = parts.join(" \u00b7 ");
-          }
+          const eduLine = major || school
+            ? [major, school].filter(Boolean).join(" @ ")
+            : "";
+          const minorLine = minor ? `minor in ${minor}` : "";
 
           let portfolioHtml = "";
           if (portfolioItems.length) {
@@ -250,23 +265,21 @@
             <div class="pf-bv">
               <div class="pf-bv__header">
                 ${avatarHtml}
-                <div>
-                  <h2 class="pf-bv__name">${escapeHtml(profile.full_name)}</h2>
-                  ${eduLine ? `<p class="pf-bv__meta">${escapeHtml(eduLine)}</p>` : ""}
+                <div class="pf-bv__identity">
+                  <div class="pf-bv__name-row">
+                    <h2 class="pf-bv__name">${escapeHtml(profile.full_name)}</h2>
+                    ${getLinkedinIconMarkup(profile.linkedin_url)}
+                  </div>
+                  ${eduLine ? `<p class="pf-bv__meta pf-bv__meta--education">${escapeHtml(eduLine)}</p>` : ""}
+                  ${minorLine ? `<p class="pf-bv__meta">${escapeHtml(minorLine)}</p>` : ""}
                 </div>
               </div>
 
               ${eduLine ? `
                 <div class="pf-bv__section">
                   <p class="pf-bv__section-title">education</p>
-                  <p class="pf-bv__detail">${escapeHtml(eduLine)}</p>
-                </div>
-              ` : ""}
-
-              ${profile.linkedin_url ? `
-                <div class="pf-bv__section">
-                  <p class="pf-bv__section-title">linkedin</p>
-                  <p class="pf-bv__detail"><a href="${escapeHtml(profile.linkedin_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(profile.linkedin_url)}</a></p>
+                  <p class="pf-bv__detail pf-bv__detail--education">${escapeHtml(eduLine)}</p>
+                  ${minorLine ? `<p class="pf-bv__detail pf-bv__detail--minor">${escapeHtml(minorLine)}</p>` : ""}
                 </div>
               ` : ""}
 
@@ -274,7 +287,6 @@
                 <div class="pf-bv__section">
                   <p class="pf-bv__section-title">resume</p>
                   <div class="pf-bv__resume-row">
-                    ${profile.resume_file_name ? `<span class="pf-bv__detail">${escapeHtml(profile.resume_file_name)}</span>` : ""}
                     ${getResumeActionMarkup(profile.resume_file_name, profile.id)}
                   </div>
                 </div>
@@ -282,7 +294,7 @@
 
               ${portfolioHtml}
 
-              ${!profile.linkedin_url && !portfolioItems.length && !profile.resume_on_file && !eduLine ? `
+              ${!profile.linkedin_url && !portfolioItems.length && !profile.resume_on_file && !eduLine && !minorLine ? `
                 <p class="pf-bv__empty">this consultant hasn't shared any public details yet.</p>
               ` : ""}
             </div>
