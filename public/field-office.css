@@ -2877,6 +2877,12 @@ body.gr-has-side-nav .bza__main {
   margin-top: auto;
 }
 
+/* Consultants don't get a post CTA, so the foot has no anchor pulling it
+   to the bottom. Pin the foot directly when there's no .bza__post above. */
+.bza__side:not(:has(.bza__post)) .bza__side-foot {
+  margin-top: auto;
+}
+
 .bza__user {
   display: grid;
   grid-template-columns: auto 1fr;

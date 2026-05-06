@@ -73,7 +73,7 @@
   flex-direction: column;
   gap: 0.1rem;
   min-width: 0;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 .cl-preview__bio-name {

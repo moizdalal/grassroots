@@ -30,29 +30,58 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>',
 };
 
-const WORK_ITEMS = [
-  { view: "dashboard", label: "dashboard", icon: ICONS.dashboard },
-  { view: "listings", label: "my listings", icon: ICONS.listings },
-  { view: "inbox", label: "inbox", icon: ICONS.inbox },
-];
-
+// Work items are built per-role so consultants don't see "my listings"
+// (they don't have any) and owners don't see "marketplace" duplicated as
+// the dashboard. See buildWorkItems().
 const SYSTEM_ITEMS = [
   { href: "/settings.html", label: "settings", icon: ICONS.gear },
 ];
+
+function buildWorkItems(role) {
+  if (role === "consultant") {
+    // Mirrors the in-page sidebar on /consultant-dashboard.html so a
+    // consultant gets the same nav everywhere they go. No "my listings"
+    // because consultants don't post listings.
+    return [
+      { href: "/consultant-dashboard.html", label: "dashboard", icon: ICONS.dashboard, navId: "dashboard" },
+      { href: "/", label: "marketplace", icon: ICONS.profile, navId: "marketplace" },
+      { href: "/consultant-dashboard.html#inbox", label: "inbox", icon: ICONS.inbox, navId: "inbox" },
+    ];
+  }
+  // Default to the owner layout. This is also what unauthenticated visitors
+  // see, but the sidebar's user card / logout will be hidden in that case.
+  return [
+    { href: "/dashboard.html", label: "dashboard", icon: ICONS.dashboard, navId: "dashboard" },
+    { href: "/dashboard.html#listings", label: "my listings", icon: ICONS.listings, navId: "listings" },
+    { href: "/dashboard.html#inbox", label: "inbox", icon: ICONS.inbox, navId: "inbox" },
+  ];
+}
+
+function inferActiveNavId(role) {
+  const path = window.location.pathname;
+  const hash = window.location.hash.replace("#", "");
+  if (path === "/dashboard.html" || path === "/dashboard") return hash || "dashboard";
+  if (path === "/consultant-dashboard.html") return hash || "dashboard";
+  if (path === "/" || path === "/index.html") return role === "consultant" ? "marketplace" : null;
+  return null;
+}
 
 const ICON_MOON =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
 const ICON_LOGOUT =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>';
 
-function renderSidebar({ activeView, activeRoute }) {
-  const work = WORK_ITEMS.map((it) => {
-    const active = activeView === it.view ? " active" : "";
-    return `<a href="/dashboard.html#${it.view}" class="bza__nav-item${active}" data-view="${it.view}" data-nav-id="${it.view}" title="${it.label}">
+function renderSidebar({ role, activeNavId, activeRoute }) {
+  const workItems = buildWorkItems(role);
+  const work = workItems
+    .map((it) => {
+      const active = activeNavId === it.navId ? " active" : "";
+      return `<a href="${it.href}" class="bza__nav-item${active}" data-nav-id="${it.navId}" title="${it.label}">
       <span class="bza__nav-icon" aria-hidden="true">${it.icon}</span>
       <span class="bza__nav-label">${it.label}</span>
     </a>`;
-  }).join("");
+    })
+    .join("");
   const renderItem = (it) => {
     const active = activeRoute === it.href ? " active" : "";
     return `<a href="${it.href}" class="bza__nav-item${active}" title="${it.label}">
@@ -61,6 +90,15 @@ function renderSidebar({ activeView, activeRoute }) {
     </a>`;
   };
   const system = SYSTEM_ITEMS.map(renderItem).join("");
+  // Owners get a "post a listing" CTA; consultants don't post listings.
+  const postCta =
+    role === "consultant"
+      ? ""
+      : `
+      <a href="/create-listing.html" class="bza__post" id="gr-side-post" title="post a listing">
+        <span class="bza__nav-icon" aria-hidden="true">${ICONS.plus}</span>
+        <span class="bza__nav-label">post a listing</span>
+      </a>`;
   return `
     <aside class="bza__side" id="gr-side">
       <div class="bza__side-edge" id="gr-side-edge" aria-hidden="true" title="double-click to toggle"></div>
@@ -80,12 +118,7 @@ function renderSidebar({ activeView, activeRoute }) {
         <input type="checkbox" id="gr-side-darkmode" class="bza__darkmode-input" />
         <span class="bza__darkmode-switch" aria-hidden="true"></span>
       </label>
-
-      <a href="/create-listing.html" class="bza__post" id="gr-side-post" title="post a listing">
-        <span class="bza__nav-icon" aria-hidden="true">${ICONS.plus}</span>
-        <span class="bza__nav-label">post a listing</span>
-      </a>
-
+${postCta}
       <div class="bza__side-foot">
         <a class="bza__user" id="gr-side-user" href="/profile.html" title="open profile settings">
           <span class="bza__user-avatar" id="gr-side-user-avatar"></span>
@@ -103,66 +136,42 @@ function renderSidebar({ activeView, activeRoute }) {
   `;
 }
 
-async function hydrateUser() {
+async function loadProfile() {
   try {
     const { getSupabaseClient } = await import("/supabase-loader.js");
     const client = await getSupabaseClient();
     const { data: { session } } = await client.auth.getSession();
-    if (!session?.user) return { client: null };
+    if (!session?.user) return { client, profile: null };
     const { data: profile } = await client
       .from("profiles")
       .select("id, full_name, role, avatar_path")
       .eq("id", session.user.id)
       .single();
-    const avatarUrl = profile?.avatar_path
+    return { client, profile: profile || null };
+  } catch {
+    return { client: null, profile: null };
+  }
+}
+
+function applyUserCard(client, profile) {
+  const nameEl = document.getElementById("gr-side-user-name");
+  const roleEl = document.getElementById("gr-side-user-role");
+  const avEl = document.getElementById("gr-side-user-avatar");
+  if (nameEl) nameEl.textContent = profile?.full_name || "your account";
+  if (roleEl) roleEl.textContent = profile?.role === "consultant" ? "consultant" : "business owner";
+  if (avEl) {
+    const avatarUrl = client && profile?.avatar_path
       ? client.storage.from("avatars").getPublicUrl(profile.avatar_path).data?.publicUrl || ""
       : "";
-    const nameEl = document.getElementById("gr-side-user-name");
-    const roleEl = document.getElementById("gr-side-user-role");
-    const avEl = document.getElementById("gr-side-user-avatar");
-    if (nameEl) nameEl.textContent = profile?.full_name || "your account";
-    if (roleEl) roleEl.textContent = profile?.role === "consultant" ? "consultant" : "business owner";
-    if (avEl) {
-      const initial = (profile?.full_name || "?").charAt(0).toUpperCase() || "?";
-      avEl.innerHTML = avatarUrl ? `<img src="${avatarUrl}" alt="" />` : initial;
-    }
-
-    // Consultant adjustments: no "post a listing" CTA, and the dashboard link
-    // becomes a "marketplace" link pointing at "/" since consultants browse
-    // and bid on the marketplace rather than running a dashboard.
-    if (profile?.role === "consultant") {
-      const post = document.getElementById("gr-side-post");
-      if (post) post.hidden = true;
-      const dash = document.querySelector('[data-nav-id="dashboard"]');
-      if (dash) {
-        dash.setAttribute("href", "/");
-        dash.setAttribute("title", "marketplace");
-        const label = dash.querySelector(".bza__nav-label");
-        if (label) label.textContent = "marketplace";
-        dash.removeAttribute("data-view");
-        const path = window.location.pathname;
-        dash.classList.toggle("active", path === "/" || path === "/index.html");
-      }
-    }
-    return { client };
-  } catch {
-    return { client: null };
+    const initial = (profile?.full_name || "?").charAt(0).toUpperCase() || "?";
+    avEl.innerHTML = avatarUrl ? `<img src="${avatarUrl}" alt="" />` : initial;
   }
 }
 
-function inferActiveView() {
-  const path = window.location.pathname;
-  if (path === "/dashboard.html" || path === "/dashboard") {
-    const hash = window.location.hash.replace("#", "");
-    return hash || "dashboard";
-  }
-  if (path === "/" || path === "/index.html") return "listings";
-  return null;
-}
-
-function init() {
-  // Skip if a page already renders its own .bza__side (e.g. the dashboard
-  // builds its sidebar inline so it can wire data-driven badges directly).
+async function init() {
+  // Skip if a page already renders its own .bza__side (e.g. the owner
+  // dashboard / consultant dashboard build their sidebar inline so they
+  // can wire data-driven badges directly).
   if (document.querySelector("aside.bza__side")) return;
 
   const main = document.querySelector("body > main");
@@ -171,17 +180,24 @@ function init() {
   const wrap = document.createElement("div");
   wrap.className = "bza gr-bza-shell";
   main.parentNode.insertBefore(wrap, main);
-  const activeView = inferActiveView();
-  const activeRoute = window.location.pathname;
-  wrap.insertAdjacentHTML("afterbegin", renderSidebar({ activeView, activeRoute }));
   wrap.appendChild(main);
   if (!main.classList.contains("bza__main")) main.classList.add("bza__main");
   document.body.classList.add("gr-has-side-nav");
 
+  // Resolve the user's role before rendering so the work items match it
+  // on first paint. Previously we rendered the owner layout synchronously
+  // and mutated it for consultants, which caused both "marketplace" and
+  // "my listings" to flash active for consultants on the marketplace page.
+  const { client, profile } = await loadProfile();
+  const role = profile?.role || null;
+  const activeNavId = inferActiveNavId(role);
+  const activeRoute = window.location.pathname;
+  wrap.insertAdjacentHTML("afterbegin", renderSidebar({ role, activeNavId, activeRoute }));
+
+  applyUserCard(client, profile);
   wireToggle();
   wireDarkMode();
   wireLogout();
-  hydrateUser();
 }
 
 function wireDarkMode() {
