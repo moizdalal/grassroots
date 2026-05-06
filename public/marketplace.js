@@ -48,16 +48,16 @@ function renderSession(client, session) {
     <span>signed in as ${escapeHtml(label)}</span>
   `;
 
-  client.from("profiles").select("role").eq("id", session.user.id).single().then(({ data }) => {
+  // Business owners get routed to their dashboard — they don't browse the marketplace.
+  // Only redirect on a confirmed business_owner role; a fetch error or null role
+  // leaves them here (avoids a redirect loop with /dashboard.html).
+  client.from("profiles").select("role").eq("id", session.user.id).single().then(({ data, error }) => {
+    if (!error && data?.role === "business_owner") {
+      window.location.replace("/dashboard.html");
+      return;
+    }
     const slot = document.getElementById("page-cta-slot");
     if (slot) slot.innerHTML = "";
-    if (data?.role === "business_owner" && slot) {
-      const link = document.createElement("a");
-      link.href = "/create-listing.html";
-      link.className = "gr-page-cta";
-      link.textContent = "create opportunity";
-      slot.appendChild(link);
-    }
   });
 }
 
@@ -71,6 +71,128 @@ async function fetchOpenListings(client) {
   return { data, error };
 }
 
+function renderCounterStrip(rows) {
+  const host = document.getElementById("marketplace-counter");
+  if (!host) return;
+  if (!rows.length) {
+    host.innerHTML = "";
+    return;
+  }
+  const totalBudget = rows.reduce((acc, r) => {
+    const { budgetRange } = parseDetails(r);
+    if (!budgetRange) return acc;
+    const mid = ((budgetRange.min || 0) + (budgetRange.max || 0)) / 2;
+    return acc + mid;
+  }, 0);
+  const cats = new Set();
+  for (const r of rows) {
+    if (r.category) {
+      r.category.split(",").map((c) => c.trim()).filter(Boolean).forEach((c) => cats.add(c));
+    }
+  }
+  host.innerHTML = `
+    <span class="fo-counter__item"><strong>${rows.length}</strong>open</span>
+    <span class="fo-counter__item"><strong>${cats.size}</strong>categories</span>
+    <span class="fo-counter__item"><strong>$${Math.round(totalBudget).toLocaleString()}</strong>combined budget</span>
+  `;
+}
+
+function condenseSummary(text, max = 90) {
+  const t = String(text || "").trim();
+  if (!t) return "";
+  if (t.length <= max) return t;
+  // cut on a word boundary, then ellipsize
+  const cut = t.slice(0, max);
+  const space = cut.lastIndexOf(" ");
+  return (space > 40 ? cut.slice(0, space) : cut).trim() + "…";
+}
+
+function renderCard(row, client) {
+  const profile = row.profiles;
+  const poster = profile?.full_name || "Business";
+  const biz = bizMap[row.owner_id];
+  const businessName = biz?.business_name || poster;
+  const avatarUrl = publicAvatarUrl(client, profile?.avatar_path);
+  const { budgetRange } = parseDetails(row);
+  const initial = escapeHtml((businessName || poster).charAt(0).toUpperCase());
+
+  const categories = row.category
+    ? row.category.split(",").map((c) => c.trim()).filter(Boolean)
+    : [];
+
+  const avatarHtml = avatarUrl
+    ? `<img class="gr-listing-logo" src="${escapeHtml(avatarUrl)}" alt="" />`
+    : `<div class="gr-listing-logo-placeholder">${initial}</div>`;
+
+  const budgetHtml = budgetRange
+    ? `<p class="gr-listing-budget">${escapeHtml(formatBudgetRange(budgetRange))}</p>`
+    : "";
+
+  const tagsHtml = categories.length
+    ? `<div class="gr-listing-tags">${categories.slice(0, 2).map((c) => `<span class="gr-listing-tag">${escapeHtml(c)}</span>`).join("")}</div>`
+    : "";
+
+  const summary = row.problem_summary
+    ? `<p class="gr-listing-summary">${escapeHtml(condenseSummary(row.problem_summary))}</p>`
+    : "";
+
+  const card = document.createElement("a");
+  card.className = "gr-listing-card";
+  card.href = `/listing.html?id=${row.id}`;
+  card.innerHTML = `
+    <div class="gr-listing-card-head">
+      <div class="gr-listing-logo-wrap">${avatarHtml}</div>
+      <div class="gr-listing-card-biz">
+        <span class="gr-listing-biz-label">posted by</span>
+        <p class="gr-listing-biz-name">${escapeHtml(businessName)}</p>
+      </div>
+    </div>
+    <div class="gr-listing-card-body">
+      <h2 class="gr-listing-title">${escapeHtml(row.title)}</h2>
+      ${summary}
+    </div>
+    <div class="gr-listing-foot">
+      ${tagsHtml || '<span></span>'}
+      <div class="gr-listing-foot-end">
+        ${budgetHtml}
+        <span class="gr-listing-cta-link">view →</span>
+      </div>
+    </div>
+  `;
+  return card;
+}
+
+function renderSection({ title, subtitle, rows, emptyText, client }) {
+  const section = document.createElement("section");
+  section.className = "gr-marketplace-section";
+  const head = document.createElement("div");
+  head.className = "gr-marketplace-section__head";
+  head.innerHTML = `
+    <div>
+      <h2 class="gr-marketplace-section__title">${escapeHtml(title)}</h2>
+      ${subtitle ? `<p class="gr-marketplace-section__sub">${escapeHtml(subtitle)}</p>` : ""}
+    </div>
+    <span class="gr-marketplace-section__count">${rows.length}</span>
+  `;
+  section.appendChild(head);
+
+  if (!rows.length) {
+    const empty = document.createElement("p");
+    empty.className = "gr-marketplace-section__empty";
+    empty.textContent = emptyText || "nothing here yet.";
+    section.appendChild(empty);
+    return section;
+  }
+
+  const track = document.createElement("div");
+  track.className = "gr-marketplace-section__track";
+  for (const row of rows) {
+    track.appendChild(renderCard(row, client));
+  }
+  section.appendChild(track);
+  return section;
+}
+
 function renderListings(rows, client) {
   listingGrid.innerHTML = "";
 
@@ -80,52 +202,64 @@ function renderListings(rows, client) {
     return;
   }
 
+  // Section 1: Recommended (algorithm placeholder)
+  listingGrid.appendChild(
+    renderSection({
+      title: "recommended for you",
+      subtitle: "tuned to your skills and history",
+      rows: [],
+      emptyText: "personalized picks coming soon — we're learning what you like.",
+      client,
+    })
+  );
+
+  // Section 2: Near you (location placeholder)
+  listingGrid.appendChild(
+    renderSection({
+      title: "near you",
+      subtitle: "small businesses in your area",
+      rows: [],
+      emptyText: "set your location in profile settings to see local opportunities.",
+      client,
+    })
+  );
+
+  // Section 3+: By tag — bucket every row by each of its categories. A row can
+  // appear in multiple tag rows (one per category). Order by bucket size desc.
+  const byTag = new Map();
+  const untagged = [];
   for (const row of rows) {
-    const profile = row.profiles;
-    const poster = profile?.full_name || "Business";
-    const biz = bizMap[row.owner_id];
-    const businessName = biz?.business_name || poster;
-    const avatarPath = profile?.avatar_path || null;
-    const avatarUrl = publicAvatarUrl(client, avatarPath);
-    const { budgetRange } = parseDetails(row);
-    const initial = escapeHtml((businessName || poster).charAt(0).toUpperCase());
-
-    const categories = row.category
-      ? row.category.split(",").map(c => c.trim()).filter(Boolean)
+    const cats = row.category
+      ? row.category.split(",").map((c) => c.trim()).filter(Boolean)
       : [];
-
-    const avatarHtml = avatarUrl
-      ? `<img class="gr-listing-logo" src="${escapeHtml(avatarUrl)}" alt="" />`
-      : `<div class="gr-listing-logo-placeholder">${initial}</div>`;
-
-    const budgetHtml = budgetRange
-      ? `<p class="gr-listing-budget">${escapeHtml(formatBudgetRange(budgetRange))}</p>`
-      : "";
-
-    const tagsHtml = categories.length
-      ? `<div class="gr-listing-tags">${categories.map(c => `<span class="gr-listing-tag">${escapeHtml(c)}</span>`).join("")}</div>`
-      : "";
-
-    const card = document.createElement("a");
-    card.className = "gr-listing-card";
-    card.href = `/listing.html?id=${row.id}`;
-    card.innerHTML = `
-      <div class="gr-listing-logo-wrap">
-        ${avatarHtml}
-      </div>
-      <div class="gr-listing-card-body">
-        <div class="gr-listing-title-row">
-          <h2 class="gr-listing-title">${escapeHtml(row.title)}</h2>
-        </div>
-        <div class="gr-listing-subs">
-          <p class="gr-listing-biz-name">${escapeHtml(businessName)}</p>
-          ${budgetHtml}
-        </div>
-        ${tagsHtml}
-        <span class="gr-listing-cta">view details &rarr;</span>
-      </div>
-    `;
-    listingGrid.appendChild(card);
+    if (!cats.length) {
+      untagged.push(row);
+      continue;
+    }
+    for (const c of cats) {
+      if (!byTag.has(c)) byTag.set(c, []);
+      byTag.get(c).push(row);
+    }
+  }
+  const sorted = [...byTag.entries()].sort((a, b) => b[1].length - a[1].length);
+  for (const [tag, list] of sorted) {
+    listingGrid.appendChild(
+      renderSection({
+        title: tag,
+        rows: list,
+        emptyText: `no open ${tag} listings right now.`,
+        client,
+      })
+    );
+  }
+  if (untagged.length) {
+    listingGrid.appendChild(
+      renderSection({
+        title: "other",
+        rows: untagged,
+        client,
+      })
+    );
   }
 }
 
@@ -195,6 +329,7 @@ function applyFilters() {
     return true;
   });
 
+  renderCounterStrip(filtered);
   renderListings(filtered, _client);
 }
 
@@ -232,6 +367,7 @@ async function refreshListings(client) {
 
   listingsStatus.textContent = "";
   populateCategoryDropdown();
+  renderCounterStrip(allRows);
   renderListings(allRows, client);
   setupFilterListeners();
 }
@@ -248,7 +384,7 @@ async function init() {
 
     renderSession(client, session);
     initNotifBell(client);
-    initControlPanel(client);
+    // initControlPanel(client); — replaced by /side-nav.js
 
     client.auth.onAuthStateChange(async (_event, nextSession) => {
       renderSession(client, nextSession);

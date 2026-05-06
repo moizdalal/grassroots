@@ -22,27 +22,38 @@ function closeProfileMenu(menuRoot) {
   panel.hidden = true;
 }
 
-function buildProfileMenu(profileItem, currentPath, onSignOut) {
+function buildProfileMenu(profileItem, currentPath, onSignOut, opts) {
   if (!profileItem) return;
 
   profileItem.hidden = false;
   profileItem.classList.add("gr-nav__menu");
 
-  const onProfilePage = currentPath === "/profile.html";
+  const onSettingsLikePath =
+    currentPath === "/settings.html" || currentPath === "/profile.html";
+
+  const initial = String(opts?.fullName || opts?.email || "?")
+    .trim()
+    .charAt(0)
+    .toUpperCase() || "?";
+  const avatarUrl = opts?.avatarUrl || "";
+  const avatarMarkup = avatarUrl
+    ? `<img class="gr-nav__avatar" src="${avatarUrl}" alt="" />`
+    : `<span class="gr-nav__avatar gr-nav__avatar--placeholder" aria-hidden="true">${initial}</span>`;
 
   profileItem.innerHTML = `
     <button
       type="button"
-      class="gr-nav__menu-trigger"
+      class="gr-nav__menu-trigger gr-nav__menu-trigger--avatar"
       aria-haspopup="menu"
+      aria-label="account menu"
       aria-expanded="false"
-      ${onProfilePage ? 'aria-current="page"' : ""}
+      ${onSettingsLikePath ? 'aria-current="page"' : ""}
     >
-      <span>profile</span>
+      ${avatarMarkup}
       <span class="gr-nav__menu-caret" aria-hidden="true">▾</span>
     </button>
     <div class="gr-nav__menu-panel" role="menu" hidden>
-      <a class="gr-nav__menu-item" href="/profile.html" role="menuitem" ${onProfilePage ? 'aria-current="page"' : ""}>settings</a>
+      <a class="gr-nav__menu-item" href="/settings.html" role="menuitem" ${currentPath === "/settings.html" ? 'aria-current="page"' : ""}>settings</a>
       <button type="button" class="gr-nav__menu-item" role="menuitem" data-nav-signout>sign out</button>
     </div>
   `;
@@ -83,11 +94,37 @@ function renderGuestNav(links) {
   if (links.profileItem) links.profileItem.hidden = true;
 }
 
-function renderSignedInNav(links, currentPath, onSignOut) {
+function renderSignedInNav(links, currentPath, onSignOut, opts) {
   if (!links) return;
   if (links.signInItem) links.signInItem.hidden = true;
   if (links.registerItem) links.registerItem.hidden = true;
-  if (links.profileItem) buildProfileMenu(links.profileItem, currentPath, onSignOut);
+  if (links.profileItem) buildProfileMenu(links.profileItem, currentPath, onSignOut, opts);
+}
+
+async function fetchProfileMeta(client, user) {
+  try {
+    const { data } = await client
+      .from("profiles")
+      .select("full_name, avatar_path")
+      .eq("id", user.id)
+      .maybeSingle();
+    let avatarUrl = "";
+    if (data?.avatar_path) {
+      const { data: pub } = client.storage.from("avatars").getPublicUrl(data.avatar_path);
+      avatarUrl = pub?.publicUrl || "";
+    }
+    return {
+      fullName: data?.full_name || user.user_metadata?.full_name || "",
+      email: user.email || "",
+      avatarUrl,
+    };
+  } catch {
+    return {
+      fullName: user.user_metadata?.full_name || "",
+      email: user.email || "",
+      avatarUrl: "",
+    };
+  }
 }
 
 async function initNavSession() {
@@ -99,10 +136,16 @@ async function initNavSession() {
 
     const applySession = async (session) => {
       if (session?.user) {
-        renderSignedInNav(links, window.location.pathname, async () => {
-          await client.auth.signOut();
-          window.location.href = "/";
-        });
+        const meta = await fetchProfileMeta(client, session.user);
+        renderSignedInNav(
+          links,
+          window.location.pathname,
+          async () => {
+            await client.auth.signOut();
+            window.location.href = "/";
+          },
+          meta
+        );
       } else {
         renderGuestNav(links);
       }

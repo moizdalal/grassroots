@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grassroots — consultant resume</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/grassroots.css" />
+    <link rel="stylesheet" href="/field-office.css" />
+    <script src="/theme.js"></script>
+  </head>
+  <body class="gr-body"><main class="gr-shell gr-shell--wide">
+      <a href="javascript:history.back()" class="ld-back">← back</a>
+
+      <p id="cr-gate" class="gr-status" aria-live="polite">loading…</p>
+
+      <div id="cr-shell" hidden>
+        <div class="gr-page-intro">
+          <p class="gr-page-eyebrow">consultant · resume</p>
+          <h1 class="gr-title" id="cr-name">consultant resume</h1>
+          <p class="gr-subtitle" id="cr-program"></p>
+        </div>
+
+        <div class="cp-placeholder" id="cr-placeholder">
+          <span class="cp-empty-tag">work in progress</span>
+          <h2>resume page coming soon</h2>
+          <p>this consultant hasn't built out a full resume page yet — for now, here's what's on file.</p>
+        </div>
+
+        <div id="cr-resume-card" class="bza__panel" hidden>
+          <div class="bza__panel-h">
+            <span class="bza__panel-h-title"><strong>resume</strong></span>
+          </div>
+          <p id="cr-resume-link"></p>
+        </div>
+
+        <div id="cr-edu-card" class="bza__panel" hidden>
+          <div class="bza__panel-h">
+            <span class="bza__panel-h-title"><strong>education</strong></span>
+          </div>
+          <p id="cr-edu-line" style="color:var(--fo-text);font-size:0.95rem;line-height:1.6;margin:0"></p>
+        </div>
+
+        <div id="cr-links-card" class="bza__panel" hidden>
+          <div class="bza__panel-h">
+            <span class="bza__panel-h-title"><strong>links</strong></span>
+          </div>
+          <div id="cr-links" style="display:flex;gap:0.6rem;flex-wrap:wrap"></div>
+        </div>
+      </div>
+    </main>
+
+    <script type="module" src="/nav-session.js"></script>
+    <script type="module">
+      import { getSupabaseClient } from "/supabase-loader.js";
+
+      const $ = (id) => document.getElementById(id);
+      const escape = (s) =>
+        String(s ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      const isMissing = (err) =>
+        !!err && /(does not exist|not found|relation .* does not exist|column .* does not exist)/i.test(err.message || "");
+
+      async function init() {
+        const id = new URLSearchParams(window.location.search).get("id");
+        const gate = $("cr-gate");
+        const shell = $("cr-shell");
+        if (!id) {
+          gate.textContent = "no consultant specified.";
+          gate.className = "gr-status error";
+          return;
+        }
+
+        try {
+          const client = await getSupabaseClient();
+          const { data: profile, error: pErr } = await client
+            .from("profiles")
+            .select("id, full_name, linkedin_url, resume_path")
+            .eq("id", id)
+            .single();
+          if (pErr) throw pErr;
+
+          $("cr-name").textContent = profile?.full_name || "consultant resume";
+
+          let edu = null;
+          const { data: cp, error: cpErr } = await client
+            .from("consultant_profiles")
+            .select("major, minor, school")
+            .eq("user_id", id)
+            .maybeSingle();
+          if (!cpErr || isMissing(cpErr)) {
+            edu = cp;
+          }
+
+          if (edu) {
+            const bits = [edu.major, edu.minor ? `(minor: ${edu.minor})` : "", edu.school].filter(Boolean);
+            if (bits.length) {
+              $("cr-program").textContent = bits.join(" · ");
+              $("cr-edu-line").textContent = bits.join(" · ");
+              $("cr-edu-card").hidden = false;
+            }
+          }
+
+          if (profile?.resume_path) {
+            const url = client.storage.from("resumes").getPublicUrl(profile.resume_path).data?.publicUrl;
+            if (url) {
+              $("cr-resume-link").innerHTML = `<a href="${escape(url)}" target="_blank" rel="noopener" class="gr-btn gr-btn--primary" style="text-decoration:none">view resume PDF →</a>`;
+              $("cr-resume-card").hidden = false;
+              $("cr-placeholder").hidden = true;
+            }
+          }
+
+          if (profile?.linkedin_url) {
+            $("cr-links").innerHTML = `<a href="${escape(profile.linkedin_url)}" target="_blank" rel="noopener" class="gr-btn gr-btn--ghost" style="text-decoration:none">linkedin →</a>`;
+            $("cr-links-card").hidden = false;
+          }
+
+          gate.hidden = true;
+          shell.hidden = false;
+        } catch (err) {
+          gate.textContent = err.message || "could not load resume.";
+          gate.className = "gr-status error";
+        }
+      }
+
+      init();
+    </script>
+    <script type="module" src="/side-nav.js"></script>
+  </body>
+</html>

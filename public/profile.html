@@ -7,29 +7,15 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Inter:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/grassroots.css" />
+    <link rel="stylesheet" href="/field-office.css" />
+    <script src="/theme.js"></script>
     <link rel="stylesheet" href="/profile-seedling.css" />
   </head>
-  <body class="gr-body">
-    <nav class="gr-nav" aria-label="Primary">
-      <div class="gr-nav__inner">
-        <a class="gr-nav__brand" href="/home/">
-          <img class="gr-nav__logo" src="/home/assets/grassroots-icon-syne.svg" width="20" height="34" alt="" />
-          <span class="gr-nav__wordmark">grassroots</span>
-        </a>
-        <ul class="gr-nav__links">
-          <li><a href="/">marketplace</a></li>
-          <li><a href="/signin.html">sign in</a></li>
-          <li><a href="/register.html" class="gr-nav__cta">register</a></li>
-          <li><a href="/profile.html" aria-current="page">profile</a></li>
-        </ul>
-      </div>
-    </nav>
-
-    <div class="pf-welcome-overlay hidden" id="welcome-overlay">
+  <body class="gr-body"><div class="pf-welcome-overlay hidden" id="welcome-overlay">
       <div class="pf-welcome-popup">
         <div class="pf-welcome-icon" aria-hidden="true">
           <img src="/home/assets/grassroots-icon-syne.svg" width="34" height="52" alt="" />
@@ -40,14 +26,24 @@
       </div>
     </div>
 
-    <main class="pf-layout">
+    <main class="gr-shell gr-shell--wide settings-shell">
+      <a href="/settings.html" class="ld-back">← settings</a>
+      <div class="gr-page-intro">
+        <p class="gr-page-eyebrow">settings · account</p>
+        <h1 class="gr-title">your profile</h1>
+        <p class="gr-subtitle">update your photo and details. what you save here shows up across the marketplace.</p>
+      </div>
+
+      <div class="settings-layout">
+        <aside class="settings-tabs">
+          <a class="settings-tab" href="/settings.html" data-tab="general">general</a>
+          <button type="button" class="settings-tab active" data-tab="account">account</button>
+          <button type="button" class="settings-tab" data-tab="notifications" disabled>notifications <span class="settings-tab-soon">soon</span></button>
+          <button type="button" class="settings-tab" data-tab="billing" disabled>billing <span class="settings-tab-soon">soon</span></button>
+        </aside>
+
+        <section class="settings-panels pf-layout">
       <div class="pf-main-col">
-        <div class="pf-page-head">
-          <h1 class="gr-title">your profile</h1>
-          <p class="gr-subtitle">
-            update your photo and details. what you save here shows up across the marketplace.
-          </p>
-        </div>
 
         <div class="pf-preview-bar hidden" id="pf-preview-bar">
           <label class="pf-toggle-label">
@@ -416,34 +412,10 @@
           </div>
         </div>
 
-        <section class="gr-card pf-level-card pf-level-card--owner hidden" id="pf-owner-card">
-          <h2 class="pf-level-title">current and past listings</h2>
-
-          <div class="pf-owner-section">
-            <div class="pf-owner-section__head">
-              <h3 class="pf-owner-section__title">current listings</h3>
-            </div>
-            <div class="pf-owner-list" id="pf-owner-current-list"></div>
-          </div>
-
-          <div class="pf-owner-section">
-            <button
-              type="button"
-              class="pf-owner-history-toggle"
-              id="pf-owner-history-toggle"
-              aria-expanded="false"
-              aria-controls="pf-owner-history"
-            >
-              <span>past listings</span>
-              <span class="pf-owner-history-toggle__arrow" aria-hidden="true">&#9662;</span>
-            </button>
-            <div class="pf-owner-history hidden" id="pf-owner-history">
-              <div class="pf-owner-list" id="pf-owner-past-list"></div>
-            </div>
-          </div>
-        </section>
       </aside>
 
+        </section>
+      </div>
     </main>
 
     <div class="pf-resume-viewer hidden" id="pf-resume-viewer" aria-hidden="true">
@@ -501,5 +473,6 @@
       </div>
     </div>
     <script src="/suggestion-box.js"></script>
+    <script type="module" src="/side-nav.js"></script>
   </body>
 </html>

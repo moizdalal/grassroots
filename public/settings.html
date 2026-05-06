@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grassroots — settings</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/grassroots.css" />
+    <link rel="stylesheet" href="/field-office.css" />
+    <script src="/theme.js"></script>
+  </head>
+  <body class="gr-body"><main class="gr-shell gr-shell--wide settings-shell">
+      <a href="javascript:history.back()" class="ld-back">← back</a>
+
+      <div class="gr-page-intro">
+        <p class="gr-page-eyebrow">account</p>
+        <h1 class="gr-title">settings</h1>
+        <p class="gr-subtitle">tweak how grassroots looks and behaves for you.</p>
+      </div>
+
+      <div class="settings-layout">
+        <!-- ===== tabs ===== -->
+        <aside class="settings-tabs" id="settings-tabs">
+          <button type="button" class="settings-tab active" data-tab="general">general</button>
+          <a class="settings-tab" href="/profile.html" data-tab="account">account</a>
+          <button type="button" class="settings-tab" data-tab="notifications" disabled>notifications <span class="settings-tab-soon">soon</span></button>
+          <button type="button" class="settings-tab" data-tab="billing" disabled>billing <span class="settings-tab-soon">soon</span></button>
+        </aside>
+
+        <!-- ===== panels ===== -->
+        <section class="settings-panels">
+
+          <!-- GENERAL -->
+          <section class="settings-panel" data-tab="general">
+            <header class="settings-panel-h">
+              <h2>general</h2>
+              <p>your preferences are stored locally in this browser.</p>
+            </header>
+
+            <section class="settings-section">
+              <div class="settings-section-h">
+                <h3>theme</h3>
+                <p>pick the look that's easiest on your eyes.</p>
+              </div>
+
+              <div class="theme-grid" id="theme-grid">
+                <button type="button" class="theme-card" data-theme="dark-forest">
+                  <span class="theme-card-preview" data-theme-preview="dark-forest" aria-hidden="true">
+                    <span class="theme-card-bg"></span>
+                    <span class="theme-card-surface"></span>
+                    <span class="theme-card-accent"></span>
+                  </span>
+                  <span class="theme-card-body">
+                    <span class="theme-card-name">dark forest</span>
+                  </span>
+                  <span class="theme-card-check" aria-hidden="true">✓</span>
+                </button>
+
+                <button type="button" class="theme-card" data-theme="forest-soft">
+                  <span class="theme-card-preview" data-theme-preview="forest-soft" aria-hidden="true">
+                    <span class="theme-card-bg"></span>
+                    <span class="theme-card-surface"></span>
+                    <span class="theme-card-accent"></span>
+                  </span>
+                  <span class="theme-card-body">
+                    <span class="theme-card-name">lighter forest</span>
+                  </span>
+                  <span class="theme-card-check" aria-hidden="true">✓</span>
+                </button>
+
+                <button type="button" class="theme-card" data-theme="dark">
+                  <span class="theme-card-preview" data-theme-preview="dark" aria-hidden="true">
+                    <span class="theme-card-bg"></span>
+                    <span class="theme-card-surface"></span>
+                    <span class="theme-card-accent"></span>
+                  </span>
+                  <span class="theme-card-body">
+                    <span class="theme-card-name">dark</span>
+                  </span>
+                  <span class="theme-card-check" aria-hidden="true">✓</span>
+                </button>
+
+                <button type="button" class="theme-card" data-theme="light">
+                  <span class="theme-card-preview" data-theme-preview="light" aria-hidden="true">
+                    <span class="theme-card-bg"></span>
+                    <span class="theme-card-surface"></span>
+                    <span class="theme-card-accent"></span>
+                  </span>
+                  <span class="theme-card-body">
+                    <span class="theme-card-name">light</span>
+                  </span>
+                  <span class="theme-card-check" aria-hidden="true">✓</span>
+                </button>
+              </div>
+            </section>
+
+            <section class="settings-section">
+              <div class="settings-section-h">
+                <h3>messaging</h3>
+                <p>control how others see your activity in the inbox.</p>
+              </div>
+              <label class="settings-toggle" id="read-receipts-toggle">
+                <span class="settings-toggle-copy">
+                  <span class="settings-toggle-title">read receipts</span>
+                  <span class="settings-toggle-sub">when on, senders can see when you've read their messages.</span>
+                </span>
+                <input type="checkbox" id="read-receipts-checkbox" />
+                <span class="settings-toggle-switch" aria-hidden="true"></span>
+              </label>
+              <p class="settings-toggle-status" id="read-receipts-status" aria-live="polite"></p>
+            </section>
+          </section>
+
+        </section>
+      </div>
+    </main>
+
+    <script type="module" src="/nav-session.js"></script>
+    <script>
+      (function () {
+        var grid = document.getElementById("theme-grid");
+        var current = window.GrassrootsTheme.get();
+
+        function paintActive() {
+          var active = window.GrassrootsTheme.get();
+          grid.querySelectorAll(".theme-card").forEach(function (c) {
+            c.classList.toggle("is-active", c.dataset.theme === active);
+            c.setAttribute("aria-pressed", c.dataset.theme === active ? "true" : "false");
+          });
+        }
+
+        paintActive();
+
+        grid.addEventListener("click", function (e) {
+          var btn = e.target.closest(".theme-card");
+          if (!btn) return;
+          window.GrassrootsTheme.set(btn.dataset.theme);
+          paintActive();
+        });
+
+        window.addEventListener("grassroots:themechange", paintActive);
+      })();
+    </script>
+    <script type="module">
+      import { getSupabaseClient } from "/supabase-loader.js";
+      const checkbox = document.getElementById("read-receipts-checkbox");
+      const status = document.getElementById("read-receipts-status");
+      if (checkbox) {
+        const client = await getSupabaseClient();
+        const { data: { session } } = await client.auth.getSession();
+        if (!session?.user) {
+          checkbox.disabled = true;
+          status.textContent = "sign in to manage messaging settings.";
+        } else {
+          const { data } = await client
+            .from("profiles")
+            .select("read_receipts_enabled")
+            .eq("id", session.user.id)
+            .single();
+          checkbox.checked = !!data?.read_receipts_enabled;
+          checkbox.addEventListener("change", async () => {
+            const next = checkbox.checked;
+            checkbox.disabled = true;
+            status.textContent = "saving…";
+            const { error } = await client
+              .from("profiles")
+              .update({ read_receipts_enabled: next })
+              .eq("id", session.user.id);
+            checkbox.disabled = false;
+            if (error) {
+              checkbox.checked = !next;
+              status.textContent = "could not save. try again.";
+            } else {
+              status.textContent = next ? "read receipts on." : "read receipts off.";
+              setTimeout(() => { status.textContent = ""; }, 1800);
+            }
+          });
+        }
+      }
+    </script>
+
+    <!-- Suggestion Box -->
+    <button class="gr-suggest-btn" id="gr-suggest-btn" type="button" aria-label="suggestion box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
+    </button>
+    <div class="gr-suggest-overlay" id="gr-suggest-overlay">
+      <div class="gr-suggest-popup">
+        <div id="gr-suggest-form">
+          <p class="gr-suggest-popup__title">grassroots values and takes your feedback seriously&mdash;how can we improve?</p>
+          <textarea class="gr-suggest-popup__textarea" id="gr-suggest-input" placeholder="your suggestion…" maxlength="1000"></textarea>
+          <button class="gr-suggest-popup__submit" id="gr-suggest-submit" type="button">submit</button>
+        </div>
+        <div id="gr-suggest-thanks" hidden>
+          <p class="gr-suggest-popup__thanks">thank you for your feedback!</p>
+        </div>
+      </div>
+    </div>
+    <script src="/suggestion-box.js"></script>
+    <script type="module" src="/side-nav.js"></script>
+  </body>
+</html>

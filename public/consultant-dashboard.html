@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grassroots — your dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/grassroots.css" />
+    <link rel="stylesheet" href="/field-office.css" />
+    <script src="/theme.js"></script>
+  </head>
+  <body class="gr-body gr-has-side-nav">
+    <main>
+      <p id="cdash-gate" class="gr-status" style="text-align:center;padding:6rem 1rem;">loading…</p>
+
+      <div id="cdash-shell" class="bza" hidden>
+        <!-- ===== sidebar ===== -->
+        <aside class="bza__side" id="cdash-sidebar">
+          <div class="bza__side-edge" id="cdash-side-edge" aria-hidden="true" title="double-click to toggle"></div>
+          <div class="bza__side-head">
+            <a class="bza__brand" href="/home/" title="grassroots — home">
+              <img class="bza__brand-mark" src="/home/assets/grassroots-icon-syne.svg" width="20" height="34" alt="" />
+              <span class="bza__brand-text">grassroots</span>
+            </a>
+          </div>
+          <div class="bza__nav-section">work</div>
+          <a href="/consultant-dashboard.html" class="bza__nav-item active" title="dashboard">
+            <span class="bza__nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="9"/>
+                <rect x="14" y="3" width="7" height="5"/>
+                <rect x="14" y="12" width="7" height="9"/>
+                <rect x="3" y="16" width="7" height="5"/>
+              </svg>
+            </span>
+            <span class="bza__nav-label">dashboard</span>
+          </a>
+          <a href="/" class="bza__nav-item" title="marketplace">
+            <span class="bza__nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l1.5-5h15L21 9"/>
+                <path d="M4 9v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/>
+                <path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/>
+              </svg>
+            </span>
+            <span class="bza__nav-label">marketplace</span>
+          </a>
+          <a href="/consultant-dashboard.html#inbox" class="bza__nav-item" data-view="inbox" title="inbox">
+            <span class="bza__nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 12h-6l-2 3h-4l-2-3H2"/>
+                <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/>
+              </svg>
+            </span>
+            <span class="bza__nav-label">inbox</span>
+            <span class="bza__nav-badge" id="cdash-inbox-badge" hidden></span>
+          </a>
+          <div class="bza__nav-section">system</div>
+          <a href="/settings.html" class="bza__nav-item" title="settings">
+            <span class="bza__nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </span>
+            <span class="bza__nav-label">settings</span>
+          </a>
+          <label class="bza__nav-item bza__darkmode" title="dark mode">
+            <span class="bza__nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
+            </span>
+            <span class="bza__nav-label">dark mode</span>
+            <input type="checkbox" id="cdash-darkmode-toggle" class="bza__darkmode-input" />
+            <span class="bza__darkmode-switch" aria-hidden="true"></span>
+          </label>
+
+          <a href="/" class="bza__post" title="browse marketplace">
+            <span class="bza__nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="7"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </span>
+            <span class="bza__nav-label">browse marketplace</span>
+          </a>
+
+          <div class="bza__side-foot">
+            <a class="bza__user" id="cdash-user-card" href="/profile.html" title="open profile settings">
+              <span class="bza__user-avatar" id="cdash-user-avatar"></span>
+              <span class="bza__user-meta">
+                <span class="bza__user-name" id="cdash-user-name">your account</span>
+                <span class="bza__user-role" id="cdash-user-role">consultant</span>
+              </span>
+            </a>
+
+            <button type="button" class="bza__logout" id="cdash-logout">
+              <span class="bza__nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+              </span>
+              <span class="bza__nav-label">log out</span>
+            </button>
+          </div>
+        </aside>
+
+        <!-- ===== main ===== -->
+        <main class="bza__main">
+          <section class="dash-view" data-view="dashboard">
+            <div class="bza__page-h">
+              <h1 id="cdash-welcome">welcome back.</h1>
+              <span class="bza__page-h-meta" id="cdash-h-meta"></span>
+            </div>
+            <p class="bza__page-sub" id="cdash-page-sub"></p>
+
+            <!-- ── Action items + Profile health ── -->
+            <div class="cdash__top">
+              <div class="bza__panel cdash__actions">
+                <div class="bza__panel-h">
+                  <span class="bza__panel-h-title"><strong>action items</strong></span>
+                </div>
+                <div id="cdash-actions-list"></div>
+                <p id="cdash-actions-empty" class="cdash__caught-up" hidden>
+                  <span aria-hidden="true">✓</span> nothing waiting on you right now.
+                </p>
+              </div>
+
+              <div class="bza__panel bza__health" id="cdash-health-panel">
+                <div class="bza__panel-h">
+                  <span class="bza__panel-h-title"><strong>profile health</strong></span>
+                </div>
+                <p class="bza__health-loading">loading…</p>
+              </div>
+            </div>
+
+            <!-- ── Active engagements ── -->
+            <div class="bza__panel">
+              <div class="bza__panel-h">
+                <span class="bza__panel-h-title"><strong>active engagements</strong> · <span id="cdash-engagements-count">0</span></span>
+              </div>
+              <div id="cdash-engagements-rows"></div>
+              <p id="cdash-engagements-empty" class="gr-empty-state" hidden style="padding:1rem">no active engagements yet — accepted offers will live here.</p>
+            </div>
+
+            <!-- ── Unread messages ── -->
+            <div class="bza__grid">
+              <div class="bza__panel">
+                <div class="bza__panel-h">
+                  <span class="bza__panel-h-title"><strong>unread messages</strong></span>
+                  <a class="bza__panel-h-link" href="/consultant-dashboard.html#inbox">open inbox →</a>
+                </div>
+                <div id="cdash-inbox-preview"></div>
+                <p id="cdash-inbox-empty" class="gr-empty-state" hidden style="padding:1rem">no messages yet.</p>
+              </div>
+
+              <!-- ── Recommended listing ── -->
+              <div class="bza__panel cdash__recommended">
+                <div class="bza__panel-h">
+                  <span class="bza__panel-h-title"><strong>recommended for you</strong></span>
+                  <a class="bza__panel-h-link" href="/">browse all →</a>
+                </div>
+                <div id="cdash-recommended"></div>
+                <p id="cdash-recommended-empty" class="gr-empty-state" hidden style="padding:1rem">no open listings right now — check back soon.</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- ── inbox view (shared inbox.js) ── -->
+          <section class="dash-view dash-view--inbox" data-view="inbox" hidden>
+            <div class="inbox" id="inbox-shell">
+              <aside class="inbox__list" aria-label="conversations">
+                <div class="inbox__list-head">
+                  <h1 class="inbox__title">inbox</h1>
+                  <div class="inbox__filters">
+                    <button type="button" class="inbox__filter active" data-filter="all">all</button>
+                    <button type="button" class="inbox__filter" data-filter="unread">unread <span class="inbox__filter-count" id="inbox-unread-pill" hidden>0</span></button>
+                  </div>
+                  <input class="inbox__search" type="search" id="inbox-search" placeholder="search messages…" />
+                </div>
+                <div class="inbox__threads" id="inbox-threads" role="list"></div>
+                <p class="inbox__empty" id="inbox-list-empty" hidden>no conversations yet.</p>
+              </aside>
+
+              <section class="inbox__pane" id="inbox-pane" aria-live="polite">
+                <div class="inbox__placeholder" id="inbox-placeholder">
+                  <p class="inbox__placeholder-emoji" aria-hidden="true">✉</p>
+                  <p class="inbox__placeholder-title">select a conversation</p>
+                  <p class="inbox__placeholder-sub">your active threads, grouped by listing, show here.</p>
+                </div>
+
+                <div class="inbox__conversation" id="inbox-conversation" hidden>
+                  <header class="inbox__conv-head">
+                    <div class="inbox__conv-id">
+                      <div class="inbox__conv-avatar" id="inbox-conv-avatar"></div>
+                      <div class="inbox__conv-meta">
+                        <span class="inbox__conv-name" id="inbox-conv-name"></span>
+                        <a class="inbox__conv-listing" id="inbox-conv-listing" href="#"></a>
+                      </div>
+                    </div>
+                    <button type="button" class="inbox__conv-close" id="inbox-conv-close" aria-label="close conversation">×</button>
+                  </header>
+                  <div class="inbox__conv-body" id="inbox-conv-body" role="log"></div>
+                  <form class="inbox__composer" id="inbox-composer" autocomplete="off">
+                    <textarea
+                      class="inbox__composer-input"
+                      id="inbox-composer-input"
+                      placeholder="write a message…"
+                      rows="2"
+                      maxlength="4000"
+                      required
+                    ></textarea>
+                    <button type="submit" class="inbox__composer-send" id="inbox-composer-send">send</button>
+                  </form>
+                </div>
+              </section>
+            </div>
+          </section>
+        </main>
+      </div>
+    </main>
+
+    <script type="module" src="/consultant-dashboard.js"></script>
+  </body>
+</html>

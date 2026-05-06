@@ -846,6 +846,36 @@
   margin: 0;
 }
 
+.ld-chat-drawer__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ld-chat-drawer__inbox-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--green-mid);
+  background: rgba(45, 106, 79, 0.08);
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ld-chat-drawer__inbox-link svg {
+  width: 14px;
+  height: 14px;
+}
+
+.ld-chat-drawer__inbox-link:hover {
+  background: rgba(45, 106, 79, 0.16);
+  color: var(--green-deep);
+}
+
 .ld-chat-drawer__close {
   background: none;
   border: none;

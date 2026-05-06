@@ -14,14 +14,37 @@ form.addEventListener("submit", async (event) => {
 
   try {
     const supabase = await getSupabaseClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     statusEl.textContent = "signed in — redirecting…";
     statusEl.className = "gr-status success";
+
     const params = new URLSearchParams(window.location.search);
-    const next = params.get("next");
-    const dest =
-      next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+    const nextParam = params.get("next");
+    const safeNext =
+      nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : null;
+
+    let dest = safeNext;
+    if (!dest) {
+      // Route by role so business owners land on /dashboard.html directly
+      // instead of flashing through the consultant marketplace.
+      const userId = signInData?.user?.id;
+      if (userId) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", userId)
+          .single();
+        dest =
+          profile?.role === "business_owner"
+            ? "/dashboard.html"
+            : profile?.role === "consultant"
+              ? "/consultant-dashboard.html"
+              : "/";
+      } else {
+        dest = "/";
+      }
+    }
     window.location.href = dest;
   } catch (error) {
     statusEl.textContent = error.message || "sign-in failed.";

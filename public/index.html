@@ -7,44 +7,31 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Inter:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/grassroots.css" />
+    <link rel="stylesheet" href="/field-office.css" />
+    <script src="/theme.js"></script>
   </head>
-  <body class="gr-body">
-    <nav class="gr-nav" aria-label="Primary">
-      <div class="gr-nav__inner">
-        <a class="gr-nav__brand" href="/home/">
-          <img class="gr-nav__logo" src="/home/assets/grassroots-icon-syne.svg" width="20" height="34" alt="" />
-          <span class="gr-nav__wordmark">grassroots</span>
-        </a>
-        <ul class="gr-nav__links">
-          <li><a href="/" aria-current="page">marketplace</a></li>
-          <li><a href="/signin.html">sign in</a></li>
-          <li><a href="/register.html" class="gr-nav__cta">register</a></li>
-          <li><a href="/profile.html">profile</a></li>
-        </ul>
-      </div>
-    </nav>
-
-    <main class="gr-shell gr-shell--wide">
+  <body class="gr-body"><main class="gr-shell gr-shell--wide">
       <div class="gr-page-header">
         <div class="gr-page-intro">
-          <p class="gr-page-eyebrow">open opportunities</p>
-          <h1 class="gr-title">marketplace</h1>
-          <p class="gr-subtitle">
-            browse open consultancy needs from business owners.
-          </p>
+          <p class="gr-page-eyebrow">marketplace</p>
+          <h1 class="gr-title">opportunities <span class="fo-title-italic">live now</span></h1>
+          <p class="gr-subtitle">small businesses post real work. students bid, deliver, and build their portfolios. updated daily.</p>
         </div>
         <div id="page-cta-slot"></div>
       </div>
 
       <div id="session-slot" class="gr-session-slot" aria-live="polite"></div>
 
+      <!-- Counter strip — populated by marketplace.js -->
+      <div class="fo-counter" id="marketplace-counter" aria-live="polite"></div>
+
       <!-- Search / Filter -->
       <div class="gr-search-bar" id="search-bar">
-        <input class="gr-search-bar__input" type="text" id="filter-search" placeholder="search opportunities…" />
+        <input class="gr-search-bar__input" type="text" id="filter-search" placeholder="search by title, business, or keyword…" />
         <select class="gr-search-bar__select" id="filter-category">
           <option value="">all categories</option>
         </select>
@@ -83,5 +70,6 @@
       </div>
     </div>
     <script src="/suggestion-box.js"></script>
+    <script type="module" src="/side-nav.js"></script>
   </body>
 </html>

@@ -550,7 +550,7 @@ app.get("/api/consultant-profile/:id/resume", async (req, res) => {
 });
 
 app.get("/", (_req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile("index.html", { root: path.join(__dirname, "public") });
 });
 
 app.use(express.static(path.join(__dirname, "public")));

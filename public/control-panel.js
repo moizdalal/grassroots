@@ -753,6 +753,10 @@ export async function initControlPanel(client) {
   const profileRow = await loadCurrentProfile(client, session.user.id);
   if (!profileRow) return null;
 
+  // Business owners have a dedicated sidebar on /dashboard.html, so the
+  // floating control panel is redundant for them on every page.
+  if (profileRow.role === "business_owner") return null;
+
   const [notifications, messages, engagementSeedRows] = await Promise.all([
     loadNotifications(client, session.user.id),
     loadMessages(client, session.user.id),

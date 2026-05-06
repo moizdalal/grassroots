@@ -464,7 +464,29 @@ function populateListing(listing) {
     budgetEl.hidden = false;
   }
 
-  /* --- Tags (type + categories) --- */
+  /* --- Type bar (above title) — parsed from details "contract type:" line --- */
+  const contractMatch = /contract type:\s*([^\n]+)/i.exec(detailsStr);
+  const contractType = contractMatch ? contractMatch[1].trim().toLowerCase() : "";
+  const typeBarEl = document.getElementById("ld-type-bar");
+  if (typeBarEl) {
+    if (contractType && contractType !== "standard") {
+      const label =
+        contractType.includes("retainer")
+          ? "retainer · ongoing engagement"
+          : contractType.includes("proposal")
+          ? "phased · proposal → solution"
+          : contractType;
+      typeBarEl.textContent = label;
+      typeBarEl.dataset.kind = "advanced";
+      typeBarEl.hidden = false;
+    } else if (contractType === "standard") {
+      typeBarEl.textContent = "standard · one-time engagement";
+      typeBarEl.dataset.kind = "standard";
+      typeBarEl.hidden = false;
+    }
+  }
+
+  /* --- Tags (categories) --- */
   const tagsEl = document.getElementById("ld-header-tags");
   let tagsHtml = "";
 
@@ -885,6 +907,10 @@ async function setupChatDrawer(client, listing, myId, ownerId) {
   const chatCharCount = document.getElementById("ld-chat-char-count");
   const contextBanner = document.getElementById("ld-chat-context");
   const contextTitle = document.getElementById("ld-chat-context-title");
+  const inboxLink = document.getElementById("ld-chat-inbox-link");
+  if (inboxLink && listing?.id && ownerId && myId && ownerId !== myId) {
+    inboxLink.href = `/dashboard.html#inbox?thread=${encodeURIComponent(listing.id)}:${encodeURIComponent(ownerId)}`;
+  }
 
   let messages = [];
   let drawerLoaded = false;
@@ -1044,6 +1070,12 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
       : name;
     const avatar = publicAvatarUrl(client, p?.avatar_path);
     const li = p?.linkedin_url ? `<a href="${escapeAttr(p.linkedin_url)}" target="_blank" rel="noopener noreferrer" class="gr-bid-link">linkedin</a>` : "";
+    const resumeLink = b.consultant_id
+      ? `<a href="/consultant-resume.html?id=${escapeAttr(b.consultant_id)}" class="gr-bid-link">resume</a>`
+      : "";
+    const workLink = b.consultant_id
+      ? `<a href="/consultant-work.html?id=${escapeAttr(b.consultant_id)}" class="gr-bid-link">past work</a>`
+      : "";
     const msg = b.message ? `<p class="ld-bid-message">${escapeHtml(b.message)}</p>` : "";
     const img = avatar
       ? `<img class="ld-bid-avatar" src="${escapeAttr(avatar)}" width="52" height="52" alt="" />`
@@ -1074,7 +1106,7 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
           ${minor ? `<span class="ld-bid-card__minor">minor in ${escapeHtml(minor)}</span>` : ""}
         </div>
       </div>
-      <div class="ld-bid-card__meta">${li}<span class="ld-bid-card__date">${date}</span></div>
+      <div class="ld-bid-card__meta">${resumeLink}${workLink}${li}<span class="ld-bid-card__date">${date}</span></div>
       ${msg}
       ${counterInfo}
       ${proposalIndicator}
@@ -1257,7 +1289,7 @@ async function init() {
 
   try {
     const client = await getSupabaseClient();
-    initControlPanel(client);
+    // initControlPanel(client); — replaced by /side-nav.js
     const { data: { session } } = await client.auth.getSession();
     const { listing, error } = await loadListing(client, listingId);
 

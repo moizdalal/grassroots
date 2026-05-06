@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grassroots — consultant past work</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/grassroots.css" />
+    <link rel="stylesheet" href="/field-office.css" />
+    <script src="/theme.js"></script>
+  </head>
+  <body class="gr-body"><main class="gr-shell gr-shell--wide">
+      <a href="javascript:history.back()" class="ld-back">← back</a>
+
+      <p id="cw-gate" class="gr-status" aria-live="polite">loading…</p>
+
+      <div id="cw-shell" hidden>
+        <div class="gr-page-intro">
+          <p class="gr-page-eyebrow">consultant · past work</p>
+          <h1 class="gr-title" id="cw-name">past work</h1>
+          <p class="gr-subtitle" id="cw-sub"></p>
+        </div>
+
+        <div class="cp-placeholder" id="cw-placeholder">
+          <span class="cp-empty-tag">work in progress</span>
+          <h2>past work portfolio coming soon</h2>
+          <p>a full case-study page is on the roadmap. for now, here's what this consultant has shared.</p>
+        </div>
+
+        <div id="cw-portfolio-card" class="bza__panel" hidden>
+          <div class="bza__panel-h">
+            <span class="bza__panel-h-title"><strong>portfolio</strong> · <span id="cw-count">0</span> items</span>
+          </div>
+          <div id="cw-portfolio-list" style="display:grid;gap:0.8rem;padding:0.75rem 0"></div>
+        </div>
+
+        <div id="cw-bids-card" class="bza__panel" hidden>
+          <div class="bza__panel-h">
+            <span class="bza__panel-h-title"><strong>delivered</strong> · projects completed via grassroots</span>
+          </div>
+          <div id="cw-bids-list" style="display:grid;gap:0.5rem;padding:0.5rem 0"></div>
+          <p id="cw-bids-empty" class="gr-empty-state" style="padding:1rem" hidden>no completed projects yet on this platform.</p>
+        </div>
+      </div>
+    </main>
+
+    <script type="module" src="/nav-session.js"></script>
+    <script type="module">
+      import { getSupabaseClient } from "/supabase-loader.js";
+
+      const $ = (id) => document.getElementById(id);
+      const escape = (s) =>
+        String(s ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      const isMissing = (err) =>
+        !!err && /(does not exist|not found|relation .* does not exist|column .* does not exist)/i.test(err.message || "");
+
+      async function init() {
+        const id = new URLSearchParams(window.location.search).get("id");
+        const gate = $("cw-gate");
+        const shell = $("cw-shell");
+        if (!id) {
+          gate.textContent = "no consultant specified.";
+          gate.className = "gr-status error";
+          return;
+        }
+
+        try {
+          const client = await getSupabaseClient();
+          const { data: profile, error: pErr } = await client
+            .from("profiles")
+            .select("id, full_name")
+            .eq("id", id)
+            .single();
+          if (pErr) throw pErr;
+
+          $("cw-name").textContent = (profile?.full_name || "consultant") + "'s past work";
+
+          // Try portfolio_items table (may not exist).
+          let items = [];
+          const { data: pItems, error: piErr } = await client
+            .from("portfolio_items")
+            .select("id, name, description, url, created_at")
+            .eq("user_id", id)
+            .order("created_at", { ascending: false });
+          if (!piErr || isMissing(piErr)) {
+            items = pItems || [];
+          }
+
+          if (items.length) {
+            $("cw-count").textContent = String(items.length);
+            $("cw-portfolio-list").innerHTML = items
+              .map(
+                (it) => `
+              <div class="bza__work-row">
+                <div>
+                  <div class="bza__work-title">${escape(it.name || "untitled")}</div>
+                  <div class="bza__work-outcome">${escape(it.description || "")}</div>
+                  ${it.url ? `<a href="${escape(it.url)}" target="_blank" rel="noopener" style="font-size:0.78rem;color:var(--fo-accent);text-decoration:none">view →</a>` : ""}
+                </div>
+              </div>
+            `
+              )
+              .join("");
+            $("cw-portfolio-card").hidden = false;
+            $("cw-placeholder").hidden = true;
+          }
+
+          // Completed bids on this platform
+          const { data: bids, error: bErr } = await client
+            .from("bids")
+            .select(
+              "id, listing_id, amount_cents, status, accepted_at, listings!inner(id, title, status)"
+            )
+            .eq("consultant_id", id)
+            .eq("status", "accepted")
+            .order("accepted_at", { ascending: false });
+
+          if (!bErr) {
+            const list = $("cw-bids-list");
+            const empty = $("cw-bids-empty");
+            if (!bids || !bids.length) {
+              empty.hidden = false;
+            } else {
+              list.innerHTML = bids
+                .map((b) => {
+                  const t = b.listings?.title || "project";
+                  const amt = b.amount_cents != null ? `$${Math.round(b.amount_cents / 100)}` : "";
+                  return `
+                    <div class="bza__work-row">
+                      <div>
+                        <div class="bza__work-title">${escape(t)}</div>
+                        <div class="bza__work-outcome">${escape(b.listings?.status || "")}</div>
+                      </div>
+                      <div class="bza__work-date">${escape(amt)}</div>
+                    </div>
+                  `;
+                })
+                .join("");
+            }
+            $("cw-bids-card").hidden = false;
+          }
+
+          $("cw-sub").textContent = items.length
+            ? `${items.length} portfolio ${items.length === 1 ? "item" : "items"}`
+            : "limited details available — placeholder while the full page is in progress.";
+
+          gate.hidden = true;
+          shell.hidden = false;
+        } catch (err) {
+          gate.textContent = err.message || "could not load past work.";
+          gate.className = "gr-status error";
+        }
+      }
+
+      init();
+    </script>
+    <script type="module" src="/side-nav.js"></script>
+  </body>
+</html>
