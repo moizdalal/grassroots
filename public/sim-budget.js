@@ -1,4 +1,9 @@
-const SIMULATED_BUDGET_MAX = 110;
+/* Budget range helpers — used to be a simulator that scaled all
+   displayed amounts down to a $110 cap (sandbox guardrail before
+   Stripe was wired up). The cap is gone; budgets are shown exactly
+   as the listing owner typed them. The filename is kept so the
+   four callers (marketplace, listing, profile, create-listing) keep
+   working without import-path churn. */
 
 export function parseBudgetRange(detailsText) {
   const text = String(detailsText || "");
@@ -12,47 +17,7 @@ export function parseBudgetRange(detailsText) {
   return { min, max };
 }
 
-export function scaleBudgetRange(range, maxTop = SIMULATED_BUDGET_MAX) {
-  if (!range) return null;
-
-  const originalMin = Number(range.min);
-  const originalMax = Number(range.max);
-  if (!Number.isFinite(originalMin) || !Number.isFinite(originalMax)) return null;
-
-  if (originalMax <= maxTop) {
-    return {
-      originalMin,
-      originalMax,
-      min: originalMin,
-      max: originalMax,
-      factor: 1,
-    };
-  }
-
-  const factor = maxTop / originalMax;
-  const scaledMax = maxTop;
-  let scaledMin = Math.max(1, Math.round(originalMin * factor));
-
-  if (scaledMin > scaledMax) {
-    scaledMin = scaledMax;
-  }
-
-  return {
-    originalMin,
-    originalMax,
-    min: scaledMin,
-    max: scaledMax,
-    factor,
-  };
-}
-
-export function getSimulatedBudgetRange(detailsText, maxTop = SIMULATED_BUDGET_MAX) {
-  return scaleBudgetRange(parseBudgetRange(detailsText), maxTop);
-}
-
 export function formatBudgetRange(range) {
   if (!range) return "";
   return `$${range.min}-$${range.max}`;
 }
-
-export { SIMULATED_BUDGET_MAX };

@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <script src="/theme.js"></script>
+    <script src="/loading-overlay.js"></script>
     <link rel="stylesheet" href="/create-listing.css" />
   </head>
   <body class="gr-body"><main class="gr-shell gr-shell--wide cl-layout-shell">
@@ -41,7 +42,7 @@
             <section class="cl-slide cl-slide--active" data-slide="0">
               <div class="gr-field-grid">
                 <label class="gr-label full-width">
-                  <span>title *</span>
+                  <span>title</span>
                   <input type="text" name="title" required maxlength="120" placeholder="e.g. weekend market sales push for local bakery" />
                 </label>
 
@@ -156,7 +157,7 @@
               <div class="gr-field-grid">
                 <label class="gr-label full-width">
                   <span class="cl-field-label">
-                    <span class="cl-field-label__title">context *</span>
+                    <span class="cl-field-label__title">context</span>
                     <span class="cl-field-label__subtext">what is the context of the issue you are trying to solve?</span>
                   </span>
                   <textarea
@@ -170,7 +171,7 @@
 
                 <label class="gr-label full-width">
                   <span class="cl-field-label">
-                    <span class="cl-field-label__title">business problem *</span>
+                    <span class="cl-field-label__title">business problem</span>
                     <span class="cl-field-label__subtext">what is the actual business problem you want to solve?</span>
                   </span>
                   <textarea
@@ -184,7 +185,7 @@
 
                 <label class="gr-label full-width">
                   <span class="cl-field-label">
-                    <span class="cl-field-label__title">standards of work *</span>
+                    <span class="cl-field-label__title">standards of work</span>
                     <span class="cl-field-label__subtext">what do you expect from the consultant in terms of output?</span>
                   </span>
                   <textarea
@@ -198,7 +199,7 @@
 
                 <label class="gr-label full-width hidden" id="advanced-proposal-budget-wrap">
                   <span class="cl-field-label">
-                    <span class="cl-field-label__title">budget per proposal *</span>
+                    <span class="cl-field-label__title">budget per proposal</span>
                     <span class="cl-field-label__subtext">if you use an advanced contract, what should the student charge for the proposal or discovery phase?</span>
                   </span>
                   <div class="cl-inline-money">
@@ -217,7 +218,7 @@
 
                 <label class="gr-label full-width hidden" id="maintenance-terms-wrap">
                   <span class="cl-field-label">
-                    <span class="cl-field-label__title">maintenance terms *</span>
+                    <span class="cl-field-label__title">maintenance terms</span>
                     <span class="cl-field-label__subtext">outline maintenance as "$X per hour/day/week/month for X [amount of time]" or write "per business discretion."</span>
                   </span>
                   <textarea
@@ -230,7 +231,7 @@
                 </label>
 
                 <label class="gr-label full-width">
-                  <span>additional details <span class="gr-optional">(optional)</span></span>
+                  <span>additional details <span class="gr-optional">optional</span></span>
                   <textarea
                     name="additional_details"
                     rows="4"
@@ -239,7 +240,7 @@
                   ></textarea>
                 </label>
                 <label class="gr-label full-width">
-                  <span>supporting files <span class="gr-optional">(optional)</span></span>
+                  <span>supporting files <span class="gr-optional">optional</span></span>
                   <input
                     type="file"
                     id="listing-attachments"
@@ -256,8 +257,8 @@
 
             <section class="cl-slide" data-slide="2">
               <div class="gr-field-grid">
-                <div class="gr-label full-width">
-                  <span>categories *</span>
+                <div class="gr-label gr-label--required full-width">
+                  <span>categories</span>
                   <div class="cl-cat-tags" id="cat-tags" aria-live="polite"></div>
                   <div class="ms-wrap" id="cat-multiselect">
                     <input type="text" class="ms-search" id="cat-search" placeholder="search categories…" autocomplete="off" />
@@ -266,7 +267,7 @@
                 </div>
 
                 <div class="gr-label full-width">
-                  <span>budget range *</span>
+                  <span>budget range</span>
                   <div class="gr-money-range">
                     <label class="gr-money-input">
                       <span>$</span>
@@ -281,7 +282,7 @@
                 </div>
 
                 <label class="gr-label">
-                  <span>turnaround time (days) *</span>
+                  <span>turnaround time (days)</span>
                   <input type="number" name="turnaround_days" min="1" max="365" required placeholder="e.g. 14" />
                 </label>
 
@@ -381,13 +382,16 @@
     </button>
     <div class="gr-suggest-overlay" id="gr-suggest-overlay">
       <div class="gr-suggest-popup">
+        <button class="gr-suggest-popup__close" id="gr-suggest-close" type="button" aria-label="close">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+        </button>
         <div id="gr-suggest-form">
           <p class="gr-suggest-popup__title">grassroots values and takes your feedback seriously&mdash;how can we improve?</p>
           <textarea class="gr-suggest-popup__textarea" id="gr-suggest-input" placeholder="your suggestion…" maxlength="1000"></textarea>
           <button class="gr-suggest-popup__submit" id="gr-suggest-submit" type="button">submit</button>
         </div>
         <div id="gr-suggest-thanks" hidden>
-          <p class="gr-suggest-popup__thanks">thank you for your feedback!</p>
+          <p class="gr-suggest-popup__thanks">thanks for the note. we read all of these.</p>
         </div>
       </div>
     </div>

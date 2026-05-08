@@ -294,7 +294,7 @@ form.addEventListener("submit", async (e) => {
 
     if (signInError) {
       statusEl.innerHTML =
-        'account created! <a href="/signin.html">sign in</a> to continue.';
+        'account created. <a href="/signin.html">sign in</a> to continue.';
       return;
     }
 
@@ -347,3 +347,38 @@ if (isOAuth) {
 // Hide the third progress segment initially (only shown for consultant)
 if (segments[2]) segments[2].style.display = "none";
 showSlide(0);
+
+// ── Password reveal toggle (shared with signin) ─────────────────
+document.addEventListener("click", (event) => {
+  const btn = event.target.closest("[data-pw-toggle]");
+  if (!btn) return;
+  const input = document.getElementById(btn.dataset.pwToggle);
+  if (!input) return;
+  const reveal = input.type === "password";
+  input.type = reveal ? "text" : "password";
+  btn.setAttribute("aria-pressed", String(reveal));
+  btn.setAttribute("aria-label", reveal ? "hide password" : "show password");
+  btn.classList.toggle("gr-pw-toggle--shown", reveal);
+});
+
+// ── Live password requirements feedback ─────────────────────────
+const pwInput = document.getElementById("reg-password");
+const pwRules = document.getElementById("reg-pw-rules");
+if (pwInput && pwRules) {
+  const rules = {
+    length: (v) => v.length >= 8,
+    uppercase: (v) => /[A-Z]/.test(v),
+    lowercase: (v) => /[a-z]/.test(v),
+    number: (v) => /\d/.test(v),
+    special: (v) => /[^A-Za-z0-9]/.test(v),
+  };
+  const updateRules = () => {
+    const v = pwInput.value;
+    pwRules.querySelectorAll("[data-rule]").forEach((li) => {
+      const ok = !!rules[li.dataset.rule]?.(v);
+      li.classList.toggle("is-met", ok);
+    });
+  };
+  pwInput.addEventListener("input", updateRules);
+  updateRules();
+}

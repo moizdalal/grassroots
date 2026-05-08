@@ -53,3 +53,17 @@ form.addEventListener("submit", async (event) => {
 });
 
 renderOAuthButtons("oauth-slot");
+
+// Password reveal toggle (delegated). Any [data-pw-toggle="<input-id>"]
+// button flips its target between password and text.
+document.addEventListener("click", (event) => {
+  const btn = event.target.closest("[data-pw-toggle]");
+  if (!btn) return;
+  const input = document.getElementById(btn.dataset.pwToggle);
+  if (!input) return;
+  const reveal = input.type === "password";
+  input.type = reveal ? "text" : "password";
+  btn.setAttribute("aria-pressed", String(reveal));
+  btn.setAttribute("aria-label", reveal ? "hide password" : "show password");
+  btn.classList.toggle("gr-pw-toggle--shown", reveal);
+});

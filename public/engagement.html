@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <script src="/theme.js"></script>
+    <script src="/loading-overlay.js"></script>
     <link rel="stylesheet" href="/engagement.css" />
   </head>
   <body class="gr-body"><main class="gr-shell gr-shell--wide eg-shell">
@@ -121,13 +122,13 @@
           <section class="gr-card eg-panel hidden" id="eg-review-panel">
             <div class="eg-panel__head">
               <div>
-                <p class="eg-kicker">consultant review</p>
-                <h2 class="eg-panel__title">leave an intentional review</h2>
+                <p class="eg-kicker">consultant review · required to complete</p>
+                <h2 class="eg-panel__title">rate this engagement</h2>
               </div>
             </div>
 
             <p class="eg-panel__body">
-              rate the engagement across each dimension out of 5, then optionally add a written endorsement.
+              rate the consultant on all five dimensions to mark this engagement complete. a written endorsement is optional but appreciated.
             </p>
 
             <form id="eg-review-form" class="eg-review-form">
@@ -149,7 +150,6 @@
               </label>
 
               <div class="eg-review-actions">
-                <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="eg-skip-endorsement-btn">skip written review</button>
                 <button type="submit" class="gr-btn gr-btn--primary" id="eg-submit-review" disabled>submit review</button>
               </div>
             </form>

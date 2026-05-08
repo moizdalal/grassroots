@@ -4,6 +4,9 @@
 // to browse, an unread-only inbox preview, and profile health.
 
 import { getSupabaseClient } from "/supabase-loader.js";
+import { mountDashboardNotifications } from "/dashboard-notifications.js";
+import { fetchRatingFor, renderRatingMarkup } from "/rating.js";
+import { getInitials } from "/initials.js";
 
 const $ = (id) => document.getElementById(id);
 const escape = (s) =>
@@ -212,50 +215,6 @@ function counterpartName(ownerId, ownerMap, ownerBizMap) {
   return ownerBizMap.get(ownerId) || ownerMap.get(ownerId)?.full_name || "business";
 }
 
-function buildActionItems(bids, listingMap, ownerMap, ownerBizMap) {
-  const items = [];
-  const now = Date.now();
-  for (const bid of bids) {
-    const listing = listingMap.get(bid.listing_id);
-    if (!listing) continue;
-    const counterpart = counterpartName(listing.owner_id, ownerMap, ownerBizMap);
-
-    if (bid.status === "countered") {
-      items.push({
-        kind: "counter",
-        priority: 1,
-        title: `${counterpart} sent a counter-offer`,
-        body: `they countered your offer on "${listing.title}" with ${fmtUSD(bid.counter_offer_cents)}.`,
-        cta: "review counter →",
-        href: `/listing.html?id=${bid.listing_id}`,
-      });
-    } else if (bid.status === "accepted" && bid.proposal_due_at && !bid.proposal_path) {
-      const due = new Date(bid.proposal_due_at).getTime();
-      const overdue = due < now;
-      items.push({
-        kind: "proposal",
-        priority: overdue ? 0 : 1,
-        title: overdue ? `proposal overdue — ${listing.title}` : `proposal due ${relTime(bid.proposal_due_at)}`,
-        body: overdue
-          ? `you missed the proposal deadline. upload it now to keep the engagement on track.`
-          : `upload your proposal for "${listing.title}" before ${new Date(bid.proposal_due_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}.`,
-        cta: "upload proposal →",
-        href: `/engagement.html?bid=${bid.id}`,
-      });
-    } else if (bid.status === "accepted" && !bid.proposal_due_at) {
-      items.push({
-        kind: "schedule",
-        priority: 2,
-        title: `set a kickoff time with ${counterpart}`,
-        body: `pick a meeting time so you and ${counterpart} can start "${listing.title}".`,
-        cta: "open engagement →",
-        href: `/engagement.html?bid=${bid.id}`,
-      });
-    }
-  }
-  return items.sort((a, b) => a.priority - b.priority);
-}
-
 function activeEngagements(bids, listingMap, ownerMap, ownerBizMap) {
   return bids
     .filter((b) => b.status === "accepted" && (listingMap.get(b.listing_id)?.status !== "closed"))
@@ -265,31 +224,6 @@ function activeEngagements(bids, listingMap, ownerMap, ownerBizMap) {
       const counterpart = counterpartName(listing?.owner_id, ownerMap, ownerBizMap);
       return { bid, listing, owner, counterpart };
     });
-}
-
-function renderActionItems(items) {
-  const root = $("cdash-actions-list");
-  const empty = $("cdash-actions-empty");
-  if (!items.length) {
-    root.innerHTML = "";
-    empty.hidden = false;
-    return;
-  }
-  empty.hidden = true;
-  root.innerHTML = items
-    .map(
-      (it) => `
-      <a class="cdash__action cdash__action--${escape(it.kind)}" href="${escape(it.href)}">
-        <span class="cdash__action-tag">${it.priority === 0 ? "urgent" : "needs you"}</span>
-        <div class="cdash__action-body">
-          <p class="cdash__action-title">${escape(it.title)}</p>
-          <p class="cdash__action-sub">${escape(it.body)}</p>
-        </div>
-        <span class="cdash__action-cta">${escape(it.cta)}</span>
-      </a>
-    `
-    )
-    .join("");
 }
 
 function renderEngagements(client, engagements) {
@@ -307,7 +241,7 @@ function renderEngagements(client, engagements) {
       const avatarUrl = publicAvatarUrl(client, owner?.avatar_path);
       const avatar = avatarUrl
         ? `<img src="${escape(avatarUrl)}" alt=""/>`
-        : escape((counterpart || "?").charAt(0).toUpperCase());
+        : escape(getInitials(counterpart));
       const status = bid.proposal_path ? "in progress" : bid.proposal_due_at ? "proposal due" : "kickoff pending";
       return `
         <a class="cdash__eng-row" href="/engagement.html?bid=${escape(bid.id)}">
@@ -339,7 +273,7 @@ function renderRecommended(client, listing, ownerMap, ownerBizMap) {
   const avatarUrl = publicAvatarUrl(client, owner?.avatar_path);
   const avatar = avatarUrl
     ? `<img class="gr-listing-logo" src="${escape(avatarUrl)}" alt=""/>`
-    : `<div class="gr-listing-logo-placeholder">${escape((counterpart || "?").charAt(0).toUpperCase())}</div>`;
+    : `<div class="gr-listing-logo-placeholder">${escape(getInitials(counterpart))}</div>`;
   const tags = (listing.category || "")
     .split(",")
     .map((c) => c.trim())
@@ -383,7 +317,7 @@ function renderInboxPreview(client, threads, unreadCount) {
   if (!threads.length) {
     root.innerHTML = "";
     empty.hidden = false;
-    empty.textContent = "you're all caught up!";
+    empty.textContent = "you're all caught up.";
     empty.classList.add("dash-inbox-empty--caught-up");
     return;
   }
@@ -392,7 +326,7 @@ function renderInboxPreview(client, threads, unreadCount) {
     .slice(0, 3)
     .map((t) => {
       const url = publicAvatarUrl(client, t.otherAvatar);
-      const av = url ? `<img src="${escape(url)}" alt=""/>` : escape((t.otherName || "?").charAt(0).toUpperCase());
+      const av = url ? `<img src="${escape(url)}" alt=""/>` : escape(getInitials(t.otherName));
       return `
         <a class="bza__inbox-row" href="/consultant-dashboard.html#inbox?thread=${escape(t.listingId)}:${escape(t.otherId)}" style="text-decoration:none">
           <span class="bza__inbox-avatar">${av}</span>
@@ -469,7 +403,7 @@ function renderHealthDonut(health) {
   `;
 }
 
-function renderHealth(panel, health) {
+function renderHealth(panel, health, consultantId) {
   const isComplete = health.pct >= 100;
   panel.classList.toggle("is-complete", isComplete);
   panel.classList.toggle("is-incomplete", !isComplete);
@@ -502,11 +436,56 @@ function renderHealth(panel, health) {
         <p class="bza__health-eyebrow">${escape(copy)}</p>
       </div>
     </div>
-    <a href="/profile.html" class="bza__health-cta${isComplete ? "" : " is-pulsing"}">
+    <a href="/profile.html" class="bza__health-cta">
       <span class="bza__health-cta-text">${escape(cta)}</span>
       <span class="bza__health-cta-arrow" aria-hidden="true">→</span>
     </a>
+    <a href="/payouts.html" class="bza__health-rating" data-payouts-row>
+      <span class="bza__health-rating__label">payouts</span>
+      <span class="bza__health-rating__chip" data-payouts-chip>checking…</span>
+      <span class="bza__health-rating__cta" data-payouts-cta>set up →</span>
+    </a>
+    <a href="/my-reviews.html" class="bza__health-rating" data-rating-host="">
+      <span class="bza__health-rating__label">your rating</span>
+      <span class="bza__health-rating__chip" data-rating-chip>loading…</span>
+      <span class="bza__health-rating__cta">view reviews →</span>
+    </a>
   `;
+
+  // Payouts onboarding status — surfaces a clear active/setup-needed pill.
+  (async () => {
+    const chip = panel.querySelector("[data-payouts-chip]");
+    const cta = panel.querySelector("[data-payouts-cta]");
+    if (!chip) return;
+    try {
+      const sb = await getSupabaseClient();
+      const { data: { session } } = await sb.auth.getSession();
+      const headers = {};
+      if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+      const res = await fetch("/api/stripe/account-status", { headers });
+      const data = await res.json().catch(() => ({}));
+      if (data?.onboarded) {
+        chip.textContent = "active";
+        chip.className = "gr-pill gr-pill--accepted gr-pill--no-dot";
+        if (cta) cta.textContent = "manage →";
+      } else if (data?.details_submitted) {
+        chip.textContent = "verifying";
+        chip.className = "gr-pill gr-pill--warn gr-pill--no-dot";
+      } else {
+        chip.textContent = "not set up";
+        chip.className = "gr-pill gr-pill--muted gr-pill--no-dot";
+      }
+    } catch (_) {
+      chip.textContent = "—";
+    }
+  })();
+
+  if (consultantId) {
+    fetchRatingFor(consultantId).then((rating) => {
+      const chip = panel.querySelector("[data-rating-chip]");
+      if (chip) chip.outerHTML = renderRatingMarkup(rating, { size: "md" });
+    });
+  }
 }
 
 /* ============================================================== */
@@ -528,17 +507,26 @@ function renderDashboard(client, data) {
   if (unreadCount) subBits.push(`${unreadCount} unread message${unreadCount === 1 ? "" : "s"}`);
   if (headMeta) headMeta.textContent = subBits.join(" · ");
 
-  const actions = buildActionItems(bids, listingMap, ownerMap, ownerBizMap);
   const sub = $("cdash-page-sub");
-  if (sub) {
-    if (actions.length) {
-      sub.textContent = `${actions.length} action item${actions.length === 1 ? "" : "s"} need${actions.length === 1 ? "s" : ""} your attention.`;
-    } else {
-      sub.textContent = "you're caught up. browse the marketplace to find your next project.";
-    }
+  if (sub) sub.textContent = "you're caught up. browse the marketplace to find your next project.";
+
+  // Notifications panel — replaces the old action-items panel.
+  const notifList = $("cdash-notifications-list");
+  const notifEmpty = $("cdash-notifications-empty");
+  const userId = data?.session?.user?.id;
+  if (userId && notifList) {
+    mountDashboardNotifications({
+      client,
+      userId,
+      listEl: notifList,
+      emptyEl: notifEmpty,
+    }).then((result) => {
+      if (sub && result?.unreadCount) {
+        sub.textContent = `${result.unreadCount} new notification${result.unreadCount === 1 ? "" : "s"}.`;
+      }
+    });
   }
 
-  renderActionItems(actions);
   renderEngagements(client, engagements);
   renderRecommended(client, recommended, ownerMap, ownerBizMap);
   renderInboxPreview(client, unreadThreads, unreadCount);
@@ -547,7 +535,7 @@ function renderDashboard(client, data) {
   const avatarUrl = publicAvatarUrl(client, profile?.avatar_path);
   const userAvatar = $("cdash-user-avatar");
   if (userAvatar) {
-    const ui = (profile?.full_name || "?").charAt(0).toUpperCase();
+    const ui = getInitials(profile?.full_name);
     userAvatar.innerHTML = avatarUrl ? `<img src="${escape(avatarUrl)}" alt=""/>` : escape(ui);
   }
   const userName = $("cdash-user-name");
@@ -555,7 +543,7 @@ function renderDashboard(client, data) {
 
   // profile health
   const healthPanel = $("cdash-health-panel");
-  if (healthPanel) renderHealth(healthPanel, consultantHealth(profile, consultant));
+  if (healthPanel) renderHealth(healthPanel, consultantHealth(profile, consultant), profile?.id);
 }
 
 function setupShell() {
@@ -583,7 +571,7 @@ function setupShell() {
     const isDark = (t) => t === "dark-forest" || t === "dark" || t === "forest-soft";
     darkInput.checked = isDark(window.GrassrootsTheme.get());
     darkInput.addEventListener("change", () => {
-      window.GrassrootsTheme.set(darkInput.checked ? "dark-forest" : "light");
+      window.GrassrootsTheme.set(darkInput.checked ? "dark" : "light");
     });
     window.addEventListener("grassroots:themechange", (e) => {
       darkInput.checked = isDark(e.detail || window.GrassrootsTheme.get());
@@ -643,6 +631,7 @@ async function init() {
       return;
     }
     const data = await loadData(client, session.user.id);
+    data.session = session;
     if (data.profile?.role === "business_owner") {
       window.location.replace("/dashboard.html");
       return;

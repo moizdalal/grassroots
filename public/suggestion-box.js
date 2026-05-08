@@ -5,6 +5,7 @@
   const input = document.getElementById("gr-suggest-input");
   const form = document.getElementById("gr-suggest-form");
   const thanks = document.getElementById("gr-suggest-thanks");
+  const closeBtn = document.getElementById("gr-suggest-close");
 
   if (!btn || !overlay || !submit || !input || !form || !thanks) return;
 
@@ -30,6 +31,8 @@
   overlay.addEventListener("click", (event) => {
     if (event.target === overlay) close();
   });
+
+  if (closeBtn) closeBtn.addEventListener("click", () => close());
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && overlay.classList.contains("is-open")) {

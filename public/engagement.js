@@ -1,5 +1,5 @@
 import { getSupabaseClient } from "/supabase-loader.js";
-import { initControlPanel } from "/control-panel.js";
+import { renderRatingMarkup, fetchRatingFor } from "/rating.js";
 
 const gate = document.getElementById("eg-gate");
 const detail = document.getElementById("eg-detail");
@@ -33,7 +33,6 @@ const reviewForm = document.getElementById("eg-review-form");
 const ratingGrid = document.getElementById("eg-rating-grid");
 const endorsementInput = document.getElementById("eg-endorsement");
 const anonInput = document.getElementById("eg-anon");
-const skipEndorsementBtn = document.getElementById("eg-skip-endorsement-btn");
 const submitReviewBtn = document.getElementById("eg-submit-review");
 const reviewStatusEl = document.getElementById("eg-review-status");
 
@@ -174,7 +173,7 @@ function buildInviteHref() {
   if (!scheduleState?.selected_start || !scheduleState?.selected_end || !currentListing) return "#";
   const start = new Date(scheduleState.selected_start);
   const end = new Date(scheduleState.selected_end);
-  const ownerName = ownerProfile?.full_name || "Business owner";
+  const ownerName = ownerProfile?.full_name || "business owner";
   const consultantName = consultantProfile?.full_name || "Consultant";
   const body = [
     "BEGIN:VCALENDAR",
@@ -196,12 +195,21 @@ function buildInviteHref() {
 function setStatusPill(status) {
   statusPill.dataset.status = status;
   const labels = {
-    awaiting_owner: "awaiting owner availability",
-    awaiting_consultant: "awaiting consultant pick",
-    scheduled: "meeting scheduled",
-    completed: "work completed",
+    awaiting_owner: "awaiting availability",
+    awaiting_consultant: "awaiting consultant",
+    scheduled: "scheduled",
+    completed: "completed",
+  };
+  // Map engagement status → universal gr-pill kind so the pill picks up
+  // the shared color tokens instead of bespoke CSS.
+  const kindMap = {
+    awaiting_owner: "warn",
+    awaiting_consultant: "warn",
+    scheduled: "accepted",
+    completed: "muted",
   };
   statusPill.textContent = labels[status] || status;
+  statusPill.className = `gr-pill gr-pill--${kindMap[status] || "muted"}`;
 }
 
 function getDefaultSchedule() {
@@ -497,11 +505,26 @@ function renderRatings() {
 
 function hydrateSummary() {
   titleEl.textContent = currentListing.title;
-  ownerNameEl.textContent = ownerProfile?.full_name || "Business owner";
-  consultantNameEl.textContent = consultantProfile?.full_name || "Consultant";
+  ownerNameEl.textContent = ownerProfile?.full_name || "business owner";
+  const consultantName = consultantProfile?.full_name || "Consultant";
+  consultantNameEl.textContent = consultantName;
   amountEl.textContent = formatUsd(currentBid.amount_cents);
   listingStatusEl.textContent = currentListing.status || "open";
   reviewOffersLink.href = `/listing.html?id=${currentListing.id}`;
+
+  if (currentBid?.consultant_id) {
+    fetchRatingFor(currentBid.consultant_id).then((rating) => {
+      consultantNameEl.innerHTML = `${escapeHtml(consultantName)} ${renderRatingMarkup(rating, { size: "sm" })}`;
+    });
+  }
+}
+
+function escapeHtml(s) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function renderOwnerActions() {
@@ -511,7 +534,8 @@ function renderOwnerActions() {
     return;
   }
   ownerActionsPanel.classList.remove("hidden");
-  workCompletedBtn.disabled = !(scheduleState?.status === "scheduled" || scheduleState?.status === "completed");
+  const engagementOngoing = scheduleState?.status === "scheduled" || scheduleState?.status === "completed";
+  workCompletedBtn.disabled = !engagementOngoing;
   closeListingBtn.disabled = currentListing.status === "closed";
 
   if (reviewState) {
@@ -521,10 +545,17 @@ function renderOwnerActions() {
     reviewForm.classList.add("hidden");
     reviewStatusEl.textContent = "thank you from grassroots. your review has been saved.";
     reviewStatusEl.className = "gr-status success";
+  } else if (engagementOngoing) {
+    // Engagement is in flight — review is required to mark it complete.
+    workCompletedBtn.textContent = "submit review to complete";
+    reviewPanel.classList.remove("hidden");
+    reviewForm.classList.remove("hidden");
+    reviewStatusEl.textContent = "";
+    reviewStatusEl.className = "gr-status";
   } else {
     workCompletedBtn.textContent = "work completed";
-    reviewForm.classList.remove("hidden");
     reviewPanel.classList.add("hidden");
+    reviewForm.classList.remove("hidden");
     reviewStatusEl.textContent = "";
     reviewStatusEl.className = "gr-status";
   }
@@ -692,19 +723,15 @@ async function closeListing() {
   ownerActionStatusEl.className = "gr-status success";
 }
 
-async function submitReview(skipBlank = false) {
+async function submitReview() {
   const ready = RATING_DIMENSIONS.every(([key]) => Number.isInteger(reviewRatings[key]) && reviewRatings[key] >= 1);
   if (!ready) {
-    reviewStatusEl.textContent = "complete all five ratings before submitting.";
+    reviewStatusEl.textContent = "rate the consultant on all five dimensions before submitting.";
     reviewStatusEl.className = "gr-status error";
     return;
   }
 
   const endorsement = endorsementInput.value.trim();
-  if (!endorsement && !skipBlank) {
-    const continueWithout = window.confirm("submit without a written endorsement? you can still skip it if you want.");
-    if (!continueWithout) return;
-  }
 
   const payload = {
     listing_id: currentListing.id,
@@ -726,7 +753,30 @@ async function submitReview(skipBlank = false) {
     status: "completed",
   });
 
-  reviewStatusEl.textContent = "thank you from grassroots. we appreciate the thoughtful review.";
+  // Release escrowed funds to the consultant. Best-effort: review has saved
+  // either way; if the transfer fails (consultant hasn't onboarded yet, etc.)
+  // the owner sees the reason inline and can retry from the engagement page.
+  let releaseMessage = "";
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers = { "Content-Type": "application/json" };
+    if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+    const res = await fetch("/api/stripe/release-funds", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ bid_id: currentBid.id }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      releaseMessage = ` payout pending: ${data.error || "could not release escrow yet."}`;
+    } else {
+      releaseMessage = " escrow released to the consultant.";
+    }
+  } catch (err) {
+    releaseMessage = " escrow release will retry — couldn't reach the payment server.";
+  }
+
+  reviewStatusEl.textContent = `thank you from grassroots. we appreciate the thoughtful review.${releaseMessage}`;
   reviewStatusEl.className = "gr-status success";
   renderOwnerActions();
   setStatusPill(scheduleState.status);
@@ -738,6 +788,12 @@ function bindCalendarInteractions() {
     if (!(cell instanceof HTMLButtonElement)) return;
     if (viewRole !== "owner" || scheduleState?.status !== "awaiting_owner") return;
     event.preventDefault();
+    // Release implicit pointer capture so subsequent pointer events route to
+    // whichever cell is under the cursor (otherwise the original cell keeps
+    // capture and drag-to-select stops at the first slot).
+    if (typeof cell.releasePointerCapture === "function" && cell.hasPointerCapture?.(event.pointerId)) {
+      cell.releasePointerCapture(event.pointerId);
+    }
     const id = cell.dataset.slotId;
     const isSelected = ownerSelection.has(id);
     dragState = { active: true, nextValue: !isSelected };
@@ -746,15 +802,35 @@ function bindCalendarInteractions() {
     renderCalendar("owner");
   });
 
-  calendarEl.addEventListener("pointerenter", (event) => {
-    const cell = event.target.closest("[data-slot-id]");
-    if (!(cell instanceof HTMLButtonElement)) return;
+  // Track the last hovered cell during a drag so we don't repeatedly
+  // toggle the same slot when the pointer stays within one cell.
+  let dragLastSlotId = null;
+
+  function handleDragOver(clientX, clientY) {
     if (!dragState.active || viewRole !== "owner" || scheduleState?.status !== "awaiting_owner") return;
+    const target = document.elementFromPoint(clientX, clientY);
+    if (!target) return;
+    const cell = target.closest("[data-slot-id]");
+    if (!(cell instanceof HTMLButtonElement)) return;
+    if (!calendarEl.contains(cell)) return;
     const id = cell.dataset.slotId;
+    if (id === dragLastSlotId) return;
+    dragLastSlotId = id;
     if (dragState.nextValue) ownerSelection.add(id);
     else ownerSelection.delete(id);
     renderCalendar("owner");
-  }, true);
+  }
+
+  calendarEl.addEventListener("pointermove", (event) => {
+    handleDragOver(event.clientX, event.clientY);
+  });
+
+  // Fallback for environments where pointermove on the grid does not fire
+  // every cell (e.g. when pointer is captured): listen at document level too.
+  document.addEventListener("pointermove", (event) => {
+    if (!dragState.active) return;
+    handleDragOver(event.clientX, event.clientY);
+  });
 
   calendarEl.addEventListener("click", (event) => {
     const cell = event.target.closest("[data-slot-id]");
@@ -776,6 +852,11 @@ function bindCalendarInteractions() {
 
   document.addEventListener("pointerup", () => {
     dragState = { active: false, nextValue: false };
+    dragLastSlotId = null;
+  });
+  document.addEventListener("pointercancel", () => {
+    dragState = { active: false, nextValue: false };
+    dragLastSlotId = null;
   });
 }
 
@@ -792,15 +873,13 @@ function bindReviewInteractions() {
     reviewStatusEl.textContent = "";
     reviewStatusEl.className = "gr-status";
     reviewPanel.scrollIntoView({ behavior: "smooth", block: "start" });
-  });
-
-  skipEndorsementBtn.addEventListener("click", () => {
-    submitReview(true);
+    const firstStarBtn = ratingGrid?.querySelector(".eg-rating-star");
+    if (firstStarBtn instanceof HTMLElement) firstStarBtn.focus();
   });
 
   reviewForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    await submitReview(false);
+    await submitReview();
   });
 }
 
@@ -814,7 +893,6 @@ async function init() {
 
   try {
     supabase = await getSupabaseClient();
-    initControlPanel(supabase);
     const {
       data: { session },
     } = await supabase.auth.getSession();

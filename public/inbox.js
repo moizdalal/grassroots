@@ -5,6 +5,7 @@
 // have read receipts on, stamp messages.read_at so the sender can see ✓✓.
 
 import { getSupabaseClient } from "/supabase-loader.js";
+import { getInitials } from "/initials.js";
 
 const $ = (id) => document.getElementById(id);
 const escape = (s) =>
@@ -45,7 +46,7 @@ function publicAvatarUrl(client, path) {
 function avatarHtml(client, profile, fallbackName) {
   const url = publicAvatarUrl(client, profile?.avatar_path);
   if (url) return `<img src="${escape(url)}" alt="" />`;
-  const initial = (fallbackName || profile?.full_name || "?").trim().charAt(0).toUpperCase() || "?";
+  const initial = getInitials(fallbackName || profile?.full_name);
   return `<span class="inbox__avatar-fallback">${escape(initial)}</span>`;
 }
 
@@ -192,11 +193,21 @@ function filteredThreads() {
   return sortedThreads().filter((t) => {
     if (state.filter === "unread" && !t.unread) return false;
     if (q) {
-      const hay = `${counterpartLabel(t)} ${listingTitle(t)} ${t.lastBody}`.toLowerCase();
+      // Search across counterpart, listing title, and every message in the
+      // thread (not just the most recent). This matches user expectation
+      // that typing a word from a buried message surfaces the conversation.
+      const messageHay = t.messages.map((m) => m.body || "").join(" ");
+      const hay = `${counterpartLabel(t)} ${listingTitle(t)} ${messageHay}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;
   });
+}
+
+function countMatchesInThread(thread, q) {
+  if (!q || !thread) return 0;
+  const lc = q.toLowerCase();
+  return thread.messages.filter((m) => (m.body || "").toLowerCase().includes(lc)).length;
 }
 
 function totalUnread() {
@@ -224,19 +235,33 @@ function renderThreads() {
       .map((t) => {
         const parsed = parseBody(t.lastBody);
         const preview = (t.lastFromMe ? "you: " : "") + (parsed.body || "[no text]");
+        const action = t.unread ? "mark-read" : "mark-unread";
+        const actionLabel = t.unread ? "mark as read" : "mark as unread";
+        // Hover-revealed icon: filled-dot when read (click → unread),
+        // checkmark when unread (click → read). Stops propagation so
+        // it doesn't trigger thread selection.
+        const actionGlyph = t.unread
+          ? '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3.5 8.5 6.5 11.5 12.5 5"/></svg>'
+          : '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="8" cy="8" r="3.2"/></svg>';
+        const stateClasses = `${t.unread ? " is-unread" : ""}${state.activeKey === t.key ? " is-active" : ""}`;
         return `
-          <button type="button" class="inbox__thread${t.unread ? " is-unread" : ""}${state.activeKey === t.key ? " is-active" : ""}" data-key="${escape(t.key)}">
-            <span class="inbox__thread-avatar">${avatarHtml(state.client, t.otherProfile, counterpartLabel(t))}</span>
-            <span class="inbox__thread-body">
-              <span class="inbox__thread-row1">
-                <span class="inbox__thread-name">${escape(counterpartLabel(t))}</span>
-                <span class="inbox__thread-time">${escape(relTime(t.lastAt))}</span>
+          <div class="inbox__thread-wrap${stateClasses}">
+            <button type="button" class="inbox__thread${stateClasses}" data-key="${escape(t.key)}">
+              <span class="inbox__thread-avatar">${avatarHtml(state.client, t.otherProfile, counterpartLabel(t))}</span>
+              <span class="inbox__thread-body">
+                <span class="inbox__thread-row1">
+                  <span class="inbox__thread-name">${escape(counterpartLabel(t))}</span>
+                  <span class="inbox__thread-time">${escape(relTime(t.lastAt))}</span>
+                </span>
+                <span class="inbox__thread-listing">re: ${escape(listingTitle(t))}</span>
+                <span class="inbox__thread-preview">${escape(preview)}</span>
               </span>
-              <span class="inbox__thread-listing">re: ${escape(listingTitle(t))}</span>
-              <span class="inbox__thread-preview">${escape(preview)}</span>
-            </span>
-            ${t.unread ? `<span class="inbox__thread-unread" aria-label="${t.unread} unread">${t.unread}</span>` : ""}
-          </button>
+              ${t.unread ? `<span class="inbox__thread-unread" aria-label="${t.unread} unread">${t.unread}</span>` : ""}
+            </button>
+            <button type="button" class="inbox__thread-action" data-action="${action}" data-key="${escape(t.key)}" aria-label="${actionLabel}" title="${actionLabel}">
+              ${actionGlyph}
+            </button>
+          </div>
         `;
       })
       .join("");
@@ -254,6 +279,8 @@ function renderThreads() {
     filterPill.textContent = String(total);
     filterPill.hidden = total === 0;
   }
+  const markAllBtn = $("inbox-mark-all");
+  if (markAllBtn) markAllBtn.hidden = total === 0;
 }
 
 function renderConversation() {
@@ -263,6 +290,7 @@ function renderConversation() {
   const nameEl = $("inbox-conv-name");
   const listingEl = $("inbox-conv-listing");
   const avatarEl = $("inbox-conv-avatar");
+  const matchEl = $("inbox-conv-matches");
   if (!placeholder || !conv || !body || !nameEl || !listingEl || !avatarEl) return;
 
   const thread = state.activeKey ? state.threads.get(state.activeKey) : null;
@@ -279,6 +307,18 @@ function renderConversation() {
   listingEl.href = `/listing.html?id=${encodeURIComponent(thread.listingId)}`;
   avatarEl.innerHTML = avatarHtml(state.client, thread.otherProfile, counterpartLabel(thread));
 
+  const q = state.search.trim();
+  const qLc = q.toLowerCase();
+  if (matchEl) {
+    if (q) {
+      const matches = countMatchesInThread(thread, q);
+      matchEl.textContent = matches === 1 ? "1 match" : `${matches} matches`;
+      matchEl.hidden = false;
+    } else {
+      matchEl.hidden = true;
+    }
+  }
+
   // Render messages with day separators
   const html = [];
   let lastDay = "";
@@ -291,6 +331,7 @@ function renderConversation() {
     }
     const fromMe = msg.sender_id === state.userId;
     const parsed = parseBody(msg.body);
+    const isMatch = q && (parsed.body || "").toLowerCase().includes(qLc);
     const receipt =
       fromMe && msg.read_at
         ? `<span class="inbox__msg-receipt" title="read ${fmtTime(msg.read_at)}">✓✓ read</span>`
@@ -298,7 +339,7 @@ function renderConversation() {
           ? `<span class="inbox__msg-receipt inbox__msg-receipt--sent">sent</span>`
           : "";
     html.push(`
-      <div class="inbox__msg${fromMe ? " is-mine" : ""}">
+      <div class="inbox__msg${fromMe ? " is-mine" : ""}${isMatch ? " is-match" : ""}">
         ${parsed.context ? `<div class="inbox__msg-context">re: ${escape(parsed.context)}</div>` : ""}
         <div class="inbox__msg-bubble">${escape(parsed.body || "")}</div>
         <div class="inbox__msg-meta"><span>${escape(fmtTime(msg.created_at))}</span>${receipt}</div>
@@ -356,6 +397,68 @@ async function selectThread(key) {
     renderThreads();
     renderConversation();
   }
+}
+
+async function markThreadUnread(thread) {
+  if (!thread) return;
+  // Rewind last_read_at to just before the most recent incoming message,
+  // so every newer incoming message counts as unread again. Falls back to
+  // null (epoch) if there's nothing incoming, which is harmless.
+  const lastIncoming = [...thread.messages]
+    .reverse()
+    .find((m) => m.recipient_id === state.userId);
+  const newReadAt = lastIncoming
+    ? new Date(new Date(lastIncoming.created_at).getTime() - 1).toISOString()
+    : null;
+
+  if (newReadAt === null) {
+    // No incoming messages — nothing to mark unread.
+    return;
+  }
+
+  state.reads.set(thread.key, newReadAt);
+  thread.unread = thread.messages.filter(
+    (m) => m.recipient_id === state.userId && new Date(m.created_at).getTime() > new Date(newReadAt).getTime()
+  ).length;
+
+  await state.client
+    .from("message_reads")
+    .upsert(
+      {
+        user_id: state.userId,
+        listing_id: thread.listingId,
+        other_user_id: thread.otherUserId,
+        last_read_at: newReadAt,
+      },
+      { onConflict: "user_id,listing_id,other_user_id" }
+    );
+}
+
+async function markAllRead() {
+  const unreadThreads = [...state.threads.values()].filter((t) => t.unread > 0);
+  // Update locally first so the UI feels immediate.
+  for (const t of unreadThreads) {
+    const nowIso = new Date().toISOString();
+    state.reads.set(t.key, nowIso);
+    t.unread = 0;
+  }
+  renderThreads();
+  if (state.activeKey) renderConversation();
+
+  // Persist in parallel; failures are non-fatal — next load resyncs.
+  await Promise.all(
+    unreadThreads.map((t) =>
+      state.client.from("message_reads").upsert(
+        {
+          user_id: state.userId,
+          listing_id: t.listingId,
+          other_user_id: t.otherUserId,
+          last_read_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,listing_id,other_user_id" }
+      )
+    )
+  );
 }
 
 async function sendMessage(text) {
@@ -477,10 +580,30 @@ function wireUI() {
   const composer = $("inbox-composer");
   const composerInput = $("inbox-composer-input");
   const closeBtn = $("inbox-conv-close");
+  const markAllBtn = $("inbox-mark-all");
 
   threads?.addEventListener("click", (e) => {
+    // Per-thread action button (mark read/unread). Stop propagation so the
+    // thread row click handler below doesn't also fire.
+    const action = e.target.closest(".inbox__thread-action");
+    if (action) {
+      e.stopPropagation();
+      const key = action.dataset.key;
+      const thread = state.threads.get(key);
+      if (!thread) return;
+      const op = action.dataset.action === "mark-unread" ? markThreadUnread : markThreadRead;
+      op(thread).then(() => {
+        renderThreads();
+        if (state.activeKey === key) renderConversation();
+      });
+      return;
+    }
     const btn = e.target.closest("[data-key]");
     if (btn) selectThread(btn.dataset.key);
+  });
+
+  markAllBtn?.addEventListener("click", () => {
+    markAllRead();
   });
 
   document.querySelectorAll(".inbox__filter").forEach((b) => {
@@ -494,15 +617,24 @@ function wireUI() {
   search?.addEventListener("input", (e) => {
     state.search = e.target.value;
     renderThreads();
+    // Also re-render the open conversation so match highlights + the
+    // match-count badge update live as the user types.
+    if (state.activeKey) renderConversation();
   });
 
   composer?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const text = composerInput.value;
     if (!text.trim()) return;
+    const sendBtn = $("inbox-composer-send");
     composerInput.value = "";
     composerInput.focus();
-    await sendMessage(text);
+    sendBtn?.classList.add("is-loading");
+    try {
+      await sendMessage(text);
+    } finally {
+      sendBtn?.classList.remove("is-loading");
+    }
   });
 
   composerInput?.addEventListener("keydown", (e) => {
@@ -528,9 +660,26 @@ function maybeOpenFromHash() {
   if (state.threads.has(key)) selectThread(key);
 }
 
+function renderSkeletons() {
+  const root = $("inbox-threads");
+  if (!root || root.children.length) return;
+  // Five skeleton rows mimicking the thread structure (avatar + 2-line body).
+  root.innerHTML = Array.from({ length: 5 }).map(() => `
+    <div class="inbox__thread inbox__thread--skeleton" aria-hidden="true">
+      <span class="gr-skeleton gr-skeleton--avatar"></span>
+      <span class="inbox__thread-body">
+        <span class="gr-skeleton gr-skeleton--row" style="width: 60%"></span>
+        <span class="gr-skeleton gr-skeleton--line" style="width: 90%"></span>
+        <span class="gr-skeleton gr-skeleton--line" style="width: 75%"></span>
+      </span>
+    </div>
+  `).join("");
+}
+
 export async function initInbox() {
   if (state.initialized) return;
   state.initialized = true;
+  renderSkeletons();
   state.client = await getSupabaseClient();
   const { data: { session } } = await state.client.auth.getSession();
   if (!session?.user) return;

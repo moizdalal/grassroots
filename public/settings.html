@@ -12,9 +12,24 @@
     />
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
+    <link rel="stylesheet" href="/profile-seedling.css" />
     <script src="/theme.js"></script>
+    <script src="/loading-overlay.js"></script>
   </head>
-  <body class="gr-body"><main class="gr-shell gr-shell--wide settings-shell">
+  <body class="gr-body">
+    <!-- Welcome popup (account-tab only; profile.js controls when to show it) -->
+    <div class="pf-welcome-overlay hidden" id="welcome-overlay">
+      <div class="pf-welcome-popup">
+        <div class="pf-welcome-icon" aria-hidden="true">
+          <img src="/home/assets/grassroots-icon-syne.svg" width="34" height="52" alt="" />
+        </div>
+        <h2 class="pf-welcome-title">welcome to grassroots.</h2>
+        <p class="pf-welcome-body">your account is ready. complete your profile to get noticed on the marketplace.</p>
+        <button type="button" class="gr-btn gr-btn--primary" id="welcome-dismiss">get started</button>
+      </div>
+    </div>
+
+    <main class="gr-shell gr-shell--wide settings-shell">
       <a href="javascript:history.back()" class="ld-back">← back</a>
 
       <div class="gr-page-intro">
@@ -27,9 +42,8 @@
         <!-- ===== tabs ===== -->
         <aside class="settings-tabs" id="settings-tabs">
           <button type="button" class="settings-tab active" data-tab="general">general</button>
-          <a class="settings-tab" href="/profile.html" data-tab="account">account</a>
-          <button type="button" class="settings-tab" data-tab="notifications" disabled>notifications <span class="settings-tab-soon">soon</span></button>
-          <button type="button" class="settings-tab" data-tab="billing" disabled>billing <span class="settings-tab-soon">soon</span></button>
+          <button type="button" class="settings-tab" data-tab="profile">profile</button>
+          <button type="button" class="settings-tab" data-tab="payout">payout</button>
         </aside>
 
         <!-- ===== panels ===== -->
@@ -116,11 +130,528 @@
             </section>
           </section>
 
+          <!-- PROFILE -->
+          <section class="settings-panel pf-layout" data-tab="profile" hidden>
+            <div class="pf-main-col">
+
+              <div class="pf-preview-bar hidden" id="pf-preview-bar">
+                <label class="pf-toggle-label">
+                  <input type="checkbox" id="pf-preview-toggle" />
+                  <span class="pf-toggle-switch"></span>
+                  <span>preview as business</span>
+                </label>
+              </div>
+
+              <div class="pf-business-view hidden" id="pf-business-view"></div>
+
+              <p id="profile-gate" class="gr-status" aria-live="polite"></p>
+
+              <form id="profile-form" class="hidden">
+                <div class="gr-card gr-profile-card">
+                  <div class="pf-form-tabs" id="pf-form-tabs" role="tablist" aria-label="profile sections">
+                    <button
+                      type="button"
+                      class="pf-form-tab is-active"
+                      id="pf-tab-personal"
+                      data-profile-tab="personal"
+                      role="tab"
+                      aria-selected="true"
+                      aria-controls="pf-panel-personal"
+                    >
+                      personal information
+                    </button>
+                    <button
+                      type="button"
+                      class="pf-form-tab hidden"
+                      id="pf-tab-business"
+                      data-profile-tab="business"
+                      role="tab"
+                      aria-selected="false"
+                      aria-controls="pf-panel-business"
+                    >
+                      business information
+                    </button>
+                    <button
+                      type="button"
+                      class="pf-form-tab hidden"
+                      id="pf-tab-credibility"
+                      data-profile-tab="credibility"
+                      role="tab"
+                      aria-selected="false"
+                      aria-controls="pf-panel-credibility"
+                    >
+                      credibility
+                    </button>
+                  </div>
+
+                  <section
+                    class="pf-form-panel pf-form-panel--active"
+                    id="pf-panel-personal"
+                    data-profile-panel="personal"
+                    role="tabpanel"
+                    aria-labelledby="pf-tab-personal"
+                  >
+                    <div class="gr-profile-layout">
+                      <div class="gr-profile-avatar-block">
+                        <div class="gr-profile-avatar-ring">
+                          <img
+                            id="avatar-preview"
+                            class="gr-profile-avatar-img"
+                            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect fill='%23e8f0ec' width='120' height='120'/%3E%3C/svg%3E"
+                            alt=""
+                            width="120"
+                            height="120"
+                          />
+                        </div>
+                        <label class="gr-label gr-profile-file">
+                          <span>profile photo</span>
+                          <input
+                            id="avatar-input"
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/gif"
+                          />
+                        </label>
+                        <p class="gr-profile-hint">jpeg, png, webp, or gif · up to 2 mb</p>
+                      </div>
+
+                      <div class="gr-profile-fields">
+                        <div class="gr-field-grid">
+                          <label class="gr-label full-width">
+                            <span>email</span>
+                            <input type="text" id="field-email" readonly />
+                          </label>
+                          <label class="gr-label full-width">
+                            <span>phone number</span>
+                            <input type="text" id="field-phone" readonly />
+                          </label>
+                          <label class="gr-label full-width">
+                            <span>full name</span>
+                            <input type="text" name="fullName" id="field-full-name" required />
+                          </label>
+                          <label class="gr-label full-width" id="field-linkedin-wrap">
+                            <span>linkedin</span>
+                            <input
+                              type="url"
+                              name="linkedinUrl"
+                              id="field-linkedin"
+                              placeholder="https://linkedin.com/in/…"
+                            />
+                          </label>
+                        </div>
+
+                        <div id="consultant-education-section" class="hidden">
+                          <p class="gr-section-h">education</p>
+                          <div class="gr-field-grid">
+                            <label class="gr-label">
+                              <span>major</span>
+                              <input type="text" id="field-major" placeholder="e.g. marketing" />
+                            </label>
+                            <label class="gr-label">
+                              <span>minor <span class="gr-optional">optional</span></span>
+                              <input type="text" id="field-minor" placeholder="e.g. data analytics" />
+                            </label>
+                            <label class="gr-label full-width">
+                              <span>school</span>
+                              <input type="text" id="field-school" placeholder="e.g. University of Michigan" />
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section
+                    id="business-section"
+                    class="pf-form-panel hidden"
+                    data-profile-panel="business"
+                    role="tabpanel"
+                    aria-labelledby="pf-tab-business"
+                  >
+                    <div class="gr-field-grid gr-field-grid--business">
+                      <label class="gr-label full-width">
+                        <span>business name</span>
+                        <input type="text" name="businessName" id="field-biz-name" />
+                      </label>
+                      <label class="gr-label full-width">
+                        <span>business address</span>
+                        <input
+                          type="text"
+                          name="businessAddress"
+                          id="field-biz-address"
+                          placeholder="street, city, state, zip"
+                        />
+                      </label>
+                      <label class="gr-label full-width">
+                        <span>business bio</span>
+                        <textarea
+                          name="businessDetails"
+                          id="field-biz-details"
+                          rows="2"
+                          placeholder="context, stage, goals…"
+                        ></textarea>
+                      </label>
+                      <label class="gr-label full-width">
+                        <span>website</span>
+                        <input
+                          type="url"
+                          name="websiteUrl"
+                          id="field-website"
+                          placeholder="https://…"
+                        />
+                      </label>
+
+                      <div class="gr-social-stack full-width">
+                        <p class="gr-social-stack__caption">social profiles</p>
+                        <p class="gr-social-stack__hint">paste the link to the page.</p>
+
+                        <div class="gr-social-platform" data-platform="instagram">
+                          <div class="gr-social-platform__row">
+                            <span class="gr-social-platform__logo" aria-hidden="true">
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+                                <defs>
+                                  <linearGradient id="pf-ig-grad" x1="0%" y1="100%" x2="100%" y2="0%">
+                                    <stop offset="0%" stop-color="#f09433" />
+                                    <stop offset="50%" stop-color="#e6683c" />
+                                    <stop offset="100%" stop-color="#bc1888" />
+                                  </linearGradient>
+                                </defs>
+                                <path fill="url(#pf-ig-grad)" d="M12 2.16c3.2 0 3.58.01 4.85.07 3.25.15 4.77 1.69 4.92 4.92.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.15 3.23-1.66 4.77-4.92 4.92-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-3.26-.15-4.77-1.7-4.92-4.92-.06-1.27-.07-1.64-.07-4.85s.01-3.58.07-4.85c.15-3.23 1.66-4.77 4.92-4.92 1.27-.06 1.64-.07 4.85-.07zm0-2.16C8.74 0 8.33.01 7.05.07 2.7.27.27 2.69.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.2 4.36 2.62 6.78 6.98 6.98 1.28.06 1.69.07 4.95.07s3.67-.01 4.95-.07c4.35-.2 6.78-2.62 6.98-6.98.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.2-4.35-2.63-6.78-6.98-6.98C15.67.01 15.26 0 12 0zm0 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zm0 10.16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z"/>
+                              </svg>
+                            </span>
+                            <label class="gr-social-platform__check">
+                              <input type="checkbox" id="biz-social-instagram-on" />
+                              <span>instagram</span>
+                            </label>
+                          </div>
+                          <div id="biz-social-instagram-field" class="gr-social-platform__field hidden">
+                            <input
+                              type="url"
+                              name="instagramUrl"
+                              id="field-biz-instagram"
+                              class="gr-input-plain"
+                              placeholder="https://instagram.com/yourhandle"
+                              autocomplete="url"
+                            />
+                          </div>
+                        </div>
+
+                        <div class="gr-social-platform" data-platform="facebook">
+                          <div class="gr-social-platform__row">
+                            <span class="gr-social-platform__logo" aria-hidden="true">
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                              </svg>
+                            </span>
+                            <label class="gr-social-platform__check">
+                              <input type="checkbox" id="biz-social-facebook-on" />
+                              <span>facebook</span>
+                            </label>
+                          </div>
+                          <div id="biz-social-facebook-field" class="gr-social-platform__field hidden">
+                            <input
+                              type="url"
+                              name="facebookUrl"
+                              id="field-biz-facebook"
+                              class="gr-input-plain"
+                              placeholder="https://facebook.com/yourpage"
+                              autocomplete="url"
+                            />
+                          </div>
+                        </div>
+
+                        <div class="gr-social-platform" data-platform="linkedin">
+                          <div class="gr-social-platform__row">
+                            <span class="gr-social-platform__logo" aria-hidden="true">
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                <path fill="#0A66C2" d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.95v5.66H9.36V9h3.41v1.56h.05c.47-.9 1.63-1.85 3.35-1.85 3.59 0 4.25 2.36 4.25 5.43v6.31zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.55V9h3.57v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.55C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z"/>
+                              </svg>
+                            </span>
+                            <label class="gr-social-platform__check">
+                              <input type="checkbox" id="biz-social-linkedin-on" />
+                              <span>linkedin (company)</span>
+                            </label>
+                          </div>
+                          <div id="biz-social-linkedin-field" class="gr-social-platform__field hidden">
+                            <input
+                              type="url"
+                              name="companyLinkedinUrl"
+                              id="field-biz-company-linkedin"
+                              class="gr-input-plain"
+                              placeholder="https://linkedin.com/company/…"
+                              autocomplete="url"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section
+                    id="consultant-section"
+                    class="pf-form-panel hidden"
+                    data-profile-panel="credibility"
+                    role="tabpanel"
+                    aria-labelledby="pf-tab-credibility"
+                  >
+                    <p class="gr-section-h">resume</p>
+                    <div class="pf-resume-row">
+                      <label class="gr-label pf-file-label">
+                        <span>replace resume (pdf only) — optional</span>
+                        <input
+                          id="resume-input"
+                          type="file"
+                          name="resume"
+                          accept=".pdf,application/pdf"
+                        />
+                      </label>
+                      <label class="pf-toggle-label">
+                        <input type="checkbox" id="resume-public-toggle" />
+                        <span class="pf-toggle-switch"></span>
+                        <span>visible to businesses</span>
+                      </label>
+                    </div>
+                    <p id="resume-current" class="gr-profile-hint"></p>
+
+                    <p class="gr-section-h">past experience</p>
+                    <p class="gr-field-hint">
+                      upload documents, images, videos, or presentations of past work. pdf preferred. toggle public to let businesses see them.
+                    </p>
+                    <div id="portfolio-list" class="pf-portfolio-list"></div>
+                    <div class="pf-portfolio-add">
+                      <label class="gr-label pf-file-label">
+                        <span>add work sample</span>
+                        <input
+                          id="portfolio-input"
+                          type="file"
+                          accept=".pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg,.webp,.gif,.mp4,.mov,.webm"
+                        />
+                      </label>
+                      <textarea
+                        id="portfolio-desc"
+                        class="pf-portfolio-desc"
+                        maxlength="300"
+                        placeholder="brief explanation of this work (max 300 chars)"
+                        rows="2"
+                      ></textarea>
+                      <div class="pf-portfolio-add-actions">
+                        <label class="pf-toggle-label">
+                          <input type="checkbox" id="portfolio-public-toggle" />
+                          <span class="pf-toggle-switch"></span>
+                          <span>public</span>
+                        </label>
+                        <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="portfolio-upload-btn">upload</button>
+                      </div>
+                    </div>
+                  </section>
+
+                  <div class="gr-profile-actions">
+                    <button type="submit" class="gr-btn gr-btn--primary" id="save-btn">
+                      save changes
+                    </button>
+                  </div>
+                </div>
+
+                <p id="status" class="gr-status" aria-live="polite"></p>
+              </form>
+            </div>
+
+            <aside class="pf-sidebar">
+              <div class="gr-card pf-level-card hidden" id="pf-level-card">
+                <p class="pf-level-kicker">consultant progression</p>
+                <h2 class="pf-level-title" id="pf-level-title">stage 0: seedling</h2>
+
+                <div class="pf-level-meta">
+                  <p class="pf-level-name" id="pf-level-name">consultant</p>
+                  <div class="pf-level-stats">
+                    <span class="pf-level-stat" id="pf-level-rating">rating not available yet</span>
+                    <span class="pf-level-stat" id="pf-level-engagements">0 engagements completed</span>
+                  </div>
+                </div>
+
+                <div class="pf-stage-model" id="pf-stage-model" data-stage="0" aria-hidden="true">
+                  <div class="pf-stage-model__scene">
+                    <span class="pf-stage-model__glow"></span>
+                    <span class="pf-stage-model__soil"></span>
+                    <span class="pf-stage-model__shadow"></span>
+                    <span class="pf-stage-model__stem"></span>
+                    <span class="pf-stage-model__canopy"></span>
+                    <span class="pf-stage-model__canopy pf-stage-model__canopy--secondary"></span>
+                    <span class="pf-stage-model__canopy pf-stage-model__canopy--tertiary"></span>
+                    <span class="pf-stage-model__accent"></span>
+                  </div>
+                  <p class="pf-stage-model__label" id="pf-stage-model-label">seedling stage placeholder</p>
+                </div>
+
+                <div class="pf-level-progress">
+                  <div class="pf-level-progress__row">
+                    <span>progress to next stage</span>
+                    <span id="pf-level-progress-label">0%</span>
+                  </div>
+                  <div class="pf-level-progress__track" aria-hidden="true">
+                    <span class="pf-level-progress__fill" id="pf-level-progress-fill"></span>
+                  </div>
+                  <p class="pf-level-progress__copy" id="pf-level-progress-copy">
+                    complete 1 free engagement and earn an average rating of at least 4.0 stars.
+                  </p>
+                </div>
+              </div>
+            </aside>
+          </section>
+
+          <!-- PAYOUT (Stripe Connect) -->
+          <section class="settings-panel" data-tab="payout" hidden>
+            <header class="settings-panel-h">
+              <h2>payout</h2>
+              <p>where grassroots sends your earnings. powered by stripe connect.</p>
+            </header>
+
+            <div class="payout-status-card" id="payout-status-card">
+              <p class="payout-status-card__copy" id="payout-status-copy">checking your stripe account…</p>
+              <div class="gr-skeleton-stack" id="payout-status-skeleton">
+                <span class="gr-skeleton gr-skeleton--row" style="width: 70%"></span>
+                <span class="gr-skeleton gr-skeleton--line" style="width: 50%"></span>
+              </div>
+            </div>
+
+            <!-- Empty state: no Stripe Connect account yet. -->
+            <section class="payout-empty hidden" id="payout-empty">
+              <div class="settings-section-h">
+                <h3>set up payouts</h3>
+                <p>connect a bank account so we can pay you when work is delivered.</p>
+              </div>
+              <p class="gr-profile-hint">
+                you'll be redirected to stripe to verify your identity and link a bank.
+                this takes about 2 minutes.
+              </p>
+              <button type="button" class="gr-btn gr-btn--primary" id="payout-connect-btn">
+                set up with stripe
+              </button>
+              <p class="gr-status" id="payout-connect-status" aria-live="polite"></p>
+            </section>
+
+            <!-- Active state: account exists. -->
+            <section class="payout-active hidden" id="payout-active">
+              <div class="payout-balance-grid">
+                <div class="payout-balance">
+                  <p class="payout-balance__label">available</p>
+                  <p class="payout-balance__value" id="payout-balance-available">—</p>
+                  <p class="payout-balance__sub">ready to be paid out</p>
+                </div>
+                <div class="payout-balance payout-balance--pending">
+                  <p class="payout-balance__label">pending</p>
+                  <p class="payout-balance__value" id="payout-balance-pending">—</p>
+                  <p class="payout-balance__sub">in escrow until delivery</p>
+                </div>
+              </div>
+
+              <section class="settings-section">
+                <div class="settings-section-h">
+                  <h3>payout schedule</h3>
+                  <p>your bank receives funds on this cadence.</p>
+                </div>
+                <p class="payout-schedule" id="payout-schedule">—</p>
+              </section>
+
+              <section class="settings-section">
+                <div class="settings-section-h">
+                  <h3>recent payouts</h3>
+                  <p>last 10 transfers from your stripe balance to your bank.</p>
+                </div>
+                <ul class="payout-list" id="payout-list" aria-live="polite"></ul>
+                <p class="gr-empty-state hidden" id="payout-list-empty">no payouts yet. earnings settle here once jobs complete.</p>
+              </section>
+
+              <section class="settings-section">
+                <div class="settings-section-h">
+                  <h3>manage account</h3>
+                  <p>update your bank, identity documents, or tax info via stripe.</p>
+                </div>
+                <button type="button" class="gr-btn gr-btn--secondary" id="payout-manage-btn">
+                  open stripe dashboard
+                </button>
+                <p class="gr-status" id="payout-manage-status" aria-live="polite"></p>
+              </section>
+            </section>
+          </section>
+
         </section>
       </div>
     </main>
 
+    <!-- Resume preview modal (profile tab; profile.js controls open/close) -->
+    <div class="pf-resume-viewer hidden" id="pf-resume-viewer" aria-hidden="true">
+      <div class="pf-resume-viewer__backdrop" data-resume-viewer-close></div>
+      <div class="pf-resume-viewer__dialog" role="dialog" aria-modal="true" aria-labelledby="pf-resume-viewer-title">
+        <div class="pf-resume-viewer__bar">
+          <div>
+            <p class="pf-resume-viewer__eyebrow">resume preview</p>
+            <h2 class="pf-resume-viewer__title" id="pf-resume-viewer-title">resume</h2>
+          </div>
+          <div class="pf-resume-viewer__controls">
+            <a
+              class="pf-resume-viewer__icon-btn"
+              id="pf-resume-viewer-download"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              download
+              aria-label="download resume"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 4v10"></path>
+                <path d="m8 10 4 4 4-4"></path>
+                <path d="M5 19h14"></path>
+              </svg>
+            </a>
+            <button type="button" class="pf-resume-viewer__close" data-resume-viewer-close aria-label="close preview">
+              &times;
+            </button>
+          </div>
+        </div>
+        <div class="pf-resume-viewer__stage">
+          <iframe id="pf-resume-viewer-frame" class="pf-resume-viewer__frame" title="resume preview"></iframe>
+        </div>
+      </div>
+    </div>
+
     <script type="module" src="/nav-session.js"></script>
+
+    <!-- Tabs: switch between general / profile / payout without page
+         navigation. Hash sync (#general / #profile / #payout) so deep
+         links + side-nav links work. -->
+    <script>
+      (function () {
+        const tabs = document.querySelectorAll('.settings-tab[data-tab]');
+        const panels = document.querySelectorAll('.settings-panel[data-tab]');
+        const validTabs = new Set([...tabs].map(t => t.dataset.tab));
+
+        function activate(tab, opts) {
+          if (!validTabs.has(tab)) tab = 'general';
+          tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+          panels.forEach(p => { p.hidden = p.dataset.tab !== tab; });
+          if (!opts || opts.updateHash !== false) {
+            const next = '#' + tab;
+            if (window.location.hash !== next) {
+              history.replaceState(null, '', next);
+            }
+          }
+          window.dispatchEvent(new CustomEvent('grassroots:settings-tab', { detail: { tab } }));
+        }
+
+        tabs.forEach(t => {
+          t.addEventListener('click', () => activate(t.dataset.tab));
+        });
+
+        window.addEventListener('hashchange', () => {
+          activate((window.location.hash || '#general').slice(1), { updateHash: false });
+        });
+
+        const initial = (window.location.hash || '#general').slice(1);
+        activate(initial, { updateHash: false });
+      })();
+    </script>
+
+    <!-- General tab: theme picker -->
     <script>
       (function () {
         var grid = document.getElementById("theme-grid");
@@ -146,6 +677,8 @@
         window.addEventListener("grassroots:themechange", paintActive);
       })();
     </script>
+
+    <!-- General tab: read-receipts toggle -->
     <script type="module">
       import { getSupabaseClient } from "/supabase-loader.js";
       const checkbox = document.getElementById("read-receipts-checkbox");
@@ -184,19 +717,132 @@
       }
     </script>
 
+    <!-- Profile tab: form logic. profile.js queries elements by id;
+         they exist in the DOM regardless of which tab is active. -->
+    <script type="module" src="/profile.js"></script>
+
+    <!-- Payout tab: Stripe Connect account status + manage actions.
+         Reads `stripe_account_id` off the user's profile to decide between
+         the empty state and the active state. Server-side Connect endpoints
+         (account-link creation, balance, payout list) are stubbed for now;
+         the UI handles both states gracefully so it can ship before the
+         backend lands. */ -->
+    <script type="module">
+      import { getSupabaseClient } from "/supabase-loader.js";
+
+      const $ = (id) => document.getElementById(id);
+      const card = $("payout-status-card");
+      const skel = $("payout-status-skeleton");
+      const copy = $("payout-status-copy");
+      const empty = $("payout-empty");
+      const active = $("payout-active");
+      const connectBtn = $("payout-connect-btn");
+      const connectStatus = $("payout-connect-status");
+      const manageBtn = $("payout-manage-btn");
+      const manageStatus = $("payout-manage-status");
+
+      function setLoading(state) {
+        if (skel) skel.hidden = !state;
+        if (copy) copy.hidden = state;
+      }
+
+      async function init() {
+        if (!card) return;
+        try {
+          const client = await getSupabaseClient();
+          const { data: { session } } = await client.auth.getSession();
+          if (!session?.user) {
+            setLoading(false);
+            copy.textContent = "sign in to manage payouts.";
+            return;
+          }
+
+          const { data: profile, error } = await client
+            .from("profiles")
+            .select("stripe_account_id, stripe_payouts_enabled, stripe_charges_enabled")
+            .eq("id", session.user.id)
+            .single();
+
+          setLoading(false);
+
+          // No Connect account yet — show the empty/setup state.
+          if (error || !profile?.stripe_account_id) {
+            card.hidden = true;
+            empty.classList.remove("hidden");
+            return;
+          }
+
+          // Active account — show status + balances.
+          card.hidden = true;
+          active.classList.remove("hidden");
+
+          // Note: balance + payout list require server-side Stripe API calls
+          // (Stripe secret key never goes to the browser). Until the backend
+          // endpoint exists, the values stay as em-dashes and the manage
+          // button shows a "coming soon" message.
+        } catch (err) {
+          setLoading(false);
+          copy.textContent = "could not load payout status. try refreshing.";
+        }
+      }
+
+      connectBtn?.addEventListener("click", async () => {
+        connectBtn.classList.add("is-loading");
+        connectStatus.textContent = "";
+        try {
+          // Server endpoint to be implemented:
+          //   POST /api/stripe/connect/onboard → { url }
+          // Returns a Stripe-hosted account-link URL that walks the user
+          // through KYC + bank linking, then redirects back here.
+          const res = await fetch("/api/stripe/connect/onboard", { method: "POST" });
+          if (!res.ok) throw new Error("onboard endpoint not ready");
+          const { url } = await res.json();
+          window.location.href = url;
+        } catch (err) {
+          connectBtn.classList.remove("is-loading");
+          connectStatus.textContent = "stripe onboarding isn't wired up yet. coming soon.";
+          connectStatus.className = "gr-status";
+        }
+      });
+
+      manageBtn?.addEventListener("click", async () => {
+        manageBtn.classList.add("is-loading");
+        manageStatus.textContent = "";
+        try {
+          // Server endpoint to be implemented:
+          //   POST /api/stripe/connect/login-link → { url }
+          // Returns a Stripe-hosted login URL for the connected account.
+          const res = await fetch("/api/stripe/connect/login-link", { method: "POST" });
+          if (!res.ok) throw new Error("login-link endpoint not ready");
+          const { url } = await res.json();
+          window.open(url, "_blank", "noopener,noreferrer");
+          manageBtn.classList.remove("is-loading");
+        } catch (err) {
+          manageBtn.classList.remove("is-loading");
+          manageStatus.textContent = "stripe dashboard link isn't wired up yet. coming soon.";
+          manageStatus.className = "gr-status";
+        }
+      });
+
+      init();
+    </script>
+
     <!-- Suggestion Box -->
     <button class="gr-suggest-btn" id="gr-suggest-btn" type="button" aria-label="suggestion box">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
     </button>
     <div class="gr-suggest-overlay" id="gr-suggest-overlay">
       <div class="gr-suggest-popup">
+        <button class="gr-suggest-popup__close" id="gr-suggest-close" type="button" aria-label="close">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+        </button>
         <div id="gr-suggest-form">
           <p class="gr-suggest-popup__title">grassroots values and takes your feedback seriously&mdash;how can we improve?</p>
           <textarea class="gr-suggest-popup__textarea" id="gr-suggest-input" placeholder="your suggestion…" maxlength="1000"></textarea>
           <button class="gr-suggest-popup__submit" id="gr-suggest-submit" type="button">submit</button>
         </div>
         <div id="gr-suggest-thanks" hidden>
-          <p class="gr-suggest-popup__thanks">thank you for your feedback!</p>
+          <p class="gr-suggest-popup__thanks">thanks for the note. we read all of these.</p>
         </div>
       </div>
     </div>

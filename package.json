@@ -17,7 +17,8 @@
     "@supabase/supabase-js": "^2.100.0",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
-    "multer": "^2.1.1"
+    "multer": "^2.1.1",
+    "stripe": "^22.1.1"
   },
   "devDependencies": {
     "esbuild": "^0.28.0",

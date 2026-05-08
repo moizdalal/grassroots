@@ -1,6 +1,5 @@
 import { getSupabaseClient } from "/supabase-loader.js";
-import { initControlPanel } from "/control-panel.js";
-import { formatBudgetRange, scaleBudgetRange } from "/sim-budget.js";
+import { formatBudgetRange } from "/sim-budget.js";
 
 const form = document.getElementById("listing-form");
 const gate = document.getElementById("gate");
@@ -442,7 +441,6 @@ async function boot() {
     }
 
     userId = session.user.id;
-    initControlPanel(supabase);
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -630,11 +628,7 @@ function updatePreview() {
   const bMin = form.elements.budget_min?.value;
   const bMax = form.elements.budget_max?.value;
   if (bMin && bMax) {
-    const simulatedRange = scaleBudgetRange({
-      min: Number(bMin),
-      max: Number(bMax),
-    });
-    pvBudget.textContent = formatBudgetRange(simulatedRange);
+    pvBudget.textContent = formatBudgetRange({ min: Number(bMin), max: Number(bMax) });
     pvBudgetSection.hidden = false;
   } else if (bMin || bMax) {
     pvBudget.textContent = bMin ? `from $${Number(bMin).toLocaleString()}` : `up to $${Number(bMax).toLocaleString()}`;
@@ -881,7 +875,7 @@ form.addEventListener("submit", async (event) => {
       throw attachmentError;
     }
 
-    statusEl.textContent = "opportunity created!";
+    statusEl.textContent = "opportunity created.";
     statusEl.className = "gr-status success";
 
     setTimeout(() => {

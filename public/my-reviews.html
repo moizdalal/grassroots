@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grassroots — your ratings & reviews</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/grassroots.css" />
+    <link rel="stylesheet" href="/field-office.css" />
+    <script src="/theme.js"></script>
+    <script src="/loading-overlay.js"></script>
+  </head>
+  <body class="gr-body gr-has-side-nav">
+    <main class="gr-shell gr-shell--wide">
+      <a href="javascript:history.back()" class="ld-back">← back</a>
+
+      <div class="gr-page-intro">
+        <p class="gr-page-eyebrow">your reputation</p>
+        <h1 class="gr-title">ratings <span class="fo-title-italic">& reviews</span></h1>
+        <p class="gr-subtitle">how businesses you've worked with rate you across every dimension that matters.</p>
+      </div>
+
+      <p id="mr-gate" class="gr-status" aria-live="polite">loading…</p>
+
+      <section id="mr-shell" hidden>
+        <div class="mr-overall">
+          <div class="mr-overall__primary">
+            <span class="mr-overall__eyebrow">overall</span>
+            <span class="mr-overall__value" id="mr-overall-value">—</span>
+            <span class="mr-overall__stars" id="mr-overall-stars"></span>
+            <span class="mr-overall__count" id="mr-overall-count"></span>
+          </div>
+          <div class="mr-overall__dims" id="mr-dims"></div>
+        </div>
+
+        <div class="mr-section">
+          <div class="mr-section__head">
+            <h2>testimonials</h2>
+            <span class="mr-section__count" id="mr-reviews-count"></span>
+          </div>
+          <div id="mr-reviews-list"></div>
+          <p id="mr-reviews-empty" class="gr-empty-state" hidden>
+            no written endorsements yet — once a business writes one, it'll appear here.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/nav-session.js"></script>
+    <script type="module">
+      import { getSupabaseClient } from "/supabase-loader.js";
+      import { renderRatingMarkup } from "/rating.js";
+
+      const $ = (id) => document.getElementById(id);
+      const escape = (s) =>
+        String(s ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+
+      const DIM_LABELS = [
+        ["work_product_quality", "work product"],
+        ["communication", "communication"],
+        ["timeliness", "timeliness"],
+        ["professionalism", "professionalism"],
+        ["cost_value", "cost value"],
+      ];
+
+      function fmtDate(iso) {
+        if (!iso) return "";
+        const d = new Date(iso);
+        return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      }
+
+      function avgFromReview(r) {
+        const sum = (r.work_product_quality + r.communication + r.timeliness + r.professionalism + r.cost_value) / 5;
+        return Math.round(sum * 10) / 10;
+      }
+
+      async function init() {
+        const gate = $("mr-gate");
+        try {
+          const client = await getSupabaseClient();
+          const { data: { session } } = await client.auth.getSession();
+          if (!session?.user) {
+            window.location.replace("/signin.html?next=" + encodeURIComponent("/my-reviews.html"));
+            return;
+          }
+
+          // Get profile to confirm role + show name in cards
+          const { data: profile } = await client
+            .from("profiles")
+            .select("id, role, full_name")
+            .eq("id", session.user.id)
+            .maybeSingle();
+
+          if (profile?.role && profile.role !== "consultant") {
+            gate.textContent = "ratings & reviews are a consultant feature.";
+            gate.className = "gr-status";
+            return;
+          }
+
+          const headers = {};
+          if (session.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+          const resp = await fetch(`/api/consultant-profile/${encodeURIComponent(session.user.id)}`, { headers });
+          const apiData = await resp.json().catch(() => ({}));
+          const rating = apiData?.rating;
+
+          // Reviews come straight from the table — RLS lets the consultant read their own.
+          const { data: reviews, error: reviewsErr } = await client
+            .from("consultant_reviews")
+            .select("id, listing_id, work_product_quality, communication, timeliness, professionalism, cost_value, endorsement, is_anonymous, created_at, listings(title)")
+            .eq("consultant_id", session.user.id)
+            .order("created_at", { ascending: false });
+
+          if (reviewsErr && !/does not exist|schema cache/i.test(reviewsErr.message || "")) {
+            throw reviewsErr;
+          }
+
+          gate.hidden = true;
+          $("mr-shell").hidden = false;
+
+          // Overall display
+          if (rating?.review_count) {
+            $("mr-overall-value").textContent = rating.rating_average.toFixed(1);
+            $("mr-overall-stars").innerHTML = renderRatingMarkup(rating, { size: "lg", showCount: false });
+            $("mr-overall-count").textContent = `${rating.review_count} review${rating.review_count === 1 ? "" : "s"}`;
+          } else {
+            $("mr-overall-value").textContent = "—";
+            $("mr-overall-stars").innerHTML = renderRatingMarkup(null, { size: "lg", showCount: false });
+            $("mr-overall-count").textContent = "no ratings yet";
+          }
+
+          // Per-dimension breakdown
+          const dimsHtml = DIM_LABELS.map(([key, label]) => {
+            const apiKey = key === "work_product_quality" ? "work_product_quality_avg" : `${key}_avg`;
+            const val = rating?.[apiKey];
+            return `
+              <div class="mr-dim">
+                <span class="mr-dim__label">${label}</span>
+                <div class="mr-dim__rating">
+                  ${renderRatingMarkup({ rating_average: val, review_count: val ? 1 : 0 }, { size: "sm", showCount: false })}
+                </div>
+              </div>
+            `;
+          }).join("");
+          $("mr-dims").innerHTML = dimsHtml;
+
+          // Reviews list
+          const list = reviews || [];
+          $("mr-reviews-count").textContent = list.length ? `${list.length}` : "";
+          const reviewsList = $("mr-reviews-list");
+          const empty = $("mr-reviews-empty");
+          if (!list.length) {
+            empty.hidden = false;
+            reviewsList.innerHTML = "";
+          } else {
+            empty.hidden = true;
+            reviewsList.innerHTML = list.map((r) => {
+              const avg = avgFromReview(r);
+              const dimChips = DIM_LABELS.map(([key, label]) => {
+                return `<span class="mr-card__dim"><span>${label}</span><strong>${r[key]}</strong></span>`;
+              }).join("");
+              const title = r.listings?.title ? `re: ${escape(r.listings.title)}` : "";
+              const endorsement = r.endorsement
+                ? `<blockquote class="mr-card__quote">${escape(r.endorsement)}</blockquote>`
+                : `<p class="mr-card__no-quote">no written endorsement.</p>`;
+              return `
+                <article class="mr-card">
+                  <header class="mr-card__head">
+                    <div class="mr-card__avg">
+                      ${renderRatingMarkup({ rating_average: avg, review_count: 1 }, { size: "md", showCount: false })}
+                      <span class="mr-card__avg-num">${avg.toFixed(1)}</span>
+                    </div>
+                    <span class="mr-card__date">${escape(fmtDate(r.created_at))}</span>
+                  </header>
+                  ${title ? `<p class="mr-card__title">${title}</p>` : ""}
+                  ${endorsement}
+                  <div class="mr-card__dims">${dimChips}</div>
+                  <p class="mr-card__author">${r.is_anonymous ? "anonymous review" : "from the business"}</p>
+                </article>`;
+            }).join("");
+          }
+        } catch (err) {
+          console.error(err);
+          gate.textContent = err.message || "could not load your reviews.";
+          gate.className = "gr-status error";
+        }
+      }
+
+      init();
+    </script>
+    <script type="module" src="/side-nav.js"></script>
+  </body>
+</html>

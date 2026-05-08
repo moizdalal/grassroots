@@ -37,10 +37,10 @@
 .pf-form-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.55rem;
-  margin-bottom: 1.2rem;
-  padding-bottom: 0.2rem;
-  border-bottom: 1px solid rgba(45, 106, 79, 0.1);
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--fo-line, rgba(45, 106, 79, 0.1));
 }
 
 .pf-form-tab {
@@ -48,35 +48,35 @@
   align-items: center;
   justify-content: center;
   min-height: 2.35rem;
-  padding: 0.5rem 0.95rem;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid transparent;
   border-radius: 14px 14px 0 0;
   background: transparent;
-  color: var(--tagline-body);
+  color: var(--fo-text-3, var(--tagline-body));
   font: inherit;
-  font-size: 0.84rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
+  font-size: var(--type-body);
+  font-weight: 600;
+  letter-spacing: 0.01em;
   cursor: pointer;
   transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
 }
 
 .pf-form-tab:hover,
 .pf-form-tab:focus-visible {
-  color: var(--green-deep);
-  background: rgba(45, 106, 79, 0.04);
+  color: var(--fo-text, var(--green-deep));
+  background: var(--fo-accent-soft, rgba(45, 106, 79, 0.04));
 }
 
 .pf-form-tab.is-active {
-  color: var(--green-deep);
-  background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(45, 106, 79, 0.14);
-  border-bottom-color: rgba(255, 255, 255, 0.9);
+  color: var(--fo-text, var(--green-deep));
+  background: var(--fo-surface, rgba(255, 255, 255, 0.9));
+  border-color: var(--fo-line, rgba(45, 106, 79, 0.14));
+  border-bottom-color: var(--fo-surface, rgba(255, 255, 255, 0.9));
 }
 
 .pf-form-panel {
   display: grid;
-  gap: 1.2rem;
+  gap: var(--space-5);
 }
 
 .pf-form-panel[hidden] {
@@ -109,23 +109,45 @@
   box-sizing: border-box;
   overflow: hidden;
   padding: 0.55rem 0.6rem;
-  border: 1px solid var(--input-border);
+  border: 1px solid var(--fo-line, var(--input-border));
   border-radius: 12px;
-  background: var(--sky);
+  background: var(--fo-surface-2, var(--sky));
+  color: var(--fo-text-2, var(--muted));
+  font-size: var(--type-meta);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.gr-profile-file input[type="file"]:hover,
+.pf-file-label input[type="file"]:hover {
+  border-color: var(--fo-line-strong);
+}
+
+.gr-profile-file input[type="file"]:focus,
+.pf-file-label input[type="file"]:focus {
+  outline: none;
+  border-color: var(--fo-accent);
+  box-shadow: 0 0 0 3px var(--fo-accent-soft);
 }
 
 .gr-profile-file input[type="file"]::file-selector-button,
 .pf-file-label input[type="file"]::file-selector-button {
-  margin-right: 0.8rem;
-  padding: 0.55rem 0.9rem;
+  margin-right: 0.7rem;
+  padding: 0.4rem 0.85rem;
   border: 0;
   border-radius: 999px;
-  background: rgba(45, 106, 79, 0.12);
-  color: var(--green-deep);
+  background: var(--fo-accent-soft, rgba(45, 106, 79, 0.12));
+  color: var(--fo-accent, var(--green-deep));
   font: inherit;
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: var(--type-meta);
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.gr-profile-file input[type="file"]::file-selector-button:hover,
+.pf-file-label input[type="file"]::file-selector-button:hover {
+  background: var(--fo-accent);
+  color: var(--fo-accent-on);
 }
 
 .gr-profile-hint {
@@ -134,15 +156,15 @@
 
 .gr-profile-fields {
   display: grid;
-  gap: 1.25rem;
+  gap: var(--space-5);
 }
 
 .gr-field-grid {
-  gap: 0.95rem 1rem;
+  gap: var(--space-4) var(--space-4);
 }
 
 .gr-field-grid--business {
-  gap: 0.9rem;
+  gap: var(--space-4);
 }
 
 .gr-profile-fields textarea {
@@ -173,7 +195,7 @@
 
 .pf-level-kicker {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: var(--type-eyebrow);
   font-weight: 700;
   letter-spacing: 0.11em;
   text-transform: uppercase;
@@ -183,7 +205,7 @@
 .pf-level-title {
   margin: 0;
   font-family: Fraunces, Georgia, serif;
-  font-size: clamp(1.45rem, 2.3vw, 2rem);
+  font-size: var(--type-h1);
   line-height: 1.04;
   color: var(--green-deep);
   letter-spacing: -0.03em;
@@ -198,7 +220,7 @@
 .pf-level-name {
   margin: 0;
   font-family: Fraunces, Georgia, serif;
-  font-size: 1.05rem;
+  font-size: var(--type-h3);
   color: var(--green-deep);
 }
 
@@ -216,7 +238,7 @@
   border-radius: 999px;
   background: rgba(45, 106, 79, 0.08);
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: var(--type-meta);
   font-weight: 600;
 }
 
@@ -331,7 +353,7 @@
 .pf-stage-model__label {
   margin: 0;
   text-align: center;
-  font-size: 0.82rem;
+  font-size: var(--type-meta);
   color: var(--tagline-body);
 }
 
@@ -423,7 +445,7 @@
   display: flex;
   justify-content: space-between;
   gap: 1rem;
-  font-size: 0.8rem;
+  font-size: var(--type-meta);
   font-weight: 700;
   color: var(--muted);
 }
@@ -448,7 +470,7 @@
 .pf-level-progress__copy,
 .pf-owner-copy {
   margin: 0;
-  font-size: 0.86rem;
+  font-size: var(--type-body);
   line-height: 1.55;
   color: var(--tagline-body);
 }
@@ -471,7 +493,7 @@
 
 .pf-owner-section__title {
   margin: 0;
-  font-size: 0.84rem;
+  font-size: var(--type-meta);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -510,14 +532,14 @@
 }
 
 .pf-owner-item__title {
-  font-size: 0.96rem;
+  font-size: var(--type-body);
   font-weight: 700;
   line-height: 1.35;
   color: var(--green-deep);
 }
 
 .pf-owner-item__meta {
-  font-size: 0.84rem;
+  font-size: var(--type-meta);
   line-height: 1.45;
   color: var(--tagline-body);
 }
@@ -529,7 +551,7 @@
   min-height: 1.65rem;
   padding: 0.18rem 0.58rem;
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: var(--type-eyebrow);
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -567,7 +589,7 @@
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 0.84rem;
+  font-size: var(--type-meta);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -592,7 +614,7 @@
 
 .pf-owner-empty {
   margin: 0;
-  font-size: 0.86rem;
+  font-size: var(--type-body);
   line-height: 1.55;
   color: var(--tagline-body);
 }
@@ -644,14 +666,14 @@
 
 .pf-welcome-title {
   font-family: Fraunces, Georgia, serif;
-  font-size: 1.35rem;
+  font-size: var(--type-h2);
   font-weight: 700;
   color: var(--green-deep, #1b4332);
   margin: 0 0 0.5rem;
 }
 
 .pf-welcome-body {
-  font-size: 0.88rem;
+  font-size: var(--type-body);
   line-height: 1.55;
   color: var(--tagline-body, #5c6e63);
   margin: 0 0 1.4rem;

@@ -1,6 +1,8 @@
 import { getSupabaseClient } from "/supabase-loader.js";
-import { initControlPanel } from "/control-panel.js";
-import { formatBudgetRange, getSimulatedBudgetRange } from "/sim-budget.js";
+import { formatBudgetRange, parseBudgetRange } from "/sim-budget.js";
+import { renderRatingMarkup, hydrateRatings } from "/rating.js";
+import { payAndAcceptBid } from "/payment-modal.js";
+import { getInitials } from "/initials.js";
 
 const gate = document.getElementById("listing-gate");
 const detail = document.getElementById("listing-detail");
@@ -380,8 +382,11 @@ function renderListingAttachments(listing) {
 function renderListingStatusPill(listing) {
   if (!statusPill) return;
   const tone = getListingStatusTone(listing?.status);
+  // Map listing tones (active/paused/closed) → universal gr-pill kinds.
+  const kindMap = { active: "active", paused: "paused", closed: "closed" };
   statusPill.dataset.tone = tone;
   statusPill.textContent = getListingStatusDisplay(listing?.status);
+  statusPill.className = `ld-status-pill gr-pill gr-pill--${kindMap[tone] || "muted"}`;
   statusPill.hidden = false;
 }
 
@@ -392,11 +397,17 @@ function populateListing(listing) {
   document.title = `grassroots — ${listing.title}`;
 
   /* --- Business bio --- */
-  const ownerName = profile?.full_name || listing.business_display_name || "Business owner";
+  const ownerName = profile?.full_name || listing.business_display_name || "business owner";
   document.getElementById("ld-biz-owner").textContent = ownerName;
 
-  const bizName = biz?.business_name || listing.business_display_name;
-  if (bizName) { const el = document.getElementById("ld-biz-name"); el.textContent = bizName; el.hidden = false; }
+  const bizName = biz?.business_name || listing.business_display_name || ownerName;
+  // Two name slots: the inline one in the toggle row shows when the
+  // bio is collapsed; the body heading shows when expanded. CSS hides
+  // whichever isn't relevant to the current state.
+  const nameInlineEl = document.getElementById("ld-biz-name-inline");
+  if (nameInlineEl) nameInlineEl.textContent = bizName;
+  const nameEl = document.getElementById("ld-biz-name");
+  if (nameEl) nameEl.textContent = bizName;
 
   const bizDetails = biz?.business_details || listing.business_summary;
   if (bizDetails) { const el = document.getElementById("ld-biz-details"); el.textContent = bizDetails; el.hidden = false; }
@@ -445,7 +456,7 @@ function populateListing(listing) {
   /* --- Parse structured fields from details --- */
   const detailsStr = listing.details || "";
   const parsedDetails = parseStructuredListingDetails(detailsStr);
-  const budgetRange = getSimulatedBudgetRange(detailsStr);
+  const budgetRange = parseBudgetRange(detailsStr);
   const contextEl = document.getElementById("ld-context");
   const contextSectionEl = document.getElementById("ld-context-section");
   const summaryEl = document.getElementById("ld-summary");
@@ -786,19 +797,17 @@ function showConsultantView(client, session, listing, existingBid) {
   const listingStatus = getListingStatusLabel(listing.status);
   const listingAcceptingOffers = listingStatus === "open";
 
-  /* --- Populate existing bid --- */
+  /* --- Populate existing bid (read-only — offers cannot be edited once submitted) --- */
   if (existingBid) {
+    const heading = document.querySelector(".ld-offer-panel__heading");
+    if (heading) heading.textContent = "your offer";
     const el = document.getElementById("ld-bid-existing");
-    el.innerHTML = `current offer: <strong>${formatUsd(existingBid.amount_cents)}</strong>`;
+    const messageHtml = existingBid.message
+      ? `<span class="ld-bid-existing__message">${escapeHtml(existingBid.message)}</span>`
+      : "";
+    el.innerHTML = `<span class="ld-bid-existing__amount">offer submitted: <strong>${formatUsd(existingBid.amount_cents)}</strong></span>${messageHtml}`;
     el.hidden = false;
-    amountInput.value = (existingBid.amount_cents / 100).toFixed(2);
-    if (existingBid.message) {
-      msgInput.value = existingBid.message;
-      msgWrap.classList.remove("hidden");
-      msgToggleBtn.classList.add("hidden");
-      charCount.textContent = 250 - existingBid.message.length;
-    }
-    submitBtn.textContent = "update offer";
+    formWrap.hidden = true;
   }
 
   /* --- Message toggle --- */
@@ -873,6 +882,7 @@ function showConsultantView(client, session, listing, existingBid) {
       statusEl.textContent = "enter a valid amount."; statusEl.className = "gr-status error"; return;
     }
     submitBtn.disabled = true;
+    submitBtn.classList.add("is-loading");
     const payload = {
       listing_id: listingId,
       consultant_id: myId,
@@ -880,13 +890,18 @@ function showConsultantView(client, session, listing, existingBid) {
       message: msgInput.value.trim() || null,
     };
     const { error } = await client.from("bids").upsert(payload, { onConflict: "listing_id,consultant_id" });
-    if (error) { statusEl.textContent = error.message; statusEl.className = "gr-status error"; submitBtn.disabled = false; return; }
+    if (error) {
+      statusEl.textContent = error.message;
+      statusEl.className = "gr-status error";
+      submitBtn.disabled = false;
+      submitBtn.classList.remove("is-loading");
+      return;
+    }
     statusEl.textContent = "offer submitted."; statusEl.className = "gr-status success";
-    submitBtn.textContent = "update offer";
-    const existingEl = document.getElementById("ld-bid-existing");
-    existingEl.innerHTML = `current offer: <strong>${formatUsd(cents)}</strong>`;
-    existingEl.hidden = false;
-    submitBtn.disabled = false;
+    // Offers are immutable once submitted — reload so the form is replaced
+    // by the read-only summary on next render. Keep the spinner up until
+    // navigation kicks in so the click can't appear "free" mid-network.
+    window.location.reload();
   });
 
   /* --- "have a question?" button + chat drawer --- */
@@ -1039,9 +1054,421 @@ function appendChatBubble(container, m, myId) {
    Owner view: bids list with accept, counter-offer, messaging
    ================================================================ */
 
+/* ================================================================
+   Consultant profile slideshow viewer (owner-only, listing.html)
+   ================================================================ */
+
+const consultantViewerState = {
+  client: null,
+  bids: [],
+  index: 0,
+  cache: new Map(),
+  resumeCache: new Map(),
+  engagementsCache: new Map(),
+  wired: false,
+  activeTab: "bio",
+  // Element that had focus before the viewer opened — used to restore
+  // focus when the viewer closes (a11y best practice for modals).
+  returnFocusEl: null,
+};
+
+function setupConsultantViewer(client, bids) {
+  consultantViewerState.client = client;
+  consultantViewerState.bids = bids;
+  if (consultantViewerState.wired) return;
+  consultantViewerState.wired = true;
+
+  // Open the viewer when any bid card's name button is clicked.
+  document.addEventListener("click", (event) => {
+    const opener = event.target.closest("[data-cv-open]");
+    if (opener instanceof HTMLElement) {
+      event.preventDefault();
+      const bidId = opener.getAttribute("data-cv-bid-id");
+      const idx = consultantViewerState.bids.findIndex((b) => b.id === bidId);
+      if (idx >= 0) openConsultantViewer(idx);
+      return;
+    }
+    const closer = event.target.closest("[data-cv-close]");
+    if (closer instanceof HTMLElement) {
+      event.preventDefault();
+      closeConsultantViewer();
+    }
+  });
+
+  document.getElementById("ld-cv-prev")?.addEventListener("click", () => {
+    if (!consultantViewerState.bids.length) return;
+    const total = consultantViewerState.bids.length;
+    openConsultantViewer((consultantViewerState.index - 1 + total) % total);
+  });
+  document.getElementById("ld-cv-next")?.addEventListener("click", () => {
+    if (!consultantViewerState.bids.length) return;
+    const total = consultantViewerState.bids.length;
+    openConsultantViewer((consultantViewerState.index + 1) % total);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    const viewer = document.getElementById("ld-cv");
+    if (!viewer || viewer.classList.contains("hidden")) return;
+    if (event.key === "Escape") closeConsultantViewer();
+    else if (event.key === "ArrowLeft") document.getElementById("ld-cv-prev")?.click();
+    else if (event.key === "ArrowRight") document.getElementById("ld-cv-next")?.click();
+  });
+
+  document.querySelectorAll(".ld-cv__tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const which = tab.dataset.cvTab;
+      if (which) selectConsultantViewerTab(which);
+    });
+  });
+}
+
+function selectConsultantViewerTab(which) {
+  consultantViewerState.activeTab = which;
+  document.querySelectorAll(".ld-cv__tab").forEach((tab) => {
+    const active = tab.dataset.cvTab === which;
+    tab.classList.toggle("is-active", active);
+    tab.setAttribute("aria-selected", active ? "true" : "false");
+  });
+  document.querySelectorAll(".ld-cv__panel").forEach((panel) => {
+    const active = panel.dataset.cvPanel === which;
+    panel.classList.toggle("is-active", active);
+    panel.hidden = !active;
+  });
+  if (which === "resume") {
+    const bid = consultantViewerState.bids[consultantViewerState.index];
+    if (bid) loadResumePanel(bid.consultant_id);
+  }
+}
+
+function openConsultantViewer(index) {
+  const viewer = document.getElementById("ld-cv");
+  const { bids } = consultantViewerState;
+  const bid = bids[index];
+  if (!viewer || !bid) return;
+  // Remember what had focus so we can return there on close. Only remember
+  // on the first open, not when navigating between consultants.
+  if (viewer.classList.contains("hidden")) {
+    consultantViewerState.returnFocusEl = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+  }
+  consultantViewerState.index = index;
+  viewer.classList.remove("hidden");
+  viewer.setAttribute("aria-hidden", "false");
+  document.body.classList.add("gr-modal-open");
+  // Pull keyboard focus into the modal so screen readers and keyboard
+  // users land inside it. Defer to the next frame so visibility flips
+  // before the focus call.
+  requestAnimationFrame(() => {
+    const closeBtn = viewer.querySelector("[data-cv-close]");
+    if (closeBtn instanceof HTMLElement) closeBtn.focus();
+  });
+
+  const total = bids.length;
+  const indexEl = document.getElementById("ld-cv-index");
+  const totalEl = document.getElementById("ld-cv-total");
+  if (indexEl) indexEl.textContent = String(index + 1);
+  if (totalEl) totalEl.textContent = String(total);
+
+  const prevBtn = document.getElementById("ld-cv-prev");
+  const nextBtn = document.getElementById("ld-cv-next");
+  if (prevBtn) prevBtn.hidden = total <= 1;
+  if (nextBtn) nextBtn.hidden = total <= 1;
+
+  const titleEl = document.getElementById("ld-cv-title");
+  const offerEl = document.getElementById("ld-cv-offer");
+  const consultantName = bid.profiles?.full_name || "consultant";
+  if (titleEl) titleEl.textContent = consultantName;
+  if (offerEl) {
+    const amount = formatUsd(bid.amount_cents);
+    const msg = bid.message ? ` — “${bid.message}”` : "";
+    offerEl.textContent = `offer: ${amount}${msg}`;
+  }
+
+  const statusEl = document.getElementById("ld-cv-status");
+  const contentEl = document.getElementById("ld-cv-content");
+  const resumePanel = document.getElementById("ld-cv-panel-resume");
+  const workPanel = document.getElementById("ld-cv-panel-work");
+  if (statusEl) {
+    statusEl.textContent = "loading…";
+    statusEl.className = "gr-status";
+    statusEl.hidden = false;
+  }
+  if (contentEl) contentEl.innerHTML = "";
+  if (resumePanel) resumePanel.innerHTML = "";
+  if (workPanel) workPanel.innerHTML = "";
+
+  selectConsultantViewerTab("bio");
+
+  loadConsultantProfile(bid.consultant_id)
+    .then((data) => {
+      if (consultantViewerState.bids[consultantViewerState.index]?.id !== bid.id) return; // user navigated away
+      const titleEl = document.getElementById("ld-cv-title");
+      if (titleEl) {
+        titleEl.innerHTML = `${escapeHtml(data.profile?.full_name || "consultant")} ${renderRatingMarkup(data.rating, { size: "md" })}`;
+      }
+      renderConsultantViewerContent(data);
+      renderConsultantPastWorkPanel(bid.consultant_id, data);
+      if (statusEl) statusEl.hidden = true;
+    })
+    .catch((err) => {
+      if (consultantViewerState.bids[consultantViewerState.index]?.id !== bid.id) return;
+      if (statusEl) {
+        statusEl.textContent = err?.message || "could not load consultant profile.";
+        statusEl.className = "gr-status error";
+      }
+    });
+}
+
+function closeConsultantViewer() {
+  const viewer = document.getElementById("ld-cv");
+  if (!viewer) return;
+  viewer.classList.add("hidden");
+  viewer.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("gr-modal-open");
+  // Return focus to whatever opened the viewer, so keyboard users don't
+  // get stranded at the top of the page.
+  const returnTo = consultantViewerState.returnFocusEl;
+  consultantViewerState.returnFocusEl = null;
+  if (returnTo && document.contains(returnTo)) {
+    requestAnimationFrame(() => returnTo.focus());
+  }
+}
+
+async function loadConsultantProfile(consultantId) {
+  if (!consultantId) throw new Error("missing consultant id");
+  if (consultantViewerState.cache.has(consultantId)) {
+    return consultantViewerState.cache.get(consultantId);
+  }
+  const client = consultantViewerState.client;
+  const { data: { session } } = await client.auth.getSession();
+  const headers = {};
+  if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+  const res = await fetch(`/api/consultant-profile/${encodeURIComponent(consultantId)}`, { headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.profile) {
+    throw new Error(data.error || "consultant profile not found.");
+  }
+  consultantViewerState.cache.set(consultantId, data);
+  return data;
+}
+
+function renderConsultantViewerContent({ profile, education, rating }) {
+  const contentEl = document.getElementById("ld-cv-content");
+  if (!contentEl) return;
+  const edu = education || {};
+
+  const avatarHtml = profile.avatar_url
+    ? `<img class="pf-bv__avatar" src="${escapeAttr(profile.avatar_url)}" alt="" />`
+    : `<div class="pf-bv__avatar-placeholder" aria-hidden="true">${escapeHtml(getInitials(profile.full_name))}</div>`;
+
+  const dims = [
+    ["work product", rating?.work_product_quality_avg],
+    ["communication", rating?.communication_avg],
+    ["timeliness", rating?.timeliness_avg],
+    ["professionalism", rating?.professionalism_avg],
+    ["cost value", rating?.cost_value_avg],
+  ];
+  const ratingBreakdown = rating?.review_count
+    ? `
+      <div class="pf-bv__section">
+        <p class="pf-bv__section-title">ratings · ${rating.review_count} review${rating.review_count === 1 ? "" : "s"}</p>
+        <div class="ld-cv__rating-grid">
+          ${dims.map(([label, val]) => `
+            <div class="ld-cv__rating-row">
+              <span class="ld-cv__rating-row__label">${label}</span>
+              ${renderRatingMarkup({ rating_average: val, review_count: 1 }, { size: "sm", showCount: false })}
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `
+    : "";
+
+  const major = edu.major || "";
+  const minor = edu.minor || "";
+  const school = edu.school || "";
+  const eduParts = [];
+  if (major) eduParts.push(major);
+  if (minor) eduParts.push("minor in " + minor);
+  if (school) eduParts.push(school);
+  const eduLine = eduParts.join(" · ");
+
+  contentEl.innerHTML = `
+    <div class="pf-bv">
+      <div class="pf-bv__header">
+        ${avatarHtml}
+        <div>
+          <h2 class="pf-bv__name">${escapeHtml(profile.full_name)}</h2>
+          ${eduLine ? `<p class="pf-bv__meta">${escapeHtml(eduLine)}</p>` : ""}
+        </div>
+      </div>
+      ${ratingBreakdown}
+      ${eduLine ? `
+        <div class="pf-bv__section">
+          <p class="pf-bv__section-title">education</p>
+          <p class="pf-bv__detail">${escapeHtml(eduLine)}</p>
+        </div>
+      ` : ""}
+      ${profile.linkedin_url ? `
+        <div class="pf-bv__section">
+          <p class="pf-bv__section-title">linkedin</p>
+          <p class="pf-bv__detail"><a href="${escapeAttr(profile.linkedin_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(profile.linkedin_url)}</a></p>
+        </div>
+      ` : ""}
+      ${(!profile.linkedin_url && !eduLine && !ratingBreakdown) ? `
+        <p class="pf-bv__empty">this consultant hasn't shared any public bio details yet.</p>
+      ` : ""}
+    </div>
+  `;
+}
+
+async function renderConsultantPastWorkPanel(consultantId, data) {
+  const panel = document.getElementById("ld-cv-panel-work");
+  if (!panel) return;
+  const portfolio = Array.isArray(data?.portfolio) ? data.portfolio : [];
+  panel.innerHTML = `<p class="gr-status" data-cv-loading>loading past work…</p>`;
+
+  const engagements = await loadConsultantEngagements(consultantId).catch(() => []);
+
+  if (consultantViewerState.bids[consultantViewerState.index]?.consultant_id !== consultantId) return;
+
+  const sections = [];
+  if (engagements.length) {
+    sections.push(`
+      <div class="ld-cv__work-section">
+        <p class="ld-cv__work-section-title">past engagements</p>
+        <div class="ld-cv__work-list">
+          ${engagements.map((eng) => {
+            const title = eng.listings?.title || "engagement";
+            const scope = eng.listings?.description || "";
+            const amount = eng.amount_cents != null ? formatUsd(eng.amount_cents) : "";
+            return `
+              <div class="ld-cv__work-row">
+                <div>
+                  <p class="ld-cv__work-row__title">${escapeHtml(title)}</p>
+                  ${scope ? `<p class="ld-cv__work-row__scope">${escapeHtml(truncateScope(scope))}</p>` : ""}
+                </div>
+                ${amount ? `<span class="ld-cv__work-row__amount">${escapeHtml(amount)}</span>` : ""}
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `);
+  }
+
+  if (portfolio.length) {
+    sections.push(`
+      <div class="ld-cv__work-section">
+        <p class="ld-cv__work-section-title">shared files</p>
+        <div class="ld-cv__work-list">
+          ${portfolio.map((item) => {
+            const fileName = (item.file_path || "").split("/").pop() || "file";
+            const url = item.url || "#";
+            return `
+              <div class="ld-cv__work-row">
+                <div>
+                  <p class="ld-cv__work-row__title">${escapeHtml(fileName)}</p>
+                  ${item.description ? `<p class="ld-cv__work-row__scope">${escapeHtml(item.description)}</p>` : ""}
+                  <a class="ld-cv__work-row__file" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">open file ↗</a>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `);
+  }
+
+  panel.innerHTML = sections.length
+    ? sections.join("")
+    : `<p class="ld-cv__panel-empty">no past engagements or shared files yet.</p>`;
+}
+
+async function loadConsultantEngagements(consultantId) {
+  if (consultantViewerState.engagementsCache.has(consultantId)) {
+    return consultantViewerState.engagementsCache.get(consultantId);
+  }
+  const client = consultantViewerState.client;
+  if (!client) return [];
+  const { data, error } = await client
+    .from("bids")
+    .select("id, amount_cents, accepted_at, listings!inner(id, title, description, status)")
+    .eq("consultant_id", consultantId)
+    .eq("status", "accepted")
+    .order("accepted_at", { ascending: false })
+    .limit(20);
+  if (error) return [];
+  const list = data || [];
+  consultantViewerState.engagementsCache.set(consultantId, list);
+  return list;
+}
+
+function truncateScope(text, max = 180) {
+  const trimmed = String(text || "").trim();
+  if (trimmed.length <= max) return trimmed;
+  return trimmed.slice(0, max - 1).trimEnd() + "…";
+}
+
+async function loadResumePanel(consultantId) {
+  const panel = document.getElementById("ld-cv-panel-resume");
+  if (!panel) return;
+
+  if (consultantViewerState.resumeCache.has(consultantId)) {
+    panel.innerHTML = consultantViewerState.resumeCache.get(consultantId);
+    return;
+  }
+
+  const data = consultantViewerState.cache.get(consultantId);
+  const profile = data?.profile;
+
+  if (!profile?.resume_on_file) {
+    const html = `<p class="ld-cv__panel-empty">this consultant has not made a resume publicly visible.</p>`;
+    panel.innerHTML = html;
+    consultantViewerState.resumeCache.set(consultantId, html);
+    return;
+  }
+  if (!profile?.resume_available) {
+    const html = `<p class="ld-cv__panel-empty">resume is not available to your account.</p>`;
+    panel.innerHTML = html;
+    consultantViewerState.resumeCache.set(consultantId, html);
+    return;
+  }
+
+  panel.innerHTML = `<p class="gr-status">loading resume…</p>`;
+
+  try {
+    const client = consultantViewerState.client;
+    const { data: { session } } = await client.auth.getSession();
+    const headers = {};
+    if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+    const res = await fetch(`/api/consultant-profile/${encodeURIComponent(consultantId)}/resume`, { headers });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body.url) throw new Error(body.error || "could not open resume.");
+
+    if (consultantViewerState.bids[consultantViewerState.index]?.consultant_id !== consultantId) return;
+    if (consultantViewerState.activeTab !== "resume") return;
+
+    const html = `
+      <div class="ld-cv__resume-actions">
+        <a class="gr-btn gr-btn--ghost gr-btn--sm" href="${escapeAttr(body.url)}" target="_blank" rel="noopener noreferrer">open in new tab ↗</a>
+      </div>
+      <iframe class="ld-cv__resume-frame" src="${escapeAttr(body.url)}" title="${escapeAttr((body.file_name || "resume"))}"></iframe>
+    `;
+    panel.innerHTML = html;
+    consultantViewerState.resumeCache.set(consultantId, html);
+  } catch (err) {
+    panel.innerHTML = `<p class="gr-status error">${escapeHtml(err?.message || "could not load resume.")}</p>`;
+  }
+}
+
 function showOwnerBids(client, session, listing, bids, educationMap = new Map()) {
   const section = document.getElementById("ld-bids-owner");
   section.hidden = false;
+
+  // Initialise the consultant slideshow viewer with this run's bids.
+  setupConsultantViewer(client, bids);
 
   const list = document.getElementById("ld-bids-list");
   const budgetEl = document.getElementById("ld-counter-budget");
@@ -1057,60 +1484,54 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
 
   for (const b of bids) {
     const card = document.createElement("div");
-    card.className = "ld-bid-card";
+    card.className = `ld-bid-card ld-bid-card--${b.status || "pending"}`;
     const p = b.profiles;
     const education = b.education || educationMap.get(b.consultant_id) || null;
     const educationLine = formatConsultantEducationLine(education);
-    const minor = education?.minor?.trim?.() || "";
     const rawName = p?.full_name || "Consultant";
     const name = escapeHtml(rawName);
-    const profileLink = b.consultant_id ? `/consultant-profile.html?id=${b.consultant_id}` : "";
-    const nameHtml = profileLink
-      ? `<a href="${escapeAttr(profileLink)}" class="gr-bid-link gr-bid-link--primary">${name}</a>`
-      : name;
+    const ratingChip = b.consultant_id
+      ? `<span class="ld-bid-card__rating" data-consultant-rating="${escapeAttr(b.consultant_id)}" data-rating-size="sm" data-rating-count="false"></span>`
+      : "";
+    const nameHtml = b.consultant_id
+      ? `<button type="button" class="ld-bid-card__name-btn" data-cv-open data-cv-bid-id="${escapeAttr(b.id)}">${name}</button>${ratingChip}`
+      : `<span class="ld-bid-card__name-btn">${name}</span>${ratingChip}`;
     const avatar = publicAvatarUrl(client, p?.avatar_path);
-    const li = p?.linkedin_url ? `<a href="${escapeAttr(p.linkedin_url)}" target="_blank" rel="noopener noreferrer" class="gr-bid-link">linkedin</a>` : "";
-    const resumeLink = b.consultant_id
-      ? `<a href="/consultant-resume.html?id=${escapeAttr(b.consultant_id)}" class="gr-bid-link">resume</a>`
-      : "";
-    const workLink = b.consultant_id
-      ? `<a href="/consultant-work.html?id=${escapeAttr(b.consultant_id)}" class="gr-bid-link">past work</a>`
-      : "";
-    const msg = b.message ? `<p class="ld-bid-message">${escapeHtml(b.message)}</p>` : "";
+    const msg = b.message ? `<p class="ld-bid-card__message">${escapeHtml(b.message)}</p>` : "";
     const img = avatar
-      ? `<img class="ld-bid-avatar" src="${escapeAttr(avatar)}" width="52" height="52" alt="" />`
-      : `<div class="ld-bid-avatar ld-bid-avatar--placeholder" aria-hidden="true"></div>`;
-    const date = relativeDate(b.created_at);
+      ? `<img class="ld-bid-avatar" src="${escapeAttr(avatar)}" width="44" height="44" alt="" />`
+      : `<div class="ld-bid-avatar ld-bid-avatar--placeholder" aria-hidden="true">${escapeHtml(getInitials(rawName))}</div>`;
 
-    const statusBadge = b.status !== "pending"
-      ? `<span class="ld-bid-status-badge ld-bid-status-badge--${b.status}">${b.status}</span>`
+    // One status pill — pending shows nothing (default state); accepted/countered/declined get a chip.
+    const statusPillMap = {
+      accepted: { kind: "accepted", label: "accepted · ongoing" },
+      countered: { kind: "warn", label: "countered" },
+      declined: { kind: "muted", label: "declined" },
+    };
+    const pillInfo = statusPillMap[b.status];
+    const statusPill = pillInfo
+      ? `<span class="gr-pill gr-pill--${pillInfo.kind}">${escapeHtml(pillInfo.label)}</span>`
       : "";
 
-    let proposalIndicator = "";
-    if (b.status === "accepted") {
-      proposalIndicator = `<span class="ld-proposal-indicator ld-proposal-indicator--done">accepted — continue in ongoing work</span>`;
-    }
-
-    let counterInfo = "";
-    if (b.counter_offer_cents) {
-      counterInfo = `<div class="ld-bid-counter-info">counter: <strong>${formatUsd(b.counter_offer_cents)}</strong>${b.counter_offer_message ? ` — "${escapeHtml(b.counter_offer_message)}"` : ""}</div>`;
-    }
+    const counterInfo = b.counter_offer_cents
+      ? `<p class="ld-bid-card__counter">your counter: <strong>${formatUsd(b.counter_offer_cents)}</strong>${b.counter_offer_message ? ` — "${escapeHtml(b.counter_offer_message)}"` : ""}</p>`
+      : "";
 
     card.innerHTML = `
-      <div class="ld-bid-card__header">
+      <div class="ld-bid-card__head">
         ${img}
-        <div class="ld-bid-card__info">
-          <span class="ld-bid-card__name">${nameHtml} ${statusBadge}</span>
-          <span class="ld-bid-card__amount">${formatUsd(b.amount_cents)}</span>
+        <div class="ld-bid-card__id">
+          <span class="ld-bid-card__name">${nameHtml}</span>
           ${educationLine ? `<span class="ld-bid-card__edu">${escapeHtml(educationLine)}</span>` : ""}
-          ${minor ? `<span class="ld-bid-card__minor">minor in ${escapeHtml(minor)}</span>` : ""}
         </div>
+        <span class="ld-bid-card__amount">${formatUsd(b.amount_cents)}</span>
       </div>
-      <div class="ld-bid-card__meta">${resumeLink}${workLink}${li}<span class="ld-bid-card__date">${date}</span></div>
       ${msg}
       ${counterInfo}
-      ${proposalIndicator}
-      <div class="ld-bid-card__actions"></div>
+      <div class="ld-bid-card__foot">
+        <span class="ld-bid-card__status">${statusPill}</span>
+        <div class="ld-bid-card__actions"></div>
+      </div>
       <div class="ld-bid-card__counter-form hidden"></div>
       <div class="ld-bid-card__msg-area hidden"></div>
     `;
@@ -1166,23 +1587,23 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
 
     list.appendChild(card);
   }
+
+  hydrateRatings(list);
 }
 
 async function handleAcceptBid(client, session, listing, bid, card) {
-  if (!confirm(`accept this bid of ${formatUsd(bid.amount_cents)}?`)) return;
+  // Payment must clear before the bid flips to `accepted`. The server's
+  // /api/stripe/confirm-acceptance does the status update once Stripe
+  // captures the funds into our platform balance (escrow).
+  const result = await payAndAcceptBid({ client, bid, listing });
+  if (!result?.ok) return;
 
-  const { error } = await client.from("bids").update({
-    status: "accepted",
-    accepted_at: new Date().toISOString(),
-  }).eq("id", bid.id);
-
-  if (error) { alert(error.message); return; }
-
+  const paidAmount = bid.counter_offer_cents != null ? bid.counter_offer_cents : bid.amount_cents;
   await client.from("notifications").insert({
     user_id: bid.consultant_id,
     type: "bid_accepted",
-    title: "your bid was accepted!",
-    body: `your ${formatUsd(bid.amount_cents)} proposal for "${escapeHtml(listing.title)}" was accepted. the business is setting up kickoff availability now.`,
+    title: "your bid was accepted.",
+    body: `your ${formatUsd(paidAmount)} proposal for "${escapeHtml(listing.title)}" was accepted. the business is setting up kickoff availability now.`,
     link: engagementLink(bid.id),
   });
 
@@ -1289,7 +1710,6 @@ async function init() {
 
   try {
     const client = await getSupabaseClient();
-    // initControlPanel(client); — replaced by /side-nav.js
     const { data: { session } } = await client.auth.getSession();
     const { listing, error } = await loadListing(client, listingId);
 

@@ -1,4 +1,5 @@
 import { getSupabaseClient } from "/supabase-loader.js";
+import { getInitials } from "/initials.js";
 
 function findNavLinks() {
   const navLinks = document.querySelector(".gr-nav__links");
@@ -31,10 +32,7 @@ function buildProfileMenu(profileItem, currentPath, onSignOut, opts) {
   const onSettingsLikePath =
     currentPath === "/settings.html" || currentPath === "/profile.html";
 
-  const initial = String(opts?.fullName || opts?.email || "?")
-    .trim()
-    .charAt(0)
-    .toUpperCase() || "?";
+  const initial = getInitials(opts?.fullName || opts?.email);
   const avatarUrl = opts?.avatarUrl || "";
   const avatarMarkup = avatarUrl
     ? `<img class="gr-nav__avatar" src="${avatarUrl}" alt="" />`

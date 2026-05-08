@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grassroots — set up payouts</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/grassroots.css" />
+    <link rel="stylesheet" href="/field-office.css" />
+    <script src="/theme.js"></script>
+    <script src="/loading-overlay.js"></script>
+  </head>
+  <body class="gr-body gr-has-side-nav">
+    <main class="gr-shell">
+      <a href="javascript:history.back()" class="ld-back">← back</a>
+
+      <div class="gr-page-intro">
+        <p class="gr-page-eyebrow">payouts · sandbox mode</p>
+        <h1 class="gr-title">set up <span class="fo-title-italic">payouts</span></h1>
+        <p class="gr-subtitle">verify your identity so grassroots can pay you when an engagement is marked complete. this runs in stripe's sandbox — no real bank info needed.</p>
+      </div>
+
+      <p id="po-gate" class="gr-status" aria-live="polite">loading…</p>
+
+      <div id="po-shell" hidden>
+        <div class="po-status" id="po-status-card" hidden>
+          <div class="po-status__row">
+            <span class="po-status__dot" id="po-status-dot"></span>
+            <span class="po-status__label" id="po-status-label">checking…</span>
+          </div>
+          <p class="po-status__detail" id="po-status-detail"></p>
+        </div>
+
+        <div id="po-onboarding" class="po-onboarding"></div>
+      </div>
+    </main>
+
+    <script type="module" src="/nav-session.js"></script>
+    <script src="https://connect-js.stripe.com/v1.0/connect.js"></script>
+    <script type="module">
+      import { getSupabaseClient } from "/supabase-loader.js";
+
+      const $ = (id) => document.getElementById(id);
+
+      async function authedFetch(client, url, options = {}) {
+        const { data: { session } } = await client.auth.getSession();
+        const headers = new Headers(options.headers || {});
+        if (session?.access_token) headers.set("Authorization", `Bearer ${session.access_token}`);
+        if (options.body && !(options.body instanceof FormData)) headers.set("Content-Type", "application/json");
+        return fetch(url, { ...options, headers });
+      }
+
+      async function refreshStatus(client) {
+        try {
+          const res = await authedFetch(client, "/api/stripe/account-status");
+          const data = await res.json();
+          const card = $("po-status-card");
+          const dot = $("po-status-dot");
+          const label = $("po-status-label");
+          const detail = $("po-status-detail");
+          card.hidden = false;
+          if (data.onboarded) {
+            dot.dataset.state = "active";
+            label.textContent = "payouts active — you're all set.";
+            detail.textContent = "we can transfer escrowed funds to your account when work is marked complete.";
+          } else {
+            dot.dataset.state = "pending";
+            label.textContent = data.details_submitted ? "verification in progress…" : "complete the form below";
+            const due = (data.requirements_due || []).slice(0, 3).join(", ");
+            detail.textContent = due ? `still needed: ${due}` : "stripe is reviewing your submission. this can take a moment.";
+          }
+          return data;
+        } catch (_) {
+          return null;
+        }
+      }
+
+      async function init() {
+        const gate = $("po-gate");
+        try {
+          const client = await getSupabaseClient();
+          const { data: { session } } = await client.auth.getSession();
+          if (!session?.user) {
+            window.location.replace("/signin.html?next=" + encodeURIComponent("/payouts.html"));
+            return;
+          }
+          const { data: profile } = await client.from("profiles").select("role").eq("id", session.user.id).maybeSingle();
+          if (profile?.role && profile.role !== "consultant") {
+            gate.textContent = "payouts setup is for consultants only.";
+            gate.className = "gr-status";
+            return;
+          }
+
+          const sessionRes = await authedFetch(client, "/api/stripe/account-session", { method: "POST" });
+          const sessionData = await sessionRes.json();
+          if (!sessionRes.ok) throw new Error(sessionData.error || "could not start onboarding.");
+
+          const stripeConnect = await StripeConnect.loadConnectAndInitialize({
+            publishableKey: sessionData.publishable_key,
+            fetchClientSecret: async () => sessionData.client_secret,
+            appearance: {
+              overlays: "dialog",
+              variables: {
+                colorPrimary: "#2d6a4f",
+                colorBackground: getComputedStyle(document.documentElement).getPropertyValue("--fo-surface").trim() || "#ffffff",
+                colorText: getComputedStyle(document.documentElement).getPropertyValue("--fo-text").trim() || "#0f1f1a",
+                fontFamily: "Manrope, system-ui, sans-serif",
+                buttonPrimaryColorBackground: "#2d6a4f",
+              },
+            },
+          });
+
+          const onboarding = stripeConnect.create("account-onboarding");
+          onboarding.setOnExit(() => refreshStatus(client));
+          $("po-onboarding").appendChild(onboarding);
+
+          gate.hidden = true;
+          $("po-shell").hidden = false;
+          await refreshStatus(client);
+        } catch (err) {
+          console.error(err);
+          gate.textContent = err.message || "could not load payouts setup.";
+          gate.className = "gr-status error";
+        }
+      }
+
+      // Stripe Connect.js exposes itself as `StripeConnect` on window.
+      const waitForStripe = () => new Promise((resolve) => {
+        if (window.StripeConnect) return resolve();
+        const id = setInterval(() => {
+          if (window.StripeConnect) { clearInterval(id); resolve(); }
+        }, 50);
+      });
+
+      waitForStripe().then(init);
+    </script>
+    <script type="module" src="/side-nav.js"></script>
+  </body>
+</html>

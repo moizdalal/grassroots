@@ -1,7 +1,7 @@
 import { getSupabaseClient } from "/supabase-loader.js";
 import { initNotifBell } from "/nav-notify.js";
-import { initControlPanel } from "/control-panel.js";
-import { formatBudgetRange, getSimulatedBudgetRange } from "/sim-budget.js";
+import { formatBudgetRange, parseBudgetRange } from "/sim-budget.js";
+import { getInitials } from "/initials.js";
 
 const sessionSlot = document.getElementById("session-slot");
 const listingGrid = document.getElementById("listing-grid");
@@ -30,7 +30,7 @@ function publicAvatarUrl(client, path) {
 
 function parseDetails(row) {
   const detailsStr = row.details || "";
-  const budgetRange = getSimulatedBudgetRange(detailsStr);
+  const budgetRange = parseBudgetRange(detailsStr);
   return { budgetRange };
 }
 
@@ -41,12 +41,7 @@ function renderSession(client, session) {
     return;
   }
 
-  const label =
-    session.user.user_metadata?.full_name || session.user.email || "Signed in";
-
-  sessionSlot.innerHTML = `
-    <span>signed in as ${escapeHtml(label)}</span>
-  `;
+  sessionSlot.innerHTML = "";
 
   // Business owners get routed to their dashboard — they don't browse the marketplace.
   // Only redirect on a confirmed business_owner role; a fetch error or null role
@@ -71,30 +66,18 @@ async function fetchOpenListings(client) {
   return { data, error };
 }
 
-function renderCounterStrip(rows) {
-  const host = document.getElementById("marketplace-counter");
+function renderResultCount(filteredCount, totalCount) {
+  const host = document.getElementById("result-count");
   if (!host) return;
-  if (!rows.length) {
-    host.innerHTML = "";
+  if (!totalCount) {
+    host.textContent = "";
     return;
   }
-  const totalBudget = rows.reduce((acc, r) => {
-    const { budgetRange } = parseDetails(r);
-    if (!budgetRange) return acc;
-    const mid = ((budgetRange.min || 0) + (budgetRange.max || 0)) / 2;
-    return acc + mid;
-  }, 0);
-  const cats = new Set();
-  for (const r of rows) {
-    if (r.category) {
-      r.category.split(",").map((c) => c.trim()).filter(Boolean).forEach((c) => cats.add(c));
-    }
+  if (filteredCount === totalCount) {
+    host.textContent = `${totalCount} ${totalCount === 1 ? "opportunity" : "opportunities"}`;
+  } else {
+    host.textContent = `showing ${filteredCount} of ${totalCount}`;
   }
-  host.innerHTML = `
-    <span class="fo-counter__item"><strong>${rows.length}</strong>open</span>
-    <span class="fo-counter__item"><strong>${cats.size}</strong>categories</span>
-    <span class="fo-counter__item"><strong>$${Math.round(totalBudget).toLocaleString()}</strong>combined budget</span>
-  `;
 }
 
 function condenseSummary(text, max = 90) {
@@ -114,7 +97,7 @@ function renderCard(row, client) {
   const businessName = biz?.business_name || poster;
   const avatarUrl = publicAvatarUrl(client, profile?.avatar_path);
   const { budgetRange } = parseDetails(row);
-  const initial = escapeHtml((businessName || poster).charAt(0).toUpperCase());
+  const initial = escapeHtml(getInitials(businessName || poster));
 
   const categories = row.category
     ? row.category.split(",").map((c) => c.trim()).filter(Boolean)
@@ -202,29 +185,7 @@ function renderListings(rows, client) {
     return;
   }
 
-  // Section 1: Recommended (algorithm placeholder)
-  listingGrid.appendChild(
-    renderSection({
-      title: "recommended for you",
-      subtitle: "tuned to your skills and history",
-      rows: [],
-      emptyText: "personalized picks coming soon — we're learning what you like.",
-      client,
-    })
-  );
-
-  // Section 2: Near you (location placeholder)
-  listingGrid.appendChild(
-    renderSection({
-      title: "near you",
-      subtitle: "small businesses in your area",
-      rows: [],
-      emptyText: "set your location in profile settings to see local opportunities.",
-      client,
-    })
-  );
-
-  // Section 3+: By tag — bucket every row by each of its categories. A row can
+  // By tag — bucket every row by each of its categories. A row can
   // appear in multiple tag rows (one per category). Order by bucket size desc.
   const byTag = new Map();
   const untagged = [];
@@ -329,7 +290,7 @@ function applyFilters() {
     return true;
   });
 
-  renderCounterStrip(filtered);
+  renderResultCount(filtered.length, allRows.length);
   renderListings(filtered, _client);
 }
 
@@ -344,7 +305,7 @@ function setupFilterListeners() {
 }
 
 async function refreshListings(client) {
-  listingsStatus.textContent = "Loading…";
+  listingsStatus.textContent = "loading…";
   listingsStatus.className = "gr-status";
 
   const { data: rows, error } = await fetchOpenListings(client);
@@ -367,13 +328,13 @@ async function refreshListings(client) {
 
   listingsStatus.textContent = "";
   populateCategoryDropdown();
-  renderCounterStrip(allRows);
+  renderResultCount(allRows.length, allRows.length);
   renderListings(allRows, client);
   setupFilterListeners();
 }
 
 async function init() {
-  listingsStatus.textContent = "Loading…";
+  listingsStatus.textContent = "loading…";
 
   try {
     const client = await getSupabaseClient();
@@ -384,7 +345,6 @@ async function init() {
 
     renderSession(client, session);
     initNotifBell(client);
-    // initControlPanel(client); — replaced by /side-nav.js
 
     client.auth.onAuthStateChange(async (_event, nextSession) => {
       renderSession(client, nextSession);
@@ -392,7 +352,7 @@ async function init() {
 
     await refreshListings(client);
   } catch (error) {
-    listingsStatus.textContent = error.message || "Could not initialize marketplace.";
+    listingsStatus.textContent = error.message || "could not initialize marketplace.";
     listingsStatus.className = "gr-status error";
   }
 }

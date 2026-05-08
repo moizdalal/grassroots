@@ -5,6 +5,8 @@
 // Skips itself on pages that already render a .bza__side (the
 // dashboard injects its own from the loaded data).
 
+import { getInitials } from "/initials.js";
+
 const COLLAPSE_KEY = "grassroots_dash_sidebar_collapsed";
 
 const ICONS = {
@@ -120,7 +122,7 @@ function renderSidebar({ role, activeNavId, activeRoute }) {
       </label>
 ${postCta}
       <div class="bza__side-foot">
-        <a class="bza__user" id="gr-side-user" href="/profile.html" title="open profile settings">
+        <a class="bza__user" id="gr-side-user" href="/settings.html#profile" title="open profile settings">
           <span class="bza__user-avatar" id="gr-side-user-avatar"></span>
           <span class="bza__user-meta">
             <span class="bza__user-name" id="gr-side-user-name">your account</span>
@@ -163,7 +165,7 @@ function applyUserCard(client, profile) {
     const avatarUrl = client && profile?.avatar_path
       ? client.storage.from("avatars").getPublicUrl(profile.avatar_path).data?.publicUrl || ""
       : "";
-    const initial = (profile?.full_name || "?").charAt(0).toUpperCase() || "?";
+    const initial = getInitials(profile?.full_name);
     avEl.innerHTML = avatarUrl ? `<img src="${avatarUrl}" alt="" />` : initial;
   }
 }
@@ -206,7 +208,7 @@ function wireDarkMode() {
   const isDark = (t) => t === "dark-forest" || t === "dark" || t === "forest-soft";
   input.checked = isDark(window.GrassrootsTheme.get());
   input.addEventListener("change", () => {
-    window.GrassrootsTheme.set(input.checked ? "dark-forest" : "light");
+    window.GrassrootsTheme.set(input.checked ? "dark" : "light");
   });
   window.addEventListener("grassroots:themechange", (e) => {
     input.checked = isDark(e.detail || window.GrassrootsTheme.get());

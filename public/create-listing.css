@@ -1,6 +1,11 @@
-/* --- Wide shell override --- */
+/* --- Wide shell override ---
+   width:100% so this fills its grid track (the side-nav layout makes
+   <main> a grid item; gr-shell's `margin: clamp() auto` would otherwise
+   shrink it to content width when justify-self stays at default). */
 .cl-layout-shell {
-  max-width: 1120px;
+  width: 100%;
+  max-width: 1320px;
+  padding: 0 clamp(1.25rem, 4vw, 3rem);
 }
 
 /* --- Split layout --- */
@@ -30,7 +35,7 @@
 }
 
 .cl-preview__label {
-  font-size: 0.68rem;
+  font-size: var(--type-eyebrow);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -78,7 +83,7 @@
 
 .cl-preview__bio-name {
   font-family: Fraunces, Georgia, serif;
-  font-size: 0.9rem;
+  font-size: var(--type-body);
   font-weight: 700;
   color: var(--green-deep);
   margin: 0;
@@ -86,20 +91,20 @@
 
 .cl-preview__bio-owner {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--type-meta);
   font-weight: 500;
   color: var(--muted);
 }
 
 .cl-preview__bio-about {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: var(--type-meta);
   line-height: 1.4;
   color: var(--tagline-body);
 }
 
 .cl-preview__bio-link {
-  font-size: 0.72rem;
+  font-size: var(--type-meta);
   font-weight: 600;
   color: var(--green-mid);
   text-decoration: none;
@@ -137,7 +142,7 @@
 }
 
 .cl-preview__header .ld-title {
-  font-size: 1.05rem;
+  font-size: var(--type-h3);
   margin: 0;
   transition: color 0.2s ease;
 }
@@ -157,7 +162,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.2rem;
-  font-size: 0.65rem;
+  font-size: var(--type-eyebrow);
   font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: lowercase;
@@ -186,7 +191,7 @@
 }
 
 .cl-preview__meta .ld-turnaround {
-  font-size: 0.72rem;
+  font-size: var(--type-meta);
   padding: 0.15rem 0.5rem;
 }
 
@@ -204,12 +209,12 @@
 }
 
 .cl-preview__section .ld-section-h {
-  font-size: 0.82rem;
+  font-size: var(--type-meta);
   margin-bottom: 0.25rem;
 }
 
 .cl-preview__section .ld-body {
-  font-size: 0.78rem;
+  font-size: var(--type-meta);
   line-height: 1.5;
   white-space: pre-wrap;
 }
@@ -221,14 +226,14 @@
 
 .cl-field-label__title {
   font-family: Fraunces, Georgia, serif;
-  font-size: 1rem;
+  font-size: var(--type-h3);
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--green-deep);
 }
 
 .cl-field-label__subtext {
-  font-size: 0.8rem;
+  font-size: var(--type-meta);
   line-height: 1.45;
   color: var(--tagline-body);
 }
@@ -257,7 +262,7 @@
 
 .cl-file-chip__name,
 .cl-preview-attachment__name {
-  font-size: 0.82rem;
+  font-size: var(--type-meta);
   font-weight: 700;
   color: var(--green-deep);
   overflow-wrap: anywhere;
@@ -265,7 +270,7 @@
 
 .cl-file-chip__detail,
 .cl-preview-attachment__detail {
-  font-size: 0.72rem;
+  font-size: var(--type-meta);
   color: var(--tagline-body);
 }
 
@@ -279,7 +284,7 @@
   border-radius: 999px;
   background: rgba(27, 67, 50, 0.06);
   color: var(--tagline-body);
-  font-size: 0.9rem;
+  font-size: var(--type-body);
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -314,7 +319,7 @@
 }
 
 .cl-preview__quals li {
-  font-size: 0.78rem;
+  font-size: var(--type-meta);
 }
 
 .cl-preview__quals li::before {
@@ -403,17 +408,22 @@
 }
 
 .cl-progress__label {
-  font-size: 0.75rem;
+  font-size: var(--type-eyebrow);
   font-weight: 600;
   letter-spacing: 0.08em;
   color: var(--tagline-body);
   text-transform: uppercase;
 }
 
-/* --- Slides --- */
+/* --- Slides ---
+   Horizontal padding + matching negative margin so input/radio focus
+   rings (3px outset box-shadow) aren't clipped by overflow:hidden on
+   the slide-in animation container. */
 .cl-slides {
   position: relative;
   overflow: hidden;
+  padding: 0 5px;
+  margin: 0 -5px;
 }
 
 .cl-slide {
@@ -462,7 +472,7 @@
   background: rgba(45, 106, 79, 0.08);
   border: 1px solid rgba(45, 106, 79, 0.15);
   color: var(--green-deep);
-  font-size: 0.78rem;
+  font-size: var(--type-meta);
   font-weight: 600;
   animation: cl-slide-in 0.2s var(--ease-framer) both;
 }
@@ -491,7 +501,7 @@
   border-radius: 999px;
   background: none;
   color: var(--tagline-body);
-  font-size: 0.8rem;
+  font-size: var(--type-meta);
   cursor: pointer;
   padding: 0;
   transition: color 0.15s ease, background 0.15s ease;
@@ -522,7 +532,7 @@
   border: 1px solid var(--input-border);
   border-radius: 10px;
   font: inherit;
-  font-size: 0.92rem;
+  font-size: var(--type-body);
   color: var(--ink);
   background: var(--sky);
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
@@ -549,7 +559,7 @@
   border: none;
   background: rgba(27, 67, 50, 0.06);
   color: var(--tagline-body);
-  font-size: 0.85rem;
+  font-size: var(--type-body);
   font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
@@ -571,7 +581,7 @@
   background: none;
   color: var(--green-mid);
   font: inherit;
-  font-size: 0.82rem;
+  font-size: var(--type-meta);
   font-weight: 600;
   cursor: pointer;
   transition: color 0.2s ease;

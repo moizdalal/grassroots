@@ -23,7 +23,6 @@
           <span class="gr-nav__wordmark">grassroots</span>
         </a>
         <ul class="gr-nav__links">
-          <li><a href="/">marketplace</a></li>
           <li><a href="/signin.html">sign in</a></li>
           <li><a href="/register.html" class="gr-nav__cta" aria-current="page">register</a></li>
           <li><a href="/profile.html">profile</a></li>
@@ -114,24 +113,56 @@
                 </label>
                 <label class="gr-label" data-oauth-hide="true">
                   <span>password</span>
-                  <input
-                    type="password"
-                    name="password"
-                    minlength="8"
-                    autocomplete="new-password"
-                    required
-                  />
-                  <span class="reg-pw-hint">8+ chars · upper &amp; lowercase · 1 special character</span>
+                  <div class="gr-pw-field">
+                    <input
+                      type="password"
+                      name="password"
+                      id="reg-password"
+                      minlength="8"
+                      autocomplete="new-password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      class="gr-pw-toggle"
+                      data-pw-toggle="reg-password"
+                      aria-label="show password"
+                      aria-pressed="false"
+                    >
+                      <svg class="gr-pw-toggle__eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                      <svg class="gr-pw-toggle__eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.06 10.06 0 0 1 12 19c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></svg>
+                    </button>
+                  </div>
+                  <ul class="reg-pw-rules" id="reg-pw-rules" aria-live="polite">
+                    <li data-rule="length">at least 8 characters</li>
+                    <li data-rule="uppercase">an uppercase letter</li>
+                    <li data-rule="lowercase">a lowercase letter</li>
+                    <li data-rule="number">a number</li>
+                    <li data-rule="special">a special character</li>
+                  </ul>
                 </label>
                 <label class="gr-label" data-oauth-hide="true">
                   <span>confirm password</span>
-                  <input
-                    type="password"
-                    name="passwordConfirm"
-                    minlength="8"
-                    autocomplete="new-password"
-                    required
-                  />
+                  <div class="gr-pw-field">
+                    <input
+                      type="password"
+                      name="passwordConfirm"
+                      id="reg-password-confirm"
+                      minlength="8"
+                      autocomplete="new-password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      class="gr-pw-toggle"
+                      data-pw-toggle="reg-password-confirm"
+                      aria-label="show password"
+                      aria-pressed="false"
+                    >
+                      <svg class="gr-pw-toggle__eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                      <svg class="gr-pw-toggle__eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.06 10.06 0 0 1 12 19c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></svg>
+                    </button>
+                  </div>
                 </label>
               </div>
             </div>
@@ -153,7 +184,7 @@
                   <input type="text" name="major" placeholder="e.g. marketing, computer science" required />
                 </label>
                 <label class="gr-label">
-                  <span>minor <span class="gr-optional">(optional)</span></span>
+                  <span>minor <span class="gr-optional">optional</span></span>
                   <input type="text" name="minor" placeholder="e.g. data analytics" />
                 </label>
                 <label class="gr-label full-width">
@@ -197,13 +228,16 @@
     </button>
     <div class="gr-suggest-overlay" id="gr-suggest-overlay">
       <div class="gr-suggest-popup">
+        <button class="gr-suggest-popup__close" id="gr-suggest-close" type="button" aria-label="close">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+        </button>
         <div id="gr-suggest-form">
           <p class="gr-suggest-popup__title">grassroots values and takes your feedback seriously&mdash;how can we improve?</p>
           <textarea class="gr-suggest-popup__textarea" id="gr-suggest-input" placeholder="your suggestion…" maxlength="1000"></textarea>
           <button class="gr-suggest-popup__submit" id="gr-suggest-submit" type="button">submit</button>
         </div>
         <div id="gr-suggest-thanks" hidden>
-          <p class="gr-suggest-popup__thanks">thank you for your feedback!</p>
+          <p class="gr-suggest-popup__thanks">thanks for the note. we read all of these.</p>
         </div>
       </div>
     </div>

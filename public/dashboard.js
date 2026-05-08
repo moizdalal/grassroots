@@ -4,6 +4,9 @@
 // /listing.html?id=X and is reached by clicking any listing row.
 
 import { getSupabaseClient } from "/supabase-loader.js";
+import { hydrateRatings } from "/rating.js";
+import { mountDashboardNotifications } from "/dashboard-notifications.js";
+import { getInitials } from "/initials.js";
 
 const $ = (id) => document.getElementById(id);
 const escape = (s) =>
@@ -173,7 +176,7 @@ async function loadData(client, userId) {
     const { data: bids, error: bidsErr } = await client
       .from("bids")
       .select(
-        "id, listing_id, consultant_id, amount_cents, message, status, created_at, profiles!bids_consultant_id_fkey ( full_name, avatar_path )"
+        "id, listing_id, consultant_id, amount_cents, message, status, created_at, proposal_due_at, accepted_at, profiles!bids_consultant_id_fkey ( full_name, avatar_path )"
       )
       .in("listing_id", ids)
       .order("created_at", { ascending: false });
@@ -259,7 +262,45 @@ async function loadData(client, userId) {
     }
   }
 
-  return { profile, biz, listings, bidsByListing, threadsByListing, consultants, unreadCount };
+  // Engagement schedules for accepted bids — drives the action items panel.
+  const acceptedBidIds = [];
+  for (const l of listings) {
+    for (const b of l.__bids || []) {
+      if (b.status === "accepted") acceptedBidIds.push(b.id);
+    }
+  }
+  const schedulesByBidId = {};
+  if (acceptedBidIds.length) {
+    const { data: schedules, error: schedErr } = await client
+      .from("engagement_schedules")
+      .select("bid_id, listing_id, owner_id, consultant_id, status, selected_start, selected_end, updated_at")
+      .in("bid_id", acceptedBidIds);
+    if (!schedErr || isMissing(schedErr)) {
+      for (const s of schedules || []) schedulesByBidId[s.bid_id] = s;
+    }
+  }
+
+  // Look up consultant names for accepted bids that aren't already in the
+  // threads consultant map (action items reference their counterpart by name).
+  const acceptedConsultantIds = new Set();
+  for (const l of listings) {
+    for (const b of l.__bids || []) {
+      if (b.status === "accepted" && b.consultant_id && !consultants[b.consultant_id]) {
+        acceptedConsultantIds.add(b.consultant_id);
+      }
+    }
+  }
+  if (acceptedConsultantIds.size) {
+    const { data, error } = await client
+      .from("profiles")
+      .select("id, full_name, avatar_path")
+      .in("id", [...acceptedConsultantIds]);
+    if (!error || isMissing(error)) {
+      for (const p of data || []) consultants[p.id] = p;
+    }
+  }
+
+  return { profile, biz, listings, bidsByListing, threadsByListing, consultants, unreadCount, schedulesByBidId };
 }
 
 /* ============================================================== */
@@ -272,7 +313,47 @@ function avatarHtml(client, path, initial, klass = "bza__inbox-avatar") {
   return `<div class="${klass}">${escape(initial || "?")}</div>`;
 }
 
-function listingRowHtml(l) {
+function daysOpenLabel(createdAt) {
+  if (!createdAt) return "";
+  const ms = Date.now() - new Date(createdAt).getTime();
+  const days = Math.floor(ms / 86400000);
+  if (days <= 0) return "open today";
+  if (days === 1) return "1 day open";
+  if (days < 30) return `${days} days open`;
+  const months = Math.floor(days / 30);
+  return months === 1 ? "1 month open" : `${months} months open`;
+}
+
+function listingPrimaryAction(l, schedulesByBidId) {
+  const bids = l.__bids || [];
+  const accepted = bids.find((b) => b.status === "accepted");
+  const state = listingState(l);
+
+  if (accepted) {
+    const sched = schedulesByBidId?.[accepted.id];
+    const status = sched?.status || "awaiting_owner";
+    if (!sched || status === "awaiting_owner") {
+      return { label: "share availability", kind: "schedule", href: `/engagement.html?bid=${accepted.id}` };
+    }
+    if (status === "scheduled") {
+      return { label: "mark complete", kind: "complete", href: `/engagement.html?bid=${accepted.id}` };
+    }
+    if (status === "awaiting_consultant") {
+      return null; // ball is in the consultant's court
+    }
+  }
+
+  if (state === "open") {
+    const pending = bids.filter((b) => b.status === "pending" || b.status === "submitted").length;
+    if (pending > 0) {
+      return { label: pending === 1 ? "review offer" : "review offers", kind: "offers", href: `/listing.html?id=${l.id}` };
+    }
+  }
+
+  return null;
+}
+
+function listingRowHtml(l, schedulesByBidId) {
   const state = listingState(l);
   const stateLabel = STATE_LABELS[state] || state;
   const budgetRange = parseBudgetRangeFromDetails(l.details);
@@ -283,53 +364,61 @@ function listingRowHtml(l) {
     ? `$${Math.round(cents / 100)}`
     : "—";
 
-  let metric = "";
-  if (state === "open") {
-    metric = `<span class="bza__row-metric bza__row-metric--accent">${l.__bidCount}</span><span class="bza__row-metric-sub">offers</span>`;
-  } else if (state === "hired") {
-    const accepted = (l.__bids || []).find((b) => b.status === "accepted");
-    const name = accepted?.profiles?.full_name?.split(" ")[0] || "hired";
-    metric = `<span class="bza__row-metric">${escape(name)}</span><span class="bza__row-metric-sub">hired</span>`;
-  } else if (state === "closed") {
-    metric = `<span class="bza__row-metric">${l.__bidCount}</span><span class="bza__row-metric-sub">offers received</span>`;
-  } else if (state === "paused") {
-    metric = `<span class="bza__row-metric">${l.__bidCount}</span><span class="bza__row-metric-sub">offers</span>`;
-  } else {
-    metric = `<span class="bza__row-metric-sub" style="font-style:italic">${escape(stateLabel)}</span>`;
-  }
+  const offerCount = l.__bidCount || 0;
+  const offerLabel = offerCount === 1 ? "1 offer" : `${offerCount} offers`;
+  const openLabel = daysOpenLabel(l.created_at);
+  const category = l.category ? l.category.split(",")[0].trim() : "";
+  const turnaround = Number.isFinite(Number(l.turnaround_days))
+    ? `${l.turnaround_days}d turnaround`
+    : "";
+
+  const metaBits = [
+    `<span class="bza__row-state-label bza__row-state-label--${state}">${escape(stateLabel)}</span>`,
+    openLabel ? `<span class="bza__row-meta-sep">·</span><span>${escape(openLabel)}</span>` : "",
+    `<span class="bza__row-meta-sep">·</span><span class="bza__row-meta-strong">${escape(offerLabel)}</span>`,
+    category ? `<span class="bza__row-meta-sep">·</span><span>${escape(category)}</span>` : "",
+    turnaround ? `<span class="bza__row-meta-sep">·</span><span>${escape(turnaround)}</span>` : "",
+  ]
+    .filter(Boolean)
+    .join("");
+
+  const action = listingPrimaryAction(l, schedulesByBidId);
+  const ctaHtml = action
+    ? `<a class="bza__row-cta bza__row-cta--${escape(action.kind)}" href="${escape(action.href)}">${escape(action.label)} →</a>`
+    : "";
 
   return `
-    <a class="bza__row" href="/listing.html?id=${escape(l.id)}">
-      <span class="bza__row-state bza__row-state--${state}"></span>
-      <div class="bza__row-main">
-        <h3 class="bza__row-title">${escape(l.title || "untitled")}</h3>
-        <div class="bza__row-meta">
-          <span class="bza__row-state-label bza__row-state-label--${state}">${escape(stateLabel)}</span>
-          <span>·</span>
-          <span>${escape(relTime(l.created_at))}</span>
-          ${l.category ? `<span>·</span><span>${escape(l.category.split(",")[0].trim())}</span>` : ""}
+    <div class="bza__row">
+      <a class="bza__row-link" href="/listing.html?id=${escape(l.id)}">
+        <span class="bza__row-state bza__row-state--${state}"></span>
+        <div class="bza__row-main">
+          <h3 class="bza__row-title">${escape(l.title || "untitled")}</h3>
+          <div class="bza__row-meta">${metaBits}</div>
         </div>
-      </div>
-      <div class="bza__row-budget">${escape(budgetText)}</div>
-      <div class="bza__row-metric-block">${metric}</div>
-      <div class="bza__row-chev">›</div>
-    </a>
+        <div class="bza__row-budget">${escape(budgetText)}</div>
+        <span class="bza__row-chev">›</span>
+      </a>
+      ${ctaHtml}
+    </div>
   `;
 }
 
 function inboxRowHtml(client, t, consultants, listingTitle) {
   const c = consultants[t.consultantId];
   const name = c?.full_name || "consultant";
-  const initial = name.charAt(0).toUpperCase();
+  const initial = getInitials(name);
   const unread = t.unread > 0
     ? `<span class="bza__inbox-unread">${t.unread}</span>`
+    : "";
+  const ratingChip = t.consultantId
+    ? `<span data-consultant-rating="${escape(t.consultantId)}" data-rating-size="sm" data-rating-count="false"></span>`
     : "";
   return `
     <a href="/listing.html?id=${escape(t.listingId)}" class="bza__inbox-row" style="text-decoration:none">
       ${avatarHtml(client, c?.avatar_path, initial)}
       <div style="min-width:0">
         ${listingTitle ? `<div class="bza__inbox-listing">re: ${escape(listingTitle)}</div>` : ""}
-        <div class="bza__inbox-name">${escape(name)}${unread}</div>
+        <div class="bza__inbox-name">${escape(name)} ${ratingChip}${unread}</div>
         <div class="bza__inbox-msg">${t.lastFromMe ? "you: " : ""}${escape(t.lastBody)}</div>
       </div>
       <div class="bza__inbox-time">${escape(relTime(t.lastAt))}</div>
@@ -339,8 +428,139 @@ function inboxRowHtml(client, t, consultants, listingTitle) {
 
 /* ============================================================== */
 
+/* ============================================================== *
+ * 3-DAY AGENDA — meetings, proposal due dates, listing closings   *
+ * ============================================================== */
+
+const AGENDA_ICONS = {
+  meeting: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>',
+  proposal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+  closing: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+};
+
+function startOfDay(d) {
+  const r = new Date(d);
+  r.setHours(0, 0, 0, 0);
+  return r;
+}
+
+function sameDay(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function buildAgendaEvents(listings, bidsByListing, schedulesByBidId, consultants) {
+  const events = [];
+  const today = startOfDay(new Date());
+  const horizon = new Date(today);
+  horizon.setDate(horizon.getDate() + 3); // exclusive — covers today + next 2 days
+
+  const consultantName = (id) => consultants?.[id]?.full_name || "consultant";
+
+  for (const l of listings) {
+    const listingTitle = l.title || "your listing";
+    const bids = l.__bids || [];
+    const accepted = bids.find((b) => b.status === "accepted");
+
+    // 1) Scheduled kickoff meeting
+    if (accepted) {
+      const sched = schedulesByBidId?.[accepted.id];
+      const start = sched?.selected_start ? new Date(sched.selected_start) : null;
+      if (start && start >= today && start < horizon) {
+        events.push({
+          kind: "meeting",
+          when: start,
+          title: `kickoff with ${consultantName(accepted.consultant_id)}`,
+          consultantId: accepted.consultant_id,
+          subtitle: listingTitle,
+          href: `/engagement.html?bid=${accepted.id}`,
+        });
+      }
+
+      // 2) Proposal due date
+      const due = accepted.proposal_due_at ? new Date(accepted.proposal_due_at) : null;
+      if (due && due >= today && due < horizon) {
+        events.push({
+          kind: "proposal",
+          when: due,
+          title: `proposal due — ${consultantName(accepted.consultant_id)}`,
+          consultantId: accepted.consultant_id,
+          subtitle: listingTitle,
+          href: `/engagement.html?bid=${accepted.id}`,
+        });
+      }
+    }
+
+    // 3) Listing closing (created_at + turnaround_days, while still open)
+    if ((l.status || "").toLowerCase() === "open" && Number.isFinite(Number(l.turnaround_days)) && l.created_at) {
+      const close = new Date(l.created_at);
+      close.setDate(close.getDate() + Number(l.turnaround_days));
+      if (close >= today && close < horizon) {
+        events.push({
+          kind: "closing",
+          when: close,
+          title: `"${listingTitle}" closes`,
+          subtitle: "marketplace listing window ends",
+          href: `/listing.html?id=${l.id}`,
+        });
+      }
+    }
+  }
+
+  events.sort((a, b) => a.when - b.when);
+  return events;
+}
+
+function formatAgendaTime(date) {
+  return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase();
+}
+
+function renderOwnerAgenda(events) {
+  const root = $("dash-agenda-days");
+  if (!root) return;
+  const today = startOfDay(new Date());
+  const days = [];
+  for (let i = 0; i < 3; i += 1) {
+    const d = new Date(today);
+    d.setDate(d.getDate() + i);
+    const label = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+    const rel = i === 0 ? "today" : i === 1 ? "tomorrow" : "";
+    const dayEvents = events.filter((e) => sameDay(e.when, d));
+    days.push({ d, label, rel, events: dayEvents });
+  }
+
+  root.innerHTML = days
+    .map((day) => {
+      const eventsHtml = day.events.length
+        ? day.events
+            .map(
+              (e) => `
+              <a class="dash-agenda-event dash-agenda-event--${escape(e.kind)}" href="${escape(e.href)}">
+                <span class="dash-agenda-event__icon" aria-hidden="true">${AGENDA_ICONS[e.kind] || AGENDA_ICONS.meeting}</span>
+                <span class="dash-agenda-event__body">
+                  <span class="dash-agenda-event__title">${escape(e.title)}${e.consultantId ? ` <span data-consultant-rating="${escape(e.consultantId)}" data-rating-size="sm" data-rating-count="false"></span>` : ""}</span>
+                  <span class="dash-agenda-event__sub">${escape(formatAgendaTime(e.when))} · ${escape(e.subtitle)}</span>
+                </span>
+              </a>
+            `
+            )
+            .join("")
+        : '<p class="dash-agenda-empty">nothing scheduled</p>';
+      return `
+        <div class="dash-agenda-day${day.rel === "today" ? " is-today" : ""}">
+          <div class="dash-agenda-day__h">
+            <span class="dash-agenda-day__date">${escape(day.label)}</span>
+            ${day.rel ? `<span class="dash-agenda-day__rel">${escape(day.rel)}</span>` : ""}
+          </div>
+          ${eventsHtml}
+        </div>
+      `;
+    })
+    .join("");
+  hydrateRatings(root);
+}
+
 function renderDashboard(client, data) {
-  const { profile, biz, listings, threadsByListing, consultants, unreadCount } = data;
+  const { profile, biz, listings, threadsByListing, consultants, unreadCount, schedulesByBidId } = data;
 
   const avatarUrl = profile?.avatar_path
     ? client.storage.from("avatars").getPublicUrl(profile.avatar_path).data?.publicUrl || ""
@@ -349,7 +569,7 @@ function renderDashboard(client, data) {
   // sidebar user card (bottom — links to /profile.html)
   const userAvatar = $("dash-user-avatar");
   if (userAvatar) {
-    const ui = (profile?.full_name || "?").charAt(0).toUpperCase() || "?";
+    const ui = getInitials(profile?.full_name);
     userAvatar.innerHTML = avatarUrl ? `<img src="${escape(avatarUrl)}" alt=""/>` : escape(ui);
   }
   const userName = $("dash-user-name");
@@ -382,6 +602,16 @@ function renderDashboard(client, data) {
   const firstName = (profile?.full_name || "").split(" ")[0] || "there";
   $("dash-welcome").textContent = `welcome back, ${firstName}.`;
 
+  // Today's date — adds a small dynamic anchor to the header.
+  const dateEl = $("dash-page-date");
+  if (dateEl) {
+    dateEl.textContent = new Date().toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    });
+  }
+
   const newOffers = listings.reduce(
     (acc, l) => acc + (l.__bids || []).filter((b) => b.status === "submitted" || b.status === "pending").length,
     0
@@ -392,11 +622,33 @@ function renderDashboard(client, data) {
   if (unreadCount) metaBits.push(`${unreadCount} unread`);
   $("dash-h-meta").textContent = metaBits.join(" · ");
 
-  let subBits = [];
-  if (newOffers) subBits.push(`${newOffers} ${newOffers === 1 ? "offer needs" : "offers need"} review`);
-  if (unreadCount) subBits.push(`${unreadCount} ${unreadCount === 1 ? "message" : "messages"} waiting`);
-  if (!subBits.length) subBits.push("everything's quiet — post a listing or check your profile.");
-  $("dash-page-sub").textContent = subBits.join(" · ") + ".";
+  // At-a-glance stat tiles
+  const statListings = $("dash-stat-listings");
+  const statNotifs = $("dash-stat-notifications");
+  const statOffers = $("dash-stat-offers");
+  const statUnread = $("dash-stat-unread");
+  if (statListings) statListings.textContent = String(liveCount);
+  if (statOffers) statOffers.textContent = String(newOffers);
+  if (statUnread) statUnread.textContent = String(unreadCount);
+
+  // Notifications panel — replaces the old action-items panel. Pulls recent
+  // rows from the notifications table and surfaces them with category icons.
+  const notifList = $("dash-notifications-list");
+  const notifEmpty = $("dash-notifications-empty");
+  if (data.session?.user?.id && notifList) {
+    mountDashboardNotifications({
+      client,
+      userId: data.session.user.id,
+      listEl: notifList,
+      emptyEl: notifEmpty,
+    }).then((result) => {
+      if (statNotifs) statNotifs.textContent = String(result?.unreadCount || 0);
+    });
+  }
+
+  // 3-day agenda (meetings, proposal deadlines, listing closings)
+  const agendaEvents = buildAgendaEvents(listings, data.bidsByListing, schedulesByBidId, consultants);
+  renderOwnerAgenda(agendaEvents);
 
   // listings count + tabs
   const counts = { all: listings.length, open: 0, hired: 0, paused: 0, closed: 0, draft: 0 };
@@ -413,14 +665,15 @@ function renderDashboard(client, data) {
   const listingsRows = $("dash-listings-rows");
   const listingsRowsFull = $("dash-listings-rows-full");
   const listingsEmpty = $("dash-listings-empty");
+  const renderRow = (l) => listingRowHtml(l, schedulesByBidId);
   if (!listings.length) {
     listingsEmpty.hidden = false;
     listingsRows.innerHTML = "";
     listingsRowsFull.innerHTML = "";
   } else {
     listingsEmpty.hidden = true;
-    listingsRows.innerHTML = listings.slice(0, 5).map(listingRowHtml).join("");
-    listingsRowsFull.innerHTML = listings.map(listingRowHtml).join("");
+    listingsRows.innerHTML = listings.slice(0, 5).map(renderRow).join("");
+    listingsRowsFull.innerHTML = listings.map(renderRow).join("");
   }
 
   // tab filtering on the dashboard listings panel
@@ -433,13 +686,13 @@ function renderDashboard(client, data) {
       btn.classList.add("active");
       const state = btn.dataset.state;
       const filtered = state === "all" ? listings : listings.filter((l) => listingState(l) === state);
-      listingsRows.innerHTML = filtered.length ? filtered.map(listingRowHtml).join("") : `<p class="gr-empty-state" style="padding:1rem">no listings in this state.</p>`;
+      listingsRows.innerHTML = filtered.length ? filtered.map(renderRow).join("") : `<p class="gr-empty-state" style="padding:1rem">no listings in this state.</p>`;
     });
     tabsHost.dataset.bound = "1";
   }
 
   // inbox preview — show only threads with unread messages. When there are
-  // none, show a "you're all caught up!" state instead of the full inbox.
+  // none, show a "you're all caught up." state instead of the full inbox.
   const allThreads = [];
   for (const [listingId, threads] of Object.entries(threadsByListing)) {
     const listing = listings.find((l) => l.id === listingId);
@@ -455,7 +708,7 @@ function renderDashboard(client, data) {
   if (!unreadThreads.length) {
     if (inboxEmpty) {
       inboxEmpty.hidden = false;
-      inboxEmpty.textContent = "you're all caught up!";
+      inboxEmpty.textContent = "you're all caught up.";
       inboxEmpty.classList.add("dash-inbox-empty--caught-up");
     }
     if (inboxPreview) inboxPreview.innerHTML = "";
@@ -469,6 +722,7 @@ function renderDashboard(client, data) {
         .slice(0, 3)
         .map((t) => inboxRowHtml(client, t, consultants, t.listingTitle))
         .join("");
+      hydrateRatings(inboxPreview);
     }
   }
 
@@ -483,7 +737,7 @@ function renderDashboard(client, data) {
     engageRows.innerHTML = "";
   } else {
     engageEmpty.hidden = true;
-    engageRows.innerHTML = inProgress.map(listingRowHtml).join("");
+    engageRows.innerHTML = inProgress.map(renderRow).join("");
   }
 
   // archive (closed)
@@ -495,7 +749,7 @@ function renderDashboard(client, data) {
     archiveRows.innerHTML = "";
   } else {
     archiveEmpty.hidden = true;
-    archiveRows.innerHTML = archive.map(listingRowHtml).join("");
+    archiveRows.innerHTML = archive.map(renderRow).join("");
   }
 
   // profile health
@@ -631,7 +885,7 @@ function setupViewSwitcher() {
     const isDark = (t) => t === "dark-forest" || t === "dark" || t === "forest-soft";
     darkInput.checked = isDark(window.GrassrootsTheme.get());
     darkInput.addEventListener("change", () => {
-      window.GrassrootsTheme.set(darkInput.checked ? "dark-forest" : "light");
+      window.GrassrootsTheme.set(darkInput.checked ? "dark" : "light");
     });
     window.addEventListener("grassroots:themechange", (e) => {
       darkInput.checked = isDark(e.detail || window.GrassrootsTheme.get());
@@ -672,6 +926,7 @@ async function init() {
     }
 
     const data = await loadData(client, session.user.id);
+    data.session = session;
 
     // Only redirect a confirmed consultant. A null/missing profile or an
     // unrecognized role means something went wrong — don't bounce the user

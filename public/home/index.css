@@ -435,8 +435,7 @@ html {
 
 .site-nav__wordmark {
   font-family: Syne, system-ui, sans-serif;
-  font-size: 1.2rem;
-  font-weight: 700;
+  font-size: var(--type-h2);  font-weight: 700;
   letter-spacing: -0.03em;
   color: #f4f1eb;
   line-height: 1;
@@ -455,8 +454,7 @@ html {
 .site-nav__links a {
   color: var(--text-soft);
   text-decoration: none;
-  font-size: 1.04rem;
-  font-weight: 500;
+  font-size: var(--type-h3);  font-weight: 500;
   transition: color 0.2s ease, opacity 0.2s ease;
 }
 
@@ -475,8 +473,7 @@ html {
   color: #f4fffa;
   text-decoration: none;
   font-family: Syne, system-ui, sans-serif;
-  font-size: 0.92rem;
-  font-weight: 700;
+  font-size: var(--type-body);  font-weight: 700;
   line-height: 1.1;
   letter-spacing: 0.01em;
   text-transform: lowercase;
@@ -596,8 +593,7 @@ html {
   display: block;
   color: #e8eef9;
   text-decoration: none;
-  font-size: 0.92rem;
-  border-radius: 10px;
+  font-size: var(--type-body);  border-radius: 10px;
   padding: 0.62rem 0.75rem;
 }
 
@@ -733,8 +729,7 @@ html {
 
 .hero__cta {
   padding: 0.888rem 1.416rem;
-  font-size: 1.104rem;
-}
+  font-size: var(--type-h3);}
 
 .hero__cta__text {
   position: relative;
@@ -922,8 +917,7 @@ body[data-audience="consultant"] .audience-only--consultant {
 
 .audience-switch-section__label {
   margin: 0;
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: var(--type-meta);  font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: rgba(232, 228, 220, 0.82);
@@ -950,8 +944,7 @@ body[data-audience="consultant"] .audience-only--consultant {
   background: transparent;
   color: rgba(244, 241, 235, 0.58);
   font-family: Syne, system-ui, sans-serif;
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: var(--type-body);  font-weight: 600;
   padding: 0.62rem 1.35rem;
   border-radius: 999px;
   cursor: pointer;
@@ -1016,7 +1009,7 @@ body[data-audience="consultant"] .audience-toggle__slider {
 .prop-section h2,
 .preview-section__head h2 {
   margin: 0.45rem 0 0.75rem;
-  font-size: clamp(1.45rem, 3vw, 2.1rem);
+  font-size: var(--type-h1);
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -1074,7 +1067,7 @@ body[data-audience="consultant"] .audience-toggle__slider {
   align-items: center;
   gap: 0.45rem 0.8rem;
   margin: 0.45rem 0 0.75rem;
-  font-size: clamp(1.45rem, 3vw, 2.1rem);
+  font-size: var(--type-h1);
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.15;
@@ -1194,16 +1187,14 @@ body[data-audience="consultant"] .prop-heading-brand__brush {
 
 .value-card__title {
   margin: 0;
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-size: var(--type-h3);  font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.2;
 }
 
 .value-card__body {
   margin: 0;
-  font-size: 0.94rem;
-  line-height: 1.45;
+  font-size: var(--type-body);  line-height: 1.45;
   opacity: 0.94;
 }
 
@@ -1304,8 +1295,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 .escrow-node__eyebrow,
 .escrow-support__eyebrow {
   margin: 0;
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: var(--type-eyebrow);  font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: rgba(191, 227, 207, 0.82);
@@ -1314,8 +1304,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 .escrow-support__copy,
 .escrow-model__milestone p {
   margin: 0;
-  font-size: 0.98rem;
-  line-height: 1.6;
+  font-size: var(--type-h3);  line-height: 1.6;
   color: rgba(236, 230, 222, 0.9);
 }
 
@@ -1394,7 +1383,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 .escrow-support__title {
   margin: 0;
   font-family: Fraunces, Georgia, serif;
-  font-size: clamp(1.2rem, 2vw, 1.55rem);
+  font-size: var(--type-h2);
   line-height: 1.1;
   letter-spacing: -0.02em;
   color: #f7f5f2;
@@ -1417,8 +1406,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 }
 
 .escrow-node__badge-title {
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-size: var(--type-meta);  font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #d8efe0;
@@ -1439,8 +1427,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   border-radius: 999px;
   background: linear-gradient(180deg, #f1d89f, #d6aa57);
   color: #4f3912;
-  font-size: 1.05rem;
-  font-weight: 800;
+  font-size: var(--type-h3);  font-weight: 800;
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
   animation: escrow-coin-bob 2.8s ease-in-out infinite;
 }
@@ -1488,8 +1475,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 
 .escrow-link__label {
   margin: 0;
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: var(--type-meta);  font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: rgba(239, 217, 196, 0.88);
@@ -1518,8 +1504,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   border-radius: 999px;
   background: rgba(109, 191, 138, 0.18);
   color: #d8efe0;
-  font-size: 0.95rem;
-  font-weight: 800;
+  font-size: var(--type-body);  font-weight: 800;
 }
 
 .escrow-support {
@@ -1702,8 +1687,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   position: relative;
   min-height: 220px;
   padding: 12px;
-  font-size: 0.78rem;
-  color: #2b3d44;
+  font-size: var(--type-meta);  color: #2b3d44;
 }
 
 .marketplace-demo {
@@ -1728,8 +1712,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 
 .marketplace-demo__eyebrow {
   display: inline-block;
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: var(--type-eyebrow);  font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(244, 239, 233, 0.72);
@@ -1747,8 +1730,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   background: rgba(255, 255, 255, 0.08);
   color: rgba(248, 245, 240, 0.9);
   font-family: Syne, system-ui, sans-serif;
-  font-size: 0.74rem;
-  font-weight: 700;
+  font-size: var(--type-meta);  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: lowercase;
   cursor: help;
@@ -1765,8 +1747,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   background: rgba(16, 20, 26, 0.88);
   color: rgba(248, 245, 240, 0.9);
   font-family: Inter, system-ui, sans-serif;
-  font-size: 0.84rem;
-  line-height: 1.5;
+  font-size: var(--type-meta);  line-height: 1.5;
   box-shadow: 0 22px 44px rgba(4, 9, 16, 0.22);
   opacity: 0;
   transform: translateY(6px);
@@ -1825,8 +1806,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   min-height: 24px;
   padding: 0.2rem 0.75rem;
   border-radius: 999px;
-  font-size: 0.68rem;
-  font-weight: 700;
+  font-size: var(--type-eyebrow);  font-weight: 700;
   color: rgba(42, 52, 68, 0.88);
   background: rgba(255, 255, 255, 0.72);
 }
@@ -1842,8 +1822,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.68);
   border: 1px solid rgba(42, 52, 68, 0.08);
-  font-size: 0.66rem;
-  color: rgba(52, 60, 70, 0.82);
+  font-size: var(--type-eyebrow);  color: rgba(52, 60, 70, 0.82);
 }
 
 .marketplace-browser__body {
@@ -1893,8 +1872,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 
 .marketplace-sim__crumb {
   margin: 0 0 0.25rem;
-  font-size: 0.66rem;
-  font-weight: 700;
+  font-size: var(--type-eyebrow);  font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #6d7d83;
@@ -1903,8 +1881,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 .marketplace-sim__market-title {
   margin: 0;
   font-family: Fraunces, Georgia, serif;
-  font-size: 1.15rem;
-  line-height: 1.05;
+  font-size: var(--type-h2);  line-height: 1.05;
   color: #173b31;
 }
 
@@ -1915,8 +1892,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   background: rgba(255, 255, 255, 0.72);
   color: #2b5b49;
   font-family: Syne, system-ui, sans-serif;
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: var(--type-eyebrow);  font-weight: 700;
   cursor: pointer;
   transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
@@ -1947,8 +1923,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   background: rgba(255, 255, 255, 0.86);
   color: #5b6d74;
   font-family: Inter, system-ui, sans-serif;
-  font-size: 0.76rem;
-}
+  font-size: var(--type-meta);}
 
 .marketplace-sim__search {
   color: #8a979b;
@@ -1992,8 +1967,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   place-items: center;
   color: #fff;
   font-family: Fraunces, Georgia, serif;
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: var(--type-h3);  font-weight: 700;
   letter-spacing: -0.04em;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
@@ -2101,15 +2075,13 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 .marketplace-card__brand {
   margin: 0;
   font-family: Inter, system-ui, sans-serif;
-  font-size: 0.74rem;
-  font-weight: 700;
+  font-size: var(--type-meta);  font-weight: 700;
   color: #4c5e66;
 }
 
 .marketplace-card__detail-label {
   font-family: Inter, system-ui, sans-serif;
-  font-size: 0.61rem;
-  font-weight: 700;
+  font-size: var(--type-eyebrow);  font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #7a8a90;
@@ -2117,8 +2089,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 
 .marketplace-card__detail-copy {
   font-family: Inter, system-ui, sans-serif;
-  font-size: 0.74rem;
-  font-weight: 600;
+  font-size: var(--type-meta);  font-weight: 600;
   color: #455861;
 }
 
@@ -2127,16 +2098,14 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   align-items: center;
   min-height: 24px;
   font-family: Inter, system-ui, sans-serif;
-  font-size: 0.74rem;
-  font-weight: 800;
+  font-size: var(--type-meta);  font-weight: 800;
   color: #235643;
 }
 
 .marketplace-card__title {
   margin: 0;
   font-family: Fraunces, Georgia, serif;
-  font-size: 0.98rem;
-  line-height: 1.2;
+  font-size: var(--type-h3);  line-height: 1.2;
   color: #16392f;
 }
 
@@ -2161,8 +2130,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   padding: 0.18rem 0.55rem;
   border-radius: 999px;
   font-family: Inter, system-ui, sans-serif;
-  font-size: 0.66rem;
-  font-weight: 700;
+  font-size: var(--type-eyebrow);  font-weight: 700;
 }
 
 .marketplace-card__pill {
@@ -2195,8 +2163,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   align-items: center;
   gap: 0.35rem;
   font-family: Inter, system-ui, sans-serif;
-  font-size: 0.76rem;
-  font-weight: 800;
+  font-size: var(--type-meta);  font-weight: 800;
   color: #255946;
 }
 
@@ -2225,8 +2192,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   background: none;
   color: #60767c;
   font-family: Inter, system-ui, sans-serif;
-  font-size: 0.74rem;
-  font-weight: 700;
+  font-size: var(--type-meta);  font-weight: 700;
   cursor: pointer;
 }
 
@@ -2258,8 +2224,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 .marketplace-sim__opportunity-label {
   margin: 0 0 0.35rem;
   font-family: Fraunces, Georgia, serif;
-  font-size: 0.66rem;
-  font-weight: 700;
+  font-size: var(--type-eyebrow);  font-weight: 700;
   letter-spacing: 0.08em;
   color: #6b7e84;
 }
@@ -2267,8 +2232,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 .marketplace-sim__about-name {
   margin: 0;
   font-family: Fraunces, Georgia, serif;
-  font-size: 1rem;
-  line-height: 1.1;
+  font-size: var(--type-h3);  line-height: 1.1;
   color: #173c31;
 }
 
@@ -2276,8 +2240,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 .marketplace-sim__about-copy {
   margin: 0.35rem 0 0;
   font-family: Inter, system-ui, sans-serif;
-  font-size: 0.76rem;
-  line-height: 1.55;
+  font-size: var(--type-meta);  line-height: 1.55;
   color: #576b72;
 }
 
@@ -2290,16 +2253,14 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 .marketplace-sim__opportunity-title {
   margin: 0;
   font-family: Syne, system-ui, sans-serif;
-  font-size: 1.22rem;
-  line-height: 1.05;
+  font-size: var(--type-h2);  line-height: 1.05;
   color: #173c31;
 }
 
 .marketplace-sim__opportunity-budget {
   margin: 0.25rem 0 0;
   font-family: Inter, system-ui, sans-serif;
-  font-size: 0.92rem;
-  font-weight: 800;
+  font-size: var(--type-body);  font-weight: 800;
   color: #215944;
 }
 
@@ -2319,8 +2280,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   background: rgba(46, 90, 72, 0.1);
   color: #215340;
   font-family: Inter, system-ui, sans-serif;
-  font-size: 0.66rem;
-  font-weight: 700;
+  font-size: var(--type-eyebrow);  font-weight: 700;
 }
 
 .marketplace-sim__tag--muted {
@@ -2333,8 +2293,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   flex-wrap: wrap;
   gap: 0.55rem 1rem;
   font-family: Inter, system-ui, sans-serif;
-  font-size: 0.72rem;
-  color: #6b7f86;
+  font-size: var(--type-eyebrow);  color: #6b7f86;
 }
 
 .marketplace-sim__detail-section {
@@ -2345,8 +2304,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 .marketplace-sim__detail-section h4 {
   margin: 0;
   font-family: Fraunces, Georgia, serif;
-  font-size: 0.74rem;
-  font-weight: 800;
+  font-size: var(--type-meta);  font-weight: 800;
   color: #1f4b3b;
   text-transform: lowercase;
 }
@@ -2355,8 +2313,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 .marketplace-sim__detail-section ul {
   margin: 0;
   font-family: Inter, system-ui, sans-serif;
-  font-size: 0.76rem;
-  line-height: 1.6;
+  font-size: var(--type-meta);  line-height: 1.6;
   color: #556a72;
 }
 
@@ -2373,8 +2330,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   padding: 0.65rem 0.9rem;
   border-radius: 12px;
   font-family: Syne, system-ui, sans-serif;
-  font-size: 0.76rem;
-  font-weight: 700;
+  font-size: var(--type-meta);  font-weight: 700;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
@@ -2411,8 +2367,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 
 .marketplace-sim__offer-label {
   font-family: Fraunces, Georgia, serif;
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: var(--type-eyebrow);  font-weight: 700;
   color: #60767c;
 }
 
@@ -2428,8 +2383,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 }
 
 .marketplace-sim__offer-input-wrap span {
-  font-size: 0.82rem;
-  font-weight: 800;
+  font-size: var(--type-meta);  font-weight: 800;
   color: #235643;
 }
 
@@ -2441,8 +2395,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   background: transparent;
   color: #24363f;
   font-family: Inter, system-ui, sans-serif;
-  font-size: 0.82rem;
-}
+  font-size: var(--type-meta);}
 
 .marketplace-sim__offer-input-wrap input:focus,
 .marketplace-sim__offer-note:focus {
@@ -2464,8 +2417,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   margin: 0;
   min-height: 1.2rem;
   font-family: Fraunces, Georgia, serif;
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: var(--type-eyebrow);  font-weight: 700;
   color: #2e5a48;
 }
 
@@ -2508,8 +2460,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   justify-content: space-between;
   gap: 0.6rem;
   margin-bottom: 0.7rem;
-  font-size: 0.76rem;
-  font-weight: 800;
+  font-size: var(--type-meta);  font-weight: 800;
   color: #28404b;
 }
 
@@ -2520,8 +2471,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   border: 0;
   background: rgba(0, 0, 0, 0.06);
   color: #334a55;
-  font-size: 1rem;
-  cursor: pointer;
+  font-size: var(--type-h3);  cursor: pointer;
 }
 
 .marketplace-sim__chat-thread {
@@ -2534,8 +2484,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 .marketplace-sim__chat-empty {
   margin: 0;
   font-family: Inter, system-ui, sans-serif;
-  font-size: 0.72rem;
-  color: #62757c;
+  font-size: var(--type-eyebrow);  color: #62757c;
 }
 
 .marketplace-sim__chat-input {
@@ -2553,8 +2502,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   background: rgba(35, 72, 56, 0.94);
   color: #f3fbf6;
   font-family: Fraunces, Georgia, serif;
-  font-size: 0.76rem;
-  font-weight: 800;
+  font-size: var(--type-meta);  font-weight: 800;
   box-shadow: 0 18px 36px rgba(30, 54, 42, 0.24);
 }
 
@@ -2590,8 +2538,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   margin: 0;
   max-width: 34rem;
   color: rgba(236, 230, 222, 0.84);
-  font-size: 1.02rem;
-  line-height: 1.65;
+  font-size: var(--type-h3);  line-height: 1.65;
 }
 
 .community-band__chips {
@@ -2609,8 +2556,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.06);
   color: rgba(247, 245, 242, 0.9);
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: var(--type-meta);  font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -2637,8 +2583,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: rgba(244, 239, 233, 0.9);
-  font-size: 0.76rem;
-  font-weight: 700;
+  font-size: var(--type-meta);  font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -2665,8 +2610,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   background: rgba(109, 191, 138, 0.14);
   color: #ebf6ef;
   font-family: Syne, system-ui, sans-serif;
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: var(--type-meta);  font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   cursor: pointer;
@@ -2849,8 +2793,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   border-radius: 14px;
   background: rgba(12, 17, 24, 0.9);
   color: #f6f4ef;
-  font-size: 0.78rem;
-  line-height: 1.4;
+  font-size: var(--type-meta);  line-height: 1.4;
   box-shadow: 0 14px 28px rgba(6, 10, 18, 0.2);
 }
 
@@ -2863,8 +2806,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   background: rgba(109, 191, 138, 0.92);
   color: rgba(14, 18, 24, 0.78);
   font-family: Syne, system-ui, sans-serif;
-  font-size: 0.72rem;
-  font-weight: 800;
+  font-size: var(--type-eyebrow);  font-weight: 800;
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
@@ -2883,15 +2825,13 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 .community-map__tooltip-name {
   color: #f8f5ef;
   font-family: Fraunces, Georgia, serif;
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-size: var(--type-body);  font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .community-map__tooltip-kind {
   color: rgba(232, 236, 241, 0.76);
-  font-size: 0.72rem;
-  text-transform: lowercase;
+  font-size: var(--type-eyebrow);  text-transform: lowercase;
 }
 
 .community-map .leaflet-popup-content-wrapper {
@@ -2905,8 +2845,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   margin: 0;
   padding: 0.9rem 1rem;
   min-width: 0;
-  font-size: 0.86rem;
-  line-height: 1.45;
+  font-size: var(--type-body);  line-height: 1.45;
 }
 
 .community-map__popup-card {
@@ -2924,8 +2863,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   display: block;
   color: #1f2937;
   font-family: Fraunces, Georgia, serif;
-  font-size: 0.98rem;
-  font-weight: 700;
+  font-size: var(--type-h3);  font-weight: 700;
 }
 
 .community-map .leaflet-popup-content span {
@@ -2958,8 +2896,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 }
 
 .community-map__overlay-kicker {
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: var(--type-eyebrow);  font-weight: 700;
   letter-spacing: 0.11em;
   text-transform: uppercase;
   color: rgba(191, 227, 207, 0.84);
@@ -2967,8 +2904,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 
 .community-map__overlay-card strong {
   color: #f7f5f2;
-  font-size: 0.98rem;
-  line-height: 1.35;
+  font-size: var(--type-h3);  line-height: 1.35;
 }
 
 .community-map__legend {
@@ -2982,16 +2918,14 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 
 .community-map__legend-title {
   margin: 0;
-  font-size: 0.9rem;
-  line-height: 1.5;
+  font-size: var(--type-body);  line-height: 1.5;
 }
 
 .community-map__legend-row {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: var(--type-meta);  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: rgba(244, 239, 233, 0.88);
@@ -3060,8 +2994,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 .student-values__lede {
   margin: 0;
   color: rgba(236, 230, 222, 0.82);
-  font-size: 1rem;
-  line-height: 1.65;
+  font-size: var(--type-h3);  line-height: 1.65;
 }
 
 .student-values__grid {
@@ -3110,8 +3043,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   margin: 0;
   color: rgba(221, 231, 238, 0.72);
   font-family: Inter, system-ui, sans-serif;
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: var(--type-eyebrow);  font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
@@ -3120,8 +3052,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   margin: 0;
   color: #f6f4ef;
   font-family: Fraunces, Georgia, serif;
-  font-size: 1.2rem;
-  line-height: 1.32;
+  font-size: var(--type-h2);  line-height: 1.32;
   letter-spacing: -0.03em;
   display: grid;
   gap: 0.22rem;
@@ -3150,8 +3081,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   max-width: 31ch;
   color: rgba(236, 230, 222, 0.86);
   font-family: Inter, system-ui, sans-serif;
-  font-size: 0.98rem;
-  line-height: 1.72;
+  font-size: var(--type-h3);  line-height: 1.72;
   text-wrap: pretty;
 }
 
@@ -3212,8 +3142,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 .student-role-card__meta strong {
   color: #f7f5f2;
   font-family: Syne, system-ui, sans-serif;
-  font-size: 0.98rem;
-  line-height: 1.2;
+  font-size: var(--type-h3);  line-height: 1.2;
   letter-spacing: -0.02em;
 }
 
@@ -3221,8 +3150,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
 .student-role-card__details span {
   color: rgba(223, 245, 231, 0.78);
   font-family: Inter, system-ui, sans-serif;
-  font-size: 0.84rem;
-  line-height: 1.4;
+  font-size: var(--type-meta);  line-height: 1.4;
 }
 
 .student-role-card__details {
@@ -3264,7 +3192,7 @@ body[data-audience="consultant"] .prop-section .value-card--ink .value-card__ico
   gap: 0.45rem 0.2rem;
   margin: 0 0 1.45rem;
   max-width: 100%;
-  font-size: clamp(0.78rem, 1.9vw, 0.88rem);
+  font-size: var(--type-body);
   font-weight: 600;
 }
 
@@ -3369,8 +3297,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
   align-items: center;
   gap: 0.42rem;
   margin-bottom: 10px;
-  font-size: 0.68rem;
-  color: #5a6d78;
+  font-size: var(--type-eyebrow);  color: #5a6d78;
 }
 
 .biz-flow__brand {
@@ -3399,8 +3326,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
 
 .biz-flow__hint {
   margin: 0 0 8px;
-  font-size: 0.62rem;
-  text-transform: uppercase;
+  font-size: var(--type-eyebrow);  text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #7a8a94;
 }
@@ -3415,8 +3341,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
   background: linear-gradient(180deg, #e8f5ef, #d8ebe2);
   color: #1e4a3c;
   font-family: Syne, system-ui, sans-serif;
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: var(--type-meta);  font-weight: 700;
   cursor: default;
   box-shadow: 0 6px 16px rgba(46, 90, 72, 0.12);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -3436,8 +3361,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
 .biz-flow__form-title {
   margin: 0 0 10px;
   font-weight: 700;
-  font-size: 0.88rem;
-  color: #1e3d32;
+  font-size: var(--type-body);  color: #1e3d32;
 }
 
 .biz-flow__row {
@@ -3446,8 +3370,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
 
 .biz-flow__label {
   display: block;
-  font-size: 0.62rem;
-  text-transform: uppercase;
+  font-size: var(--type-eyebrow);  text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #5a7a6c;
   margin-bottom: 4px;
@@ -3459,8 +3382,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid #c5d9ce;
-  font-size: 0.76rem;
-  color: #2b3d44;
+  font-size: var(--type-meta);  color: #2b3d44;
   display: flex;
   align-items: flex-start;
   gap: 2px;
@@ -3502,8 +3424,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
 .biz-flow__pill {
   padding: 5px 10px;
   border-radius: 999px;
-  font-size: 0.68rem;
-  font-weight: 600;
+  font-size: var(--type-eyebrow);  font-weight: 600;
   border: 1px solid #c5d4e0;
   background: rgba(255, 255, 255, 0.85);
   color: #4a6670;
@@ -3523,8 +3444,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
   background: #2e5a48;
   color: #f4fffa;
   font-family: Syne, system-ui, sans-serif;
-  font-size: 0.76rem;
-  font-weight: 700;
+  font-size: var(--type-meta);  font-weight: 700;
   cursor: default;
   transition: transform 0.15s ease, filter 0.15s ease;
 }
@@ -3549,8 +3469,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
 
 .biz-flow__live-meta {
   margin: 0 0 10px;
-  font-size: 0.72rem;
-  color: #4a6670;
+  font-size: var(--type-eyebrow);  color: #4a6670;
 }
 
 .biz-flow__published-split {
@@ -3570,8 +3489,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
 
 .biz-flow__card-eyebrow {
   margin: 0 0 4px;
-  font-size: 0.58rem;
-  text-transform: uppercase;
+  font-size: var(--type-eyebrow);  text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #5a7a6c;
 }
@@ -3579,15 +3497,13 @@ body[data-audience="consultant"] .workflow-rail__sep {
 .biz-flow__card-title {
   margin: 0 0 4px;
   font-weight: 700;
-  font-size: 0.8rem;
-  color: #1e3d32;
+  font-size: var(--type-meta);  color: #1e3d32;
   line-height: 1.25;
 }
 
 .biz-flow__card-meta {
   margin: 0 0 8px;
-  font-size: 0.66rem;
-  color: #4a6670;
+  font-size: var(--type-eyebrow);  color: #4a6670;
 }
 
 .biz-flow__card-block {
@@ -3596,8 +3512,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
 
 .biz-flow__card-label {
   display: block;
-  font-size: 0.56rem;
-  text-transform: uppercase;
+  font-size: var(--type-eyebrow);  text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #5a7a6c;
   margin-bottom: 2px;
@@ -3605,8 +3520,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
 
 .biz-flow__card-text {
   margin: 0;
-  font-size: 0.7rem;
-  line-height: 1.38;
+  font-size: var(--type-eyebrow);  line-height: 1.38;
   color: #355a5a;
 }
 
@@ -3621,8 +3535,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
 
 .biz-flow__bids-label {
   margin: 0 0 6px;
-  font-size: 0.58rem;
-  text-transform: uppercase;
+  font-size: var(--type-eyebrow);  text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #5a7a6c;
 }
@@ -3650,8 +3563,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 8px;
-  font-size: 0.74rem;
-  opacity: 0;
+  font-size: var(--type-meta);  opacity: 0;
   transform: translateX(-6px);
   transition: opacity 0.35s ease, transform 0.35s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -3675,8 +3587,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
 }
 
 .biz-flow__bid-title {
-  font-size: 0.62rem;
-  color: #4d6f6f;
+  font-size: var(--type-eyebrow);  color: #4d6f6f;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3710,8 +3621,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
 
 .biz-flow__accept {
   padding: 4px 8px;
-  font-size: 0.62rem;
-  font-weight: 700;
+  font-size: var(--type-eyebrow);  font-weight: 700;
   border-radius: 6px;
   border: 1px solid #b8d0c8;
   background: #f2faf6;
@@ -3772,8 +3682,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
   border: 0;
   background: none;
   padding: 0;
-  font-size: 0.68rem;
-  color: #5a7a6c;
+  font-size: var(--type-eyebrow);  color: #5a7a6c;
   font-family: Syne, system-ui, sans-serif;
   cursor: default;
   transition: color 0.2s ease;
@@ -3802,14 +3711,12 @@ body[data-audience="consultant"] .workflow-rail__sep {
 
 .biz-flow__ptitle {
   margin: 0 0 8px;
-  font-size: 0.72rem;
-  color: #4a6670;
+  font-size: var(--type-eyebrow);  color: #4a6670;
 }
 
 .biz-flow__pbio {
   margin: 0 0 12px;
-  font-size: 0.74rem;
-  line-height: 1.4;
+  font-size: var(--type-meta);  line-height: 1.4;
   color: #355a5a;
   max-width: 28ch;
   margin-inline: auto;
@@ -3822,8 +3729,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
   background: #2e5a48;
   color: #f4fffa;
   font-family: Syne, system-ui, sans-serif;
-  font-size: 0.74rem;
-  font-weight: 700;
+  font-size: var(--type-meta);  font-weight: 700;
   cursor: default;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -3858,16 +3764,14 @@ body[data-audience="consultant"] .workflow-rail__sep {
   justify-content: space-between;
   align-items: center;
   padding: 8px 10px;
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: var(--type-eyebrow);  font-weight: 700;
   color: #2a3d48;
   background: linear-gradient(180deg, #eef4f8, #e8eef6);
   border-bottom: 1px solid #c5d4e4;
 }
 
 .biz-flow__chat-status {
-  font-size: 0.62rem;
-  font-weight: 600;
+  font-size: var(--type-eyebrow);  font-weight: 600;
   color: #3d8a6a;
 }
 
@@ -3878,8 +3782,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
   gap: 8px;
   overflow-y: auto;
   flex: 1;
-  font-size: 0.72rem;
-  line-height: 1.35;
+  font-size: var(--type-eyebrow);  line-height: 1.35;
 }
 
 .biz-flow__chat-line {
@@ -3993,23 +3896,20 @@ body[data-audience="consultant"] .workflow-rail__sep {
   width: 26px;
   height: 26px;
   border-radius: 8px;
-  font-size: 1rem;
-  line-height: 1;
+  font-size: var(--type-h3);  line-height: 1;
   cursor: pointer;
   color: #3a4858;
 }
 
 .con-flow__toolbar {
   margin: 0 0 6px;
-  font-size: 0.68rem;
-  font-weight: 700;
+  font-size: var(--type-eyebrow);  font-weight: 700;
   color: #2e5a48;
   text-transform: lowercase;
 }
 
 .con-flow__category {
-  font-size: 0.58rem;
-  text-transform: uppercase;
+  font-size: var(--type-eyebrow);  text-transform: uppercase;
   letter-spacing: 0.07em;
   color: #6a8088;
   margin: 6px 0 4px;
@@ -4050,8 +3950,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
   border: 1px solid #b8d0c8;
   background: #f2faf6;
   color: #2a5c48;
-  font-size: 0.85rem;
-  font-weight: 700;
+  font-size: var(--type-body);  font-weight: 700;
   cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease;
 }
@@ -4156,21 +4055,18 @@ body[data-audience="consultant"] .workflow-rail__sep {
 }
 
 .con-flow__biz {
-  font-size: 0.68rem;
-  font-weight: 700;
+  font-size: var(--type-eyebrow);  font-weight: 700;
   color: #1e3d32;
   line-height: 1.2;
 }
 
 .con-flow__need {
-  font-size: 0.62rem;
-  color: #4a6670;
+  font-size: var(--type-eyebrow);  color: #4a6670;
   line-height: 1.25;
 }
 
 .con-flow__budget {
-  font-size: 0.62rem;
-  font-weight: 700;
+  font-size: var(--type-eyebrow);  font-weight: 700;
   color: #2e5a48;
 }
 
@@ -4179,8 +4075,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
   background: none;
   padding: 0;
   margin: 0 0 8px;
-  font-size: 0.65rem;
-  color: #5a7a6c;
+  font-size: var(--type-eyebrow);  color: #5a7a6c;
   font-family: Syne, system-ui, sans-serif;
   cursor: pointer;
 }
@@ -4195,28 +4090,24 @@ body[data-audience="consultant"] .workflow-rail__sep {
 .con-flow__detail-name {
   margin: 0;
   font-weight: 700;
-  font-size: 0.82rem;
-  color: #1e3d32;
+  font-size: var(--type-meta);  color: #1e3d32;
 }
 
 .con-flow__detail-tag {
   margin: 2px 0 0;
-  font-size: 0.65rem;
-  color: #5a7a6c;
+  font-size: var(--type-eyebrow);  color: #5a7a6c;
 }
 
 .con-flow__detail-desc {
   margin: 0 0 8px;
-  font-size: 0.7rem;
-  line-height: 1.4;
+  font-size: var(--type-eyebrow);  line-height: 1.4;
   color: #355a5a;
 }
 
 .con-flow__detail-facts {
   margin: 0 0 10px;
   padding: 0 0 0 1rem;
-  font-size: 0.66rem;
-  line-height: 1.45;
+  font-size: var(--type-eyebrow);  line-height: 1.45;
   color: #3d5a58;
 }
 
@@ -4226,8 +4117,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
   font-weight: 700;
   color: #5a7a6c;
   text-transform: uppercase;
-  font-size: 0.56rem;
-  letter-spacing: 0.05em;
+  font-size: var(--type-eyebrow);  letter-spacing: 0.05em;
 }
 
 .con-flow__detail-actions {
@@ -4245,8 +4135,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
   background: #f7fcfa;
   color: #2a5c48;
   font-family: Syne, system-ui, sans-serif;
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: var(--type-eyebrow);  font-weight: 700;
   cursor: pointer;
 }
 
@@ -4257,16 +4146,14 @@ body[data-audience="consultant"] .workflow-rail__sep {
   background: #2e5a48;
   color: #f4fffa;
   font-family: Syne, system-ui, sans-serif;
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: var(--type-eyebrow);  font-weight: 700;
   cursor: pointer;
 }
 
 .con-flow__bid-title {
   margin: 0 0 10px;
   font-weight: 700;
-  font-size: 0.85rem;
-  color: #1e3d32;
+  font-size: var(--type-body);  color: #1e3d32;
 }
 
 .con-flow__bid-row {
@@ -4275,8 +4162,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
 
 .con-flow__bid-label {
   display: block;
-  font-size: 0.58rem;
-  text-transform: uppercase;
+  font-size: var(--type-eyebrow);  text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #5a7a6c;
   margin-bottom: 3px;
@@ -4290,8 +4176,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
   background: rgba(255, 255, 255, 0.95);
   display: flex;
   align-items: center;
-  font-size: 0.74rem;
-  color: #2b3d44;
+  font-size: var(--type-meta);  color: #2b3d44;
 }
 
 .con-flow__bid-submit {
@@ -4338,8 +4223,7 @@ body[data-audience="consultant"] .workflow-rail__sep {
 
 .con-flow__toast-text {
   margin: 0;
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-size: var(--type-meta);  font-weight: 700;
   color: #1e3d32;
 }
 
@@ -4508,8 +4392,7 @@ body[data-audience="consultant"] #reviews.audience-theme-surface {
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid #c5d4e0;
-  font-size: 0.68rem;
-  text-align: center;
+  font-size: var(--type-eyebrow);  text-align: center;
 }
 
 .ebay-tile--hot {
@@ -4534,8 +4417,7 @@ body[data-audience="consultant"] #reviews.audience-theme-surface {
 .ebay-sim__dp {
   margin: 0 0 4px;
   color: #355a5a;
-  font-size: 0.72rem;
-}
+  font-size: var(--type-eyebrow);}
 
 .bidding-walk__steps {
   display: flex;
@@ -4543,7 +4425,7 @@ body[data-audience="consultant"] #reviews.audience-theme-surface {
   align-items: center;
   gap: 0.45rem 0.28rem;
   margin: 0 0 1.25rem;
-  font-size: clamp(0.82rem, 2vw, 0.95rem);
+  font-size: var(--type-body);
   font-weight: 600;
   color: rgba(200, 192, 180, 0.65);
 }
@@ -4600,7 +4482,7 @@ body[data-audience="consultant"] .bidding-walk__steps .walk-chip.is-active {
   max-width: 42ch;
   line-height: 1.5;
   color: rgba(236, 230, 222, 0.92);
-  font-size: clamp(0.95rem, 1.4vw, 1.05rem);
+  font-size: var(--type-h3);
 }
 
 .bidding-walk-section__inner > .mission-kicker {
@@ -4657,8 +4539,7 @@ body[data-audience="consultant"] .bidding-walk__steps .walk-chip.is-active {
 
 .walk-sim__label {
   margin: 0 0 6px;
-  font-size: 0.65rem;
-  text-transform: uppercase;
+  font-size: var(--type-eyebrow);  text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #5a7a6c;
 }
@@ -4718,14 +4599,13 @@ body[data-audience="consultant"] .bidding-walk__steps .walk-chip.is-active {
 }
 
 .two-bids-details__title {
-  font-size: clamp(1.15rem, 2.5vw, 1.45rem);
+  font-size: var(--type-h2);
   font-weight: 700;
   color: #f0f4fc;
 }
 
 .two-bids-details__hint {
-  font-size: 0.88rem;
-  color: rgba(186, 198, 218, 0.75);
+  font-size: var(--type-body);  color: rgba(186, 198, 218, 0.75);
 }
 
 .two-bids-details__chev::before {
@@ -4760,7 +4640,7 @@ body[data-audience="consultant"] .bidding-walk__steps .walk-chip.is-active {
 .audience-flip-bar__q {
   margin: 0 0 0.65rem;
   color: rgba(210, 218, 232, 0.88);
-  font-size: clamp(1rem, 2.2vw, 1.15rem);
+  font-size: var(--type-h3);
 }
 
 .audience-flip-bar__action {
@@ -4787,8 +4667,7 @@ body[data-audience="consultant"] .bidding-walk__steps .walk-chip.is-active {
   text-decoration: none;
   color: #f4f1eb;
   font-weight: 700;
-  font-size: 1.2rem;
-  letter-spacing: -0.03em;
+  font-size: var(--type-h2);  letter-spacing: -0.03em;
 }
 
 .beta-footer__brand img {
@@ -4797,8 +4676,7 @@ body[data-audience="consultant"] .bidding-walk__steps .walk-chip.is-active {
 
 .beta-footer__nav-title {
   margin: 0 0 0.4rem;
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: var(--type-eyebrow);  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: rgba(170, 186, 210, 0.75);
@@ -4815,8 +4693,7 @@ body[data-audience="consultant"] .bidding-walk__steps .walk-chip.is-active {
 .beta-footer__nav a {
   color: rgba(200, 214, 236, 0.88);
   text-decoration: none;
-  font-size: 0.9rem;
-}
+  font-size: var(--type-body);}
 
 .beta-footer__nav a:hover {
   color: var(--accent);
@@ -4829,8 +4706,7 @@ body[data-audience="consultant"] .bidding-walk__steps .walk-chip.is-active {
   margin-inline: auto;
   padding-top: 1rem;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  font-size: 0.85rem;
-  color: rgba(160, 176, 198, 0.65);
+  font-size: var(--type-body);  color: rgba(160, 176, 198, 0.65);
   text-align: center;
 }
 
@@ -5027,8 +4903,7 @@ body[data-audience="business"] .footer-nav--consultant-only {
 
 .mission-kicker {
   display: inline-block;
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: var(--type-meta);  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: rgba(244, 239, 233, 0.88);
@@ -5059,7 +4934,7 @@ body[data-audience="business"] .footer-nav--consultant-only {
   max-width: 43ch;
   color: rgba(248, 245, 240, 0.88);
   line-height: 1.48;
-  font-size: clamp(0.96rem, 1.45vw, 1.08rem);
+  font-size: var(--type-h3);
 }
 
 .mission-copy p strong {
@@ -5105,7 +4980,7 @@ body[data-audience="business"] .footer-nav--consultant-only {
 
 .mission-copy--marketplace p {
   max-width: 56ch;
-  font-size: clamp(0.98rem, 1.5vw, 1.08rem);
+  font-size: var(--type-h3);
 }
 
 .mission-supercharge {
@@ -5542,8 +5417,7 @@ body[data-audience="business"] .footer-nav--consultant-only {
 }
 
 .market-item {
-  font-size: 0.8rem;
-  color: #355645;
+  font-size: var(--type-meta);  color: #355645;
   border: 1px solid #cde0d5;
   background: #f9fffc;
   border-radius: 9px;
@@ -5574,15 +5448,13 @@ body[data-audience="business"] .footer-nav--consultant-only {
 
 .demo-pane h3 {
   margin: 0 0 0.32rem;
-  font-size: 0.82rem;
-  color: #2e5a48;
+  font-size: var(--type-meta);  color: #2e5a48;
 }
 
 .demo-pane p,
 .demo-pane li {
   margin: 0;
-  font-size: 0.74rem;
-  color: #2b4658;
+  font-size: var(--type-meta);  color: #2b4658;
 }
 
 .demo-pane--listing {
@@ -5814,7 +5686,7 @@ body[data-audience="business"] .footer-nav--consultant-only {
 
 .beta-section-head h2 {
   margin: 0.45rem 0 0.6rem;
-  font-size: clamp(1.5rem, 3.2vw, 2.25rem);
+  font-size: var(--type-h1);
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.12;
@@ -5822,7 +5694,7 @@ body[data-audience="business"] .footer-nav--consultant-only {
 
 .beta-lead {
   margin: 0;
-  font-size: clamp(1rem, 1.5vw, 1.12rem);
+  font-size: var(--type-h3);
   line-height: 1.5;
   color: rgba(225, 232, 244, 0.82);
 }
@@ -5840,7 +5712,7 @@ body[data-audience="business"] .footer-nav--consultant-only {
   margin: 0 0 1rem;
   color: rgba(232, 236, 245, 0.78);
   line-height: 1.5;
-  font-size: clamp(0.95rem, 1.4vw, 1.05rem);
+  font-size: var(--type-h3);
 }
 
 .beta-callout {
@@ -5849,13 +5721,11 @@ body[data-audience="business"] .footer-nav--consultant-only {
   border-radius: 12px;
   background: rgba(158, 208, 255, 0.1);
   border: 1px solid rgba(158, 208, 255, 0.22);
-  font-size: 0.95rem;
-}
+  font-size: var(--type-body);}
 
 .beta-note {
   margin: 0 0 0.6rem;
-  font-size: 0.88rem;
-  color: rgba(210, 218, 232, 0.65);
+  font-size: var(--type-body);  color: rgba(210, 218, 232, 0.65);
   font-style: italic;
 }
 
@@ -5887,7 +5757,7 @@ body[data-audience="business"] .footer-nav--consultant-only {
 
 .value-card__title {
   margin: 0 0 0.75rem;
-  font-size: clamp(1.15rem, 2.2vw, 1.45rem);
+  font-size: var(--type-h2);
   font-weight: 700;
   letter-spacing: -0.02em;
   color: #f4f7fc;
@@ -6006,7 +5876,7 @@ body[data-audience="business"] .footer-nav--consultant-only {
   display: grid;
   gap: 0.55rem;
   color: rgba(228, 234, 244, 0.9);
-  font-size: clamp(0.92rem, 1.35vw, 1.02rem);
+  font-size: var(--type-body);
   line-height: 1.48;
 }
 
@@ -6025,7 +5895,7 @@ body[data-audience="business"] .footer-nav--consultant-only {
   display: grid;
   gap: 0.75rem;
   color: rgba(248, 245, 240, 0.9);
-  font-size: clamp(0.94rem, 1.4vw, 1.04rem);
+  font-size: var(--type-body);
   line-height: 1.45;
 }
 
@@ -6039,8 +5909,7 @@ body[data-audience="business"] .footer-nav--consultant-only {
   border-radius: 8px;
   background: rgba(159, 199, 255, 0.22);
   border: 1px solid rgba(159, 199, 255, 0.35);
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: var(--type-meta);  font-weight: 700;
   color: #f0f6ff;
   vertical-align: middle;
 }
@@ -6110,7 +5979,7 @@ body[data-audience="business"] .footer-nav--consultant-only {
   margin: 0 0 1.05rem;
   color: rgba(224, 230, 242, 0.88);
   line-height: 1.55;
-  font-size: clamp(0.95rem, 1.4vw, 1.05rem);
+  font-size: var(--type-h3);
 }
 
 .two-bids-aside {
@@ -6128,15 +5997,13 @@ body[data-audience="business"] .footer-nav--consultant-only {
 
 .bid-table-card__title {
   margin: 0 0 0.65rem;
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: var(--type-h3);  font-weight: 700;
   color: #f2f6ff;
 }
 
 .bid-table-card__note {
   margin: 0.75rem 0 0;
-  font-size: 0.88rem;
-  color: rgba(200, 210, 228, 0.82);
+  font-size: var(--type-body);  color: rgba(200, 210, 228, 0.82);
   line-height: 1.45;
 }
 
@@ -6148,8 +6015,7 @@ body[data-audience="business"] .footer-nav--consultant-only {
 .beta-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.88rem;
-}
+  font-size: var(--type-body);}
 
 .beta-table th,
 .beta-table td {
@@ -6273,27 +6139,23 @@ body[data-audience="business"] .footer-nav--consultant-only {
 
 .trust-card__title {
   margin: 0 0 0.45rem;
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-size: var(--type-h3);  font-weight: 700;
   color: #f4f7fc;
 }
 
 .trust-card__title--small {
-  font-size: 1rem;
-  margin-top: 0;
+  font-size: var(--type-h3);  margin-top: 0;
 }
 
 .trust-card__sub {
   margin: 0 0 0.65rem;
-  font-size: 0.92rem;
-  color: rgba(210, 218, 232, 0.82);
+  font-size: var(--type-body);  color: rgba(210, 218, 232, 0.82);
   line-height: 1.45;
 }
 
 .trust-card p {
   margin: 0 0 0.65rem;
-  font-size: 0.94rem;
-  line-height: 1.5;
+  font-size: var(--type-body);  line-height: 1.5;
   color: rgba(220, 228, 240, 0.88);
 }
 
@@ -6309,8 +6171,7 @@ body[data-audience="business"] .footer-nav--consultant-only {
 .pill-list li {
   padding: 0.35rem 0.65rem;
   border-radius: 999px;
-  font-size: 0.8rem;
-  background: rgba(158, 208, 255, 0.12);
+  font-size: var(--type-meta);  background: rgba(158, 208, 255, 0.12);
   border: 1px solid rgba(158, 208, 255, 0.22);
   color: rgba(232, 240, 255, 0.92);
 }
@@ -6328,12 +6189,10 @@ body[data-audience="business"] .footer-nav--consultant-only {
 .stars-row__icon {
   letter-spacing: 0.08em;
   color: rgba(230, 195, 154, 0.95);
-  font-size: 1rem;
-}
+  font-size: var(--type-h3);}
 
 .stars-row__label {
-  font-size: 0.82rem;
-  color: rgba(190, 206, 228, 0.75);
+  font-size: var(--type-meta);  color: rgba(190, 206, 228, 0.75);
 }
 
 .review-snippet {
@@ -6351,8 +6210,7 @@ body[data-audience="business"] .footer-nav--consultant-only {
 }
 
 .review-snippet__meta {
-  font-size: 0.82rem;
-  color: rgba(180, 198, 220, 0.7);
+  font-size: var(--type-meta);  color: rgba(180, 198, 220, 0.7);
 }
 
 .profile-art {
@@ -6376,8 +6234,7 @@ body[data-audience="business"] .footer-nav--consultant-only {
   background: #0f1218;
   border-top: 1px solid rgba(158, 208, 255, 0.12);
   color: rgba(186, 198, 218, 0.75);
-  font-size: 0.9rem;
-}
+  font-size: var(--type-body);}
 
 .scroll-cue {
   position: fixed;
@@ -6497,7 +6354,7 @@ body[data-audience="business"] .footer-nav--consultant-only {
 .hero-subscript {
   margin: 0.55rem 0 0;
   max-width: 100%;
-  font-size: clamp(1rem, 1.7vw, 1.25rem);
+  font-size: var(--type-h3);
   line-height: 1.45;
   color: rgba(225, 233, 246, 0.78);
   text-align: center;
@@ -6525,8 +6382,7 @@ body[data-audience="business"] .footer-nav--consultant-only {
 
 @media (max-width: 700px) {
   .site-nav__links a {
-    font-size: 0.84rem;
-  }
+    font-size: var(--type-meta);  }
 
   .hero-line {
     max-width: 100%;

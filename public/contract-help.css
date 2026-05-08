@@ -1,0 +1,117 @@
+/* ================================================================
+   contract-help — three-option guide for the listing contract picker.
+   Uses the project's --fo-* theme tokens; no Tailwind, no React. The
+   layout is a stacked column on narrow screens, three columns on wide.
+   ================================================================ */
+
+.ch-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.ch-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1.25rem 1.3rem;
+  border-radius: 16px;
+  background: var(--fo-surface);
+  border: 1px solid var(--fo-line);
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.ch-option:hover {
+  border-color: var(--fo-line-strong);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(15, 31, 26, 0.08);
+}
+
+.ch-option__head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+/* Pill at the top — uses the .gr-pill component (theme-aware via tokens). */
+.ch-option__head .gr-pill {
+  align-self: flex-start;
+}
+
+.ch-option__title {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: var(--type-h2);
+  font-weight: 600;
+  color: var(--fo-text);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.ch-option__lede {
+  margin: 0;
+  font-size: var(--type-body);
+  font-style: italic;
+  color: var(--fo-text-2);
+  line-height: 1.45;
+}
+
+.ch-option__body {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.ch-option__row {
+  margin: 0;
+  font-size: var(--type-meta);
+  line-height: 1.55;
+  color: var(--fo-text-2);
+}
+
+.ch-option__row strong {
+  color: var(--fo-text);
+  font-weight: 700;
+}
+
+/* Eyebrow-style label inline with the row body. Sits as a small uppercase
+   tracker so the row reads "good for: …" without a colon. */
+.ch-option__label {
+  display: inline-block;
+  margin-right: 0.4rem;
+  font-size: var(--type-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fo-text-3);
+}
+
+/* "still unsure?" footer callout — quiet card with accent-soft fill so it
+   reads as a tip, not a fourth option. */
+.ch-callout {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1.05rem 1.2rem;
+  border-radius: 14px;
+  background: var(--fo-accent-soft);
+  border: 1px solid var(--fo-line);
+}
+
+.ch-callout__title {
+  margin: 0;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: var(--type-h3);
+  font-weight: 600;
+  color: var(--fo-text);
+}
+
+.ch-callout__body {
+  margin: 0;
+  font-size: var(--type-body);
+  line-height: 1.55;
+  color: var(--fo-text-2);
+}
+
+.ch-callout__body strong {
+  color: var(--fo-text);
+  font-weight: 700;
+}

@@ -1,11 +1,15 @@
 /* --- Password hint --- */
 .reg-pw-hint {
-  font-size: 0.72rem;
+  font-size: var(--type-meta);
   color: var(--tagline-body);
   font-weight: 400;
   letter-spacing: 0.01em;
   opacity: 0.85;
 }
+
+/* `.reg-pw-rules` lives in grassroots.css so any page that needs the live
+   password requirements list (register, reset-password, etc.) gets it for
+   free. */
 
 /* --- Progress Bar --- */
 .reg-progress {
@@ -36,7 +40,7 @@
 }
 
 .reg-progress__label {
-  font-size: 0.75rem;
+  font-size: var(--type-eyebrow);
   font-weight: 600;
   letter-spacing: 0.08em;
   color: var(--tagline-body);
@@ -119,13 +123,13 @@
 
 .reg-role-card__title {
   font-family: Fraunces, Georgia, serif;
-  font-size: 1rem;
+  font-size: var(--type-h3);
   font-weight: 700;
   color: var(--green-deep);
 }
 
 .reg-role-card__hint {
-  font-size: 0.8rem;
+  font-size: var(--type-meta);
   color: var(--tagline-body);
   line-height: 1.4;
 }

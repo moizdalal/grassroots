@@ -16,6 +16,11 @@ const SUPABASE_SERVICE_ROLE_KEY = envTrim("SUPABASE_SERVICE_ROLE_KEY");
 const SUPABASE_ANON_KEY =
   envTrim("SUPABASE_ANON_KEY") || envTrim("SUPABASE_PUBLISHABLE_KEY");
 
+const STRIPE_SECRET_KEY = envTrim("STRIPE_SECRET_KEY");
+const STRIPE_PUBLISHABLE_KEY = envTrim("STRIPE_PUBLISHABLE_KEY");
+const stripe = STRIPE_SECRET_KEY ? require("stripe")(STRIPE_SECRET_KEY) : null;
+if (!stripe) console.warn("[stripe] STRIPE_SECRET_KEY missing — payment endpoints will 503.");
+
 const SUPABASE_ADMIN_CONFIG_ERROR =
   "Server missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. Add them as environment variables (.env locally, Vercel Project Settings in production).";
 const SUPABASE_BROWSER_CONFIG_ERROR =
@@ -114,6 +119,7 @@ app.get("/api/public-config", (_req, res) => {
   res.json({
     supabaseUrl: SUPABASE_URL,
     supabaseAnonKey: SUPABASE_ANON_KEY,
+    stripePublishableKey: STRIPE_PUBLISHABLE_KEY || null,
   });
 });
 
@@ -494,6 +500,22 @@ app.get("/api/consultant-profile/:id", async (req, res) => {
     const viewer = await getViewerFromRequest(req);
     const canViewResume = canViewerAccessResume(viewer, consultantId, profile);
 
+    let rating = null;
+    try {
+      const { data, error } = await supabase.rpc("get_consultant_rating", { target_consultant_id: consultantId });
+      if (!error && Array.isArray(data) && data[0]) {
+        rating = {
+          review_count: Number(data[0].review_count) || 0,
+          rating_average: data[0].rating_average == null ? null : Number(data[0].rating_average),
+          work_product_quality_avg: data[0].work_product_quality_avg == null ? null : Number(data[0].work_product_quality_avg),
+          communication_avg: data[0].communication_avg == null ? null : Number(data[0].communication_avg),
+          timeliness_avg: data[0].timeliness_avg == null ? null : Number(data[0].timeliness_avg),
+          professionalism_avg: data[0].professionalism_avg == null ? null : Number(data[0].professionalism_avg),
+          cost_value_avg: data[0].cost_value_avg == null ? null : Number(data[0].cost_value_avg),
+        };
+      }
+    } catch (_) {}
+
     return res.json({
       profile: {
         id: profile.id,
@@ -506,7 +528,37 @@ app.get("/api/consultant-profile/:id", async (req, res) => {
       },
       education: consultantProfile || {},
       portfolio: portfolioWithUrls,
+      rating,
     });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || "Server error." });
+  }
+});
+
+app.get("/api/consultant-ratings", async (req, res) => {
+  const idsParam = String(req.query.ids || "").trim();
+  if (!idsParam) return res.json({ ratings: {} });
+  const ids = idsParam.split(",").map((s) => s.trim()).filter(Boolean);
+  if (!ids.length) return res.json({ ratings: {} });
+  try {
+    const { data, error } = await supabase.rpc("get_consultant_ratings", { target_consultant_ids: ids });
+    // If the RPC isn't deployed yet, return empty ratings rather than 500ing
+    // every consumer page. Apply the migration to surface real aggregates.
+    if (error) {
+      const msg = String(error.message || "").toLowerCase();
+      if (msg.includes("could not find") || msg.includes("does not exist") || msg.includes("schema cache")) {
+        return res.json({ ratings: {} });
+      }
+      return res.status(500).json({ error: error.message });
+    }
+    const ratings = {};
+    for (const row of data || []) {
+      ratings[row.consultant_id] = {
+        review_count: Number(row.review_count) || 0,
+        rating_average: row.rating_average == null ? null : Number(row.rating_average),
+      };
+    }
+    return res.json({ ratings });
   } catch (error) {
     return res.status(500).json({ error: error.message || "Server error." });
   }
@@ -546,6 +598,346 @@ app.get("/api/consultant-profile/:id/resume", async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ error: error.message || "Server error." });
+  }
+});
+
+/* ================================================================
+   Stripe Connect (Custom) — escrow-style payments.
+   Test mode only: requires STRIPE_SECRET_KEY=sk_test_… in .env.
+   ================================================================ */
+
+function requireStripe(res) {
+  if (!stripe) {
+    res.status(503).json({ error: "Stripe is not configured on this server." });
+    return false;
+  }
+  return true;
+}
+
+async function ensureConsultantStripeAccount(viewerId) {
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("id, role, full_name, stripe_account_id, stripe_account_status")
+    .eq("id", viewerId)
+    .maybeSingle();
+  if (error) {
+    if (/stripe_account_id|stripe_account_status|column .* does not exist/i.test(error.message || "")) {
+      throw new Error("payments schema not deployed yet — run supabase/migrations/add_stripe_fields.sql.");
+    }
+    throw new Error(error.message);
+  }
+  if (!profile) throw new Error("profile not found.");
+  if (profile.role !== "consultant") throw new Error("only consultants can set up payouts.");
+
+  if (profile.stripe_account_id) return profile;
+
+  const account = await stripe.accounts.create({
+    type: "custom",
+    capabilities: {
+      transfers: { requested: true },
+      card_payments: { requested: true },
+    },
+    business_type: "individual",
+    metadata: { grassroots_user_id: viewerId },
+  });
+
+  await supabase
+    .from("profiles")
+    .update({ stripe_account_id: account.id, stripe_account_status: "pending" })
+    .eq("id", viewerId);
+
+  return { ...profile, stripe_account_id: account.id, stripe_account_status: "pending" };
+}
+
+async function ensureOwnerStripeCustomer(viewerId) {
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("id, full_name, stripe_customer_id")
+    .eq("id", viewerId)
+    .maybeSingle();
+  if (error) {
+    if (/stripe_customer_id|column .* does not exist/i.test(error.message || "")) {
+      throw new Error("payments schema not deployed yet — run supabase/migrations/add_stripe_fields.sql.");
+    }
+    throw new Error(error.message);
+  }
+  if (!profile) throw new Error("profile not found.");
+  if (profile.stripe_customer_id) return profile;
+
+  const customer = await stripe.customers.create({
+    name: profile.full_name || undefined,
+    metadata: { grassroots_user_id: viewerId },
+  });
+  await supabase
+    .from("profiles")
+    .update({ stripe_customer_id: customer.id })
+    .eq("id", viewerId);
+  return { ...profile, stripe_customer_id: customer.id };
+}
+
+// Consultant: open the embedded onboarding component in our own UI.
+app.post("/api/stripe/account-session", async (req, res) => {
+  if (!requireStripe(res)) return;
+  const viewer = await getViewerFromRequest(req);
+  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  try {
+    const profile = await ensureConsultantStripeAccount(viewer.id);
+    const accountSession = await stripe.accountSessions.create({
+      account: profile.stripe_account_id,
+      components: {
+        account_onboarding: { enabled: true },
+        account_management: { enabled: true },
+        payouts: { enabled: true },
+      },
+    });
+    return res.json({
+      client_secret: accountSession.client_secret,
+      publishable_key: STRIPE_PUBLISHABLE_KEY,
+      account_id: profile.stripe_account_id,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "could not create account session." });
+  }
+});
+
+// Consultant: poll onboarding status (charges_enabled / payouts_enabled).
+app.get("/api/stripe/account-status", async (req, res) => {
+  if (!requireStripe(res)) return;
+  const viewer = await getViewerFromRequest(req);
+  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  try {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("stripe_account_id, stripe_account_status")
+      .eq("id", viewer.id)
+      .maybeSingle();
+    if (!profile?.stripe_account_id) {
+      return res.json({ onboarded: false, charges_enabled: false, payouts_enabled: false });
+    }
+    const account = await stripe.accounts.retrieve(profile.stripe_account_id);
+    const charges = !!account.charges_enabled;
+    const payouts = !!account.payouts_enabled;
+    const fullyOnboarded = charges && payouts && account.details_submitted;
+    const status = fullyOnboarded ? "active" : "pending";
+    if (status !== profile.stripe_account_status) {
+      await supabase
+        .from("profiles")
+        .update({ stripe_account_status: status })
+        .eq("id", viewer.id);
+    }
+    return res.json({
+      onboarded: fullyOnboarded,
+      charges_enabled: charges,
+      payouts_enabled: payouts,
+      details_submitted: !!account.details_submitted,
+      requirements_due: account.requirements?.currently_due || [],
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "could not load account status." });
+  }
+});
+
+// Owner: create a PaymentIntent for accepting a bid. Funds are captured
+// into the platform balance (escrow) — no destination charge here, so the
+// consultant doesn't receive money until release-funds runs after the
+// owner submits their post-engagement review.
+app.post("/api/stripe/payment-intent", async (req, res) => {
+  if (!requireStripe(res)) return;
+  const viewer = await getViewerFromRequest(req);
+  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  const bidId = String(req.body?.bid_id || "").trim();
+  if (!bidId) return res.status(400).json({ error: "bid_id required." });
+
+  try {
+    const { data: bid, error: bidErr } = await supabase
+      .from("bids")
+      .select("id, listing_id, consultant_id, amount_cents, counter_offer_cents, status, payment_intent_id, payment_status")
+      .eq("id", bidId)
+      .maybeSingle();
+    if (bidErr) {
+      const msg = bidErr.message || "";
+      if (/payment_intent_id|payment_status|column .* does not exist/i.test(msg)) {
+        return res.status(503).json({ error: "payments schema not deployed yet — run supabase/migrations/add_stripe_fields.sql." });
+      }
+      return res.status(500).json({ error: msg });
+    }
+    if (!bid) return res.status(404).json({ error: "bid not found." });
+
+    const { data: listing, error: listingErr } = await supabase
+      .from("listings")
+      .select("id, owner_id, title")
+      .eq("id", bid.listing_id)
+      .maybeSingle();
+    if (listingErr || !listing) return res.status(404).json({ error: "listing not found." });
+    if (listing.owner_id !== viewer.id) return res.status(403).json({ error: "only the listing owner can pay." });
+    if (bid.payment_status === "held" || bid.payment_status === "released") {
+      return res.status(409).json({ error: "this bid is already paid." });
+    }
+
+    const amount = Number(bid.counter_offer_cents || bid.amount_cents);
+    if (!Number.isFinite(amount) || amount < 50) {
+      return res.status(400).json({ error: "bid amount is invalid for payment." });
+    }
+
+    const owner = await ensureOwnerStripeCustomer(viewer.id);
+
+    // Reuse an existing PaymentIntent if we already created one for this bid
+    // (e.g., the owner closed the modal before confirming). Otherwise create.
+    let intent;
+    if (bid.payment_intent_id) {
+      try {
+        intent = await stripe.paymentIntents.retrieve(bid.payment_intent_id);
+        if (["succeeded", "canceled"].includes(intent.status)) intent = null;
+      } catch (_) { intent = null; }
+    }
+    if (!intent) {
+      intent = await stripe.paymentIntents.create({
+        amount,
+        currency: "usd",
+        customer: owner.stripe_customer_id,
+        automatic_payment_methods: { enabled: true, allow_redirects: "never" },
+        transfer_group: `bid_${bidId}`,
+        metadata: {
+          bid_id: bidId,
+          listing_id: bid.listing_id,
+          owner_id: viewer.id,
+          consultant_id: bid.consultant_id,
+        },
+      });
+      await supabase
+        .from("bids")
+        .update({
+          payment_intent_id: intent.id,
+          payment_status: "authorizing",
+          payment_amount_cents: amount,
+        })
+        .eq("id", bidId);
+    }
+
+    return res.json({
+      client_secret: intent.client_secret,
+      amount,
+      currency: "usd",
+      title: bid.listings?.title || "engagement",
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "could not start payment." });
+  }
+});
+
+// Owner: confirm the bid was paid. Server re-validates the PaymentIntent
+// directly with Stripe, then flips the bid to `accepted` atomically.
+app.post("/api/stripe/confirm-acceptance", async (req, res) => {
+  if (!requireStripe(res)) return;
+  const viewer = await getViewerFromRequest(req);
+  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  const bidId = String(req.body?.bid_id || "").trim();
+  if (!bidId) return res.status(400).json({ error: "bid_id required." });
+
+  try {
+    const { data: bid, error: bidErr } = await supabase
+      .from("bids")
+      .select("id, payment_intent_id, listing_id")
+      .eq("id", bidId)
+      .maybeSingle();
+    if (bidErr || !bid) return res.status(404).json({ error: "bid not found." });
+    const { data: listing } = await supabase
+      .from("listings")
+      .select("owner_id")
+      .eq("id", bid.listing_id)
+      .maybeSingle();
+    if (listing?.owner_id !== viewer.id) return res.status(403).json({ error: "only the listing owner can confirm." });
+    if (!bid.payment_intent_id) return res.status(400).json({ error: "no payment intent on this bid." });
+
+    const intent = await stripe.paymentIntents.retrieve(bid.payment_intent_id);
+    if (intent.status !== "succeeded") {
+      return res.status(400).json({ error: `payment not yet captured (status: ${intent.status}).` });
+    }
+
+    const { error: updErr } = await supabase
+      .from("bids")
+      .update({
+        status: "accepted",
+        accepted_at: new Date().toISOString(),
+        payment_status: "held",
+        paid_at: new Date().toISOString(),
+      })
+      .eq("id", bidId);
+    if (updErr) return res.status(500).json({ error: updErr.message });
+
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "could not confirm payment." });
+  }
+});
+
+// Owner: release escrow to consultant after marking work complete + reviewing.
+app.post("/api/stripe/release-funds", async (req, res) => {
+  if (!requireStripe(res)) return;
+  const viewer = await getViewerFromRequest(req);
+  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  const bidId = String(req.body?.bid_id || "").trim();
+  if (!bidId) return res.status(400).json({ error: "bid_id required." });
+
+  try {
+    const { data: bid, error: bidErr } = await supabase
+      .from("bids")
+      .select("id, listing_id, consultant_id, payment_amount_cents, payment_status, transfer_id")
+      .eq("id", bidId)
+      .maybeSingle();
+    if (bidErr || !bid) return res.status(404).json({ error: "bid not found." });
+    const { data: listing } = await supabase
+      .from("listings")
+      .select("owner_id")
+      .eq("id", bid.listing_id)
+      .maybeSingle();
+    if (listing?.owner_id !== viewer.id) return res.status(403).json({ error: "only the listing owner can release funds." });
+    if (bid.payment_status === "released") return res.json({ ok: true, alreadyReleased: true });
+    if (bid.payment_status !== "held") return res.status(400).json({ error: `cannot release: status is ${bid.payment_status}.` });
+
+    // Verify a review has been submitted for this bid before releasing.
+    const { data: review } = await supabase
+      .from("consultant_reviews")
+      .select("id")
+      .eq("bid_id", bidId)
+      .maybeSingle();
+    if (!review?.id) return res.status(400).json({ error: "submit your review before releasing payment." });
+
+    const { data: consultant } = await supabase
+      .from("profiles")
+      .select("stripe_account_id, stripe_account_status")
+      .eq("id", bid.consultant_id)
+      .maybeSingle();
+
+    if (!consultant?.stripe_account_id) {
+      return res.status(400).json({ error: "consultant hasn't set up payouts yet — they need to finish onboarding before funds can be released." });
+    }
+
+    const account = await stripe.accounts.retrieve(consultant.stripe_account_id);
+    if (!account.payouts_enabled) {
+      return res.status(400).json({ error: "consultant's payout setup is incomplete — they need to finish onboarding first." });
+    }
+
+    const transfer = await stripe.transfers.create({
+      amount: bid.payment_amount_cents,
+      currency: "usd",
+      destination: consultant.stripe_account_id,
+      transfer_group: `bid_${bidId}`,
+      metadata: { bid_id: bidId },
+    });
+
+    await supabase
+      .from("bids")
+      .update({
+        payment_status: "released",
+        transfer_id: transfer.id,
+        released_at: new Date().toISOString(),
+      })
+      .eq("id", bidId);
+
+    return res.json({ ok: true, transfer_id: transfer.id });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "could not release funds." });
   }
 });
 

@@ -1,3 +1,7 @@
 node_modules/
 .env
 .DS_Store
+
+# Local-only dev tooling state — not part of the project.
+.claude/
+.remember/

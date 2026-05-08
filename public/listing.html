@@ -13,6 +13,8 @@
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <script src="/theme.js"></script>
+    <script src="/loading-overlay.js"></script>
+    <script src="https://js.stripe.com/v3/"></script>
     <link rel="stylesheet" href="/listing.css" />
   </head>
   <body class="gr-body"><main class="gr-shell gr-shell--wide ld-shell">
@@ -22,24 +24,31 @@
 
       <div id="listing-detail" class="ld-detail" hidden>
 
-        <!-- ===== COLLAPSIBLE BUSINESS BIO ===== -->
+        <!-- ===== COLLAPSIBLE BUSINESS BIO.
+             Avatar + socials are an anchored left column. Toggle (with
+             collapsed meta) and body (with the expanded heading + details)
+             stack contiguously in the right column so name flows directly
+             into owner/about/link with no gap. ===== -->
         <section class="ld-bio" id="ld-bio">
-          <button type="button" class="ld-bio__toggle" id="ld-bio-toggle" aria-expanded="true" aria-controls="ld-bio-body">
-            <span class="ld-bio__toggle-label">about the business</span>
-            <span class="ld-bio__toggle-arrow" aria-hidden="true">&#9662;</span>
-          </button>
-          <div class="ld-bio__body" id="ld-bio-body">
-            <div class="ld-bio__inner">
-              <div id="ld-biz-avatar-wrap" class="ld-bio__avatar-wrap" hidden>
-                <img id="ld-biz-avatar" class="ld-bio__avatar" width="96" height="96" alt="" />
-              </div>
-              <div class="ld-bio__info">
-                <h2 id="ld-biz-name" class="ld-bio__name" hidden></h2>
-                <p id="ld-biz-owner" class="ld-bio__owner"></p>
-                <p id="ld-biz-details" class="ld-bio__about" hidden></p>
-                <a id="ld-biz-website" class="ld-bio__link" target="_blank" rel="noopener noreferrer" hidden>website</a>
-                <div id="ld-biz-socials" class="ld-bio__socials" hidden></div>
-              </div>
+          <div class="ld-bio__left">
+            <span class="ld-bio__avatar-wrap" id="ld-biz-avatar-wrap" hidden>
+              <img id="ld-biz-avatar" class="ld-bio__avatar" alt="" />
+            </span>
+            <div id="ld-biz-socials" class="ld-bio__socials" hidden></div>
+          </div>
+          <div class="ld-bio__column">
+            <button type="button" class="ld-bio__toggle" id="ld-bio-toggle" aria-expanded="false" aria-controls="ld-bio-body">
+              <span class="ld-bio__meta">
+                <span class="ld-bio__eyebrow">about the business</span>
+                <span class="ld-bio__name-inline" id="ld-biz-name-inline"></span>
+              </span>
+              <span class="ld-bio__toggle-arrow" aria-hidden="true">&#9662;</span>
+            </button>
+            <div class="ld-bio__body is-collapsed" id="ld-bio-body">
+              <h2 id="ld-biz-name" class="ld-bio__name"></h2>
+              <p id="ld-biz-owner" class="ld-bio__owner"></p>
+              <p id="ld-biz-details" class="ld-bio__about" hidden></p>
+              <a id="ld-biz-website" class="ld-bio__link" target="_blank" rel="noopener noreferrer" hidden>website</a>
             </div>
           </div>
         </section>
@@ -63,31 +72,31 @@
               </div>
             </div>
 
-            <div id="ld-context-section" class="ld-section" hidden>
-              <h2 class="ld-section-h">context</h2>
+            <details id="ld-context-section" class="ld-section" open hidden>
+              <summary class="ld-section-h">context</summary>
               <p id="ld-context" class="ld-body"></p>
-            </div>
+            </details>
 
-            <div class="ld-section">
-              <h2 id="ld-summary-heading" class="ld-section-h">business problem</h2>
+            <details class="ld-section" open>
+              <summary id="ld-summary-heading" class="ld-section-h">business problem</summary>
               <p id="ld-summary" class="ld-body"></p>
-            </div>
+            </details>
 
-            <div id="ld-output-section" class="ld-section" hidden>
-              <h2 class="ld-section-h">standards of work</h2>
+            <details id="ld-output-section" class="ld-section" open hidden>
+              <summary class="ld-section-h">standards of work</summary>
               <p id="ld-output" class="ld-body"></p>
-            </div>
+            </details>
 
-            <div id="ld-details-section" class="ld-section" hidden>
-              <h2 id="ld-details-heading" class="ld-section-h">additional details</h2>
+            <details id="ld-details-section" class="ld-section" open hidden>
+              <summary id="ld-details-heading" class="ld-section-h">additional details</summary>
               <p id="ld-details" class="ld-body"></p>
               <div id="ld-attachments" class="ld-attachments" hidden></div>
-            </div>
+            </details>
 
-            <div id="ld-quals-section" class="ld-section" hidden>
-              <h2 class="ld-section-h">qualifications</h2>
+            <details id="ld-quals-section" class="ld-section" open hidden>
+              <summary class="ld-section-h">qualifications</summary>
               <ul id="ld-quals" class="ld-quals-list"></ul>
-            </div>
+            </details>
 
             <!-- Consultant: status banners (accepted / countered) -->
             <div id="ld-bid-banners" hidden>
@@ -268,6 +277,42 @@
       </div>
     </main>
 
+    <!-- Consultant profile slideshow viewer (owner-only) -->
+    <div class="ld-cv hidden" id="ld-cv" aria-hidden="true">
+      <div class="ld-cv__backdrop" data-cv-close></div>
+      <div class="ld-cv__dialog" role="dialog" aria-modal="true" aria-labelledby="ld-cv-title">
+        <button type="button" class="ld-cv__nav ld-cv__nav--prev" id="ld-cv-prev" aria-label="previous proposal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="ld-cv__inner">
+          <div class="ld-cv__bar">
+            <div class="ld-cv__bar-meta">
+              <p class="ld-cv__eyebrow">proposal <span id="ld-cv-index">1</span> of <span id="ld-cv-total">1</span></p>
+              <h2 class="ld-cv__title" id="ld-cv-title">consultant profile</h2>
+              <p class="ld-cv__offer" id="ld-cv-offer"></p>
+            </div>
+            <button type="button" class="ld-cv__close" data-cv-close aria-label="close">&times;</button>
+          </div>
+          <div class="ld-cv__tabs" role="tablist" aria-label="consultant profile sections">
+            <button type="button" class="ld-cv__tab is-active" role="tab" data-cv-tab="bio" id="ld-cv-tab-bio" aria-selected="true" aria-controls="ld-cv-panel-bio">bio</button>
+            <button type="button" class="ld-cv__tab" role="tab" data-cv-tab="resume" id="ld-cv-tab-resume" aria-selected="false" aria-controls="ld-cv-panel-resume">resume</button>
+            <button type="button" class="ld-cv__tab" role="tab" data-cv-tab="work" id="ld-cv-tab-work" aria-selected="false" aria-controls="ld-cv-panel-work">past work</button>
+          </div>
+          <div class="ld-cv__body" id="ld-cv-body">
+            <p class="gr-status" id="ld-cv-status" aria-live="polite">loading…</p>
+            <div class="ld-cv__panel is-active" role="tabpanel" id="ld-cv-panel-bio" aria-labelledby="ld-cv-tab-bio" data-cv-panel="bio">
+              <div id="ld-cv-content"></div>
+            </div>
+            <div class="ld-cv__panel" role="tabpanel" id="ld-cv-panel-resume" aria-labelledby="ld-cv-tab-resume" data-cv-panel="resume" hidden></div>
+            <div class="ld-cv__panel" role="tabpanel" id="ld-cv-panel-work" aria-labelledby="ld-cv-tab-work" data-cv-panel="work" hidden></div>
+          </div>
+        </div>
+        <button type="button" class="ld-cv__nav ld-cv__nav--next" id="ld-cv-next" aria-label="next proposal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
     <script type="module" src="/nav-session.js"></script>
     <script type="module" src="/listing.js"></script>
 
@@ -277,13 +322,16 @@
     </button>
     <div class="gr-suggest-overlay" id="gr-suggest-overlay">
       <div class="gr-suggest-popup">
+        <button class="gr-suggest-popup__close" id="gr-suggest-close" type="button" aria-label="close">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+        </button>
         <div id="gr-suggest-form">
           <p class="gr-suggest-popup__title">grassroots values and takes your feedback seriously&mdash;how can we improve?</p>
           <textarea class="gr-suggest-popup__textarea" id="gr-suggest-input" placeholder="your suggestion…" maxlength="1000"></textarea>
           <button class="gr-suggest-popup__submit" id="gr-suggest-submit" type="button">submit</button>
         </div>
         <div id="gr-suggest-thanks" hidden>
-          <p class="gr-suggest-popup__thanks">thank you for your feedback!</p>
+          <p class="gr-suggest-popup__thanks">thanks for the note. we read all of these.</p>
         </div>
       </div>
     </div>

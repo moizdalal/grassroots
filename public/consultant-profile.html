@@ -15,6 +15,7 @@
     <script src="/theme.js"></script>
   </head>
   <body class="gr-body"><main class="gr-shell">
+      <button type="button" class="ld-back" id="cp-back" style="background:none;border:0;font:inherit;cursor:pointer;padding:0;">&larr; back</button>
       <div class="gr-page-intro">
         <p class="gr-page-eyebrow">consultant snapshot</p>
         <h1 class="gr-title">consultant profile</h1>
@@ -62,6 +63,8 @@
     <script type="module" src="/nav-session.js"></script>
     <script type="module">
       import { getSupabaseClient } from "/supabase-loader.js";
+      import { renderRatingMarkup } from "/rating.js";
+      import { getInitials } from "/initials.js";
 
       function escapeHtml(s) {
         return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -194,7 +197,7 @@
 
           const avatarHtml = profile.avatar_url
             ? `<img class="pf-bv__avatar" src="${escapeHtml(profile.avatar_url)}" alt="" />`
-            : `<div class="pf-bv__avatar-placeholder">&#128100;</div>`;
+            : `<div class="pf-bv__avatar-placeholder" aria-hidden="true">${escapeHtml(getInitials(profile.full_name))}</div>`;
 
           const major = edu.major || "";
           const minor = edu.minor || "";
@@ -232,15 +235,41 @@
 
           document.title = `grassroots \u2014 ${profile.full_name || "consultant"}`;
 
+          const rating = data.rating;
+          const dims = [
+            ["work product", rating?.work_product_quality_avg],
+            ["communication", rating?.communication_avg],
+            ["timeliness", rating?.timeliness_avg],
+            ["professionalism", rating?.professionalism_avg],
+            ["cost value", rating?.cost_value_avg],
+          ];
+          const ratingBreakdown = rating?.review_count
+            ? `
+              <div class="pf-bv__section">
+                <p class="pf-bv__section-title">ratings · ${rating.review_count} review${rating.review_count === 1 ? "" : "s"}</p>
+                <div class="ld-cv__rating-grid">
+                  ${dims.map(([label, val]) => `
+                    <div class="ld-cv__rating-row">
+                      <span class="ld-cv__rating-row__label">${label}</span>
+                      ${renderRatingMarkup({ rating_average: val, review_count: 1 }, { size: "sm", showCount: false })}
+                    </div>
+                  `).join("")}
+                </div>
+              </div>
+            `
+            : "";
+
           contentEl.innerHTML = `
             <div class="pf-bv">
               <div class="pf-bv__header">
                 ${avatarHtml}
                 <div>
-                  <h2 class="pf-bv__name">${escapeHtml(profile.full_name)}</h2>
+                  <h2 class="pf-bv__name">${escapeHtml(profile.full_name)} ${renderRatingMarkup(rating, { size: "md" })}</h2>
                   ${eduLine ? `<p class="pf-bv__meta">${escapeHtml(eduLine)}</p>` : ""}
                 </div>
               </div>
+
+              ${ratingBreakdown}
 
               ${eduLine ? `
                 <div class="pf-bv__section">
@@ -316,6 +345,15 @@
       document.addEventListener("keydown", (event) => {
         if (event.key === "Escape" && resumeViewer && !resumeViewer.classList.contains("hidden")) {
           closeResumeViewer();
+        }
+      });
+
+      // Back button: try history first, fall back to marketplace.
+      document.getElementById("cp-back")?.addEventListener("click", () => {
+        if (window.history.length > 1) {
+          window.history.back();
+        } else {
+          window.location.href = "/";
         }
       });
 

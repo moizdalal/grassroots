@@ -26,9 +26,6 @@
 
       <div id="session-slot" class="gr-session-slot" aria-live="polite"></div>
 
-      <!-- Counter strip — populated by marketplace.js -->
-      <div class="fo-counter" id="marketplace-counter" aria-live="polite"></div>
-
       <!-- Search / Filter -->
       <div class="gr-search-bar" id="search-bar">
         <input class="gr-search-bar__input" type="text" id="filter-search" placeholder="search by title, business, or keyword…" />
@@ -45,6 +42,7 @@
       <div class="gr-filter-active-tags" id="active-filters"></div>
 
       <section aria-label="Open listings">
+        <p class="mkt-result-count" id="result-count" aria-live="polite"></p>
         <div id="listing-grid" class="gr-listing-grid"></div>
         <p id="listings-status" class="gr-status" aria-live="polite"></p>
       </section>
@@ -59,13 +57,16 @@
     </button>
     <div class="gr-suggest-overlay" id="gr-suggest-overlay">
       <div class="gr-suggest-popup">
+        <button class="gr-suggest-popup__close" id="gr-suggest-close" type="button" aria-label="close">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+        </button>
         <div id="gr-suggest-form">
           <p class="gr-suggest-popup__title">grassroots values and takes your feedback seriously&mdash;how can we improve?</p>
           <textarea class="gr-suggest-popup__textarea" id="gr-suggest-input" placeholder="your suggestion…" maxlength="1000"></textarea>
           <button class="gr-suggest-popup__submit" id="gr-suggest-submit" type="button">submit</button>
         </div>
         <div id="gr-suggest-thanks" hidden>
-          <p class="gr-suggest-popup__thanks">thank you for your feedback!</p>
+          <p class="gr-suggest-popup__thanks">thanks for the note. we read all of these.</p>
         </div>
       </div>
     </div>

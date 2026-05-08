@@ -1,6 +1,6 @@
 import { getSupabaseClient } from "/supabase-loader.js";
-import { initControlPanel } from "/control-panel.js";
-import { formatBudgetRange, getSimulatedBudgetRange } from "/sim-budget.js";
+import { formatBudgetRange, parseBudgetRange } from "/sim-budget.js";
+import { getInitials } from "/initials.js";
 
 const form = document.getElementById("profile-form");
 const gateEl = document.getElementById("profile-gate");
@@ -523,9 +523,9 @@ async function loadOwnerListingSummary() {
 
     const mapped = listingRows.map((listing) => {
       const acceptedBid = acceptedBidByListing.get(listing.id) || null;
-      const simulatedBudget = getSimulatedBudgetRange(listing.details || "");
-      const budgetDisplay = simulatedBudget
-        ? formatBudgetRange(simulatedBudget)
+      const budgetRange = parseBudgetRange(listing.details || "");
+      const budgetDisplay = budgetRange
+        ? formatBudgetRange(budgetRange)
         : Number.isFinite(Number(listing.budget_cents))
           ? formatUsd(Number(listing.budget_cents))
           : "";
@@ -835,11 +835,10 @@ async function renderBusinessPreview() {
   const avatarUrl = currentAvatarPath
     ? supabase.storage.from("avatars").getPublicUrl(currentAvatarPath).data?.publicUrl
     : null;
+  const name = profileRow.full_name || "consultant";
   const avatarHtml = avatarUrl
     ? `<img class="pf-bv__avatar" src="${escapeHtml(avatarUrl)}" alt="" />`
-    : `<div class="pf-bv__avatar-placeholder" aria-hidden="true">👤</div>`;
-
-  const name = profileRow.full_name || "consultant";
+    : `<div class="pf-bv__avatar-placeholder" aria-hidden="true">${escapeHtml(getInitials(name))}</div>`;
   const linkedin = profileRow.linkedin_url || "";
   const major = cp?.major || "";
   const minor = cp?.minor || "";
@@ -1576,7 +1575,6 @@ async function boot() {
     wireBizSocialToggles();
     wireInstagramFieldAutoCheck();
     supabase = await getSupabaseClient();
-    initControlPanel(supabase);
     await loadProfile();
   } catch (err) {
     gateEl.textContent = err.message || "could not connect.";

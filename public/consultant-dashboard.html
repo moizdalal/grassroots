@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <script src="/theme.js"></script>
+    <script src="/loading-overlay.js"></script>
   </head>
   <body class="gr-body gr-has-side-nav">
     <main>
@@ -29,7 +30,7 @@
             </a>
           </div>
           <div class="bza__nav-section">work</div>
-          <a href="/consultant-dashboard.html" class="bza__nav-item active" title="dashboard">
+          <a href="/consultant-dashboard.html" class="bza__nav-item active" data-view="dashboard" title="dashboard">
             <span class="bza__nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="3" width="7" height="9"/>
@@ -81,18 +82,8 @@
             <span class="bza__darkmode-switch" aria-hidden="true"></span>
           </label>
 
-          <a href="/" class="bza__post" title="browse marketplace">
-            <span class="bza__nav-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="7"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-            </span>
-            <span class="bza__nav-label">browse marketplace</span>
-          </a>
-
           <div class="bza__side-foot">
-            <a class="bza__user" id="cdash-user-card" href="/profile.html" title="open profile settings">
+            <a class="bza__user" id="cdash-user-card" href="/settings.html#profile" title="open profile settings">
               <span class="bza__user-avatar" id="cdash-user-avatar"></span>
               <span class="bza__user-meta">
                 <span class="bza__user-name" id="cdash-user-name">your account</span>
@@ -126,11 +117,12 @@
             <div class="cdash__top">
               <div class="bza__panel cdash__actions">
                 <div class="bza__panel-h">
-                  <span class="bza__panel-h-title"><strong>action items</strong></span>
+                  <span class="bza__panel-h-title"><strong>notifications</strong></span>
+                  <a class="bza__panel-h-link" href="/notifications.html">see all →</a>
                 </div>
-                <div id="cdash-actions-list"></div>
-                <p id="cdash-actions-empty" class="cdash__caught-up" hidden>
-                  <span aria-hidden="true">✓</span> nothing waiting on you right now.
+                <div id="cdash-notifications-list" class="dash-notifications-list"></div>
+                <p id="cdash-notifications-empty" class="cdash__caught-up" hidden>
+                  <span aria-hidden="true">✓</span> no notifications right now.
                 </p>
               </div>
 
@@ -179,7 +171,10 @@
             <div class="inbox" id="inbox-shell">
               <aside class="inbox__list" aria-label="conversations">
                 <div class="inbox__list-head">
-                  <h1 class="inbox__title">inbox</h1>
+                  <div class="inbox__title-row">
+                    <h1 class="inbox__title">inbox</h1>
+                    <button type="button" class="inbox__mark-all" id="inbox-mark-all" hidden>mark all read</button>
+                  </div>
                   <div class="inbox__filters">
                     <button type="button" class="inbox__filter active" data-filter="all">all</button>
                     <button type="button" class="inbox__filter" data-filter="unread">unread <span class="inbox__filter-count" id="inbox-unread-pill" hidden>0</span></button>
@@ -192,7 +187,7 @@
 
               <section class="inbox__pane" id="inbox-pane" aria-live="polite">
                 <div class="inbox__placeholder" id="inbox-placeholder">
-                  <p class="inbox__placeholder-emoji" aria-hidden="true">✉</p>
+                  <div class="inbox__placeholder-glyph" aria-hidden="true"></div>
                   <p class="inbox__placeholder-title">select a conversation</p>
                   <p class="inbox__placeholder-sub">your active threads, grouped by listing, show here.</p>
                 </div>
@@ -206,6 +201,7 @@
                         <a class="inbox__conv-listing" id="inbox-conv-listing" href="#"></a>
                       </div>
                     </div>
+                    <span class="inbox__conv-matches" id="inbox-conv-matches" aria-live="polite" hidden></span>
                     <button type="button" class="inbox__conv-close" id="inbox-conv-close" aria-label="close conversation">×</button>
                   </header>
                   <div class="inbox__conv-body" id="inbox-conv-body" role="log"></div>
@@ -214,7 +210,7 @@
                       class="inbox__composer-input"
                       id="inbox-composer-input"
                       placeholder="write a message…"
-                      rows="2"
+                      rows="1"
                       maxlength="4000"
                       required
                     ></textarea>

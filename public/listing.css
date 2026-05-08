@@ -6,74 +6,85 @@
   max-width: 1100px;
 }
 
-/* --- Collapsible business bio --- */
+/* --- Collapsible business bio.
+   2-col layout: left column = avatar + socials (vertical stack),
+   right column = toggle + body (vertical stack, all in one column so
+   name → owner → about → link flow contiguously when expanded). --- */
 .ld-bio {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(27, 67, 50, 0.06);
-  margin-bottom: 1.75rem;
-  overflow: hidden;
+  border-radius: 14px;
+  margin-bottom: 1.25rem;
+  transition: border-color 0.18s ease, padding 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ld-bio:has(.ld-bio__toggle:hover) {
+  border-color: var(--fo-line-strong, var(--card-border));
+}
+
+.ld-bio:has(.ld-bio__toggle[aria-expanded="true"]) {
+  padding: 1rem 1.1rem 1.1rem;
+  align-items: stretch;
+}
+
+.ld-bio__left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.ld-bio__column {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .ld-bio__toggle {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 0.85rem;
   width: 100%;
-  padding: 0.85rem 1.25rem;
   border: none;
   background: none;
   cursor: pointer;
   font: inherit;
   text-align: left;
+  padding: 0;
 }
 
-.ld-bio__toggle-label {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--tagline-body);
-}
-
-.ld-bio__toggle-arrow {
-  font-size: 0.85rem;
-  color: var(--tagline-body);
-  transition: transform 0.3s var(--ease-framer);
-}
-
-.ld-bio__toggle[aria-expanded="false"] .ld-bio__toggle-arrow {
-  transform: rotate(-90deg);
-}
-
-.ld-bio__body {
-  overflow: hidden;
-  max-height: 500px;
-  transition: max-height 0.4s var(--ease-framer), opacity 0.3s ease, padding 0.3s ease;
-  opacity: 1;
-}
-
-.ld-bio__body.is-collapsed {
-  max-height: 0;
-  opacity: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
-.ld-bio__inner {
-  display: flex;
-  gap: 1.25rem;
-  padding: 0 1.25rem 1.15rem;
-}
-
+/* Avatar — small when collapsed, grows when expanded. */
 .ld-bio__avatar-wrap {
-  width: 96px;
-  height: 96px;
-  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   overflow: hidden;
-  border: 2px solid rgba(45, 106, 79, 0.12);
-  flex-shrink: 0;
+  background: var(--fo-surface-3, rgba(45, 106, 79, 0.08));
+  border: 0;
+  transition: width 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+              height 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+              border-radius 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+              background 0.32s ease;
+}
+
+.ld-bio:has([aria-expanded="true"]) .ld-bio__avatar-wrap {
+  width: 104px;
+  height: 104px;
+  border-radius: 20px;
+  background: var(--fo-accent, var(--green-mid));
+}
+
+/* Hide socials when bio is collapsed; show them when expanded. */
+.ld-bio:not(:has([aria-expanded="true"])) .ld-bio__socials {
+  display: none;
 }
 
 .ld-bio__avatar {
@@ -83,43 +94,151 @@
   display: block;
 }
 
-.ld-bio__info {
+.ld-bio__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  flex: 1 1 auto;
+  transition: opacity 0.22s ease, height 0.32s ease, margin 0.32s ease;
+}
+
+/* When expanded, the body heading takes over identity duty. Collapse
+   the inline meta to zero height so the body heading docks against
+   the avatar's top edge. */
+.ld-bio__toggle[aria-expanded="true"] .ld-bio__meta {
+  opacity: 0;
+  height: 0;
+  margin: 0;
+  pointer-events: none;
+}
+
+.ld-bio__eyebrow {
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fo-text-3, var(--tagline-body));
+  line-height: 1;
+}
+
+.ld-bio__name-inline {
+  font-family: "Manrope", system-ui, sans-serif;
+  font-weight: 600;
+  font-size: var(--type-body);
+  color: var(--fo-text, var(--ink));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Body heading (the "expanded" name) — large Fraunces type that lines up
+   under the avatar's top edge in the right column. */
+.ld-bio__name {
+  margin: 0;
+  font-family: "Fraunces", serif;
+  font-weight: 600;
+  font-size: var(--type-h1);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--fo-text, var(--ink));
+}
+
+.ld-bio__toggle-arrow {
+  font-size: var(--type-meta);
+  color: var(--fo-text-3, var(--tagline-body));
+  transition: transform 0.3s var(--ease-framer);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.ld-bio__toggle[aria-expanded="false"] .ld-bio__toggle-arrow {
+  transform: rotate(-90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ld-bio,
+  .ld-bio__toggle,
+  .ld-bio__avatar-wrap,
+  .ld-bio__name,
+  .ld-bio__eyebrow {
+    transition: none;
+  }
+}
+
+/* Body sits inside the column wrapper, immediately under the toggle.
+   When expanded, the heading + owner + about + link stack tightly so
+   the right column reads as one continuous block. */
+.ld-bio__body {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
   min-width: 0;
-  justify-content: flex-end;
+  height: auto;
+  overflow: hidden;
+  opacity: 1;
+  transition: height 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.22s ease;
 }
 
-.ld-bio__name {
-  font-family: Fraunces, Georgia, serif;
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--green-deep);
-  margin: 0;
-  letter-spacing: -0.01em;
+.ld-bio__body.is-collapsed {
+  height: 0;
+  opacity: 0;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .ld-bio__body { transition: none; }
+}
+
+/* Socials sit directly under the avatar inside .ld-bio__left. Width
+   matches the avatar so two icons center; the gap gives them breathing
+   room without the busy outlined look. */
+.ld-bio__socials {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0;
+  margin-top: auto;
+  width: 104px;
+}
+
+@media (max-width: 640px) {
+  .ld-bio__socials {
+    width: auto;
+    justify-content: flex-start;
+  }
+}
+
+/* (.ld-bio__avatar / __info / __name now live in the toggle-row block
+   above so collapsed/expanded states can scale them with one rule.) */
 
 .ld-bio__owner {
   margin: 0;
-  font-size: 0.88rem;
+  font-size: var(--type-h3);
   font-weight: 500;
-  color: var(--muted);
+  color: var(--fo-text, var(--muted));
 }
 
 .ld-bio__about {
-  margin: 0.15rem 0 0;
-  font-size: 0.82rem;
+  margin: 0;
+  font-size: var(--type-body);
   line-height: 1.45;
-  color: var(--tagline-body);
+  color: var(--fo-text-3, var(--tagline-body));
 }
 
 .ld-bio__link {
-  font-size: 0.82rem;
+  font-size: var(--type-h3);
   font-weight: 600;
-  color: var(--green-mid);
-  text-decoration: none;
-  margin-top: 0.1rem;
+  color: var(--fo-accent, var(--green-mid));
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  margin: 0;
+}
+
+.ld-bio__link:hover {
+  color: var(--fo-text, var(--green-deep));
 }
 
 .ld-bio__link:hover {
@@ -127,34 +246,29 @@
   color: var(--green-deep);
 }
 
-.ld-bio__socials {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.25rem;
-}
+/* (canonical .ld-bio__socials lives at the top of the bio block above) */
 
+/* Bare social glyphs — no chrome. Sit under the avatar; their bottom
+   line aligns with the bottom line of text in the body column. */
 .ld-bio__social-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 8px;
-  background: rgba(45, 106, 79, 0.06);
-  color: var(--green-mid);
-  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: var(--fo-accent, var(--green-mid));
+  transition: color 0.18s ease, transform 0.15s ease;
 }
 
 .ld-bio__social-link:hover {
-  background: rgba(45, 106, 79, 0.14);
-  color: var(--green-deep);
+  color: var(--fo-text, var(--green-deep));
   transform: translateY(-1px);
 }
 
 .ld-bio__social-link svg {
-  width: 1rem;
-  height: 1rem;
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 /* --- Two-column layout --- */
@@ -175,7 +289,7 @@
 /* --- Budget subheader --- */
 .ld-budget {
   margin: 0.2rem 0 0;
-  font-size: 1.05rem;
+  font-size: var(--type-h3);
   font-weight: 700;
   color: var(--green-mid);
   letter-spacing: -0.01em;
@@ -187,7 +301,7 @@
   padding: 0 0 0 1.25rem;
   list-style: disc;
   color: var(--ink);
-  font-size: 0.92rem;
+  font-size: var(--type-body);
   line-height: 1.65;
 }
 
@@ -222,7 +336,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-size: 0.72rem;
+  font-size: var(--type-meta);
   font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: lowercase;
@@ -235,7 +349,7 @@
 .ld-tag--type {
   background: rgba(45, 106, 79, 0.12);
   color: var(--green-deep);
-  font-size: 1.05rem;
+  font-size: var(--type-h3);
   font-weight: 700;
   padding: 0.4rem 1rem;
   gap: 0.4rem;
@@ -266,7 +380,7 @@
   min-height: 2rem;
   padding: 0.22rem 0.8rem;
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: var(--type-eyebrow);
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -312,8 +426,7 @@
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 14px;
-  padding: 1.25rem;
-  box-shadow: 0 4px 20px rgba(27, 67, 50, 0.06);
+  padding: 1.1rem;
   max-height: calc(100vh - 7rem);
   overflow-y: auto;
 }
@@ -334,7 +447,7 @@
 
 .ld-owner-actions__heading {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: var(--type-eyebrow);
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -352,36 +465,37 @@
   flex: 1 1 0;
 }
 
-/* pause button — yellow-orange */
-#ld-pause-listing-btn {
-  color: #b45309;
+/* Listing controls — restrained, theme-coherent ghost buttons.
+   Pause is reversible (hover swaps to soft accent green). Close is
+   destructive but communicates that role through placement + a
+   confirm dialog, not by a screaming red fill. */
+#ld-pause-listing-btn,
+#ld-close-listing-btn {
   background: transparent;
-  border: 1px solid #f59e0b;
+  border: 1px solid var(--fo-line-strong);
+  color: var(--fo-text-2);
+  box-shadow: none;
+  font-weight: 600;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, transform 0.15s ease;
 }
+
 #ld-pause-listing-btn:hover {
-  color: #92400e;
-  background: rgba(245, 158, 11, 0.1);
-  border-color: #d97706;
+  border-color: var(--fo-accent);
+  color: var(--fo-accent);
+  background: var(--fo-accent-soft);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.18);
 }
-#ld-pause-listing-btn:active {
+
+#ld-pause-listing-btn:active,
+#ld-close-listing-btn:active {
   transform: translateY(0);
 }
 
-/* cancel button — red */
-#ld-close-listing-btn {
-  color: #fff;
-  background: linear-gradient(145deg, #ef4444, #b91c1c);
-  border: none;
-  box-shadow: 0 2px 10px rgba(185, 28, 28, 0.18);
-}
 #ld-close-listing-btn:hover {
+  border-color: var(--fo-plan, #c46f44);
+  color: var(--fo-plan, #c46f44);
+  background: rgba(196, 111, 68, 0.08);
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(185, 28, 28, 0.28);
-}
-#ld-close-listing-btn:active {
-  transform: translateY(0);
 }
 
 .ld-status-form {
@@ -389,8 +503,8 @@
   gap: 0.8rem;
   padding: 0.95rem;
   border-radius: 12px;
-  background: rgba(45, 106, 79, 0.04);
-  border: 1px solid rgba(45, 106, 79, 0.12);
+  background: var(--fo-surface-2, rgba(45, 106, 79, 0.04));
+  border: 1px solid var(--fo-line, rgba(45, 106, 79, 0.12));
 }
 
 .ld-status-form.hidden {
@@ -399,32 +513,44 @@
 
 .ld-status-form__title {
   margin: 0;
-  font-size: 0.84rem;
+  font-size: var(--type-body);
   font-weight: 700;
-  color: var(--green-deep);
+  color: var(--fo-text, var(--green-deep));
 }
 
 .ld-status-form__options {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.4rem;
 }
 
 .ld-status-option {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.7rem 0.8rem;
+  gap: 0.6rem;
+  padding: 0.65rem 0.85rem;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(45, 106, 79, 0.12);
-  font-size: 0.84rem;
-  color: var(--green-deep);
+  background: var(--fo-surface, transparent);
+  border: 1px solid var(--fo-line, rgba(45, 106, 79, 0.12));
+  font-size: var(--type-body);
+  color: var(--fo-text, var(--green-deep));
   cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.ld-status-option:hover {
+  border-color: var(--fo-accent);
+  background: var(--fo-accent-soft);
+}
+
+.ld-status-option:has(input:checked) {
+  border-color: var(--fo-accent);
+  background: var(--fo-accent-soft);
+  color: var(--fo-text);
 }
 
 .ld-status-option input {
   margin: 0;
-  accent-color: var(--green-mid);
+  accent-color: var(--fo-accent, var(--green-mid));
 }
 
 .ld-status-form__other textarea {
@@ -434,7 +560,7 @@
 
 .ld-offer-panel__heading {
   font-family: Fraunces, Georgia, serif;
-  font-size: 1.1rem;
+  font-size: var(--type-h2);
   font-weight: 700;
   color: var(--green-deep);
   margin: 0 0 1rem;
@@ -442,7 +568,7 @@
 }
 
 .ld-bid-existing {
-  font-size: 0.83rem;
+  font-size: var(--type-meta);
   color: var(--tagline-body);
   background: rgba(45, 106, 79, 0.06);
   border-radius: 8px;
@@ -458,7 +584,7 @@
 }
 
 .ld-offer-amount-label {
-  font-size: 0.78rem;
+  font-size: var(--type-meta);
   font-weight: 600;
   color: var(--green-deep);
   letter-spacing: 0.02em;
@@ -470,7 +596,7 @@
   border: 1.5px solid var(--card-border);
   border-radius: 10px;
   overflow: hidden;
-  background: #fff;
+  background: var(--card-bg);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -481,7 +607,7 @@
 
 .ld-offer-dollar {
   padding: 0 0.55rem;
-  font-size: 0.93rem;
+  font-size: var(--type-body);
   font-weight: 600;
   color: var(--green-mid);
   background: rgba(45, 106, 79, 0.05);
@@ -497,8 +623,8 @@
   outline: none;
   padding: 0.55rem 0.7rem;
   font: inherit;
-  font-size: 0.93rem;
-  color: var(--green-deep);
+  font-size: var(--type-body);
+  color: inherit;
   background: transparent;
   width: 100%;
   min-width: 0;
@@ -510,16 +636,18 @@
 }
 
 .ld-offer-msg-toggle {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.35rem;
-  font-size: 0.8rem;
+  width: 100%;
+  font-size: var(--type-meta);
   font-weight: 600;
   color: var(--green-mid);
   background: none;
   border: 1.5px dashed rgba(45, 106, 79, 0.3);
-  border-radius: 8px;
-  padding: 0.4rem 0.75rem;
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
   cursor: pointer;
   transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
 }
@@ -544,9 +672,10 @@
   border: 1.5px solid var(--card-border);
   border-radius: 10px;
   padding: 0.6rem 0.75rem;
+  background: var(--card-bg);
   font: inherit;
-  font-size: 0.87rem;
-  color: var(--green-deep);
+  font-size: var(--type-body);
+  color: inherit;
   resize: vertical;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   line-height: 1.5;
@@ -566,30 +695,36 @@
 }
 
 .ld-offer-char-count {
-  font-size: 0.72rem;
+  font-size: var(--type-meta);
   color: var(--muted);
 }
 
 .ld-offer-char-count--low {
-  color: #e05252;
+  color: var(--fo-plan, #c46f44);
   font-weight: 600;
 }
 
 .ld-offer-msg-remove {
   background: none;
   border: none;
-  font-size: 1.1rem;
+  font-size: var(--type-h2);
   color: var(--muted);
   cursor: pointer;
   line-height: 1;
+  /* Min 32×32 hit target (WCAG 2.5.5). */
+  min-width: 2rem;
+  min-height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 0 0.15rem;
   border-radius: 4px;
   transition: color 0.15s ease, background 0.15s ease;
 }
 
 .ld-offer-msg-remove:hover {
-  color: #e05252;
-  background: rgba(224, 82, 82, 0.07);
+  color: var(--fo-plan, #c46f44);
+  background: rgba(196, 111, 68, 0.1);
 }
 
 .ld-offer-submit {
@@ -640,7 +775,7 @@
   place-items: center;
   background: rgba(45, 106, 79, 0.12);
   color: var(--green-deep);
-  font-size: 1.35rem;
+  font-size: var(--type-h2);
   font-weight: 800;
 }
 
@@ -656,20 +791,20 @@
 }
 
 .ld-attachment-card__name {
-  font-size: 0.92rem;
+  font-size: var(--type-body);
   font-weight: 700;
   color: var(--green-deep);
   overflow-wrap: anywhere;
 }
 
 .ld-attachment-card__detail {
-  font-size: 0.78rem;
+  font-size: var(--type-meta);
   color: var(--tagline-body);
 }
 
 .ld-attachment-card__link {
   width: fit-content;
-  font-size: 0.82rem;
+  font-size: var(--type-meta);
   font-weight: 700;
   color: var(--green-mid);
   text-decoration: none;
@@ -701,7 +836,7 @@
 
 .ld-accepted-badge {
   display: inline-block;
-  font-size: 0.68rem;
+  font-size: var(--type-eyebrow);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -722,7 +857,7 @@
 
 .ld-counter-badge {
   display: inline-block;
-  font-size: 0.68rem;
+  font-size: var(--type-eyebrow);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -745,7 +880,7 @@
   align-items: center;
   gap: 0.5rem;
   font: inherit;
-  font-size: 0.87rem;
+  font-size: var(--type-body);
   font-weight: 600;
   color: var(--green-mid);
   background: rgba(45, 106, 79, 0.06);
@@ -776,7 +911,7 @@
 /* --- Auth prompt --- */
 .ld-auth-prompt {
   margin-top: 1.5rem;
-  font-size: 0.87rem;
+  font-size: var(--type-body);
   color: var(--tagline-body);
 }
 
@@ -840,7 +975,7 @@
 
 .ld-chat-drawer__title {
   font-family: Fraunces, Georgia, serif;
-  font-size: 1rem;
+  font-size: var(--type-h3);
   font-weight: 700;
   color: var(--green-deep);
   margin: 0;
@@ -858,7 +993,7 @@
   gap: 0.32rem;
   padding: 0.3rem 0.7rem;
   border-radius: 999px;
-  font-size: 0.78rem;
+  font-size: var(--type-meta);
   font-weight: 600;
   color: var(--green-mid);
   background: rgba(45, 106, 79, 0.08);
@@ -879,10 +1014,16 @@
 .ld-chat-drawer__close {
   background: none;
   border: none;
-  font-size: 1.4rem;
+  font-size: var(--type-h2);
   line-height: 1;
   color: var(--muted);
   cursor: pointer;
+  /* Min 32×32 hit target (WCAG 2.5.5). */
+  min-width: 2rem;
+  min-height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 0.2rem 0.4rem;
   border-radius: 6px;
   transition: background 0.15s ease, color 0.15s ease;
@@ -904,7 +1045,7 @@
 }
 
 .ld-msg-empty {
-  font-size: 0.83rem;
+  font-size: var(--type-meta);
   color: var(--muted);
   text-align: center;
   margin: auto;
@@ -930,7 +1071,7 @@
 .ld-msg__bubble {
   padding: 0.55rem 0.8rem;
   border-radius: 14px;
-  font-size: 0.87rem;
+  font-size: var(--type-body);
   line-height: 1.5;
   word-break: break-word;
 }
@@ -948,7 +1089,7 @@
 }
 
 .ld-msg__time {
-  font-size: 0.68rem;
+  font-size: var(--type-eyebrow);
   color: var(--muted);
   margin-top: 0.2rem;
   padding: 0 0.25rem;
@@ -959,7 +1100,7 @@
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  font-size: 0.72rem;
+  font-size: var(--type-meta);
   font-weight: 600;
   letter-spacing: 0.02em;
   background: rgba(255, 255, 255, 0.18);
@@ -981,7 +1122,7 @@
 .ld-msg-context-tag__re {
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 0.65rem;
+  font-size: var(--type-eyebrow);
   opacity: 0.75;
   flex-shrink: 0;
 }
@@ -996,7 +1137,7 @@
   border-radius: 8px;
   padding: 0.45rem 0.65rem;
   margin-bottom: 0.5rem;
-  font-size: 0.78rem;
+  font-size: var(--type-meta);
   font-weight: 500;
   color: var(--tagline-body);
 }
@@ -1013,7 +1154,7 @@
 }
 
 .ld-chat-context__re {
-  font-size: 0.65rem;
+  font-size: var(--type-eyebrow);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -1049,7 +1190,7 @@
   border-radius: 10px;
   padding: 0.55rem 0.7rem;
   font: inherit;
-  font-size: 0.87rem;
+  font-size: var(--type-body);
   color: var(--green-deep);
   resize: none;
   line-height: 1.45;
@@ -1069,12 +1210,12 @@
 }
 
 .ld-chat-char-count {
-  font-size: 0.7rem;
+  font-size: var(--type-eyebrow);
   color: var(--muted);
 }
 
 .ld-chat-char-count--low {
-  color: #e05252;
+  color: var(--fo-plan, #c46f44);
   font-weight: 600;
 }
 

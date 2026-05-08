@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <script src="/theme.js"></script>
+    <script src="/loading-overlay.js"></script>
   </head>
   <body class="gr-body"><main class="gr-shell gr-shell--wide">
       <a href="javascript:history.back()" class="ld-back">← back</a>
@@ -52,6 +53,7 @@
     <script type="module" src="/nav-session.js"></script>
     <script type="module">
       import { getSupabaseClient } from "/supabase-loader.js";
+      import { fetchRatingFor, renderRatingMarkup } from "/rating.js";
 
       const $ = (id) => document.getElementById(id);
       const escape = (s) =>
@@ -82,7 +84,11 @@
             .single();
           if (pErr) throw pErr;
 
-          $("cw-name").textContent = (profile?.full_name || "consultant") + "'s past work";
+          const consultantName = profile?.full_name || "consultant";
+          $("cw-name").textContent = consultantName + "'s past work";
+          fetchRatingFor(id).then((rating) => {
+            $("cw-name").innerHTML = `${escape(consultantName)}'s past work ${renderRatingMarkup(rating, { size: "md" })}`;
+          });
 
           // Try portfolio_items table (may not exist).
           let items = [];
