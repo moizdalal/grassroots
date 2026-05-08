@@ -602,8 +602,27 @@ function getStorageFileName(filePath) {
 }
 
 function getResumeActionMarkup(fileName, options = {}) {
-  const { previewLabel = "preview resume", source = "self", consultantId = "" } = options;
+  const {
+    previewLabel = "preview resume",
+    source = "self",
+    consultantId = "",
+    manage = false,
+  } = options;
   const safeFileName = fileName || "resume";
+  const manageMarkup = manage
+    ? `
+      <button
+        type="button"
+        class="pf-bv__resume-btn pf-bv__resume-btn--manage"
+        data-resume-action="replace"
+      >replace</button>
+      <button
+        type="button"
+        class="pf-bv__resume-btn pf-bv__resume-btn--danger"
+        data-resume-action="remove"
+      >remove</button>
+    `
+    : "";
   return `
     <span class="pf-bv__resume-actions">
       <button
@@ -629,6 +648,7 @@ function getResumeActionMarkup(fileName, options = {}) {
           <path d="M5 19h14"></path>
         </svg>
       </button>
+      ${manageMarkup}
     </span>
   `;
 }
@@ -676,12 +696,23 @@ async function getOwnResumeSignedUrl(resumePath) {
   }
 }
 
+function getResumeUploadLabel() {
+  return document.getElementById("pf-resume-upload-label");
+}
+
 async function renderResumeCurrentLabel(messagePrefix = "") {
   if (!resumeCurrent) return;
+  const uploadLabel = getResumeUploadLabel();
+
   if (!currentResumePath) {
-    resumeCurrent.textContent = "no resume uploaded yet.";
+    resumeCurrent.classList.add("hidden");
+    resumeCurrent.innerHTML = "";
+    if (uploadLabel) uploadLabel.classList.remove("hidden");
     return;
   }
+
+  if (uploadLabel) uploadLabel.classList.add("hidden");
+  resumeCurrent.classList.remove("hidden");
 
   const resumeUrl = await getOwnResumeSignedUrl(currentResumePath);
   const prefix = messagePrefix ? `${escapeHtml(messagePrefix)} ` : "";
@@ -689,13 +720,77 @@ async function renderResumeCurrentLabel(messagePrefix = "") {
 
   if (resumeUrl) {
     resumeCurrent.innerHTML = `
-      ${prefix}${escapeHtml(fileName)}
-      ${getResumeActionMarkup(fileName, { previewLabel: "preview", source: "self" })}
+      <p class="pf-resume-current__name">${prefix}${escapeHtml(fileName)}</p>
+      ${getResumeActionMarkup(fileName, { previewLabel: "preview", source: "self", manage: true })}
     `;
     return;
   }
 
-  resumeCurrent.textContent = messagePrefix || "current resume on file.";
+  resumeCurrent.innerHTML = `<p class="pf-resume-current__name">${escapeHtml(messagePrefix || "current resume on file.")}</p>`;
+}
+
+async function uploadResumeFile(file) {
+  const fileName = String(file?.name || "").toLowerCase();
+  const isPdf = (file?.type === "application/pdf") || fileName.endsWith(".pdf");
+  if (!isPdf) throw new Error("resume must be a pdf.");
+  if (file.size > 5 * 1024 * 1024) throw new Error("resume must be 5 mb or smaller.");
+
+  const safe = sanitizeFileName(file.name);
+  const rpath = `${userId}/${Date.now()}-${safe}`;
+  const { error: rErr } = await supabase.storage.from("resumes").upload(rpath, file, {
+    contentType: file.type || "application/octet-stream",
+    upsert: false,
+  });
+  if (rErr) throw rErr;
+
+  const previousPath = currentResumePath;
+  if (previousPath && previousPath !== rpath) {
+    try { await supabase.storage.from("resumes").remove([previousPath]); } catch (_) { /* best-effort */ }
+  }
+
+  const { error: prErr } = await supabase
+    .from("profiles")
+    .update({ resume_path: rpath })
+    .eq("id", userId);
+  if (prErr) throw prErr;
+
+  currentResumePath = rpath;
+  if (resumeInput) resumeInput.value = "";
+}
+
+async function removeResume() {
+  if (!currentResumePath) return;
+  if (!window.confirm("remove your resume? you can upload a new one any time.")) return;
+
+  const removeBtn = resumeCurrent?.querySelector('[data-resume-action="remove"]');
+  if (removeBtn instanceof HTMLButtonElement) removeBtn.disabled = true;
+  statusEl.textContent = "";
+  statusEl.className = "gr-status";
+
+  try {
+    const oldPath = currentResumePath;
+    try { await supabase.storage.from("resumes").remove([oldPath]); } catch (_) { /* best-effort */ }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ resume_path: null })
+      .eq("id", userId);
+    if (error) throw error;
+
+    currentResumePath = null;
+    if (resumeInput) resumeInput.value = "";
+    await renderResumeCurrentLabel();
+    statusEl.textContent = "resume removed.";
+    statusEl.className = "gr-status success";
+
+    if (role === "consultant" && previewToggle?.checked) {
+      await renderBusinessPreview();
+    }
+  } catch (err) {
+    statusEl.textContent = err.message || "could not remove resume.";
+    statusEl.className = "gr-status error";
+    if (removeBtn instanceof HTMLButtonElement) removeBtn.disabled = false;
+  }
 }
 
 async function loadPortfolioItems() {
@@ -1388,33 +1483,8 @@ form.addEventListener("submit", async (e) => {
     }
 
     if (role === "consultant" && resumeInput.files?.[0]) {
-      const file = resumeInput.files[0];
-      const fileName = String(file.name || "").toLowerCase();
-      const isPdf = file.type === "application/pdf" || fileName.endsWith(".pdf");
-      if (!isPdf) {
-        throw new Error("resume must be a pdf.");
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        throw new Error("resume must be 5 mb or smaller.");
-      }
-      const safe = sanitizeFileName(file.name);
-      const rpath = `${userId}/${Date.now()}-${safe}`;
-      const { error: rErr } = await supabase.storage.from("resumes").upload(rpath, file, {
-        contentType: file.type || "application/octet-stream",
-        upsert: false,
-      });
-      if (rErr) throw rErr;
-      if (currentResumePath && currentResumePath !== rpath) {
-        await supabase.storage.from("resumes").remove([currentResumePath]);
-      }
-      const { error: prErr } = await supabase
-        .from("profiles")
-        .update({ resume_path: rpath })
-        .eq("id", userId);
-      if (prErr) throw prErr;
-      currentResumePath = rpath;
-      resumeInput.value = "";
-      await renderResumeCurrentLabel("resume updated.");
+      await uploadResumeFile(resumeInput.files[0]);
+      await renderResumeCurrentLabel("current resume on file —");
     }
 
     if (!profileAvatarMigrationWarning) {
@@ -1523,11 +1593,45 @@ if (resumePublicToggle) {
   });
 }
 
+if (resumeInput) {
+  resumeInput.addEventListener("change", async () => {
+    const file = resumeInput.files?.[0];
+    if (!file) return;
+    if (!currentResumePath) return;
+
+    statusEl.textContent = "uploading resume…";
+    statusEl.className = "gr-status";
+    try {
+      await uploadResumeFile(file);
+      await renderResumeCurrentLabel("current resume on file —");
+      statusEl.textContent = "resume replaced.";
+      statusEl.className = "gr-status success";
+      if (role === "consultant" && previewToggle?.checked) {
+        await renderBusinessPreview();
+      }
+    } catch (err) {
+      resumeInput.value = "";
+      statusEl.textContent = err.message || "could not upload resume.";
+      statusEl.className = "gr-status error";
+    }
+  });
+}
+
 document.addEventListener("click", async (event) => {
   const resumeAction = event.target.closest("[data-resume-action]");
   if (resumeAction instanceof HTMLElement) {
     event.preventDefault();
     const action = resumeAction.getAttribute("data-resume-action") || "preview";
+
+    if (action === "replace") {
+      if (resumeInput) resumeInput.click();
+      return;
+    }
+    if (action === "remove") {
+      await removeResume();
+      return;
+    }
+
     const source = resumeAction.getAttribute("data-resume-source") || "self";
     const fileName = resumeAction.getAttribute("data-resume-file-name") || "resume";
     if (source === "self" && currentResumePath) {

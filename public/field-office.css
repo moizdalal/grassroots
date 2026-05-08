@@ -2233,6 +2233,19 @@ body.gr-body .gr-section-h {
   border-color: var(--fo-accent);
 }
 
+.pf-bv__resume-btn--danger {
+  background: transparent;
+  color: var(--fo-text-2);
+  border-color: var(--fo-line-strong);
+}
+
+.pf-bv__resume-btn--danger:hover,
+.pf-bv__resume-btn--danger:focus-visible {
+  background: rgba(217, 119, 87, 0.12);
+  color: var(--fo-plan);
+  border-color: var(--fo-plan);
+}
+
 .pf-bv__portfolio-card {
   background: var(--fo-bg);
   border: 1px solid var(--fo-line);
@@ -5228,30 +5241,34 @@ a.dash-stat:hover {
 .settings-layout {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  margin-top: 1.25rem;
+  gap: var(--space-5);
+  margin-top: var(--space-5);
 }
 
+/* ── Tab strip (Account / Notifications / etc. — pills at top) ── */
 .settings-tabs {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: var(--space-2);
   align-items: center;
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--fo-line);
 }
 
 .settings-tab {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.45rem 1rem;
+  gap: 0.4rem;
+  padding: 0.5rem 1.05rem;
   border-radius: 999px;
   font: inherit;
   font-family: "Manrope", system-ui, sans-serif;
-  font-size: var(--type-meta);  font-weight: 600;
+  font-size: var(--type-meta);
+  font-weight: 600;
   color: var(--fo-text-2);
-  background: var(--fo-surface);
-  border: 1px solid var(--fo-line);
+  background: transparent;
+  border: 1px solid transparent;
   text-align: left;
   text-decoration: none;
   cursor: pointer;
@@ -5260,7 +5277,6 @@ a.dash-stat:hover {
 
 .settings-tab:hover:not(:disabled) {
   background: var(--fo-surface-2);
-  border-color: var(--fo-line-strong);
   color: var(--fo-text);
 }
 
@@ -5277,7 +5293,8 @@ a.dash-stat:hover {
 
 .settings-tab-soon {
   font-family: "Manrope", system-ui, sans-serif;
-  font-size: var(--type-eyebrow);  letter-spacing: 0.14em;
+  font-size: var(--type-eyebrow);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   font-weight: 700;
   background: var(--fo-surface-3);
@@ -5290,11 +5307,13 @@ a.dash-stat:hover {
   min-width: 0;
 }
 
+/* ── Panel ── No card chrome. Sections carry their own rhythm via
+   hairline dividers — keeps the "open document" feel from the ref. */
 .settings-panel {
-  background: var(--fo-surface);
-  border: 1px solid var(--fo-line);
-  border-radius: 14px;
-  padding: 1.5rem;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
 }
 
 /* Force-hide inactive panels: `.pf-layout` sets `display: grid`, which
@@ -5304,45 +5323,111 @@ a.dash-stat:hover {
   display: none !important;
 }
 
+/* Optional intro at the top of a panel — kept light. The page-level
+   <h1> already names the area; per-panel context goes here only when
+   it adds info. */
 .settings-panel-h {
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
+  margin: 0 0 var(--space-3);
+  padding: 0 0 var(--space-3);
   border-bottom: 1px solid var(--fo-line);
+}
+
+.settings-panel-h--silent {
+  display: none;
 }
 
 .settings-panel-h h2 {
   font-family: "Fraunces", serif;
   font-weight: 600;
-  font-size: var(--type-h1);  margin: 0 0 0.25rem;
+  font-size: var(--type-h2);
+  margin: 0 0 0.15rem;
   color: var(--fo-text);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.015em;
 }
 
 .settings-panel-h p {
   margin: 0;
-  font-size: var(--type-body);  color: var(--fo-text-3);
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
 }
 
+/* ── Section row — title-left, controls-right, hairline divider ── */
 .settings-section {
-  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
+  gap: var(--space-3) var(--space-6);
+  align-items: start;
+  padding: var(--space-5) 0;
+  margin: 0;
+}
+
+.settings-section + .settings-section {
+  border-top: 1px solid var(--fo-line);
+}
+
+.settings-section:first-of-type {
+  padding-top: var(--space-4);
 }
 
 .settings-section-h {
-  margin-bottom: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
+  padding-right: var(--space-3);
 }
 
 .settings-section-h h3 {
   font-family: "Manrope", system-ui, sans-serif;
-  font-size: var(--type-eyebrow);  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  font-size: var(--type-h3);
   font-weight: 700;
-  color: var(--fo-text-3);
-  margin: 0 0 0.3rem;
+  letter-spacing: -0.005em;
+  text-transform: none;
+  color: var(--fo-text);
+  margin: 0;
 }
 
 .settings-section-h p {
   margin: 0;
-  font-size: var(--type-body);  color: var(--fo-text-2);
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+  line-height: 1.5;
+}
+
+/* Right column wrapper — vertical stack of controls inside a section.
+   Use this so the grid has a single, consistent second column. */
+.settings-section__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+/* Inline help link / "learn more" pill inside a section header. */
+.settings-section-h__hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: var(--fo-accent-soft);
+  color: var(--fo-accent);
+  font-size: var(--type-meta);
+  font-weight: 600;
+  text-decoration: none;
+  width: fit-content;
+}
+
+@media (max-width: 760px) {
+  .settings-section {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+    padding: var(--space-4) 0;
+  }
+  .settings-section-h {
+    padding-right: 0;
+  }
 }
 
 /* ── Payout (Stripe Connect) panel ─────────────────────────────

@@ -51,65 +51,63 @@
 
           <!-- GENERAL -->
           <section class="settings-panel" data-tab="general">
-            <header class="settings-panel-h">
-              <h2>general</h2>
-              <p>your preferences are stored locally in this browser.</p>
-            </header>
 
             <section class="settings-section">
               <div class="settings-section-h">
                 <h3>theme</h3>
-                <p>pick the look that's easiest on your eyes.</p>
+                <p>pick the look that's easiest on your eyes. saved to this browser only.</p>
               </div>
 
-              <div class="theme-grid" id="theme-grid">
-                <button type="button" class="theme-card" data-theme="dark-forest">
-                  <span class="theme-card-preview" data-theme-preview="dark-forest" aria-hidden="true">
-                    <span class="theme-card-bg"></span>
-                    <span class="theme-card-surface"></span>
-                    <span class="theme-card-accent"></span>
-                  </span>
-                  <span class="theme-card-body">
-                    <span class="theme-card-name">dark forest</span>
-                  </span>
-                  <span class="theme-card-check" aria-hidden="true">✓</span>
-                </button>
+              <div class="settings-section__body">
+                <div class="theme-grid" id="theme-grid">
+                  <button type="button" class="theme-card" data-theme="dark-forest">
+                    <span class="theme-card-preview" data-theme-preview="dark-forest" aria-hidden="true">
+                      <span class="theme-card-bg"></span>
+                      <span class="theme-card-surface"></span>
+                      <span class="theme-card-accent"></span>
+                    </span>
+                    <span class="theme-card-body">
+                      <span class="theme-card-name">dark forest</span>
+                    </span>
+                    <span class="theme-card-check" aria-hidden="true">✓</span>
+                  </button>
 
-                <button type="button" class="theme-card" data-theme="forest-soft">
-                  <span class="theme-card-preview" data-theme-preview="forest-soft" aria-hidden="true">
-                    <span class="theme-card-bg"></span>
-                    <span class="theme-card-surface"></span>
-                    <span class="theme-card-accent"></span>
-                  </span>
-                  <span class="theme-card-body">
-                    <span class="theme-card-name">lighter forest</span>
-                  </span>
-                  <span class="theme-card-check" aria-hidden="true">✓</span>
-                </button>
+                  <button type="button" class="theme-card" data-theme="forest-soft">
+                    <span class="theme-card-preview" data-theme-preview="forest-soft" aria-hidden="true">
+                      <span class="theme-card-bg"></span>
+                      <span class="theme-card-surface"></span>
+                      <span class="theme-card-accent"></span>
+                    </span>
+                    <span class="theme-card-body">
+                      <span class="theme-card-name">lighter forest</span>
+                    </span>
+                    <span class="theme-card-check" aria-hidden="true">✓</span>
+                  </button>
 
-                <button type="button" class="theme-card" data-theme="dark">
-                  <span class="theme-card-preview" data-theme-preview="dark" aria-hidden="true">
-                    <span class="theme-card-bg"></span>
-                    <span class="theme-card-surface"></span>
-                    <span class="theme-card-accent"></span>
-                  </span>
-                  <span class="theme-card-body">
-                    <span class="theme-card-name">dark</span>
-                  </span>
-                  <span class="theme-card-check" aria-hidden="true">✓</span>
-                </button>
+                  <button type="button" class="theme-card" data-theme="dark">
+                    <span class="theme-card-preview" data-theme-preview="dark" aria-hidden="true">
+                      <span class="theme-card-bg"></span>
+                      <span class="theme-card-surface"></span>
+                      <span class="theme-card-accent"></span>
+                    </span>
+                    <span class="theme-card-body">
+                      <span class="theme-card-name">dark</span>
+                    </span>
+                    <span class="theme-card-check" aria-hidden="true">✓</span>
+                  </button>
 
-                <button type="button" class="theme-card" data-theme="light">
-                  <span class="theme-card-preview" data-theme-preview="light" aria-hidden="true">
-                    <span class="theme-card-bg"></span>
-                    <span class="theme-card-surface"></span>
-                    <span class="theme-card-accent"></span>
-                  </span>
-                  <span class="theme-card-body">
-                    <span class="theme-card-name">light</span>
-                  </span>
-                  <span class="theme-card-check" aria-hidden="true">✓</span>
-                </button>
+                  <button type="button" class="theme-card" data-theme="light">
+                    <span class="theme-card-preview" data-theme-preview="light" aria-hidden="true">
+                      <span class="theme-card-bg"></span>
+                      <span class="theme-card-surface"></span>
+                      <span class="theme-card-accent"></span>
+                    </span>
+                    <span class="theme-card-body">
+                      <span class="theme-card-name">light</span>
+                    </span>
+                    <span class="theme-card-check" aria-hidden="true">✓</span>
+                  </button>
+                </div>
               </div>
             </section>
 
@@ -118,15 +116,17 @@
                 <h3>messaging</h3>
                 <p>control how others see your activity in the inbox.</p>
               </div>
-              <label class="settings-toggle" id="read-receipts-toggle">
-                <span class="settings-toggle-copy">
-                  <span class="settings-toggle-title">read receipts</span>
-                  <span class="settings-toggle-sub">when on, senders can see when you've read their messages.</span>
-                </span>
-                <input type="checkbox" id="read-receipts-checkbox" />
-                <span class="settings-toggle-switch" aria-hidden="true"></span>
-              </label>
-              <p class="settings-toggle-status" id="read-receipts-status" aria-live="polite"></p>
+              <div class="settings-section__body">
+                <label class="settings-toggle" id="read-receipts-toggle">
+                  <span class="settings-toggle-copy">
+                    <span class="settings-toggle-title">read receipts</span>
+                    <span class="settings-toggle-sub">when on, senders can see when you've read their messages.</span>
+                  </span>
+                  <input type="checkbox" id="read-receipts-checkbox" />
+                  <span class="settings-toggle-switch" aria-hidden="true"></span>
+                </label>
+                <p class="settings-toggle-status" id="read-receipts-status" aria-live="polite"></p>
+              </div>
             </section>
           </section>
 
@@ -395,8 +395,8 @@
                   >
                     <p class="gr-section-h">resume</p>
                     <div class="pf-resume-row">
-                      <label class="gr-label pf-file-label">
-                        <span>replace resume (pdf only) — optional</span>
+                      <label class="gr-label pf-file-label" id="pf-resume-upload-label">
+                        <span>upload your resume — pdf only</span>
                         <input
                           id="resume-input"
                           type="file"
@@ -410,7 +410,7 @@
                         <span>visible to businesses</span>
                       </label>
                     </div>
-                    <p id="resume-current" class="gr-profile-hint"></p>
+                    <div id="resume-current" class="pf-resume-current hidden"></div>
 
                     <p class="gr-section-h">past experience</p>
                     <p class="gr-field-hint">
@@ -500,56 +500,66 @@
 
           <!-- PAYOUT (Stripe Connect) -->
           <section class="settings-panel" data-tab="payout" hidden>
-            <header class="settings-panel-h">
-              <h2>payout</h2>
-              <p>where grassroots sends your earnings. powered by stripe connect.</p>
-            </header>
 
-            <div class="payout-status-card" id="payout-status-card">
-              <p class="payout-status-card__copy" id="payout-status-copy">checking your stripe account…</p>
-              <div class="gr-skeleton-stack" id="payout-status-skeleton">
-                <span class="gr-skeleton gr-skeleton--row" style="width: 70%"></span>
-                <span class="gr-skeleton gr-skeleton--line" style="width: 50%"></span>
-              </div>
-            </div>
-
-            <!-- Empty state: no Stripe Connect account yet. -->
-            <section class="payout-empty hidden" id="payout-empty">
+            <section class="settings-section" id="payout-status-section">
               <div class="settings-section-h">
-                <h3>set up payouts</h3>
-                <p>connect a bank account so we can pay you when work is delivered.</p>
+                <h3>payout account</h3>
+                <p>where grassroots sends your earnings. powered by stripe connect.</p>
               </div>
-              <p class="gr-profile-hint">
-                you'll be redirected to stripe to verify your identity and link a bank.
-                this takes about 2 minutes.
-              </p>
-              <button type="button" class="gr-btn gr-btn--primary" id="payout-connect-btn">
-                set up with stripe
-              </button>
-              <p class="gr-status" id="payout-connect-status" aria-live="polite"></p>
+              <div class="settings-section__body">
+                <div class="payout-status-card" id="payout-status-card">
+                  <p class="payout-status-card__copy" id="payout-status-copy">checking your stripe account…</p>
+                  <div class="gr-skeleton-stack" id="payout-status-skeleton">
+                    <span class="gr-skeleton gr-skeleton--row" style="width: 70%"></span>
+                    <span class="gr-skeleton gr-skeleton--line" style="width: 50%"></span>
+                  </div>
+                </div>
+
+                <!-- Empty state: no Stripe Connect account yet. -->
+                <section class="payout-empty hidden" id="payout-empty">
+                  <p class="gr-profile-hint">
+                    you'll be redirected to stripe to verify your identity and link a bank.
+                    this takes about 2 minutes.
+                  </p>
+                  <button type="button" class="gr-btn gr-btn--primary" id="payout-connect-btn">
+                    set up with stripe
+                  </button>
+                  <p class="gr-status" id="payout-connect-status" aria-live="polite"></p>
+                </section>
+              </div>
             </section>
 
             <!-- Active state: account exists. -->
-            <section class="payout-active hidden" id="payout-active">
-              <div class="payout-balance-grid">
-                <div class="payout-balance">
-                  <p class="payout-balance__label">available</p>
-                  <p class="payout-balance__value" id="payout-balance-available">—</p>
-                  <p class="payout-balance__sub">ready to be paid out</p>
+            <div class="payout-active hidden" id="payout-active">
+              <section class="settings-section">
+                <div class="settings-section-h">
+                  <h3>balance</h3>
+                  <p>what's been earned and what's still in escrow until delivery.</p>
                 </div>
-                <div class="payout-balance payout-balance--pending">
-                  <p class="payout-balance__label">pending</p>
-                  <p class="payout-balance__value" id="payout-balance-pending">—</p>
-                  <p class="payout-balance__sub">in escrow until delivery</p>
+                <div class="settings-section__body">
+                  <div class="payout-balance-grid">
+                    <div class="payout-balance">
+                      <p class="payout-balance__label">available</p>
+                      <p class="payout-balance__value" id="payout-balance-available">—</p>
+                      <p class="payout-balance__sub">ready to be paid out</p>
+                    </div>
+                    <div class="payout-balance payout-balance--pending">
+                      <p class="payout-balance__label">pending</p>
+                      <p class="payout-balance__value" id="payout-balance-pending">—</p>
+                      <p class="payout-balance__sub">in escrow until delivery</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </section>
 
               <section class="settings-section">
                 <div class="settings-section-h">
                   <h3>payout schedule</h3>
                   <p>your bank receives funds on this cadence.</p>
                 </div>
-                <p class="payout-schedule" id="payout-schedule">—</p>
+                <div class="settings-section__body">
+                  <p class="payout-schedule" id="payout-schedule">—</p>
+                </div>
               </section>
 
               <section class="settings-section">
@@ -557,8 +567,10 @@
                   <h3>recent payouts</h3>
                   <p>last 10 transfers from your stripe balance to your bank.</p>
                 </div>
-                <ul class="payout-list" id="payout-list" aria-live="polite"></ul>
-                <p class="gr-empty-state hidden" id="payout-list-empty">no payouts yet. earnings settle here once jobs complete.</p>
+                <div class="settings-section__body">
+                  <ul class="payout-list" id="payout-list" aria-live="polite"></ul>
+                  <p class="gr-empty-state hidden" id="payout-list-empty">no payouts yet. earnings settle here once jobs complete.</p>
+                </div>
               </section>
 
               <section class="settings-section">
@@ -566,12 +578,14 @@
                   <h3>manage account</h3>
                   <p>update your bank, identity documents, or tax info via stripe.</p>
                 </div>
-                <button type="button" class="gr-btn gr-btn--secondary" id="payout-manage-btn">
-                  open stripe dashboard
-                </button>
-                <p class="gr-status" id="payout-manage-status" aria-live="polite"></p>
+                <div class="settings-section__body">
+                  <button type="button" class="gr-btn gr-btn--secondary" id="payout-manage-btn">
+                    open stripe dashboard
+                  </button>
+                  <p class="gr-status" id="payout-manage-status" aria-live="polite"></p>
+                </div>
               </section>
-            </section>
+            </div>
           </section>
 
         </section>
