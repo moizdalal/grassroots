@@ -394,6 +394,8 @@ function updateWizardUI() {
   backBtn.classList.toggle("hidden", currentSlide === 0);
   nextBtn.classList.toggle("hidden", currentSlide === slides.length - 1);
   submitBtn.classList.toggle("hidden", currentSlide !== slides.length - 1);
+  const publishNote = document.getElementById("publish-note");
+  if (publishNote) publishNote.classList.toggle("hidden", currentSlide !== slides.length - 1);
 }
 
 function validateSlide(index) {
