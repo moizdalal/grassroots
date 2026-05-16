@@ -2,8 +2,19 @@
    LISTING DETAIL — layout overrides & new components
    ================================================================ */
 
+/* Widen the shell and stop the gr-shell auto-centering so the layout
+   anchors at the page edges — listing content sits flush left, the
+   offer rail at the right, instead of a centered 1100px column with
+   empty bands on either side. */
 .ld-shell {
-  max-width: 1100px;
+  max-width: 1500px;
+  margin-inline: clamp(1rem, 3vw, 2rem);
+}
+
+@media (min-width: 1700px) {
+  .ld-shell {
+    margin-inline: auto;
+  }
 }
 
 /* --- Collapsible business bio.
@@ -314,13 +325,6 @@
   margin-bottom: 1.75rem;
 }
 
-.ld-header__title-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem 1rem;
-}
-
 .ld-header__tags {
   display: flex;
   flex-wrap: wrap;
@@ -371,41 +375,6 @@
   align-items: center;
   gap: 0.5rem 1rem;
   margin-top: 0.45rem;
-}
-
-.ld-status-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 2rem;
-  padding: 0.22rem 0.8rem;
-  border-radius: 999px;
-  font-size: var(--type-eyebrow);
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  border: 1px solid transparent;
-  background: rgba(45, 106, 79, 0.14);
-  color: var(--green-deep);
-}
-
-.ld-status-pill[data-tone="active"] {
-  background: rgba(45, 106, 79, 0.14);
-  border-color: rgba(45, 106, 79, 0.22);
-  color: #1b5d3d;
-}
-
-.ld-status-pill[data-tone="paused"] {
-  background: rgba(224, 162, 73, 0.18);
-  border-color: rgba(224, 162, 73, 0.26);
-  color: #8a5412;
-}
-
-.ld-status-pill[data-tone="closed"] {
-  background: rgba(201, 61, 64, 0.14);
-  border-color: rgba(201, 61, 64, 0.2);
-  color: #a4282a;
 }
 
 /* --- Sticky sidebar --- */
@@ -576,7 +545,10 @@
   margin-bottom: 0.9rem;
 }
 
-.ld-offer-amount-row {
+/* `:not([hidden])` so the class doesn't out-specificity the `hidden`
+   attribute — without it, JS-set `.hidden = true` on these rows stays
+   visible because `display: flex` wins over the UA `[hidden]` rule. */
+.ld-offer-amount-row:not([hidden]) {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -588,6 +560,110 @@
   font-weight: 600;
   color: var(--green-deep);
   letter-spacing: 0.02em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+
+.ld-offer-amount-sub {
+  font-weight: 500;
+  font-size: var(--type-micro, 0.72rem);
+  color: var(--fo-text-3, var(--muted));
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Inline row pairing the label text with an optional "?" info button.
+   The parent label is flex-column so each row of metadata stacks; this
+   one keeps the title + tooltip-trigger on the same baseline. */
+.ld-offer-amount-label-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Circled "?" trigger + tooltip bubble. The bubble is a real sibling
+   span (not the native `title` attribute) so it surfaces immediately
+   on hover or keyboard focus, with no browser-specific delay, and
+   stays styled to the page. */
+.ld-offer-info {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--fo-line-strong, var(--fo-line));
+  background: transparent;
+  color: var(--fo-text-2, var(--muted));
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: help;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.ld-offer-info:hover,
+.ld-offer-info:focus-visible {
+  color: var(--fo-text);
+  border-color: var(--fo-text-2);
+  outline: none;
+}
+
+/* Bubble is `position: fixed` so it escapes the offer panel's
+   `overflow-y: auto` clip and can spill past the section bounds.
+   listing.js sets `top`/`left` on each hover/focus to anchor it
+   above the button; `--bubble-tail-x` keeps the down-arrow centred
+   on the button even when the bubble was clamped to the viewport. */
+.ld-offer-info__bubble {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: 260px;
+  padding: 0.55rem 0.7rem;
+  border-radius: 8px;
+  background: var(--fo-surface-2, #1c2925);
+  color: var(--fo-text);
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 0.76rem;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-transform: none;
+  text-align: left;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  transition: opacity 0.18s ease, visibility 0s linear 0.18s;
+  z-index: 100;
+}
+.ld-offer-info__bubble::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: var(--bubble-tail-x, 50%);
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--fo-surface-2, #1c2925);
+}
+/* listing.js toggles `.is-visible` from the button's hover/focus
+   listeners — the bubble lives on <body> so we can't use a parent
+   `:hover` selector. */
+.ld-offer-info__bubble.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.18s ease;
+}
+
+.ld-offer-phased:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
 .ld-offer-amount-input {
@@ -847,25 +923,38 @@
   margin-bottom: 0.45rem;
 }
 
-.ld-counter-banner {
-  background: rgba(230, 150, 40, 0.07);
-  border: 1.5px solid rgba(230, 150, 40, 0.25);
+/* Soft warning banner shown to consultants whose Stripe account isn't yet
+   active. Not a hard block — the consultant can still submit a bid; the
+   warning just prepares them to set up payouts before acceptance. */
+.ld-payouts-banner {
+  background: var(--fo-accent-soft, rgba(45, 106, 79, 0.06));
+  border: 1px dashed var(--fo-line-strong, var(--card-border));
   border-radius: 12px;
   padding: 0.85rem 1rem;
   margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
 }
 
-.ld-counter-badge {
+.ld-payouts-banner p {
+  margin: 0;
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+  line-height: 1.45;
+}
+
+.ld-payouts-badge {
   display: inline-block;
   font-size: var(--type-eyebrow);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: #fff;
-  background: #d97706;
+  color: var(--fo-accent-on, #fff);
+  background: var(--fo-accent, var(--green-mid));
   border-radius: 999px;
   padding: 0.15rem 0.6rem;
-  margin-bottom: 0.45rem;
 }
 
 /* --- "have a question?" button --- */
@@ -930,12 +1019,23 @@
   pointer-events: auto;
 }
 
+/* Soft "bubble" around the chat panel — radial gradient centered at the
+   bottom so it feathers off well before the viewport edges, and a mask
+   shapes both the tint and the gentle blur into the same circle so the
+   page outside the bubble stays untouched (no harsh rectangle edge). */
 .ld-chat-drawer__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(27, 67, 50, 0.28);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
+  background: radial-gradient(
+    circle 720px at 50% 110%,
+    rgba(27, 67, 50, 0.26) 0%,
+    rgba(27, 67, 50, 0.14) 45%,
+    rgba(27, 67, 50, 0) 80%
+  );
+  backdrop-filter: blur(1.5px);
+  -webkit-backdrop-filter: blur(1.5px);
+  -webkit-mask-image: radial-gradient(circle 720px at 50% 110%, black 0%, black 45%, transparent 80%);
+          mask-image: radial-gradient(circle 720px at 50% 110%, black 0%, black 45%, transparent 80%);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -1229,10 +1329,6 @@
   .ld-sidebar,
   .ld-rail {
     position: static;
-  }
-
-  .ld-header__title-row {
-    align-items: flex-start;
   }
 
   .ld-bio__inner {

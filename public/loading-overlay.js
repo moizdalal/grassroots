@@ -9,22 +9,10 @@
   overlay.className = "gr-loader-overlay";
   overlay.id = "gr-loader-overlay";
   overlay.setAttribute("aria-hidden", "true");
-  // Wind streaks layer behind the sprout — four curved SVG wisps at
-  // different speeds drift across the overlay with a gentle Y-oscillation
-  // so the breeze reads as swirling, not as straight lines. The sprout
-  // keeps a slow overall sway; each leaf hinges from its base and rocks
-  // on its own phase, so they catch the wind at slightly different times.
-  // CSS handles all motion (see .gr-loader-overlay*).
-  // The svg has overflow:visible so rotated leaves never clip at the
-  // viewBox edge.
-  var streak =
-    '<svg class="gr-loader-overlay__streak" xmlns="' + SVG_NS + '" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">' +
-      '<path d="M 0 24 Q 40 4, 80 22 T 160 18 T 200 26" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>' +
-    '</svg>';
+  // Sprout sway only — each leaf hinges from its base and rocks on its
+  // own phase. CSS handles all motion (see .gr-loader-overlay*).
+  // overflow:visible keeps rotated leaves from clipping at viewBox edges.
   overlay.innerHTML =
-    '<div class="gr-loader-overlay__wind" aria-hidden="true">' +
-      streak + streak + streak + streak +
-    '</div>' +
     '<svg class="gr-loader-overlay__svg" xmlns="' + SVG_NS + '" viewBox="0 0 163 275" overflow="visible" aria-hidden="true">' +
       '<g transform="translate(72, 130)">' +
         '<g class="gr-loader-overlay__stem">' +

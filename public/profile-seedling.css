@@ -357,6 +357,33 @@
   color: var(--tagline-body);
 }
 
+/* Interactive 3D seedling for stage 0. No frame, no gradient — the seedling
+   floats directly on whatever the surrounding card / page colour is. */
+.pf-stage-model__viewer {
+  display: none;
+  width: 100%;
+  min-height: 360px;
+  height: 360px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  --poster-color: transparent;
+  --progress-bar-color: rgba(109, 191, 138, 0.45);
+  cursor: grab;
+}
+
+.pf-stage-model__viewer:active {
+  cursor: grabbing;
+}
+
+/* Stage 0 → show the interactive model, hide the CSS placeholder. */
+.pf-stage-model[data-stage="0"] .pf-stage-model__viewer {
+  display: block;
+}
+.pf-stage-model[data-stage="0"] .pf-stage-model__scene {
+  display: none;
+}
+
 .pf-stage-model[data-stage="0"] .pf-stage-model__stem {
   width: 14px;
   height: 74px;

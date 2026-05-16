@@ -1,12 +1,15 @@
 import { getSupabaseClient } from "/supabase-loader.js";
-import { renderOAuthButtons } from "/oauth.js";
+import { showSuccess } from "/toast.js";
+// OAuth is paused until providers are configured in supabase. To re-enable,
+// uncomment the import + the renderOAuthButtons() call below.
+// import { renderOAuthButtons } from "/oauth.js";
 
 const form = document.getElementById("signin-form");
 const statusEl = document.getElementById("status");
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
-  statusEl.textContent = "signing in…";
+  statusEl.textContent = "";
   statusEl.className = "gr-status";
 
   const email = form.email.value.trim();
@@ -16,8 +19,7 @@ form.addEventListener("submit", async (event) => {
     const supabase = await getSupabaseClient();
     const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    statusEl.textContent = "signed in — redirecting…";
-    statusEl.className = "gr-status success";
+    showSuccess("signed in — redirecting…");
 
     const params = new URLSearchParams(window.location.search);
     const nextParam = params.get("next");
@@ -52,7 +54,7 @@ form.addEventListener("submit", async (event) => {
   }
 });
 
-renderOAuthButtons("oauth-slot");
+// renderOAuthButtons("oauth-slot"); // re-enable once oauth providers are configured in supabase
 
 // Password reveal toggle (delegated). Any [data-pw-toggle="<input-id>"]
 // button flips its target between password and text.

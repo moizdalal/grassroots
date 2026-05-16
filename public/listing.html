@@ -16,54 +16,48 @@
     <script src="/loading-overlay.js"></script>
     <script src="https://js.stripe.com/v3/"></script>
     <link rel="stylesheet" href="/listing.css" />
+    <link rel="stylesheet" href="/listing-analytics.css" />
   </head>
   <body class="gr-body"><main class="gr-shell gr-shell--wide ld-shell">
-      <a href="/" class="ld-back">&larr; back to marketplace</a>
+      <a href="/marketplace.html" class="ld-back">&larr; back to marketplace</a>
 
       <div id="listing-gate" class="gr-status" aria-live="polite">loading…</div>
 
       <div id="listing-detail" class="ld-detail" hidden>
 
-        <!-- ===== COLLAPSIBLE BUSINESS BIO.
-             Avatar + socials are an anchored left column. Toggle (with
-             collapsed meta) and body (with the expanded heading + details)
-             stack contiguously in the right column so name flows directly
-             into owner/about/link with no gap. ===== -->
-        <section class="ld-bio" id="ld-bio">
-          <div class="ld-bio__left">
-            <span class="ld-bio__avatar-wrap" id="ld-biz-avatar-wrap" hidden>
-              <img id="ld-biz-avatar" class="ld-bio__avatar" alt="" />
-            </span>
-            <div id="ld-biz-socials" class="ld-bio__socials" hidden></div>
-          </div>
-          <div class="ld-bio__column">
-            <button type="button" class="ld-bio__toggle" id="ld-bio-toggle" aria-expanded="false" aria-controls="ld-bio-body">
-              <span class="ld-bio__meta">
-                <span class="ld-bio__eyebrow">about the business</span>
-                <span class="ld-bio__name-inline" id="ld-biz-name-inline"></span>
-              </span>
-              <span class="ld-bio__toggle-arrow" aria-hidden="true">&#9662;</span>
-            </button>
-            <div class="ld-bio__body is-collapsed" id="ld-bio-body">
-              <h2 id="ld-biz-name" class="ld-bio__name"></h2>
-              <p id="ld-biz-owner" class="ld-bio__owner"></p>
-              <p id="ld-biz-details" class="ld-bio__about" hidden></p>
-              <a id="ld-biz-website" class="ld-bio__link" target="_blank" rel="noopener noreferrer" hidden>website</a>
-            </div>
-          </div>
-        </section>
-
         <!-- ===== TWO-COLUMN: CONTENT LEFT + SIDEBAR RIGHT ===== -->
         <div class="ld-layout">
 
-          <!-- LEFT: opportunity content -->
+          <!-- LEFT: opportunity content (bio sits at the top so it
+               stays left-aligned with the listing body, not stretched
+               across the page above the offer card). -->
           <div class="ld-content">
-            <div class="ld-header">
-              <span id="ld-type-bar" class="ld-type-bar" data-kind="standard" hidden></span>
-              <div class="ld-header__title-row">
-                <h1 id="ld-title" class="ld-title"></h1>
-                <span id="ld-status-pill" class="ld-status-pill" hidden></span>
+            <section class="ld-bio" id="ld-bio">
+              <div class="ld-bio__left">
+                <span class="ld-bio__avatar-wrap" id="ld-biz-avatar-wrap" hidden>
+                  <img id="ld-biz-avatar" class="ld-bio__avatar" alt="" />
+                </span>
+                <div id="ld-biz-socials" class="ld-bio__socials" hidden></div>
               </div>
+              <div class="ld-bio__column">
+                <button type="button" class="ld-bio__toggle" id="ld-bio-toggle" aria-expanded="false" aria-controls="ld-bio-body">
+                  <span class="ld-bio__meta">
+                    <span class="ld-bio__eyebrow">about the business</span>
+                    <span class="ld-bio__name-inline" id="ld-biz-name-inline"></span>
+                  </span>
+                  <span class="ld-bio__toggle-arrow" aria-hidden="true">&#9662;</span>
+                </button>
+                <div class="ld-bio__body is-collapsed" id="ld-bio-body">
+                  <h2 id="ld-biz-name" class="ld-bio__name"></h2>
+                  <p id="ld-biz-owner" class="ld-bio__owner"></p>
+                  <p id="ld-biz-details" class="ld-bio__about" hidden></p>
+                  <a id="ld-biz-website" class="ld-bio__link" target="_blank" rel="noopener noreferrer" hidden>website</a>
+                </div>
+              </div>
+            </section>
+
+            <div class="ld-header">
+              <h1 id="ld-title" class="ld-title"></h1>
               <p id="ld-budget" class="ld-budget" hidden></p>
               <div class="ld-header__tags" id="ld-header-tags"></div>
               <div class="ld-header__meta">
@@ -98,16 +92,16 @@
               <ul id="ld-quals" class="ld-quals-list"></ul>
             </details>
 
-            <!-- Consultant: status banners (accepted / countered) -->
+            <!-- Consultant: status banners (accepted / countered / payouts-needed) -->
             <div id="ld-bid-banners" hidden>
               <div id="ld-bid-accepted-banner" class="ld-accepted-banner" hidden>
                 <span class="ld-accepted-badge">accepted</span>
                 <p id="ld-bid-deadline-text"></p>
               </div>
-              <div id="ld-bid-countered-banner" class="ld-counter-banner" hidden>
-                <span class="ld-counter-badge">counter-offer</span>
-                <p id="ld-counter-display"></p>
-                <button type="button" id="ld-accept-counter-btn" class="gr-btn gr-btn--primary gr-btn--sm">accept counter</button>
+              <div id="ld-bid-payouts-banner" class="ld-payouts-banner" hidden>
+                <span class="ld-payouts-badge">heads up</span>
+                <p>set up payouts before this gets accepted — otherwise grassroots can't pay you.</p>
+                <a class="gr-btn gr-btn--ghost gr-btn--sm" href="/payouts.html">set up payouts</a>
               </div>
             </div>
 
@@ -125,6 +119,10 @@
 
           <!-- RIGHT SIDEBAR (sticky) -->
           <aside class="ld-sidebar" id="ld-sidebar" hidden>
+            <!-- Owner-only: per-listing analytics. Populated by listing.js once
+                 bids + view rows are loaded. Hidden for consultants. -->
+            <section id="ld-owner-analytics" class="ld-sidebar__panel" hidden></section>
+
             <section id="ld-owner-actions" class="ld-sidebar__panel ld-owner-actions" hidden>
               <h2 class="ld-owner-actions__heading">listing controls</h2>
               <p id="ld-owner-actions-copy" class="ld-owner-actions__copy" hidden></p>
@@ -198,11 +196,41 @@
               <p id="ld-bid-existing" class="ld-bid-existing" hidden></p>
 
               <div id="ld-offer-form-wrap">
-                <div class="ld-offer-amount-row">
+                <!-- Standard / retainer: single amount. Phased: two amounts. -->
+                <div class="ld-offer-amount-row" id="ld-offer-standard-row">
                   <label class="ld-offer-amount-label" for="ld-bid-amount">offer amount</label>
                   <div class="ld-offer-amount-input">
                     <span class="ld-offer-dollar" aria-hidden="true">$</span>
                     <input id="ld-bid-amount" type="number" min="0.01" step="0.01" placeholder="0.00" />
+                  </div>
+                </div>
+
+                <div class="ld-offer-phased" id="ld-offer-phased-row" hidden>
+                  <div class="ld-offer-amount-row">
+                    <label class="ld-offer-amount-label" for="ld-bid-proposal-fee">
+                      <span class="ld-offer-amount-label-row">
+                        proposal fee
+                        <button type="button" class="ld-offer-info" aria-label="about proposal fee" aria-describedby="ld-bid-proposal-fee-tip">
+                          ?
+                          <span class="ld-offer-info__bubble" id="ld-bid-proposal-fee-tip" role="tooltip">this is what you charge upfront when the business accepts your proposal. you keep it even if they don't move forward. set it to $0 if you'd rather skip the proposal fee.</span>
+                        </button>
+                      </span>
+                      <span class="ld-offer-amount-sub" id="ld-bid-proposal-budget-hint"></span>
+                    </label>
+                    <div class="ld-offer-amount-input">
+                      <span class="ld-offer-dollar" aria-hidden="true">$</span>
+                      <input id="ld-bid-proposal-fee" type="number" min="0" step="0.01" placeholder="0.00" />
+                    </div>
+                  </div>
+                  <div class="ld-offer-amount-row">
+                    <label class="ld-offer-amount-label" for="ld-bid-service-fee">
+                      offer amount
+                      <span class="ld-offer-amount-sub">charged only if the business moves forward with you</span>
+                    </label>
+                    <div class="ld-offer-amount-input">
+                      <span class="ld-offer-dollar" aria-hidden="true">$</span>
+                      <input id="ld-bid-service-fee" type="number" min="0.01" step="0.01" placeholder="0.00" />
+                    </div>
                   </div>
                 </div>
 
@@ -233,46 +261,53 @@
           </aside>
         </div>
 
-        <!-- ===== CHAT DRAWER (consultant → owner) ===== -->
-        <div class="ld-chat-drawer" id="ld-chat-drawer" hidden aria-hidden="true">
-          <div class="ld-chat-drawer__backdrop" id="ld-chat-backdrop"></div>
-          <div class="ld-chat-drawer__panel" role="dialog" aria-modal="true" aria-labelledby="ld-chat-title">
-            <div class="ld-chat-drawer__head">
-              <h3 class="ld-chat-drawer__title" id="ld-chat-title">message the business</h3>
-              <div class="ld-chat-drawer__actions">
-                <a class="ld-chat-drawer__inbox-link" id="ld-chat-inbox-link" href="/dashboard.html#inbox" title="open in inbox">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></svg>
-                  <span>open in inbox</span>
-                </a>
-                <button type="button" class="ld-chat-drawer__close" id="ld-chat-close" aria-label="close chat">&times;</button>
+        <!-- ===== CHAT DRAWER (consultant → owner) =====
+             Wrapped in a <template> so it's parsed but NOT rendered into the
+             DOM at page load. listing.js clones the contents into the body the
+             first time the consultant clicks "have a question?". This keeps
+             the drawer truly absent until needed (no off-screen ghost in the
+             DOM, no a11y tree pollution). -->
+        <template id="ld-chat-drawer-template">
+          <div class="ld-chat-drawer" id="ld-chat-drawer" aria-hidden="true">
+            <div class="ld-chat-drawer__backdrop" id="ld-chat-backdrop"></div>
+            <div class="ld-chat-drawer__panel" role="dialog" aria-modal="true" aria-labelledby="ld-chat-title">
+              <div class="ld-chat-drawer__head">
+                <h3 class="ld-chat-drawer__title" id="ld-chat-title">message the business</h3>
+                <div class="ld-chat-drawer__actions">
+                  <a class="ld-chat-drawer__inbox-link" id="ld-chat-inbox-link" href="/dashboard.html#inbox" title="open in inbox">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></svg>
+                    <span>open in inbox</span>
+                  </a>
+                  <button type="button" class="ld-chat-drawer__close" id="ld-chat-close" aria-label="close chat">&times;</button>
+                </div>
               </div>
-            </div>
-            <div class="ld-chat-drawer__thread" id="ld-chat-thread">
-              <p class="ld-msg-empty">no messages yet.</p>
-            </div>
-            <div class="ld-chat-drawer__compose">
-              <!-- Locked listing header (shown on first message only, cannot be removed) -->
-              <div class="ld-chat-context" id="ld-chat-context" hidden>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                <span class="ld-chat-context__re">re:</span>
-                <span class="ld-chat-context__title" id="ld-chat-context-title"></span>
+              <div class="ld-chat-drawer__thread" id="ld-chat-thread">
+                <p class="ld-msg-empty">no messages yet.</p>
               </div>
-              <div class="ld-chat-compose-row">
-                <textarea
-                  id="ld-chat-input"
-                  class="ld-msg-input"
-                  rows="2"
-                  maxlength="200"
-                  placeholder="type your message…"
-                ></textarea>
-                <button type="button" class="gr-btn gr-btn--primary gr-btn--sm" id="ld-chat-send">send</button>
-              </div>
-              <div class="ld-chat-compose-footer">
-                <span class="ld-chat-char-count" id="ld-chat-char-count">200</span>
+              <div class="ld-chat-drawer__compose">
+                <!-- Locked listing header (shown on first message only, cannot be removed) -->
+                <div class="ld-chat-context" id="ld-chat-context" hidden>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  <span class="ld-chat-context__re">re:</span>
+                  <span class="ld-chat-context__title" id="ld-chat-context-title"></span>
+                </div>
+                <div class="ld-chat-compose-row">
+                  <textarea
+                    id="ld-chat-input"
+                    class="ld-msg-input"
+                    rows="2"
+                    maxlength="200"
+                    placeholder="type your message…"
+                  ></textarea>
+                  <button type="button" class="gr-btn gr-btn--primary gr-btn--sm" id="ld-chat-send">send</button>
+                </div>
+                <div class="ld-chat-compose-footer">
+                  <span class="ld-chat-char-count" id="ld-chat-char-count">200</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </template>
 
       </div>
     </main>

@@ -44,6 +44,13 @@ create policy "anyone can view public portfolio items"
   on public.portfolio_items for select to authenticated
   using (is_public = true);
 
+-- Explicit role grants (supabase removes default grants from `public` on
+-- new projects May 30, 2026 and on existing projects Oct 30, 2026).
+revoke all on public.portfolio_items from anon;
+revoke all on public.portfolio_items from authenticated;
+grant select, insert, update, delete on public.portfolio_items to authenticated;
+grant all on public.portfolio_items to service_role;
+
 -- Allow business owners to view consultant profiles (for drill-down)
 create policy "business owners can view consultant profiles"
   on public.profiles for select to authenticated

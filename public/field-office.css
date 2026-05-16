@@ -22,12 +22,12 @@
   --fo-text-3: #6e8378;
   --fo-line: rgba(240, 235, 223, 0.08);
   --fo-line-strong: rgba(240, 235, 223, 0.16);
-  --fo-accent: #8fb886;
-  --fo-accent-soft: rgba(143, 184, 134, 0.14);
+  --fo-accent: #2f7a5a;
+  --fo-accent-soft: rgba(47, 122, 90, 0.22);
   --fo-accent-warm: #e88e5a;
-  --fo-accent-on: #14201a;
+  --fo-accent-on: #ffffff;
   --fo-do: #c8a96a;
-  --fo-develop: #8fb886;
+  --fo-develop: #2f7a5a;
   --fo-plan: #d97757;
   --fo-nav-bg: rgba(20, 32, 26, 0.85);
   --fo-nav-shadow: 0 14px 40px rgba(0, 0, 0, 0.32);
@@ -45,12 +45,12 @@
   --fo-text-3: #8aa295;
   --fo-line: rgba(240, 235, 223, 0.1);
   --fo-line-strong: rgba(240, 235, 223, 0.2);
-  --fo-accent: #a3d099;
-  --fo-accent-soft: rgba(163, 208, 153, 0.18);
+  --fo-accent: #2f7a5a;
+  --fo-accent-soft: rgba(47, 122, 90, 0.24);
   --fo-accent-warm: #f0a373;
-  --fo-accent-on: #14201a;
+  --fo-accent-on: #ffffff;
   --fo-do: #d6b97a;
-  --fo-develop: #a3d099;
+  --fo-develop: #2f7a5a;
   --fo-plan: #ed8a68;
   --fo-nav-bg: rgba(28, 46, 37, 0.85);
   --fo-nav-shadow: 0 14px 40px rgba(0, 0, 0, 0.30);
@@ -67,12 +67,12 @@
   --fo-text-3: #6c6c64;
   --fo-line: rgba(236, 231, 218, 0.08);
   --fo-line-strong: rgba(236, 231, 218, 0.16);
-  --fo-accent: #8fb886;
-  --fo-accent-soft: rgba(143, 184, 134, 0.16);
+  --fo-accent: #2f7a5a;
+  --fo-accent-soft: rgba(47, 122, 90, 0.22);
   --fo-accent-warm: #e88e5a;
-  --fo-accent-on: #15161a;
+  --fo-accent-on: #ffffff;
   --fo-do: #c8a96a;
-  --fo-develop: #8fb886;
+  --fo-develop: #2f7a5a;
   --fo-plan: #d97757;
   --fo-nav-bg: rgba(21, 22, 26, 0.88);
   --fo-nav-shadow: 0 14px 40px rgba(0, 0, 0, 0.36);
@@ -535,6 +535,33 @@ body.gr-body .gr-section-h {
   border-left-color: var(--fo-accent);
 }
 
+/* ── Dark-theme dashboard experiment ───────────────────────────────
+   Strip the surface fill from dashboard cards on the neutral `dark`
+   theme so the page reads as a constellation of outlined panels on
+   the bg instead of stacked filled cards. Scoped to body.dash-page
+   so /marketplace.html and other pages with the same card primitives
+   aren't affected. */
+[data-theme="dark"] .dash-page .bza__panel {
+  background: transparent;
+}
+
+[data-theme="dark"] .dash-page .dash-stat {
+  background: transparent;
+  border: 1px solid var(--fo-line);
+}
+
+[data-theme="dark"] .dash-page .gr-listing-card,
+[data-theme="dark"] .dash-page .cdash__recommended-card,
+[data-theme="dark"] .dash-page .cdash__eng-row {
+  background: transparent;
+}
+
+/* Notification cards inside dashboard panels also drop their fill —
+   their unread gradient still kicks in via the rule above. */
+[data-theme="dark"] .dash-page .gr-notification-card:not(.gr-notification-card--unread) {
+  background: transparent;
+}
+
 /* ── filter pill row (new) ─────────────────────────────────────── */
 .fo-pillbar {
   display: flex;
@@ -635,7 +662,10 @@ body.gr-body .gr-section-h {
   gap: 1rem;
   overflow-x: auto;
   overflow-y: visible;
-  padding: 0.25rem 0.25rem 0.85rem;
+  /* Top padding leaves room for the recency badge that floats above
+     each card's top border (`.gr-listing-card-eyebrow` is absolute at
+     `top: -1.4rem`). */
+  padding: 1.6rem 0.25rem 0.85rem;
   scroll-snap-type: x mandatory;
   scrollbar-width: thin;
   scrollbar-color: var(--fo-line-strong) transparent;
@@ -662,174 +692,297 @@ body.gr-body .gr-section-h {
   }
 }
 
-.gr-listing-card {
+/* ===== marketplace card v2 (2026-05-15) =====
+   Scoped to `#listing-grid` so other surfaces that still render the
+   older `.gr-listing-card` markup (consultant dashboard's recommended
+   cards) keep their previous look until they're updated. Move this
+   scope off when those surfaces adopt the new markup.
+
+   Title-dominant layout: recency eyebrow (right-aligned) → big
+   serif title → identity row (96px avatar tile + tags band) → foot
+   (biz name on top, budget + contract on left + view CTA on right). */
+#listing-grid .gr-listing-card {
   background: var(--fo-surface);
   border: 1px solid var(--fo-line);
-  border-radius: 16px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
+  border-radius: 18px;
+  padding: 1.5rem;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 1rem;
   text-decoration: none;
   color: inherit;
   cursor: pointer;
   transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   height: 100%;
 }
 
-.gr-listing-card:hover {
+/* Dark themes leave the card fill blank — border-only floating
+   outline per brandkit. The light theme fill above stays because
+   light-theme page bg is brighter than the surface and needs
+   contrast to register the card as a separate plane. */
+:root:not([data-theme="light"]) #listing-grid .gr-listing-card {
+  background: transparent;
+}
+
+#listing-grid .gr-listing-card:hover {
   border-color: var(--fo-accent);
   transform: translateY(-2px);
   box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22);
 }
 
-/* Header: dominant business logo + name on a tinted band */
-.gr-listing-card-head {
+/* Eyebrow ─ recency floats OUTSIDE the card outline, above the top
+   border. Absolutely positioned so it doesn't take a card row; the
+   track has matching top padding to make room. Right-aligned. */
+#listing-grid .gr-listing-card-eyebrow {
+  position: absolute;
+  top: -1.4rem;
+  right: 0;
   display: flex;
+  justify-content: flex-end;
   align-items: center;
-  gap: 0.95rem;
-  padding: 1.1rem 1.1rem 0.95rem;
-  background:
-    radial-gradient(circle at 0% 0%, var(--fo-accent-soft), transparent 60%),
-    linear-gradient(180deg, var(--fo-surface-2) 0%, var(--fo-surface) 100%);
-  border-bottom: 1px solid var(--fo-line);
+  pointer-events: none;
 }
 
-.gr-listing-logo-wrap {
-  display: inline-flex;
-  flex-shrink: 0;
-  position: relative;
-}
-
-.gr-listing-logo,
-.gr-listing-logo-placeholder {
-  /* Routes through the universal .gr-avatar tokens. */
-  --gr-avatar-size: 56px;
-  --gr-avatar-radius: 12px;
-  --gr-avatar-bg: var(--fo-accent);
-  --gr-avatar-fg: var(--fo-accent-on);
-  font-family: "Fraunces", serif;
-  font-weight: 600;
-  font-size: var(--type-h1);}
-
-.gr-listing-card-biz {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.gr-listing-biz-label {
+#listing-grid .gr-listing-recency {
   font-family: "Manrope", system-ui, sans-serif;
-  font-size: var(--type-eyebrow);  font-weight: 700;
-  letter-spacing: 0.16em;
+  font-size: var(--type-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--fo-text-3);
   line-height: 1;
+  pointer-events: none;
 }
 
-.gr-listing-biz-name {
-  margin: 0.22rem 0 0;
+#listing-grid .gr-listing-recency::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fo-accent);
+  margin-right: 0.45rem;
+  vertical-align: 1px;
+}
+
+#listing-grid .gr-listing-recency--stale::before {
+  background: var(--fo-text-3);
+}
+
+/* Title ─ one tranche below the original v2 mockup. Uses the
+   `--type-h1` token (section-H1 scale) so the card title stays
+   token-aligned with the rest of the system. 2-line clamp keeps the
+   card height bounded for sentence-length titles. */
+#listing-grid .gr-listing-title {
+  font-family: "Fraunces", serif;
+  font-weight: 600;
+  font-size: var(--type-h1);
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  color: var(--fo-text);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: break-word;
+}
+
+/* Identity row ─ 96px avatar tile | meta stack (biz / budget /
+   contract). Meta sits to the right of the avatar so the visual
+   identity (tile) and textual identity (name + money) share a band. */
+#listing-grid .gr-listing-card-head {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
+  padding: 0;
+  border-bottom: 0;
+}
+
+#listing-grid .gr-listing-logo-wrap {
+  display: inline-flex;
+  flex-shrink: 0;
+  position: relative;
+  width: 96px;
+  min-width: 96px;
+  border-right: 0;
+}
+
+#listing-grid .gr-listing-logo,
+#listing-grid .gr-listing-logo-placeholder {
+  width: 96px;
+  height: 96px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  font-family: "Fraunces", serif;
+  font-weight: 600;
+  font-size: 2rem;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+#listing-grid .gr-listing-logo {
+  object-fit: cover;
+  background: var(--fo-surface-2);
+}
+
+#listing-grid .gr-listing-logo-placeholder {
+  background: var(--fo-accent-soft);
+  color: var(--fo-accent);
+  text-transform: lowercase;
+}
+
+#listing-grid .gr-listing-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+#listing-grid .gr-listing-biz-name {
+  margin: 0;
   font-family: "Manrope", system-ui, sans-serif;
-  font-weight: 700;
-  font-size: var(--type-h3);  color: var(--fo-text);
-  letter-spacing: -0.01em;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--fo-text);
+  letter-spacing: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Body: title + condensed one-liner */
-.gr-listing-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  padding: 1rem 1.1rem 0.85rem;
-  min-width: 0;
-  flex: 1;
-}
-
-.gr-listing-title {
+#listing-grid .gr-listing-budget {
+  margin: 0;
   font-family: "Fraunces", serif;
-  font-size: var(--type-h2);  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--fo-text);
-  margin: 0;
-  line-height: 1.2;
-  overflow-wrap: break-word;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.gr-listing-summary {
-  margin: 0;
-  font-size: var(--type-meta);  line-height: 1.45;
-  color: var(--fo-text-2);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Footer: tags (left) + budget + view (right) */
-.gr-listing-foot {
-  margin-top: auto;
-  padding: 0.7rem 1.1rem 1rem;
-  border-top: 1px solid var(--fo-line);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.gr-listing-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  min-width: 0;
-}
-
-.gr-listing-tag {
-  font-family: "Manrope", system-ui, sans-serif;
-  font-size: var(--type-eyebrow);  background: var(--fo-accent-soft);
-  color: var(--fo-accent);
-  padding: 0.18rem 0.5rem;
-  border-radius: 999px;
+  font-size: 1.5rem;
   font-weight: 600;
-  text-transform: lowercase;
-  letter-spacing: 0.01em;
-  border: 1px solid color-mix(in srgb, var(--fo-accent) 22%, transparent);
-}
-
-.gr-listing-foot-end {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.65rem;
-  flex-shrink: 0;
-}
-
-.gr-listing-budget {
-  margin: 0;
-  font-family: "Fraunces", serif;
-  font-size: var(--type-h3);  font-weight: 700;
   font-style: italic;
   color: var(--fo-accent);
   letter-spacing: -0.01em;
+  line-height: 1.05;
 }
 
-.gr-listing-cta-link {
-  font-size: var(--type-meta);  color: var(--fo-text-2);
+#listing-grid .gr-listing-contract {
+  margin: 0;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--fo-text-2);
+  text-transform: lowercase;
+}
+
+/* Foot ─ tags (left) | view CTA (right). The view CTA is the only
+   meta affordance at this height; tags are filterable cues that read
+   as "is this for me?" decoration. */
+#listing-grid .gr-listing-foot {
+  margin-top: 0.25rem;
+  padding: 0;
+  border-top: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+}
+
+#listing-grid .gr-listing-tags {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.45rem;
+  align-items: center;
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+#listing-grid .gr-listing-tag {
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 0.78rem;
+  background: transparent;
+  color: var(--fo-text-2);
+  padding: 0.32rem 0.75rem;
+  border-radius: 999px;
+  font-weight: 500;
+  text-transform: lowercase;
+  letter-spacing: 0;
+  border: 1px solid var(--fo-line-strong);
+  line-height: 1.2;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+#listing-grid .gr-listing-tag--more {
+  color: var(--fo-text-3);
+  border-color: var(--fo-line);
+}
+
+#listing-grid .gr-listing-cta-link {
+  font-size: 0.82rem;
+  color: var(--fo-text-2);
   font-family: "Manrope", system-ui, sans-serif;
   font-weight: 600;
   white-space: nowrap;
   transition: color 0.18s ease, transform 0.18s ease;
 }
 
-.gr-listing-card:hover .gr-listing-cta-link {
+#listing-grid .gr-listing-card:hover .gr-listing-cta-link {
   color: var(--fo-accent);
   transform: translateX(2px);
+}
+
+/* Summary text rendered inline so it sits in the DOM for crawlers /
+   no-hover devices, but is hidden visually. The shared `.gr-listing-pop`
+   element reads its content on hover. */
+#listing-grid .gr-listing-summary-pop {
+  display: none;
+}
+
+/* Shared hover-summary popover. JS positions it via `position: fixed`
+   so the horizontal scroll track's overflow can't clip it. */
+.gr-listing-pop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  max-width: 480px;
+  padding: var(--space-4);
+  background: color-mix(in srgb, var(--fo-surface) 92%, transparent);
+  border: 1px solid var(--fo-line-strong);
+  border-radius: 12px;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  color: var(--fo-text-2);
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
+  line-height: 1.5;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.gr-listing-pop.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gr-listing-pop {
+    transition: opacity 0.05s linear;
+    transform: none;
+  }
+  .gr-listing-pop.is-visible {
+    transform: none;
+  }
 }
 
 /* Featured card still uses the older .gr-listing-cta marker class. */
@@ -853,6 +1006,200 @@ body.gr-body .gr-section-h {
   .cdash__top {
     grid-template-columns: 1fr;
   }
+}
+
+/* Row beneath the full-width engagement journey: profile health on the
+   left, unread messages on the right. Same proportions as the old
+   .cdash__top so the visual rhythm of the page is preserved.
+   (Kept for any consumers that still reference the class — the consultant
+   dashboard no longer renders one.) */
+.cdash__below {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .cdash__below {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Journey block: slim health bar pinned above the journey panel ── */
+.cdash__journey-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.cdash__health-bar {
+  --bar-tier: var(--fo-accent);
+  position: relative;
+  padding: 0.7rem 0.95rem;
+  border-radius: 12px;
+  background: var(--fo-surface, rgba(255, 255, 255, 0.6));
+  border: 1px solid var(--fo-line);
+  box-shadow: 0 1px 0 rgba(20, 32, 26, 0.04);
+}
+
+.cdash__health-bar[data-tier="good"] { --bar-tier: var(--fo-accent); }
+.cdash__health-bar[data-tier="fair"] { --bar-tier: var(--fo-do, #d4a14a); }
+.cdash__health-bar[data-tier="low"]  { --bar-tier: var(--fo-plan, #d4715a); }
+
+.cdash__health-bar[hidden] { display: none; }
+
+.cdash__health-bar__link {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.85rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.cdash__health-bar__label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: var(--type-meta);
+  font-weight: 600;
+  color: var(--fo-text-2, var(--fo-text));
+  white-space: nowrap;
+}
+
+.cdash__health-bar__label-text {
+  font-size: var(--type-eyebrow);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--fo-text-3, var(--tagline-body));
+}
+
+.cdash__health-bar__pct {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 600;
+  font-size: var(--type-h3);
+  color: var(--bar-tier);
+}
+
+.cdash__health-bar__track {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--fo-surface-3, rgba(45, 106, 79, 0.08));
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(20, 32, 26, 0.08);
+}
+
+.cdash__health-bar__fill {
+  position: relative;
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  /* Two-stop gradient gives the fill a bit more dimension than a flat
+     color — lighter at the top, deeper at the bottom. */
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bar-tier) 80%, white 20%),
+    var(--bar-tier)
+  );
+  transition: width 0.55s var(--ease-framer, ease);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--bar-tier) 35%, transparent);
+}
+
+/* A slow-moving diagonal sheen across the fill so the bar feels alive
+   without being distracting. Only animates if the user hasn't asked for
+   reduced motion (handled at the bottom of this block). */
+.cdash__health-bar__fill-shine {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.cdash__health-bar__fill-shine::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 60%;
+  height: 200%;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 100%
+  );
+  transform: translateX(-160%) skewX(-18deg);
+  animation: cdash-health-bar-sheen 3.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+@keyframes cdash-health-bar-sheen {
+  0%   { transform: translateX(-160%) skewX(-18deg); }
+  60%  { transform: translateX(280%) skewX(-18deg); }
+  100% { transform: translateX(280%) skewX(-18deg); }
+}
+
+/* CTA — proper pill button using the tier color, not a flat text link. */
+.cdash__health-bar__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem 0.35rem 0.95rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bar-tier) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--bar-tier) 32%, transparent);
+  color: var(--bar-tier);
+  font-size: var(--type-meta);
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.cdash__health-bar__cta-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cdash__health-bar__cta-arrow svg {
+  width: 100%;
+  height: 100%;
+}
+
+.cdash__health-bar__link:hover .cdash__health-bar__cta,
+.cdash__health-bar__link:focus-visible .cdash__health-bar__cta {
+  background: color-mix(in srgb, var(--bar-tier) 22%, transparent);
+  border-color: var(--bar-tier);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--bar-tier) 25%, transparent);
+}
+
+.cdash__health-bar__link:hover .cdash__health-bar__cta-arrow,
+.cdash__health-bar__link:focus-visible .cdash__health-bar__cta-arrow {
+  transform: translateX(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cdash__health-bar__fill-shine::before { animation: none; }
+  .cdash__health-bar__cta-arrow { transition: none; }
+}
+
+@media (max-width: 640px) {
+  .cdash__health-bar__link {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "label cta"
+      "track track";
+    row-gap: 0.5rem;
+  }
+  .cdash__health-bar__label { grid-area: label; }
+  .cdash__health-bar__cta { grid-area: cta; }
+  .cdash__health-bar__track { grid-area: track; }
 }
 
 .cdash__caught-up {
@@ -1270,26 +1617,6 @@ body.gr-body .gr-section-h {
   margin: 0 0 0.75rem;
 }
 
-.ld-type-bar {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-family: "Manrope", system-ui, sans-serif;
-  font-size: var(--type-eyebrow);  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  font-weight: 700;
-  padding: 0.35rem 0.75rem;
-  border-radius: 4px;
-  margin-bottom: 0.85rem;
-  background: var(--fo-accent-soft);
-  color: var(--fo-accent);
-}
-
-.ld-type-bar[data-kind="advanced"] {
-  background: rgba(232, 142, 90, 0.16);
-  color: var(--fo-accent-warm);
-}
-
 .ld-budget {
   color: var(--fo-accent);
   font-family: "Fraunces", serif;
@@ -1415,30 +1742,6 @@ body.gr-body .gr-section-h {
 
 .ld-quals-list li::marker {
   color: var(--fo-accent);
-}
-
-.ld-status-pill {
-  background: var(--fo-accent-soft);
-  border-color: var(--fo-line-strong);
-  color: var(--fo-accent);
-}
-
-.ld-status-pill[data-tone="active"] {
-  background: rgba(143, 184, 134, 0.16);
-  border-color: rgba(143, 184, 134, 0.32);
-  color: var(--fo-accent);
-}
-
-.ld-status-pill[data-tone="paused"] {
-  background: rgba(232, 142, 90, 0.18);
-  border-color: rgba(232, 142, 90, 0.34);
-  color: var(--fo-accent-warm);
-}
-
-.ld-status-pill[data-tone="closed"] {
-  background: rgba(217, 119, 87, 0.18);
-  border-color: rgba(217, 119, 87, 0.34);
-  color: var(--fo-plan);
 }
 
 .ld-header__meta {
@@ -2190,6 +2493,14 @@ body.gr-body .gr-section-h {
   color: var(--fo-text);
 }
 
+/* Tabbed preview: outer chrome belongs to the inner .ld-cv__inner now,
+   so strip the .pf-business-view card chrome to avoid nesting. */
+.pf-business-view--tabbed {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
 .pf-bv__header {
   border-bottom: 1px solid var(--fo-line);
 }
@@ -2251,11 +2562,6 @@ body.gr-body .gr-section-h {
   border: 1px solid var(--fo-line);
 }
 
-.pf-portfolio-item {
-  background: var(--fo-bg);
-  border: 1px solid var(--fo-line);
-}
-
 .pf-portfolio-item__name {
   color: var(--fo-text);
 }
@@ -2276,12 +2582,6 @@ body.gr-body .gr-section-h {
 
 .pf-toggle-label input:checked + .pf-toggle-switch {
   background: var(--fo-accent);
-}
-
-.pf-preview-bar {
-  background: var(--fo-accent-soft);
-  border: 1px solid rgba(143, 184, 134, 0.3);
-  color: var(--fo-text);
 }
 
 /* resume viewer modal */
@@ -2406,6 +2706,21 @@ body.gr-body .gr-section-h {
 
 .ld-cv__panel[hidden] {
   display: none;
+}
+
+/* Tab switch animation — incoming panel fades + lifts in. The outgoing
+   panel goes display:none on the same frame, so its own transition is a
+   no-op (the focus is on the new content arriving, not the old one
+   leaving). The tab pill itself transitions color/border via .ld-cv__tab. */
+.ld-cv__panel {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.ld-cv__panel.is-active {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .ld-cv__resume-actions {
@@ -3149,6 +3464,159 @@ body.gr-has-side-nav .bza__main {
   color: var(--fo-text-2);
 }
 
+/* ── nav container + collapsible sub-nav groups ───────────────
+   Wraps the primary nav links in a single column with light
+   spacing. A group with sub-items renders the parent link plus a
+   chevron toggle; clicking the chevron animates a tucked sub-nav
+   open. The parent link itself still navigates so the sub-nav is
+   purely supplemental. */
+.bza__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  padding-top: 0.85rem;
+}
+
+.bza__nav-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.bza__nav-row {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  border-radius: 10px;
+  transition: background 0.15s ease;
+}
+
+.bza__nav-row .bza__nav-item {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* When the parent link is active, lift the active background to the
+   row so the highlight wraps the chevron toggle as well — clicking
+   the engagements button feels like one unified press, not just the
+   left half of the row. */
+.bza__nav-row:has(.bza__nav-item.active) {
+  background: var(--fo-accent-soft);
+}
+
+.bza__nav-row:has(.bza__nav-item.active) .bza__nav-item.active {
+  background: transparent;
+}
+
+.bza__nav-row:has(.bza__nav-item.active) .bza__nav-toggle {
+  color: var(--fo-accent);
+}
+
+.bza__nav-toggle {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fo-text-3);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.bza__nav-toggle:hover,
+.bza__nav-toggle:focus-visible {
+  background: var(--fo-surface-2);
+  color: var(--fo-text);
+  outline: none;
+}
+
+.bza__nav-toggle-icon {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  transition: transform 0.2s ease;
+}
+
+.bza__nav-toggle-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.bza__nav-group.is-open .bza__nav-toggle-icon {
+  transform: rotate(180deg);
+}
+
+.bza__nav-subnav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  padding: 0.15rem 0 0.25rem 1.85rem;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.22s ease, opacity 0.18s ease, padding 0.18s ease;
+}
+
+.bza__nav-group.is-open .bza__nav-subnav {
+  max-height: 240px;
+  opacity: 1;
+}
+
+.bza__nav-subitem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.38rem 0.7rem;
+  border-radius: 8px;
+  color: var(--fo-text-2);
+  text-decoration: none;
+  font-size: var(--type-meta);
+  font-weight: 500;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.bza__nav-subitem:hover,
+.bza__nav-subitem:focus-visible {
+  background: var(--fo-surface-2);
+  color: var(--fo-text);
+  outline: none;
+}
+
+.bza__nav-subitem.active {
+  background: var(--fo-accent-soft);
+  color: var(--fo-accent);
+  font-weight: 600;
+}
+
+.bza__nav-subitem-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+
+.bza__nav-subitem.active .bza__nav-subitem-dot {
+  opacity: 1;
+}
+
+/* In collapsed mode, only the icon column matters — drop the
+   chevron, hide subnav contents, and let the parent link sit as
+   a standalone icon-only entry. */
+.bza--collapsed .bza__nav-toggle,
+.bza--collapsed .bza__nav-subnav {
+  display: none;
+}
+
+.bza--collapsed .bza__nav-row {
+  display: contents;
+}
+
 /* sidenav primary CTA — aliases into the canonical .gr-btn--primary look */
 .bza__post {
   display: flex;
@@ -3256,10 +3724,117 @@ body.gr-has-side-nav .bza__main {
   margin-top: auto;
 }
 
-/* Consultants don't get a post CTA, so the foot has no anchor pulling it
-   to the bottom. Pin the foot directly when there's no .bza__post above. */
-.bza__side:not(:has(.bza__post)) .bza__side-foot {
+/* Consultants don't get a post CTA, so the system row + foot cluster has
+   no upstream anchor pulling it to the bottom. Pin the sys-row to the
+   bottom of the available space — the foot follows it naturally. */
+.bza__side:not(:has(.bza__post)) .bza__sys-row {
   margin-top: auto;
+}
+
+/* ── Compact system row at the bottom of the sidebar ───────────────
+   Icon-only links (settings, help) separated by "/" slashes, plus a
+   bare dark-mode toggle. Each icon expands inline to reveal its label
+   on hover/focus, with the row growing horizontally rather than
+   popping a tooltip. The label transition runs on max-width + opacity
+   + margin-left so the neighbors slide aside smoothly. */
+.bza__sys-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.6rem 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.bza__sys-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.45rem;
+  border-radius: 999px;
+  background: transparent;
+  border: 0;
+  color: var(--fo-text-2);
+  font: inherit;
+  font-size: var(--type-meta);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.18s ease, background 0.18s ease;
+}
+
+.bza__sys-item:hover,
+.bza__sys-item:focus-visible {
+  background: var(--fo-accent-soft);
+  color: var(--fo-accent);
+  outline: none;
+}
+
+.bza__sys-item__icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+}
+
+.bza__sys-item__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.bza__sys-item__label {
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  margin-left: 0;
+  transition: max-width 0.25s ease, opacity 0.18s ease, margin-left 0.25s ease;
+}
+
+.bza__sys-item:hover .bza__sys-item__label,
+.bza__sys-item:focus-visible .bza__sys-item__label {
+  max-width: 5rem;
+  opacity: 1;
+  margin-left: 0.35rem;
+}
+
+.bza__sys-divider {
+  color: var(--fo-text-3);
+  user-select: none;
+  font-size: var(--type-meta);
+  line-height: 1;
+}
+
+/* Dark-mode toggle inside the system row — moon icon + switch, no
+   text label. Reuses the existing .bza__darkmode-switch visuals. */
+.bza__sys-darkmode {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.15rem;
+  color: var(--fo-text-2);
+  cursor: pointer;
+}
+
+.bza__sys-darkmode__icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+}
+
+.bza__sys-darkmode__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Collapsed sidebar still fits the row — wrap to a column if needed. */
+.bza--collapsed .bza__sys-row {
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+.bza--collapsed .bza__sys-divider {
+  display: none;
 }
 
 .bza__user {
@@ -3700,40 +4275,10 @@ a.dash-stat:hover {
 }
 
 /* ── 3-day agenda ────────────────────────────────────────────── */
-/* The agenda flips to an inverse-of-theme palette: a light "island"
-   inside dark themes, and a dark "island" inside the light theme.
-   We override the local --fo-* tokens so every nested rule (panel,
-   day cards, events) inverts in lockstep without bespoke selectors.
-   `.bza__panel.dash-agenda` ensures we beat the later `.bza__panel`
-   rule's `background: var(--fo-surface)`. */
-.bza__panel.dash-agenda {
-  --fo-bg: #f5f1e6;
-  --fo-surface: #ffffff;
-  --fo-surface-2: #faf6ec;
-  --fo-surface-3: #efe9d8;
-  --fo-text: #14201a;
-  --fo-text-2: #4a5650;
-  --fo-text-3: #767f78;
-  --fo-line: rgba(20, 32, 26, 0.08);
-  --fo-line-strong: rgba(20, 32, 26, 0.16);
-  background: #f5f1e6;
-  color: var(--fo-text);
-  border-color: var(--fo-line);
-}
-
-[data-theme="light"] .bza__panel.dash-agenda {
-  --fo-bg: #14201a;
-  --fo-surface: #1a2a23;
-  --fo-surface-2: #20342b;
-  --fo-surface-3: #284036;
-  --fo-text: #f0ebdf;
-  --fo-text-2: #a8b8ad;
-  --fo-text-3: #6e8378;
-  --fo-line: rgba(240, 235, 223, 0.08);
-  --fo-line-strong: rgba(240, 235, 223, 0.16);
-  background: #14201a;
-  color: var(--fo-text);
-}
+/* The agenda inherits the active theme like every other panel — no
+   token overrides here. (Previously this block forced a light island
+   in dark themes / a dark island in light theme, which read as a
+   contrast bug rather than the design intent.) */
 
 .dash-agenda__days {
   display: flex;
@@ -4380,63 +4925,131 @@ a.dash-stat:hover {
   }
 }
 
-/* donut (multi-color slices) */
-.bza__health-donut {
+/* ── bucket: animated water-fill profile-completion viz ─────────
+   Replaces the older donut. Markup lives in /health-bucket.js (shared
+   between owner + consultant dashboards). The water group translates Y
+   to the inline-set --fill-offset on every mount, and two parallax
+   waves slide horizontally for a continuous surface ripple. */
+
+.bza__health-bucket {
   position: relative;
   width: 132px;
-  height: 132px;
+  height: 168px;
   flex-shrink: 0;
 }
 
-.bza__health-donut svg {
+.bza__health-bucket svg {
   width: 100%;
   height: 100%;
+  display: block;
+  /* Soft drop shadow grounds the bucket on the panel without competing
+     with the bucket's own outline. */
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.18));
 }
 
-.bza__health-slice {
-  opacity: 0;
-  transform-origin: center;
-  animation: bza-slice-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  animation-delay: var(--slice-delay, 0ms);
-  transition: stroke 0.3s ease;
+/* Inner bucket interior is 132 units tall (y=24 → y=156 in the SVG
+   viewBox). Empty = fully translated down by that range; the keyframe
+   interpolates from "empty" to whatever --fill-offset the renderer set
+   inline, so every mount plays the rise. */
+.bza__health-bucket-water {
+  animation: bz-bucket-fill 1.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transform: translateY(132px);
 }
 
-@keyframes bza-slice-in {
-  from { opacity: 0; transform: scale(0.85); }
-  to   { opacity: 1; transform: scale(1); }
+@keyframes bz-bucket-fill {
+  from { transform: translateY(132px); }
+  to   { transform: translateY(var(--fill-offset, 0px)); }
 }
 
-.bza__health-center {
+/* Surface motion — each wave layer drifts horizontally AND bobs
+   vertically on independent timing. The combination of two layers
+   moving on different periods (and the front layer using a 3-step
+   keyframe to avoid mirror symmetry) reads as actual undulating water
+   rather than a single sliding sheet. */
+.bza__health-bucket-wave--back {
+  animation: bz-bucket-wave-back 7s ease-in-out infinite;
+}
+
+.bza__health-bucket-wave--front {
+  animation: bz-bucket-wave-front 4.5s ease-in-out infinite;
+}
+
+/* Back wave drifts left across roughly two wavelengths (-112px ≈ 2 ×
+   56u wavelength), with a tiny -1px Y bob to suggest swell. */
+@keyframes bz-bucket-wave-back {
+  0%   { transform: translate(0, 0); }
+  50%  { transform: translate(-112px, -1.2px); }
+  100% { transform: translate(0, 0); }
+}
+
+/* Front wave moves the opposite direction and slightly faster, on a
+   3-step keyframe so it never mirrors the back exactly — the two
+   layers desync and the composite reads as continuous undulation. */
+@keyframes bz-bucket-wave-front {
+  0%   { transform: translate(0, 0); }
+  33%  { transform: translate(84px, 1.2px); }
+  66%  { transform: translate(-60px, -0.8px); }
+  100% { transform: translate(0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bza__health-bucket-water {
+    animation: none;
+    transform: translateY(var(--fill-offset, 0px));
+  }
+  .bza__health-bucket-wave {
+    animation: none;
+  }
+}
+
+/* Number overlay — Fraunces percentage + Manrope fraction, centered in
+   the bucket. Cream (`--fo-accent-on`) reads against the green water
+   when submerged and against the dark surface-2 interior when the
+   bucket is mostly empty; the soft shadow keeps it legible across the
+   transition. */
+.bza__health-bucket-center {
   position: absolute;
   inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.1rem;
+  gap: 0.18rem;
   pointer-events: none;
+  /* Small downward bias so for typical 40-90% completion the text sits
+     visibly inside the water column rather than floating on dry rim. */
+  padding-top: 0.9rem;
 }
 
-.bza__health-pct {
-  font-family: "Fraunces", serif;
-  font-size: var(--type-h1);  font-weight: 600;
+.bza__health-bucket-pct {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 2.4rem;
+  font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--fo-text);
+  color: var(--fo-accent-on);
   line-height: 1;
+  text-shadow: 0 1px 3px rgba(15, 31, 26, 0.32);
+  font-variant-numeric: tabular-nums;
 }
 
-.bza__health-pct small {
-  font-size: var(--type-h3);  color: var(--fo-text-3);
-  font-weight: 500;
+.bza__health-bucket-pct small {
+  font-size: 0.55em;
+  font-weight: 600;
   margin-left: 1px;
+  vertical-align: 0.45em;
+  color: var(--fo-accent-on);
+  opacity: 0.85;
 }
 
-.bza__health-fraction {
+.bza__health-bucket-fraction {
   font-family: "Manrope", system-ui, sans-serif;
-  font-size: var(--type-eyebrow);  letter-spacing: 0.18em;
+  font-size: var(--type-eyebrow);
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   font-weight: 700;
-  color: var(--fo-text-3);
+  color: var(--fo-accent-on);
+  opacity: 0.78;
+  text-shadow: 0 1px 2px rgba(15, 31, 26, 0.24);
 }
 
 /* summary text next to donut */
@@ -5234,8 +5847,36 @@ a.dash-stat:hover {
  * SETTINGS PAGE                                                   *
  * ============================================================== */
 
+/* When the side nav wraps <main> in a .bza grid (via side-nav.js, which
+   adds the .bza__main class), the default .gr-shell `margin: ... auto`
+   re-centers the shell inside its grid cell on wide viewports, so the
+   content visually drifts toward the middle/right of the page. Pin every
+   app-page shell to the start of its cell so the layout reads as a single
+   left-anchored column flowing right out of the side nav.
+   Per-page max-width overrides below (settings, marketplace) further tune
+   the cap; this rule just owns the alignment. */
+.bza__main.gr-shell {
+  margin-inline: 0;
+  justify-self: start;
+  width: 100%;
+}
+
 .settings-shell {
-  max-width: 1080px;
+  max-width: 720px;
+}
+
+/* Settings is the one app-page shell that should center inside its
+   grid cell, not anchor left like dashboards/marketplaces. The page is
+   read as a focused document, not an at-a-glance dashboard, so a
+   centered column reads better against the wide background. */
+.settings-shell.bza__main.gr-shell {
+  justify-self: center;
+  margin-inline: auto;
+}
+
+/* Bumped cap so the listing-grid fits two cards per row comfortably. */
+.marketplace-shell {
+  max-width: 1000px;
 }
 
 .settings-layout {
@@ -5245,12 +5886,15 @@ a.dash-stat:hover {
   margin-top: var(--space-5);
 }
 
-/* ── Tab strip (Account / Notifications / etc. — pills at top) ── */
+/* ── Tab strip ── text labels in a single row with a hairline rule
+   underneath; active tab gets a subtle neutral pill (no accent fill,
+   no border) so the strip reads as navigation rather than as a CTA.
+   Hit target sized to 32px min per WCAG 2.5.5 via padding. */
 .settings-tabs {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: 0.25rem;
   align-items: center;
   padding-bottom: var(--space-4);
   border-bottom: 1px solid var(--fo-line);
@@ -5260,30 +5904,32 @@ a.dash-stat:hover {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.5rem 1.05rem;
-  border-radius: 999px;
+  min-height: 32px;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
   font: inherit;
   font-family: "Manrope", system-ui, sans-serif;
   font-size: var(--type-meta);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--fo-text-2);
   background: transparent;
-  border: 1px solid transparent;
+  border: 0;
   text-align: left;
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
-.settings-tab:hover:not(:disabled) {
+.settings-tab:hover:not(:disabled),
+.settings-tab:focus-visible:not(:disabled) {
   background: var(--fo-surface-2);
   color: var(--fo-text);
 }
 
 .settings-tab.active {
-  background: var(--fo-accent-soft);
-  border-color: var(--fo-accent);
-  color: var(--fo-accent);
+  background: var(--fo-surface-2);
+  color: var(--fo-text);
+  font-weight: 600;
 }
 
 .settings-tab:disabled {
@@ -5351,12 +5997,14 @@ a.dash-stat:hover {
   color: var(--fo-text-2);
 }
 
-/* ── Section row — title-left, controls-right, hairline divider ── */
+/* ── Section row — title above body, everything flush-left, hairline
+   divider between sections. (Used to be a 2-column title|controls grid;
+   flattened so all subpage content reads left-aligned.) ── */
 .settings-section {
-  display: grid;
-  grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
-  gap: var(--space-3) var(--space-6);
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: stretch;
   padding: var(--space-5) 0;
   margin: 0;
 }
@@ -5374,7 +6022,6 @@ a.dash-stat:hover {
   flex-direction: column;
   gap: 0.3rem;
   margin: 0;
-  padding-right: var(--space-3);
 }
 
 .settings-section-h h3 {
@@ -5421,12 +6068,207 @@ a.dash-stat:hover {
 
 @media (max-width: 760px) {
   .settings-section {
-    grid-template-columns: 1fr;
-    gap: var(--space-3);
     padding: var(--space-4) 0;
   }
-  .settings-section-h {
-    padding-right: 0;
+}
+
+/* Danger-zone section — tints the header text in --fo-plan (coral)
+   so destructive flows read distinct from neutral admin sections.
+   The body keeps neutral chrome; the danger color belongs to the
+   action, not the surface. */
+.settings-section--danger .settings-section-h h3 {
+  color: var(--fo-plan);
+}
+
+/* Security tab forms — stacked label + input rows with an
+   actions row at the bottom for status + submit button. Same
+   rhythm as the profile form but each section owns its own
+   submit so partial fills don't gate the others. */
+.sec-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sec-form__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.sec-form__actions .gr-status {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Profile-as-form: flat column matching the new section pattern ── */
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.settings-form__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-5) 0 0;
+  margin-top: var(--space-4);
+  border-top: 1px solid var(--fo-line);
+  flex-wrap: wrap;
+}
+
+/* Explicit override — `display: flex` above wins over the UA
+   `[hidden] { display: none }` by specificity. JS toggles `hidden`
+   when leaving personal / professional tabs (general + payout panels
+   have their own controls, not this submit). */
+.settings-form__actions[hidden] {
+  display: none !important;
+}
+
+.settings-form__actions .gr-status {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Two-column field grid inside a section body — used for paired fields
+   like email/phone or major/minor. Collapses on narrow screens. */
+.settings-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-4);
+}
+
+@media (max-width: 540px) {
+  .settings-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Avatar row — photo on left, file picker on right. */
+.settings-section__body--avatar {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.settings-section__body--avatar .gr-profile-avatar-ring {
+  flex-shrink: 0;
+  width: 88px;
+  height: 88px;
+  margin: 0;
+}
+
+.settings-section__body--avatar .gr-profile-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.settings-section__body--avatar .pf-file-label {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Avatar controls — file picker (empty state) or change/remove (has-avatar). */
+.pf-avatar-controls {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.pf-avatar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.pf-avatar-actions.hidden {
+  display: none;
+}
+
+/* Inline status — sits directly under the upload controls so file-size /
+   type errors land in the user's eyeline. Hidden when empty so the row
+   doesn't reserve a permanent gap. */
+.pf-avatar-status {
+  margin: 0;
+  font-size: var(--type-meta);
+  line-height: 1.4;
+  min-height: 0;
+}
+
+.pf-avatar-status:empty {
+  display: none;
+}
+
+.gr-label__hidden-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Override legacy .pf-layout — profile panel is now flat column flow. */
+.settings-panel.pf-layout,
+.pf-layout {
+  display: block;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  grid-template-columns: none;
+  gap: 0;
+}
+
+/* Hero variant of the level card — sits above the form, full-width,
+   with copy on the left and the stage model render on the right. */
+.pf-level-card--hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: stretch;
+  padding: 0;
+  margin: 0;
+}
+
+.pf-level-card--hero .pf-level-card__copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.pf-level-card--hero .pf-stage-model {
+  align-self: stretch;
+}
+
+.pf-level-card--hero .pf-stage-model__scene {
+  min-height: 220px;
+}
+
+/* On the profile page the stage model sits next to a slimmer copy block
+   (no rating/engagement chips — those are promoted to the metrics strip
+   above). Cap the illustration shorter so the section reads as a
+   compact card rather than a hero. */
+.pp-section--progression .pf-level-card--hero .pf-stage-model__scene {
+  min-height: 180px;
+}
+
+@media (max-width: 760px) {
+  .pf-level-card--hero {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -6587,4 +7429,325 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--fo-text-3);
+}
+
+/* ── Profile dashboard page (/profile.html) ──────────────────────
+   "Your profile" landing — header card, then progression + reviews
+   for consultants, or a minimal pointer card for owners. The
+   progression card itself reuses .pf-level-card from
+   profile-seedling.css; only header + reviews styles live here. */
+
+.pp-shell {
+  display: grid;
+  gap: var(--space-5);
+  padding-block: clamp(1.2rem, 3vw, 2rem);
+}
+
+.pp-page > * + * {
+  margin-top: var(--space-5);
+}
+
+.pp-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-4) var(--space-5);
+  align-items: center;
+  padding: var(--space-4) 0 var(--space-5);
+  border-bottom: 1px solid var(--fo-line);
+}
+
+.pp-header__copy {
+  min-width: 0;
+}
+
+.pp-header__copy .gr-page-eyebrow {
+  margin: 0 0 0.2rem;
+}
+
+.pp-header__copy .gr-title {
+  margin: 0 0 0.25rem;
+}
+
+.pp-header__role {
+  margin: 0;
+  font-size: var(--type-meta);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fo-accent);
+}
+
+.pp-header__bio {
+  margin: 0.5rem 0 0;
+  font-size: var(--type-body);
+  color: var(--fo-text-2);
+  line-height: 1.5;
+}
+
+.pp-header__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.pp-section {
+  display: grid;
+  gap: var(--space-4);
+  padding-top: var(--space-5);
+}
+
+.pp-section + .pp-section {
+  border-top: 1px solid var(--fo-line);
+}
+
+/* The progression card already feels like a self-contained hero
+   block (own padding, gradient, 3D scene) — a divider above it just
+   doubles up the section break. */
+.pp-section + .pp-section--progression {
+  border-top: 0;
+}
+
+.pp-section.hidden {
+  display: none;
+}
+
+/* One-look metrics strip below the header. Three quiet tiles sharing a
+   row: overall rating, engagements completed, total earned. The first
+   metrics section trims its top padding so the strip reads as a
+   continuation of the header, not a brand-new section. */
+.pp-section--metrics {
+  padding-top: var(--space-4);
+}
+
+.pp-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.pp-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: var(--space-3) var(--space-4);
+  background: var(--fo-surface);
+  border: 1px solid var(--fo-line);
+  border-radius: 14px;
+}
+
+/* Dark themes drop the card fill — see brandkit.md → Color. */
+:root:not([data-theme="light"]) .pp-metric {
+  background: transparent;
+}
+
+.pp-metric__label {
+  font-size: var(--type-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fo-text-3);
+}
+
+.pp-metric__value {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: clamp(1.6rem, 2.4vw, 2rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--fo-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Inline row that pairs the big numeric value with a baseline-aligned
+   companion — stars for the rating card, "completed" for engagements.
+   Companion text uses .pp-metric__sub styling so it reads as quiet
+   metadata next to the headline number, not as a second value. */
+.pp-metric__row {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+/* Stars sit on the same baseline as the numeric rating. Re-uses
+   .gr-rating__stars / .gr-rating__fill from grassroots.css for the
+   ★★★★★ glyphs. */
+.pp-metric__rating-stars {
+  display: inline-flex;
+  align-items: center;
+  font-size: 1.05rem;
+  line-height: 1;
+  /* Nudge up so the visual center of the stars lands roughly on the
+     x-height of the number, not on its baseline. */
+  transform: translateY(-0.12em);
+}
+
+.pp-metric__rating-stars .gr-rating__stars {
+  font-size: inherit;
+  letter-spacing: 0.08em;
+}
+
+/* Quiet review-count chip that tags onto the inline rating row,
+   sized + colored like .pp-metric__sub so it reads as metadata. */
+.pp-metric__rating-count {
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
+  color: var(--fo-text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-metric__rating-count[hidden] {
+  display: none;
+}
+
+.pp-metric__sub {
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+}
+
+@media (max-width: 720px) {
+  .pp-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pp-section__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.pp-section__head h2 {
+  margin: 0;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: var(--type-h1);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--fo-text);
+}
+
+/* The overall rating block (.pp-reviews-overall__primary) used to
+   sit beside the per-dimension breakdown in a 2-col grid, but the
+   metric strip at the top of the profile already covers it. The
+   wrapper is kept so future content can land here without further
+   markup churn. */
+.pp-reviews-overall {
+  display: block;
+  padding: 0;
+}
+
+.pp-reviews-dims {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.pp-reviews-dim {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.8fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.pp-reviews-dim__label {
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+}
+
+.pp-reviews-dim__value {
+  font-size: var(--type-meta);
+  font-weight: 700;
+  color: var(--fo-text);
+  font-variant-numeric: tabular-nums;
+  min-width: 1.6em;
+  text-align: right;
+}
+
+.pp-reviews-recent {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* Display-grid beats UA `[hidden]` — assert it back. */
+.pp-reviews-recent[hidden] {
+  display: none !important;
+}
+
+.pp-reviews-recent__head {
+  margin: 0;
+  font-size: var(--type-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fo-text-3);
+}
+
+.pp-reviews-recent__list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.pp-review-card {
+  display: grid;
+  gap: 0.55rem;
+  padding: var(--space-4);
+  background: var(--fo-surface);
+  border: 1px solid var(--fo-line);
+  border-radius: 14px;
+}
+
+.pp-review-card__head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--type-meta);
+  color: var(--fo-text-3);
+}
+
+.pp-review-card__listing {
+  color: var(--fo-text-2);
+}
+
+.pp-review-card__quote {
+  margin: 0;
+  padding: 0.4rem 0 0.4rem 0.85rem;
+  border-left: 2px solid var(--fo-accent-soft);
+  font-family: "Fraunces", Georgia, serif;
+  font-size: var(--type-body);
+  font-style: italic;
+  line-height: 1.55;
+  color: var(--fo-text);
+}
+
+.pp-review-card__author {
+  margin: 0;
+  font-size: var(--type-eyebrow);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fo-text-3);
+}
+
+.pp-owner-copy {
+  margin: 0;
+  font-size: var(--type-body);
+  color: var(--fo-text-2);
+  line-height: 1.55;
+  max-width: 60ch;
+}
+
+@media (max-width: 720px) {
+  .pp-header {
+    grid-template-columns: 1fr;
+    text-align: center;
+    justify-items: center;
+  }
+  .pp-header__copy {
+    text-align: center;
+  }
+  .pp-reviews-dim {
+    grid-template-columns: 1fr auto;
+  }
+  .pp-reviews-dim__rating {
+    grid-column: 1 / -1;
+  }
 }

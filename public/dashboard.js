@@ -7,6 +7,8 @@ import { getSupabaseClient } from "/supabase-loader.js";
 import { hydrateRatings } from "/rating.js";
 import { mountDashboardNotifications } from "/dashboard-notifications.js";
 import { getInitials } from "/initials.js";
+import { loadOwnerAnalytics, renderAnalyticsPanel } from "/listing-analytics.js";
+import { renderHealthBucket } from "/health-bucket.js";
 
 const $ = (id) => document.getElementById(id);
 const escape = (s) =>
@@ -99,32 +101,8 @@ function profileCompleteness(profile, biz) {
   return { pct, done, total, fields, missing, tierName };
 }
 
-function renderHealthDonut(health) {
-  const size = 132;
-  const stroke = 12;
-  const radius = (size - stroke) / 2 - 1;
-  const center = size / 2;
-  const circumference = 2 * Math.PI * radius;
-  const filledLen = (Math.max(0, Math.min(100, health.pct)) / 100) * circumference;
-  return `
-    <div class="bza__health-donut" role="img" aria-label="${health.pct}% profile complete">
-      <svg viewBox="0 0 ${size} ${size}" aria-hidden="true">
-        <g transform="rotate(-90 ${center} ${center})">
-          <circle cx="${center}" cy="${center}" r="${radius}" fill="none"
-                  stroke="var(--fo-surface-3)" stroke-width="${stroke}" />
-          <circle cx="${center}" cy="${center}" r="${radius}" fill="none"
-                  stroke="var(--fo-accent)" stroke-width="${stroke}" stroke-linecap="round"
-                  class="bza__health-slice is-filled"
-                  stroke-dasharray="${filledLen} ${circumference - filledLen}" />
-        </g>
-      </svg>
-      <div class="bza__health-center">
-        <span class="bza__health-pct">${health.pct}<small>%</small></span>
-        <span class="bza__health-fraction">${health.done} of ${health.total}</span>
-      </div>
-    </div>
-  `;
-}
+// renderHealthBucket lives in /health-bucket.js so the consultant + owner
+// dashboards share one source of truth for the profile-completion viz.
 
 function renderHealthChips(health) {
   return `
@@ -785,7 +763,7 @@ function renderDashboard(client, data) {
       </div>
 
       <div class="bza__health-top">
-        ${renderHealthDonut(health)}
+        ${renderHealthBucket(health)}
         <div class="bza__health-summary">
           <span class="bza__health-tier" style="color:${tierColor}">
             <span class="bza__health-tier-mark" aria-hidden="true"></span>
@@ -801,6 +779,25 @@ function renderDashboard(client, data) {
         <span class="bza__health-cta-arrow" aria-hidden="true">→</span>
       </a>
     `;
+  }
+
+  // Cumulative analytics across all the owner's listings — loads
+  // independently so a slow query on listing_views can't block the
+  // rest of the dashboard render. Hidden when the owner has no listings
+  // yet; shows a "migration needed" message if the listing_views table
+  // hasn't been created in supabase.
+  const analyticsHost = $("dash-analytics");
+  if (analyticsHost) {
+    loadOwnerAnalytics(client, data.session?.user?.id).then((analytics) => {
+      if (!analytics || (analytics.listingCount === 0 && !analytics.unavailable)) {
+        analyticsHost.hidden = true;
+        return;
+      }
+      renderAnalyticsPanel(analyticsHost, analytics, {
+        title: "listing performance",
+        subtitle: `across all ${analytics.listingCount} listing${analytics.listingCount === 1 ? "" : "s"} you've posted.`,
+      });
+    });
   }
 }
 
@@ -901,7 +898,7 @@ function setupViewSwitcher() {
     } catch (err) {
       console.warn("logout failed", err);
     }
-    window.location.replace("/");
+    window.location.replace("/signin.html");
   });
 
   // initial

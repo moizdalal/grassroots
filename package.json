@@ -7,7 +7,8 @@
     "build": "npm run build:contract-help",
     "build:contract-help": "esbuild src/contract-help.tsx --bundle --format=esm --jsx=automatic --minify --outfile=public/contract-help.js",
     "dev": "node server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "stripe:listen": "stripe listen --forward-to localhost:3000/webhooks/stripe"
   },
   "keywords": [],
   "author": "",

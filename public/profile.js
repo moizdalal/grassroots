@@ -1,17 +1,39 @@
 import { getSupabaseClient } from "/supabase-loader.js";
 import { formatBudgetRange, parseBudgetRange } from "/sim-budget.js";
 import { getInitials } from "/initials.js";
+import { renderRatingMarkup } from "/rating.js";
 
 const form = document.getElementById("profile-form");
 const gateEl = document.getElementById("profile-gate");
 const statusEl = document.getElementById("status");
 const avatarPreview = document.getElementById("avatar-preview");
 const avatarInput = document.getElementById("avatar-input");
+const avatarStatusEl = document.getElementById("avatar-status");
+
+const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
+const AVATAR_ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+
+function setAvatarStatus(text, kind) {
+  if (!avatarStatusEl) return;
+  avatarStatusEl.textContent = text || "";
+  avatarStatusEl.className = `gr-status pf-avatar-status${kind ? ` ${kind}` : ""}`;
+}
+
+function validateAvatarFile(file) {
+  if (!file) return "no file selected.";
+  if (file.size > AVATAR_MAX_BYTES) return "image must be 5 mb or smaller.";
+  const ext = String(file.name || "").toLowerCase().split(".").pop();
+  const extOk = ["jpg", "jpeg", "png", "webp", "gif"].includes(ext);
+  if (!AVATAR_ACCEPTED_TYPES.has(file.type) && !extOk) return "use a jpg, png, webp, or gif image.";
+  return null;
+}
 const resumeInput = document.getElementById("resume-input");
 const resumeCurrent = document.getElementById("resume-current");
 const resumePublicToggle = document.getElementById("resume-public-toggle");
 const businessSection = document.getElementById("business-section");
+const businessSocialSection = document.getElementById("business-social-section");
 const consultantSection = document.getElementById("consultant-section");
+const consultantPortfolioSection = document.getElementById("consultant-portfolio-section");
 const consultantEducationSection = document.getElementById("consultant-education-section");
 const profileTabButtons = [...document.querySelectorAll("[data-profile-tab]")];
 const profilePanels = [...document.querySelectorAll("[data-profile-panel]")];
@@ -21,29 +43,24 @@ const portfolioDesc = document.getElementById("portfolio-desc");
 const portfolioPublicToggle = document.getElementById("portfolio-public-toggle");
 const portfolioUploadBtn = document.getElementById("portfolio-upload-btn");
 const previewBar = document.getElementById("pf-preview-bar");
-const previewToggle = document.getElementById("pf-preview-toggle");
+const previewTrigger = document.getElementById("pf-preview-trigger");
+const previewModal = document.getElementById("pf-preview-modal");
 const businessView = document.getElementById("pf-business-view");
+
+function isPreviewOpen() {
+  return !!previewModal && !previewModal.classList.contains("hidden");
+}
 const resumeViewer = document.getElementById("pf-resume-viewer");
 const resumeViewerFrame = document.getElementById("pf-resume-viewer-frame");
 const resumeViewerTitle = document.getElementById("pf-resume-viewer-title");
 const resumeViewerDownload = document.getElementById("pf-resume-viewer-download");
 const saveBtn = document.getElementById("save-btn");
 const linkedinFieldWrap = document.getElementById("field-linkedin-wrap");
-const levelCard = document.getElementById("pf-level-card");
 const ownerCard = document.getElementById("pf-owner-card");
 const ownerCurrentList = document.getElementById("pf-owner-current-list");
 const ownerPastList = document.getElementById("pf-owner-past-list");
 const ownerHistoryToggle = document.getElementById("pf-owner-history-toggle");
 const ownerHistory = document.getElementById("pf-owner-history");
-const levelTitle = document.getElementById("pf-level-title");
-const levelName = document.getElementById("pf-level-name");
-const levelRating = document.getElementById("pf-level-rating");
-const levelEngagements = document.getElementById("pf-level-engagements");
-const stageModel = document.getElementById("pf-stage-model");
-const stageModelLabel = document.getElementById("pf-stage-model-label");
-const levelProgressFill = document.getElementById("pf-level-progress-fill");
-const levelProgressLabel = document.getElementById("pf-level-progress-label");
-const levelProgressCopy = document.getElementById("pf-level-progress-copy");
 
 const welcomeOverlay = document.getElementById("welcome-overlay");
 const welcomeDismiss = document.getElementById("welcome-dismiss");
@@ -191,25 +208,6 @@ function isMissingBusinessAddress(error) {
   );
 }
 
-function getFirstName(fullName) {
-  const trimmed = String(fullName || "").trim();
-  return trimmed ? trimmed.split(/\s+/)[0] : "consultant";
-}
-
-function readNumericCandidate(source, keys) {
-  if (!source || typeof source !== "object") return null;
-  for (const key of keys) {
-    const raw = source[key];
-    const value = typeof raw === "string" ? Number(raw) : raw;
-    if (Number.isFinite(value)) return value;
-  }
-  return null;
-}
-
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
-
 function formatUsd(cents) {
   const amount = Number(cents);
   if (!Number.isFinite(amount)) return "";
@@ -266,12 +264,25 @@ function syncProfileTabsForRole(currentRole) {
     businessSection.classList.toggle("hidden", currentRole !== "business_owner");
   }
 
+  if (businessSocialSection) {
+    businessSocialSection.classList.toggle("hidden", currentRole !== "business_owner");
+  }
+
   if (linkedinFieldWrap) {
     linkedinFieldWrap.classList.toggle("hidden", currentRole === "business_owner");
+  }
+  // City field is consultant-only — biz owners have a business address instead.
+  const cityFieldWrap = document.getElementById("field-city-wrap");
+  if (cityFieldWrap) {
+    cityFieldWrap.classList.toggle("hidden", currentRole === "business_owner");
   }
 
   if (consultantSection) {
     consultantSection.classList.toggle("hidden", currentRole !== "consultant");
+  }
+
+  if (consultantPortfolioSection) {
+    consultantPortfolioSection.classList.toggle("hidden", currentRole !== "consultant");
   }
 
   if (consultantEducationSection) {
@@ -281,146 +292,8 @@ function syncProfileTabsForRole(currentRole) {
   setActiveProfileTab("personal");
 }
 
-function calculateStageProgress(engagementsCompleted, avgRating) {
-  const stages = [
-    {
-      index: 0,
-      name: "seedling",
-      modelLabel: "seedling stage placeholder",
-      nextCopy: "complete 1 free engagement and earn an average rating of at least 4.0 stars.",
-      targetEngagements: 1,
-      targetRating: 4,
-      strictRating: false,
-    },
-    {
-      index: 1,
-      name: "sprout",
-      modelLabel: "sprout stage placeholder",
-      nextCopy: "maintain a 4.0+ rating and complete 2 engagements to reach stage 2.",
-      targetEngagements: 2,
-      targetRating: 4,
-      strictRating: false,
-    },
-    {
-      index: 2,
-      name: "small tree",
-      modelLabel: "small tree stage placeholder",
-      nextCopy: "complete 10+ engagements and keep your rating above 4.0 to unlock giant sequoia status.",
-      targetEngagements: 10,
-      targetRating: 4.1,
-      strictRating: true,
-    },
-    {
-      index: 3,
-      name: "giant sequoia",
-      modelLabel: "giant sequoia stage placeholder",
-      nextCopy: "you've reached the highest stage. keep delivering strong work to hold sequoia status.",
-      targetEngagements: 10,
-      targetRating: 4.1,
-      strictRating: true,
-    },
-  ];
-
-  let stageIndex = 0;
-  if (avgRating != null && avgRating > 4 && engagementsCompleted >= 10) {
-    stageIndex = 3;
-  } else if (avgRating != null && avgRating >= 4 && engagementsCompleted >= 2) {
-    stageIndex = 2;
-  } else if (avgRating != null && avgRating >= 4 && engagementsCompleted >= 1) {
-    stageIndex = 1;
-  }
-
-  const stage = stages[stageIndex];
-  if (stage.index === stages.length - 1) {
-    return { ...stage, progressPercent: 100 };
-  }
-
-  const engagementProgress = clamp(engagementsCompleted / stage.targetEngagements, 0, 1);
-  const ratingProgress = avgRating == null ? 0 : clamp(avgRating / stage.targetRating, 0, 1);
-  const progressPercent = Math.round((engagementProgress * 0.6 + ratingProgress * 0.4) * 100);
-
-  return { ...stage, progressPercent };
-}
-
-async function loadConsultantProgressStats(row) {
-  const consultantProfile = getRelatedRow(row?.consultant_profiles);
-  let engagementsCompleted =
-    readNumericCandidate(consultantProfile, [
-      "engagements_completed",
-      "completed_engagements",
-      "engagement_count",
-      "total_engagements",
-    ]) ?? 0;
-  let avgRating = readNumericCandidate(consultantProfile, [
-    "average_rating",
-    "avg_rating",
-    "rating_average",
-    "rating_avg",
-    "stars_average",
-    "avg_stars",
-    "rating",
-  ]);
-
-  try {
-    const { data, error } = await supabase
-      .from("bids")
-      .select("status, accepted_at")
-      .eq("consultant_id", userId);
-
-    if (!error && Array.isArray(data) && engagementsCompleted === 0) {
-      engagementsCompleted = data.filter((bid) => bid?.status === "accepted" || Boolean(bid?.accepted_at)).length;
-    }
-  } catch (_) {
-    // Leave consultant progress on safe fallbacks when newer bid tables or policies are unavailable.
-  }
-
-  return {
-    engagementsCompleted,
-    avgRating: Number.isFinite(avgRating) ? avgRating : null,
-  };
-}
-
-function renderConsultantLevelSidebar(row, stats) {
-  if (
-    !levelCard ||
-    !ownerCard ||
-    !levelTitle ||
-    !levelName ||
-    !levelRating ||
-    !levelEngagements ||
-    !stageModel ||
-    !stageModelLabel ||
-    !levelProgressFill ||
-    !levelProgressLabel ||
-    !levelProgressCopy
-  ) {
-    return;
-  }
-
-  const firstName = getFirstName(row?.full_name);
-  const avgRating = stats?.avgRating ?? null;
-  const engagementsCompleted = stats?.engagementsCompleted ?? 0;
-  const stage = calculateStageProgress(engagementsCompleted, avgRating);
-
-  ownerCard.classList.add("hidden");
-  levelCard.classList.remove("hidden");
-  levelTitle.textContent = `stage ${stage.index}: ${stage.name}`;
-  levelName.textContent = firstName;
-  levelRating.textContent =
-    avgRating == null ? "rating not available yet" : `${avgRating.toFixed(1)} average rating`;
-  levelEngagements.textContent = `${engagementsCompleted} ${
-    engagementsCompleted === 1 ? "engagement" : "engagements"
-  } completed`;
-  stageModel.dataset.stage = String(stage.index);
-  stageModelLabel.textContent = stage.modelLabel;
-  levelProgressFill.style.width = `${stage.progressPercent}%`;
-  levelProgressLabel.textContent = `${stage.progressPercent}%`;
-  levelProgressCopy.textContent = stage.nextCopy;
-}
-
 function renderOwnerSidebar() {
-  if (!levelCard || !ownerCard) return;
-  levelCard.classList.add("hidden");
+  if (!ownerCard) return;
   ownerCard.classList.remove("hidden");
 }
 
@@ -585,6 +458,87 @@ function setAvatarPreview(src) {
   }
 }
 
+function renderAvatarState() {
+  const uploadLabel = document.getElementById("pf-avatar-upload-label");
+  const actions = document.getElementById("pf-avatar-actions");
+  if (!uploadLabel || !actions) return;
+  if (currentAvatarPath) {
+    uploadLabel.classList.add("hidden");
+    actions.classList.remove("hidden");
+  } else {
+    uploadLabel.classList.remove("hidden");
+    actions.classList.add("hidden");
+  }
+}
+
+async function uploadAvatarFile(file) {
+  if (!supabase || !userId) throw new Error("not signed in.");
+  if (file.size > AVATAR_MAX_BYTES) throw new Error("image must be 5 mb or smaller.");
+
+  const safe = sanitizeFileName(file.name);
+  const path = `${userId}/${Date.now()}-${safe}`;
+  const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, {
+    contentType: file.type || "image/jpeg",
+    upsert: false,
+  });
+  if (upErr) throw upErr;
+
+  const previousPath = currentAvatarPath;
+
+  const { error: prErr } = await supabase
+    .from("profiles")
+    .update({ avatar_path: path })
+    .eq("id", userId);
+  if (prErr) {
+    // Best-effort cleanup of the just-uploaded file if the DB update failed.
+    try { await supabase.storage.from("avatars").remove([path]); } catch (_) {}
+    throw prErr;
+  }
+
+  if (previousPath && previousPath !== path) {
+    try { await supabase.storage.from("avatars").remove([previousPath]); } catch (_) {}
+  }
+
+  currentAvatarPath = path;
+  if (profileRow) profileRow.avatar_path = path;
+  if (avatarInput) avatarInput.value = "";
+
+  const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+  setAvatarPreview(pub?.publicUrl || PLACEHOLDER);
+  renderAvatarState();
+}
+
+async function removeAvatarFile() {
+  if (!currentAvatarPath) return;
+  if (!window.confirm("remove your profile photo? you can upload a new one any time.")) return;
+
+  const removeBtn = document.getElementById("pf-avatar-remove-btn");
+  if (removeBtn instanceof HTMLButtonElement) removeBtn.disabled = true;
+  setAvatarStatus("");
+
+  try {
+    const oldPath = currentAvatarPath;
+    try { await supabase.storage.from("avatars").remove([oldPath]); } catch (_) {}
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ avatar_path: null })
+      .eq("id", userId);
+    if (error) throw error;
+
+    currentAvatarPath = null;
+    if (profileRow) profileRow.avatar_path = null;
+    if (avatarInput) avatarInput.value = "";
+    setAvatarPreview(null);
+    renderAvatarState();
+    setAvatarStatus("profile photo removed.", "success");
+  } catch (err) {
+    setAvatarStatus(err.message || "could not remove photo.", "error");
+  } finally {
+    if (removeBtn instanceof HTMLButtonElement) removeBtn.disabled = false;
+  }
+}
+
 /* ================================================================
    Portfolio management
    ================================================================ */
@@ -700,7 +654,11 @@ function getResumeUploadLabel() {
   return document.getElementById("pf-resume-upload-label");
 }
 
-async function renderResumeCurrentLabel(messagePrefix = "") {
+function getDownloadIconSvg() {
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10"></path><path d="m8 10 4 4 4-4"></path><path d="M5 19h14"></path></svg>`;
+}
+
+async function renderResumeCurrentLabel(/* legacy arg ignored */) {
   if (!resumeCurrent) return;
   const uploadLabel = getResumeUploadLabel();
 
@@ -714,19 +672,33 @@ async function renderResumeCurrentLabel(messagePrefix = "") {
   if (uploadLabel) uploadLabel.classList.add("hidden");
   resumeCurrent.classList.remove("hidden");
 
-  const resumeUrl = await getOwnResumeSignedUrl(currentResumePath);
-  const prefix = messagePrefix ? `${escapeHtml(messagePrefix)} ` : "";
   const fileName = getStorageFileName(currentResumePath);
+  const isPublic = resumeIsPublicState();
 
-  if (resumeUrl) {
-    resumeCurrent.innerHTML = `
-      <p class="pf-resume-current__name">${prefix}${escapeHtml(fileName)}</p>
-      ${getResumeActionMarkup(fileName, { previewLabel: "preview", source: "self", manage: true })}
-    `;
-    return;
-  }
+  resumeCurrent.innerHTML = `
+    <div class="pf-portfolio-item__info">
+      <div class="pf-portfolio-item__name-row">
+        <button type="button" class="pf-portfolio-item__name pf-portfolio-item__name--clickable" data-resume-action="preview" data-resume-source="self" data-resume-file-name="${escapeAttr(fileName)}">${escapeHtml(fileName)}</button>
+        <button type="button" class="pf-portfolio-item__download" data-resume-action="download" data-resume-source="self" data-resume-file-name="${escapeAttr(fileName)}" aria-label="download resume">
+          ${getDownloadIconSvg()}
+        </button>
+      </div>
+    </div>
+    <label class="pf-toggle-label">
+      <input type="checkbox" id="resume-public-toggle" ${isPublic ? "checked" : ""} />
+      <span class="pf-toggle-switch"></span>
+      <span>public</span>
+    </label>
+    <button type="button" class="pf-portfolio-item__delete" data-resume-action="remove">remove</button>
+  `;
+}
 
-  resumeCurrent.innerHTML = `<p class="pf-resume-current__name">${escapeHtml(messagePrefix || "current resume on file.")}</p>`;
+function resumeIsPublicState() {
+  // Read from the current toggle if it exists, otherwise from the loaded
+  // profileRow snapshot. This survives re-renders without losing state.
+  const cur = document.getElementById("resume-public-toggle");
+  if (cur) return cur.checked;
+  return Boolean(profileRow?.resume_public);
 }
 
 async function uploadResumeFile(file) {
@@ -783,7 +755,7 @@ async function removeResume() {
     statusEl.textContent = "resume removed.";
     statusEl.className = "gr-status success";
 
-    if (role === "consultant" && previewToggle?.checked) {
+    if (role === "consultant" && isPreviewOpen()) {
       await renderBusinessPreview();
     }
   } catch (err) {
@@ -815,18 +787,25 @@ function renderPortfolioList() {
   }
   portfolioList.innerHTML = portfolioItems.map((item) => {
     const fileName = (item.file_path || "").split("/").pop() || "file";
+    const id = escapeAttr(item.id);
+    const safeName = escapeHtml(fileName);
     return `
-      <div class="pf-portfolio-item" data-id="${escapeHtml(item.id)}">
+      <div class="pf-portfolio-item" data-id="${id}">
         <div class="pf-portfolio-item__info">
-          <span class="pf-portfolio-item__name">${escapeHtml(fileName)}</span>
+          <div class="pf-portfolio-item__name-row">
+            <button type="button" class="pf-portfolio-item__name pf-portfolio-item__name--clickable" data-portfolio-action="preview" data-id="${id}" data-file-name="${escapeAttr(fileName)}">${safeName}</button>
+            <button type="button" class="pf-portfolio-item__download" data-portfolio-action="download" data-id="${id}" data-file-name="${escapeAttr(fileName)}" aria-label="download work sample">
+              ${getDownloadIconSvg()}
+            </button>
+          </div>
           ${item.description ? `<span class="pf-portfolio-item__desc">${escapeHtml(item.description)}</span>` : ""}
         </div>
         <label class="pf-toggle-label">
-          <input type="checkbox" class="pf-portfolio-public-cb" data-id="${escapeHtml(item.id)}" ${item.is_public ? "checked" : ""} />
+          <input type="checkbox" class="pf-portfolio-public-cb" data-id="${id}" ${item.is_public ? "checked" : ""} />
           <span class="pf-toggle-switch"></span>
           <span>public</span>
         </label>
-        <button type="button" class="pf-portfolio-item__delete" data-id="${escapeHtml(item.id)}">remove</button>
+        <button type="button" class="pf-portfolio-item__delete" data-id="${id}">remove</button>
       </div>
     `;
   }).join("");
@@ -858,6 +837,19 @@ function renderPortfolioList() {
       }
     });
   });
+}
+
+async function getPortfolioSignedUrl(filePath) {
+  if (!supabase || !filePath) return null;
+  try {
+    const { data, error } = await supabase.storage
+      .from("portfolio")
+      .createSignedUrl(filePath, 60 * 30);
+    if (error) throw error;
+    return data?.signedUrl || null;
+  } catch (_) {
+    return null;
+  }
 }
 
 async function handlePortfolioUpload() {
@@ -925,59 +917,75 @@ async function handlePortfolioUpload() {
 
 async function renderBusinessPreview() {
   if (!businessView || !profileRow) return;
-  const cp = getRelatedRow(profileRow.consultant_profiles);
 
+  // Mirror the canonical consultant viewer modal that businesses see
+  // when they click a bid on their listing (see renderConsultantViewerContent
+  // + renderConsultantPastWorkPanel + loadResumePanel in listing.js). The
+  // settings preview should look identical: same title bar, same three
+  // tabs (bio / resume / past work), same panel content. Drop the
+  // proposal index + offer chrome from the bar — those are listing-flow
+  // artifacts and don't apply when the consultant is previewing themselves.
+
+  businessView.classList.add("pf-business-view--tabbed");
+
+  const cp = getRelatedRow(profileRow.consultant_profiles);
   const avatarUrl = currentAvatarPath
     ? supabase.storage.from("avatars").getPublicUrl(currentAvatarPath).data?.publicUrl
     : null;
   const name = profileRow.full_name || "consultant";
-  const avatarHtml = avatarUrl
-    ? `<img class="pf-bv__avatar" src="${escapeHtml(avatarUrl)}" alt="" />`
-    : `<div class="pf-bv__avatar-placeholder" aria-hidden="true">${escapeHtml(getInitials(name))}</div>`;
   const linkedin = profileRow.linkedin_url || "";
   const major = cp?.major || "";
   const minor = cp?.minor || "";
   const school = cp?.school || "";
-  const resumePublic = resumePublicToggle
-    ? resumePublicToggle.checked
-    : Boolean(profileRow.resume_public);
-  const hasVisibleResume = resumePublic && currentResumePath;
-  const resumeFileName = currentResumePath ? getStorageFileName(currentResumePath) : "";
+  const eduParts = [];
+  if (major) eduParts.push(major);
+  if (minor) eduParts.push(`minor in ${minor}`);
+  if (school) eduParts.push(school);
+  const eduLine = eduParts.join(" · ");
 
-  let eduLine = "";
-  if (major || school) {
-    const parts = [];
-    if (major) parts.push(major);
-    if (minor) parts.push(`minor in ${minor}`);
-    if (school) parts.push(school);
-    eduLine = parts.join(" · ");
-  }
+  // Pull rating aggregates from the same endpoint /my-reviews + the
+  // canonical viewer use, so the bio header chip + per-dim breakdown
+  // match exactly. Best-effort — preview still renders if it 4xxs.
+  let rating = null;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers = {};
+    if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+    const res = await fetch(`/api/consultant-profile/${encodeURIComponent(userId)}`, { headers });
+    if (res.ok) {
+      const json = await res.json().catch(() => ({}));
+      rating = json?.rating || null;
+    }
+  } catch (_) { /* best-effort */ }
 
-  const publicPortfolio = portfolioItems.filter((i) => i.is_public);
+  const avatarHtml = avatarUrl
+    ? `<img class="pf-bv__avatar" src="${escapeHtml(avatarUrl)}" alt="" />`
+    : `<div class="pf-bv__avatar-placeholder" aria-hidden="true">${escapeHtml(getInitials(name))}</div>`;
 
-  let portfolioHtml = "";
-  if (publicPortfolio.length) {
-    portfolioHtml = `
+  const dims = [
+    ["work product", rating?.work_product_quality_avg],
+    ["communication", rating?.communication_avg],
+    ["timeliness", rating?.timeliness_avg],
+    ["professionalism", rating?.professionalism_avg],
+    ["cost value", rating?.cost_value_avg],
+  ];
+  const ratingBreakdown = rating?.review_count
+    ? `
       <div class="pf-bv__section">
-        <p class="pf-bv__section-title">past experience</p>
-        <div class="pf-bv__portfolio-grid">
-          ${publicPortfolio.map((item) => {
-            const fileName = (item.file_path || "").split("/").pop() || "file";
-            const url = supabase.storage.from("portfolio").getPublicUrl(item.file_path).data?.publicUrl || "#";
-            return `
-              <div class="pf-bv__portfolio-card">
-                <span class="pf-bv__portfolio-card__name">${escapeHtml(fileName)}</span>
-                ${item.description ? `<span class="pf-bv__portfolio-card__desc">${escapeHtml(item.description)}</span>` : ""}
-                <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">view</a>
-              </div>
-            `;
-          }).join("")}
+        <p class="pf-bv__section-title">ratings · ${rating.review_count} review${rating.review_count === 1 ? "" : "s"}</p>
+        <div class="ld-cv__rating-grid">
+          ${dims.map(([label, val]) => `
+            <div class="ld-cv__rating-row">
+              <span class="ld-cv__rating-row__label">${label}</span>
+              ${renderRatingMarkup({ rating_average: val, review_count: 1 }, { size: "sm", showCount: false })}
+            </div>
+          `).join("")}
         </div>
       </div>
-    `;
-  }
+    `
+    : "";
 
-  businessView.innerHTML = `
+  const bioPanel = `
     <div class="pf-bv">
       <div class="pf-bv__header">
         ${avatarHtml}
@@ -986,47 +994,136 @@ async function renderBusinessPreview() {
           ${eduLine ? `<p class="pf-bv__meta">${escapeHtml(eduLine)}</p>` : ""}
         </div>
       </div>
-
+      ${ratingBreakdown}
       ${eduLine ? `
         <div class="pf-bv__section">
           <p class="pf-bv__section-title">education</p>
           <p class="pf-bv__detail">${escapeHtml(eduLine)}</p>
         </div>
       ` : ""}
-
       ${linkedin ? `
         <div class="pf-bv__section">
           <p class="pf-bv__section-title">linkedin</p>
           <p class="pf-bv__detail"><a href="${escapeHtml(linkedin)}" target="_blank" rel="noopener noreferrer">${escapeHtml(linkedin)}</a></p>
         </div>
       ` : ""}
-
-      ${hasVisibleResume ? `
-        <div class="pf-bv__section">
-          <p class="pf-bv__section-title">resume</p>
-          <div class="pf-bv__resume-row">
-            ${resumeFileName ? `<span class="pf-bv__detail">${escapeHtml(resumeFileName)}</span>` : ""}
-            ${getResumeActionMarkup(resumeFileName, { source: "self" })}
-          </div>
-        </div>
-      ` : ""}
-
-      ${portfolioHtml}
-
-      ${!linkedin && !publicPortfolio.length && !hasVisibleResume && !eduLine ? `
-        <p class="pf-bv__empty">this consultant hasn't shared any public details yet.</p>
+      ${(!linkedin && !eduLine && !ratingBreakdown) ? `
+        <p class="pf-bv__empty">this consultant hasn't shared any public bio details yet.</p>
       ` : ""}
     </div>
   `;
+
+  const resumePublicEl = getResumePublicToggle();
+  const resumePublic = resumePublicEl ? resumePublicEl.checked : Boolean(profileRow.resume_public);
+  const hasVisibleResume = resumePublic && currentResumePath;
+  let resumePanelHtml;
+  if (hasVisibleResume) {
+    const resumeFileName = getStorageFileName(currentResumePath);
+    resumePanelHtml = `
+      <div class="pf-bv__section">
+        <p class="pf-bv__section-title">resume</p>
+        <div class="pf-bv__resume-row">
+          ${resumeFileName ? `<span class="pf-bv__detail">${escapeHtml(resumeFileName)}</span>` : ""}
+          ${getResumeActionMarkup(resumeFileName, { source: "self" })}
+        </div>
+      </div>
+    `;
+  } else {
+    const reason = currentResumePath
+      ? "your resume is uploaded but kept private. flip 'visible to businesses' to share it."
+      : "this consultant has not made a resume publicly visible.";
+    resumePanelHtml = `<p class="ld-cv__panel-empty">${reason}</p>`;
+  }
+
+  const publicPortfolio = portfolioItems.filter((i) => i.is_public);
+  let workPanelHtml;
+  if (publicPortfolio.length) {
+    workPanelHtml = `
+      <div class="ld-cv__work-section">
+        <p class="ld-cv__work-section-title">shared files</p>
+        <div class="ld-cv__work-list">
+          ${publicPortfolio.map((item) => {
+            const fileName = (item.file_path || "").split("/").pop() || "file";
+            const url = supabase.storage.from("portfolio").getPublicUrl(item.file_path).data?.publicUrl || "#";
+            return `
+              <div class="ld-cv__work-row">
+                <div>
+                  <p class="ld-cv__work-row__title">${escapeHtml(fileName)}</p>
+                  ${item.description ? `<p class="ld-cv__work-row__scope">${escapeHtml(item.description)}</p>` : ""}
+                  <a class="ld-cv__work-row__file" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">open file ↗</a>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `;
+  } else {
+    workPanelHtml = `<p class="ld-cv__panel-empty">no past engagements or shared files yet.</p>`;
+  }
+
+  const titleHtml = `${escapeHtml(name)} ${renderRatingMarkup(rating, { size: "md" })}`;
+
+  businessView.innerHTML = `
+    <div class="ld-cv__inner">
+      <div class="ld-cv__bar">
+        <div class="ld-cv__bar-meta">
+          <p class="ld-cv__eyebrow">preview as business</p>
+          <h2 class="ld-cv__title" id="pf-preview-modal-title">${titleHtml}</h2>
+        </div>
+        <button type="button" class="ld-cv__close" data-pf-preview-close aria-label="close preview">&times;</button>
+      </div>
+      <div class="ld-cv__tabs" role="tablist" aria-label="profile preview sections">
+        <button type="button" class="ld-cv__tab is-active" role="tab" data-pf-bv-tab="bio" aria-selected="true">bio</button>
+        <button type="button" class="ld-cv__tab" role="tab" data-pf-bv-tab="resume" aria-selected="false">resume</button>
+        <button type="button" class="ld-cv__tab" role="tab" data-pf-bv-tab="work" aria-selected="false">past work</button>
+      </div>
+      <div class="ld-cv__body">
+        <div class="ld-cv__panel is-active" role="tabpanel" data-pf-bv-panel="bio">${bioPanel}</div>
+        <div class="ld-cv__panel" role="tabpanel" data-pf-bv-panel="resume" hidden>${resumePanelHtml}</div>
+        <div class="ld-cv__panel" role="tabpanel" data-pf-bv-panel="work" hidden>${workPanelHtml}</div>
+      </div>
+    </div>
+  `;
+
+  const tabs = businessView.querySelectorAll("[data-pf-bv-tab]");
+  const panels = businessView.querySelectorAll("[data-pf-bv-panel]");
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const target = tab.dataset.pfBvTab;
+      tabs.forEach((t) => {
+        const active = t.dataset.pfBvTab === target;
+        t.classList.toggle("is-active", active);
+        t.setAttribute("aria-selected", String(active));
+      });
+      panels.forEach((p) => {
+        const active = p.dataset.pfBvPanel === target;
+        if (active) {
+          // Show, force reflow, then add .is-active so the opacity
+          // and translateY transition runs on the incoming panel.
+          p.hidden = false;
+          p.classList.remove("is-active");
+          void p.offsetWidth;
+          p.classList.add("is-active");
+        } else {
+          p.classList.remove("is-active");
+          p.hidden = true;
+        }
+      });
+    });
+  });
+}
+
+function getResumePublicToggle() {
+  return document.getElementById("resume-public-toggle");
 }
 
 async function persistResumeVisibilityPreference(nextValue) {
   if (!supabase || !userId || role !== "consultant") return false;
 
   const previousValue = Boolean(profileRow?.resume_public);
-  if (resumePublicToggle) {
-    resumePublicToggle.disabled = true;
-  }
+  const toggle = getResumePublicToggle();
+  if (toggle) toggle.disabled = true;
 
   try {
     const { error } = await supabase
@@ -1051,21 +1148,19 @@ async function persistResumeVisibilityPreference(nextValue) {
       : "resume is now hidden from businesses.";
     statusEl.className = "gr-status success";
 
-    if (previewToggle?.checked) {
+    if (isPreviewOpen()) {
       await renderBusinessPreview();
     }
     return true;
   } catch (err) {
-    if (resumePublicToggle) {
-      resumePublicToggle.checked = previousValue;
-    }
+    const t = getResumePublicToggle();
+    if (t) t.checked = previousValue;
     statusEl.textContent = err.message || "could not update resume visibility.";
     statusEl.className = "gr-status error";
     return false;
   } finally {
-    if (resumePublicToggle) {
-      resumePublicToggle.disabled = false;
-    }
+    const t = getResumePublicToggle();
+    if (t) t.disabled = false;
   }
 }
 
@@ -1137,23 +1232,49 @@ if (welcomeDismiss) {
    Avatar preview
    ================================================================ */
 
-avatarInput.addEventListener("change", () => {
+avatarInput.addEventListener("change", async () => {
   const file = avatarInput.files?.[0];
-  if (!file) {
-    pendingAvatarFile = null;
-    return;
-  }
-  if (file.size > 2 * 1024 * 1024) {
-    statusEl.textContent = "image must be 2 mb or smaller.";
-    statusEl.className = "gr-status error";
+  if (!file) return;
+
+  // Pre-validate so a too-big or wrong-type file never flashes into the preview.
+  const validationError = validateAvatarFile(file);
+  if (validationError) {
     avatarInput.value = "";
-    pendingAvatarFile = null;
+    setAvatarStatus(validationError, "error");
     return;
   }
-  pendingAvatarFile = file;
-  statusEl.textContent = "";
-  statusEl.className = "gr-status";
+
+  // Optimistic preview using the local blob URL, then auto-upload.
   setAvatarPreview(URL.createObjectURL(file));
+  setAvatarStatus("uploading photo…");
+
+  try {
+    await uploadAvatarFile(file);
+    setAvatarStatus("profile photo updated.", "success");
+    if (role === "consultant" && isPreviewOpen()) {
+      await renderBusinessPreview();
+    }
+  } catch (err) {
+    avatarInput.value = "";
+    setAvatarPreview(currentAvatarPath
+      ? supabase?.storage.from("avatars").getPublicUrl(currentAvatarPath).data?.publicUrl
+      : null);
+    setAvatarStatus(err.message || "could not upload photo.", "error");
+  }
+});
+
+document.addEventListener("click", (event) => {
+  const changeBtn = event.target.closest("#pf-avatar-change-btn");
+  if (changeBtn instanceof HTMLElement) {
+    event.preventDefault();
+    avatarInput?.click();
+    return;
+  }
+  const removeBtn = event.target.closest("#pf-avatar-remove-btn");
+  if (removeBtn instanceof HTMLElement) {
+    event.preventDefault();
+    removeAvatarFile();
+  }
 });
 
 /* ================================================================
@@ -1235,6 +1356,7 @@ async function loadProfile() {
   } else {
     setAvatarPreview(null);
   }
+  renderAvatarState();
 
   if (role === "business_owner") {
     const bp = row.business_profiles;
@@ -1275,6 +1397,17 @@ async function loadProfile() {
     if (minorField) minorField.value = cp?.minor || "";
     if (schoolField) schoolField.value = cp?.school || "";
 
+    // City — display label + hidden lat/lng. The autocomplete component
+    // populates these together; we only need to pre-fill them on load.
+    const citySearch = document.getElementById("field-city-search");
+    const cityHidden = document.getElementById("field-city");
+    const cityLat = document.getElementById("field-city-lat");
+    const cityLng = document.getElementById("field-city-lng");
+    if (citySearch) citySearch.value = cp?.city || "";
+    if (cityHidden) cityHidden.value = cp?.city || "";
+    if (cityLat) cityLat.value = cp?.city_lat != null ? String(cp.city_lat) : "";
+    if (cityLng) cityLng.value = cp?.city_lng != null ? String(cp.city_lng) : "";
+
     // Resume public toggle
     if (resumePublicToggle) resumePublicToggle.checked = row.resume_public || false;
 
@@ -1284,9 +1417,6 @@ async function loadProfile() {
 
     // Preview bar
     if (previewBar) previewBar.classList.remove("hidden");
-
-    const consultantStats = await loadConsultantProgressStats(row);
-    renderConsultantLevelSidebar(row, consultantStats);
   }
 
   gateEl.textContent = "";
@@ -1337,7 +1467,7 @@ form.addEventListener("submit", async (e) => {
       profileUpdate.linkedin_url = linkedinUrl || null;
     }
     if (role === "consultant") {
-      profileUpdate.resume_public = resumePublicToggle?.checked || false;
+      profileUpdate.resume_public = getResumePublicToggle()?.checked || false;
     }
     if (avatarPath !== currentAvatarPath) {
       profileUpdate.avatar_path = avatarPath;
@@ -1473,11 +1603,24 @@ form.addEventListener("submit", async (e) => {
       const majorVal = document.getElementById("field-major")?.value.trim() || null;
       const minorVal = document.getElementById("field-minor")?.value.trim() || null;
       const schoolVal = document.getElementById("field-school")?.value.trim() || null;
+      const cityVal = document.getElementById("field-city")?.value.trim() || null;
+      const cityLatStr = document.getElementById("field-city-lat")?.value.trim() || "";
+      const cityLngStr = document.getElementById("field-city-lng")?.value.trim() || "";
+      // Only persist coords when both are present and parse as numbers —
+      // a half-filled record would make the local-bucket math nonsense.
+      const cityLatNum = cityLatStr ? Number(cityLatStr) : null;
+      const cityLngNum = cityLngStr ? Number(cityLngStr) : null;
+      const cityCoords =
+        cityVal && Number.isFinite(cityLatNum) && Number.isFinite(cityLngNum)
+          ? { city_lat: cityLatNum, city_lng: cityLngNum }
+          : { city_lat: null, city_lng: null };
       try {
         await supabase.from("consultant_profiles").update({
           major: majorVal,
           minor: minorVal,
           school: schoolVal,
+          city: cityVal,
+          ...cityCoords,
         }).eq("user_id", userId);
       } catch (_) { /* columns may not exist yet */ }
     }
@@ -1519,7 +1662,7 @@ form.addEventListener("submit", async (e) => {
       linkedin_url: role === "consultant" ? linkedinUrl || null : profileRow?.linkedin_url || null,
       avatar_path: currentAvatarPath,
       resume_path: currentResumePath,
-      resume_public: resumePublicToggle?.checked || false,
+      resume_public: getResumePublicToggle()?.checked || false,
     };
     if (role === "business_owner") {
       const igOn = document.getElementById("biz-social-instagram-on")?.checked;
@@ -1549,9 +1692,7 @@ form.addEventListener("submit", async (e) => {
     }
     profileRow = freshRow;
     if (role === "consultant") {
-      const consultantStats = await loadConsultantProgressStats(freshRow);
-      renderConsultantLevelSidebar(freshRow, consultantStats);
-      if (previewToggle?.checked) {
+      if (isPreviewOpen()) {
         await renderBusinessPreview();
       }
     } else {
@@ -1574,24 +1715,61 @@ form.addEventListener("submit", async (e) => {
    Preview toggle
    ================================================================ */
 
-if (previewToggle) {
-  previewToggle.addEventListener("change", async () => {
-    if (previewToggle.checked) {
-      await renderBusinessPreview();
-      businessView.classList.remove("hidden");
-      form.classList.add("hidden");
-    } else {
-      businessView.classList.add("hidden");
-      form.classList.remove("hidden");
-    }
+/* Preview-as-business modal — fullscreen overlay with the same chrome
+   as the listing-flow consultant viewer (`.ld-cv`). The form stays
+   visible underneath; closing the modal leaves the user where they
+   were on the page. Constant outer dimensions whether the consultant
+   has content or not — the inner card sizes from a fixed max-width. */
+let previewModalReturnFocusEl = null;
+
+async function openPreviewModal() {
+  if (!previewModal) return;
+  previewModalReturnFocusEl = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  await renderBusinessPreview();
+  previewModal.classList.remove("hidden");
+  previewModal.setAttribute("aria-hidden", "false");
+  // Move focus into the modal so screen readers + keyboard users land
+  // on the close button rather than re-reading the trigger label.
+  requestAnimationFrame(() => {
+    const closeBtn = previewModal.querySelector("[data-pf-preview-close]");
+    if (closeBtn instanceof HTMLElement) closeBtn.focus();
   });
 }
 
-if (resumePublicToggle) {
-  resumePublicToggle.addEventListener("change", async () => {
-    await persistResumeVisibilityPreference(resumePublicToggle.checked);
+function closePreviewModal() {
+  if (!previewModal) return;
+  previewModal.classList.add("hidden");
+  previewModal.setAttribute("aria-hidden", "true");
+  if (previewModalReturnFocusEl && typeof previewModalReturnFocusEl.focus === "function") {
+    previewModalReturnFocusEl.focus();
+  }
+  previewModalReturnFocusEl = null;
+}
+
+if (previewTrigger) {
+  previewTrigger.addEventListener("click", () => { openPreviewModal(); });
+}
+
+if (previewModal) {
+  previewModal.addEventListener("click", (event) => {
+    if (event.target instanceof HTMLElement && event.target.closest("[data-pf-preview-close]")) {
+      closePreviewModal();
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && isPreviewOpen()) closePreviewModal();
   });
 }
+
+/* Delegated change handler — the resume public toggle is JS-rendered
+   inside the populated resume row, so a static listener wouldn't survive
+   re-renders. */
+document.addEventListener("change", async (event) => {
+  const target = event.target;
+  if (target instanceof HTMLInputElement && target.id === "resume-public-toggle") {
+    await persistResumeVisibilityPreference(target.checked);
+  }
+});
 
 if (resumeInput) {
   resumeInput.addEventListener("change", async () => {
@@ -1606,7 +1784,7 @@ if (resumeInput) {
       await renderResumeCurrentLabel("current resume on file —");
       statusEl.textContent = "resume replaced.";
       statusEl.className = "gr-status success";
-      if (role === "consultant" && previewToggle?.checked) {
+      if (role === "consultant" && isPreviewOpen()) {
         await renderBusinessPreview();
       }
     } catch (err) {
@@ -1642,6 +1820,28 @@ document.addEventListener("click", async (event) => {
       } else {
         openResumeViewer(resumeUrl, fileName);
       }
+    }
+    return;
+  }
+
+  const portfolioAction = event.target.closest("[data-portfolio-action]");
+  if (portfolioAction instanceof HTMLElement) {
+    event.preventDefault();
+    const action = portfolioAction.getAttribute("data-portfolio-action") || "preview";
+    const itemId = portfolioAction.getAttribute("data-id");
+    const fileName = portfolioAction.getAttribute("data-file-name") || "file";
+    const item = portfolioItems.find((i) => i.id === itemId);
+    if (!item) return;
+    const url = await getPortfolioSignedUrl(item.file_path);
+    if (!url) {
+      statusEl.textContent = "could not load this work sample.";
+      statusEl.className = "gr-status error";
+      return;
+    }
+    if (action === "download") {
+      triggerResumeDownload(url, fileName);
+    } else {
+      openResumeViewer(url, fileName);
     }
     return;
   }

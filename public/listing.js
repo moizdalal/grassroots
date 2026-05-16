@@ -1,15 +1,20 @@
 import { getSupabaseClient } from "/supabase-loader.js";
 import { formatBudgetRange, parseBudgetRange } from "/sim-budget.js";
 import { renderRatingMarkup, hydrateRatings } from "/rating.js";
-import { payAndAcceptBid } from "/payment-modal.js";
+import { payAndAcceptBid, payAndAcceptProposals } from "/payment-modal.js";
 import { getInitials } from "/initials.js";
+import {
+  trackListingView,
+  loadListingAnalytics,
+  renderAnalyticsPanel,
+} from "/listing-analytics.js";
+import { showToast, showSuccess, showError } from "/toast.js";
 
 const gate = document.getElementById("listing-gate");
 const detail = document.getElementById("listing-detail");
 const layout = document.querySelector(".ld-layout");
 const ownerSidebar = document.getElementById("ld-sidebar");
 const offerRail = document.getElementById("ld-offer-rail");
-const statusPill = document.getElementById("ld-status-pill");
 const ownerActionsPanel = document.getElementById("ld-owner-actions");
 const ownerActionsCopy = document.getElementById("ld-owner-actions-copy");
 const pauseListingBtn = document.getElementById("ld-pause-listing-btn");
@@ -88,18 +93,26 @@ function getListingId() {
    ================================================================ */
 
 async function loadListing(client, id) {
+  // Contract fields are added to every attempt so the fallback that wins
+  // still includes them. Attempt order narrows from "best-case schema" to
+  // "minimum guaranteed schema" — earlier attempts are allowed to fail if
+  // the db hasn't run an optional column migration yet.
+  const contractFields = "contract_type, proposal_budget, retainer_terms, retainer_cadence, retainer_period_count, retainer_fee_cents";
   const listingSelectAttempts = [
     `id, owner_id, title, category, problem_summary, details, qualifications_required,
      status, status_reason, status_reason_other, attachments, turnaround_days, created_at,
      business_display_name, business_summary, listing_website_url, listing_social_links,
+     ${contractFields},
      profiles!listings_owner_id_fkey ( id, full_name, linkedin_url, avatar_path )`,
     `id, owner_id, title, category, problem_summary, details, qualifications_required,
      status, attachments, turnaround_days, created_at,
      business_display_name, business_summary, listing_website_url, listing_social_links,
+     ${contractFields},
      profiles!listings_owner_id_fkey ( id, full_name, linkedin_url, avatar_path )`,
     `id, owner_id, title, category, problem_summary, details, qualifications_required,
      status, turnaround_days, created_at,
      business_display_name, business_summary, listing_website_url, listing_social_links,
+     ${contractFields},
      profiles!listings_owner_id_fkey ( id, full_name, linkedin_url, avatar_path )`,
   ];
 
@@ -139,11 +152,18 @@ async function loadSessionRole(client, userId) {
   return data?.role ?? null;
 }
 
-async function loadMyBid(client, listingId) {
+async function loadMyBid(client, listingId, userId) {
+  // Without an explicit consultant filter this would lean on RLS to scope
+  // the row to the viewer — and any policy gap (or a consultant who's
+  // technically allowed to read another bid for legit reasons) would
+  // leak somebody else's `accepted` bid into this consultant's offer
+  // panel, lighting up the "accepted" banner for an offer they never made.
+  if (!userId) return { bid: null, available: true };
   const { data, error } = await client
     .from("bids")
-    .select("id, amount_cents, message, status, counter_offer_cents, counter_offer_message, accepted_at, proposal_due_at, proposal_path")
+    .select("id, amount_cents, proposal_fee_cents, service_fee_cents, message, status, counter_offer_cents, counter_offer_message, accepted_at, proposal_due_at, proposal_path")
     .eq("listing_id", listingId)
+    .eq("consultant_id", userId)
     .maybeSingle();
 
   if (error && isMissing(error)) return { bid: null, available: false };
@@ -177,7 +197,7 @@ async function loadOwnerBids(client, listingId) {
   const { data, error } = await client
     .from("bids")
     .select(
-      `id, listing_id, consultant_id, amount_cents, message, status,
+      `id, listing_id, consultant_id, amount_cents, proposal_fee_cents, service_fee_cents, move_forward_status, message, status,
        counter_offer_cents, counter_offer_message, accepted_at, proposal_due_at, proposal_path, created_at,
        profiles!bids_consultant_id_fkey ( id, full_name, linkedin_url, avatar_path )`
     )
@@ -195,7 +215,7 @@ async function loadConsultantEducationMap(client, consultantIds) {
 
   const { data, error } = await client
     .from("consultant_profiles")
-    .select("user_id, major, minor, school")
+    .select("user_id, major, minor, school, educations")
     .in("user_id", ids);
 
   if (error && isMissing(error)) return new Map();
@@ -292,19 +312,6 @@ function getListingStatusLabel(status) {
   return "open";
 }
 
-function getListingStatusTone(status) {
-  const normalized = getListingStatusLabel(status);
-  if (normalized === "paused") return "paused";
-  if (normalized === "open") return "active";
-  return "closed";
-}
-
-function getListingStatusDisplay(status) {
-  const normalized = getListingStatusLabel(status);
-  if (normalized === "open") return "active";
-  return normalized;
-}
-
 function getListingReasonLabel(reason) {
   return STATUS_REASON_LABELS[String(reason || "").trim()] || "";
 }
@@ -377,17 +384,6 @@ function renderListingAttachments(listing) {
     .join("");
 
   attachmentsWrap.hidden = false;
-}
-
-function renderListingStatusPill(listing) {
-  if (!statusPill) return;
-  const tone = getListingStatusTone(listing?.status);
-  // Map listing tones (active/paused/closed) → universal gr-pill kinds.
-  const kindMap = { active: "active", paused: "paused", closed: "closed" };
-  statusPill.dataset.tone = tone;
-  statusPill.textContent = getListingStatusDisplay(listing?.status);
-  statusPill.className = `ld-status-pill gr-pill gr-pill--${kindMap[tone] || "muted"}`;
-  statusPill.hidden = false;
 }
 
 function populateListing(listing) {
@@ -475,28 +471,6 @@ function populateListing(listing) {
     budgetEl.hidden = false;
   }
 
-  /* --- Type bar (above title) — parsed from details "contract type:" line --- */
-  const contractMatch = /contract type:\s*([^\n]+)/i.exec(detailsStr);
-  const contractType = contractMatch ? contractMatch[1].trim().toLowerCase() : "";
-  const typeBarEl = document.getElementById("ld-type-bar");
-  if (typeBarEl) {
-    if (contractType && contractType !== "standard") {
-      const label =
-        contractType.includes("retainer")
-          ? "retainer · ongoing engagement"
-          : contractType.includes("proposal")
-          ? "phased · proposal → solution"
-          : contractType;
-      typeBarEl.textContent = label;
-      typeBarEl.dataset.kind = "advanced";
-      typeBarEl.hidden = false;
-    } else if (contractType === "standard") {
-      typeBarEl.textContent = "standard · one-time engagement";
-      typeBarEl.dataset.kind = "standard";
-      typeBarEl.hidden = false;
-    }
-  }
-
   /* --- Tags (categories) --- */
   const tagsEl = document.getElementById("ld-header-tags");
   let tagsHtml = "";
@@ -559,10 +533,45 @@ function populateAvatarIfAvailable(client, profile) {
 }
 
 function formatConsultantEducationLine(education) {
-  const major = education?.major?.trim?.() || "";
-  const school = education?.school?.trim?.() || "";
-  if (major && school) return `${major} @ ${school}`;
-  return major || school || "";
+  // Prefer the structured educations array (chunk 3+); fall back to the
+  // legacy flat columns for rows that haven't been migrated to the new
+  // schema yet.
+  const primary = Array.isArray(education?.educations) && education.educations[0]
+    ? education.educations[0]
+    : education || {};
+  const degree = (primary.degree || "").trim();
+  const major = (primary.major || "").trim();
+  const school = (primary.school || "").trim();
+  // Format priority: "Bachelor's in marketing @ University of Florida".
+  const head = degree && major
+    ? `${degree} in ${major}`
+    : major || degree || "";
+  if (head && school) return `${head} @ ${school}`;
+  return head || school || "";
+}
+
+function renderEducationEntriesList(education) {
+  // Build a structured display of every entry in the educations array. If
+  // the array is empty/missing, return a single-line fallback from legacy
+  // flat fields.
+  const entries = Array.isArray(education?.educations) && education.educations.length
+    ? education.educations
+    : (education?.major || education?.school
+      ? [{ degree: null, major: education.major, minor: education.minor, school: education.school }]
+      : []);
+  if (!entries.length) return "";
+  return entries
+    .map((e) => {
+      const parts = [];
+      if (e.degree) parts.push(escapeHtml(e.degree));
+      if (e.major) parts.push(escapeHtml(`in ${e.major}`));
+      if (e.minor) parts.push(escapeHtml(`(minor: ${e.minor})`));
+      const head = parts.join(" ");
+      const school = e.school ? escapeHtml(e.school) : "";
+      if (head && school) return `<p class="pf-bv__detail">${head} · ${school}</p>`;
+      return `<p class="pf-bv__detail">${head || school}</p>`;
+    })
+    .join("");
 }
 
 function resetOwnerStatusForm() {
@@ -633,9 +642,10 @@ function renderOwnerActionSummary(listing) {
 }
 
 function showOwnerActionFeedback(message, kind = "success") {
-  if (!ownerActionStatus) return;
-  ownerActionStatus.textContent = message;
-  ownerActionStatus.className = kind === "error" ? "gr-status error" : "gr-status success";
+  // Owner actions (pause / resume / cancel listing) now route through
+  // the app-wide toast stack instead of an inline `gr-status` line.
+  if (kind === "error") showError(message);
+  else showSuccess(message);
 }
 
 async function persistListingStatus(client, listing, nextStatus, reason = null, otherReason = null) {
@@ -679,7 +689,6 @@ function setupOwnerListingActions(client, listing) {
         try {
           await persistListingStatus(client, listing, "open", null, null);
           renderOwnerActionSummary(listing);
-          renderListingStatusPill(listing);
           resetOwnerStatusForm();
           showOwnerActionFeedback("listing resumed. it is visible in marketplace browsing again.");
         } catch (error) {
@@ -735,7 +744,6 @@ function setupOwnerListingActions(client, listing) {
       try {
         await persistListingStatus(client, listing, action, reason, otherReason || null);
         renderOwnerActionSummary(listing);
-        renderListingStatusPill(listing);
         resetOwnerStatusForm();
         showOwnerActionFeedback(
           action === "paused"
@@ -783,6 +791,64 @@ function showConsultantView(client, session, listing, existingBid) {
   panel.hidden = false;
 
   const amountInput = document.getElementById("ld-bid-amount");
+  const proposalFeeInput = document.getElementById("ld-bid-proposal-fee");
+  const serviceFeeInput = document.getElementById("ld-bid-service-fee");
+
+  // The "?" tooltip bubble is portaled to document.body and rendered
+  // `position: fixed`. Two reasons it can't live next to the button:
+  //   1. `.ld-detail` has a fade-in animation that ends with
+  //      `transform: translateY(0)` and `animation-fill-mode: both`,
+  //      which makes it the containing block for any fixed descendant.
+  //   2. `.ld-offer-panel` has `overflow-y: auto` and would clip
+  //      anything that tried to spill past its border.
+  // With the bubble appended to <body>, it sits in the viewport
+  // coordinate space and can spill past the section edges freely.
+  // Click does nothing — the button is hover/focus-only.
+  panel.querySelectorAll(".ld-offer-info").forEach((info) => {
+    const tipId = info.getAttribute("aria-describedby");
+    const bubble = tipId
+      ? document.getElementById(tipId)
+      : info.querySelector(".ld-offer-info__bubble");
+    if (!bubble) return;
+    if (bubble.parentElement !== document.body) {
+      document.body.appendChild(bubble);
+    }
+    const positionBubble = () => {
+      const r = info.getBoundingClientRect();
+      bubble.style.left = "0px";
+      bubble.style.top = "0px";
+      const bw = bubble.offsetWidth;
+      const bh = bubble.offsetHeight;
+      const margin = 8;
+      let left = r.left + r.width / 2 - bw / 2;
+      left = Math.max(margin, Math.min(window.innerWidth - bw - margin, left));
+      const top = r.top - bh - 8;
+      bubble.style.left = `${left}px`;
+      bubble.style.top = `${top}px`;
+      bubble.style.setProperty(
+        "--bubble-tail-x",
+        `${r.left + r.width / 2 - left}px`
+      );
+    };
+    const show = () => {
+      positionBubble();
+      bubble.classList.add("is-visible");
+    };
+    const hide = () => {
+      bubble.classList.remove("is-visible");
+    };
+    info.addEventListener("mouseenter", show);
+    info.addEventListener("mouseleave", hide);
+    info.addEventListener("focus", show);
+    info.addEventListener("blur", hide);
+    info.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+  });
+  const standardRow = document.getElementById("ld-offer-standard-row");
+  const phasedRow = document.getElementById("ld-offer-phased-row");
+  const proposalBudgetHint = document.getElementById("ld-bid-proposal-budget-hint");
   const msgInput = document.getElementById("ld-bid-message");
   const msgToggleBtn = document.getElementById("ld-offer-msg-toggle");
   const msgWrap = document.getElementById("ld-offer-msg-wrap");
@@ -796,6 +862,31 @@ function showConsultantView(client, session, listing, existingBid) {
   const myId = session.user.id;
   const listingStatus = getListingStatusLabel(listing.status);
   const listingAcceptingOffers = listingStatus === "open";
+  const isPhased = listing.contract_type === "phased";
+  const isRetainer = listing.contract_type === "retainer";
+
+  /* --- Toggle the right form shape based on the listing's contract type. --- */
+  if (isPhased) {
+    standardRow.hidden = true;
+    phasedRow.hidden = false;
+    if (listing.proposal_budget != null && proposalBudgetHint) {
+      proposalBudgetHint.textContent = `business set a budget of ${formatUsd(Number(listing.proposal_budget) * 100)}`;
+    }
+  } else {
+    standardRow.hidden = false;
+    phasedRow.hidden = true;
+  }
+
+  // Retainer: reuse the standard single-input row, but reframe the label
+  // and prefill the per-period fee if the business locked it in.
+  if (isRetainer) {
+    const label = standardRow?.querySelector(".ld-offer-amount-label");
+    if (label) label.textContent = "fee per period";
+    const fixed = listing.retainer_terms === "fixed";
+    if (fixed && listing.retainer_fee_cents != null && amountInput) {
+      amountInput.value = (Number(listing.retainer_fee_cents) / 100).toFixed(2);
+    }
+  }
 
   /* --- Populate existing bid (read-only — offers cannot be edited once submitted) --- */
   if (existingBid) {
@@ -805,10 +896,83 @@ function showConsultantView(client, session, listing, existingBid) {
     const messageHtml = existingBid.message
       ? `<span class="ld-bid-existing__message">${escapeHtml(existingBid.message)}</span>`
       : "";
-    el.innerHTML = `<span class="ld-bid-existing__amount">offer submitted: <strong>${formatUsd(existingBid.amount_cents)}</strong></span>${messageHtml}`;
+    const amountHtml = isPhased && existingBid.proposal_fee_cents != null
+      ? `<span class="ld-bid-existing__amount">offer submitted:
+           <strong>${formatUsd(existingBid.proposal_fee_cents)}</strong> proposal +
+           <strong>${formatUsd(existingBid.service_fee_cents || 0)}</strong> full job</span>`
+      : `<span class="ld-bid-existing__amount">offer submitted: <strong>${formatUsd(existingBid.amount_cents)}</strong></span>`;
+    el.innerHTML = `${amountHtml}${messageHtml}`;
     el.hidden = false;
     formWrap.hidden = true;
   }
+
+  /* --- Hard-block bid submission until Stripe payouts are fully active.
+     The button stays clickable but renders as `aria-disabled` — a click
+     in that state fires a toast pointing the consultant at /payouts.html
+     instead of submitting. Once Stripe says active we drop the gate.
+     If the local `stripe_account_status` column says non-active we
+     proactively call `/api/stripe/account-status` to re-sync from
+     Stripe before locking the gate — handles the lag where the
+     account.updated webhook hasn't fired yet. */
+  let payoutsBlocked = true;
+  const setPayoutsBlocked = (blocked) => {
+    payoutsBlocked = blocked;
+    if (blocked) submitBtn.setAttribute("aria-disabled", "true");
+    else submitBtn.removeAttribute("aria-disabled");
+  };
+  setPayoutsBlocked(true);
+  (async () => {
+    const readProfileStatus = async () => {
+      const { data: prof, error } = await client
+        .from("profiles")
+        .select("stripe_account_status")
+        .eq("id", myId)
+        .maybeSingle();
+      if (error) throw error;
+      return prof?.stripe_account_status || null;
+    };
+    const refreshFromStripe = async () => {
+      // `/api/stripe/account-status` retrieves the latest from Stripe
+      // and writes `active`/`pending` back into the profiles column
+      // (see app.js). We don't get the status string in the response —
+      // it returns `onboarded` (true === all three Stripe flags green),
+      // which is the same predicate our column uses for "active".
+      try {
+        const { data: { session: s } } = await client.auth.getSession();
+        const headers = new Headers();
+        if (s?.access_token) headers.set("Authorization", `Bearer ${s.access_token}`);
+        const res = await fetch("/api/stripe/account-status", { headers });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data?.onboarded ? "active" : "pending";
+      } catch (_) {
+        return null;
+      }
+    };
+    try {
+      let status = await readProfileStatus();
+      if (status !== "active") {
+        const refreshed = await refreshFromStripe();
+        if (refreshed) status = refreshed;
+      }
+      if (status === "active") {
+        setPayoutsBlocked(false);
+      } else {
+        const banners = document.getElementById("ld-bid-banners");
+        const payoutsBanner = document.getElementById("ld-bid-payouts-banner");
+        if (banners && payoutsBanner) {
+          banners.hidden = false;
+          payoutsBanner.hidden = false;
+          const copy = payoutsBanner.querySelector("p");
+          if (copy) copy.textContent = "you need to finish setting up payouts before you can submit an offer. grassroots can't pay you until your stripe account is verified.";
+        }
+      }
+    } catch (_) {
+      // If we can't read the column (older schema), keep the gate up —
+      // better the user sees the toast than ships a bid that can't be
+      // paid out.
+    }
+  })();
 
   /* --- Message toggle --- */
   msgToggleBtn.addEventListener("click", () => {
@@ -840,27 +1004,6 @@ function showConsultantView(client, session, listing, existingBid) {
     formWrap.hidden = true;
   }
 
-  /* --- Counter-offer banner --- */
-  if (existingBid?.status === "countered") {
-    const bannersEl = document.getElementById("ld-bid-banners");
-    bannersEl.hidden = false;
-    document.getElementById("ld-bid-countered-banner").hidden = false;
-    document.getElementById("ld-counter-display").innerHTML =
-      `the owner countered at <strong>${formatUsd(existingBid.counter_offer_cents)}</strong>` +
-      (existingBid.counter_offer_message ? ` — "${escapeHtml(existingBid.counter_offer_message)}"` : "");
-
-    document.getElementById("ld-accept-counter-btn").addEventListener("click", async () => {
-      const { error } = await client.from("bids").update({
-        amount_cents: existingBid.counter_offer_cents,
-        status: "pending",
-        counter_offer_cents: null,
-        counter_offer_message: null,
-      }).eq("id", existingBid.id);
-      if (error) { statusEl.textContent = error.message; statusEl.className = "gr-status error"; return; }
-      window.location.reload();
-    });
-  }
-
   if (!listingAcceptingOffers) {
     formWrap.hidden = true;
     statusEl.textContent = existingBid
@@ -871,33 +1014,78 @@ function showConsultantView(client, session, listing, existingBid) {
 
   /* --- Submit offer --- */
   submitBtn.addEventListener("click", async () => {
-    if (!listingAcceptingOffers) {
-      statusEl.textContent = `this listing is ${listingStatus} and cannot accept offer changes right now.`;
-      statusEl.className = "gr-status error";
+    if (payoutsBlocked) {
+      showToast(
+        "set up payouts before you can submit an offer. grassroots can't pay you until your stripe account is verified.",
+        {
+          kind: "error",
+          duration: 6000,
+          action: {
+            label: "set up payouts",
+            onClick: () => {
+              window.location.href = "/payouts.html";
+            },
+          },
+        }
+      );
       return;
     }
-    statusEl.textContent = ""; statusEl.className = "gr-status";
-    const cents = Math.round(parseFloat(amountInput.value) * 100);
-    if (!Number.isFinite(cents) || cents < 1) {
-      statusEl.textContent = "enter a valid amount."; statusEl.className = "gr-status error"; return;
+    if (!listingAcceptingOffers) {
+      showError(`this listing is ${listingStatus} and cannot accept offer changes right now.`);
+      return;
     }
-    submitBtn.disabled = true;
-    submitBtn.classList.add("is-loading");
+
     const payload = {
       listing_id: listingId,
       consultant_id: myId,
-      amount_cents: cents,
       message: msgInput.value.trim() || null,
     };
+
+    if (isPhased) {
+      // Parse with a fallback to 0 so a blank or non-numeric proposal-
+      // fee input is treated as "skipped" rather than failing the bid.
+      const proposalRaw = parseFloat(proposalFeeInput.value);
+      const proposalCents = Number.isFinite(proposalRaw) ? Math.round(proposalRaw * 100) : 0;
+      const serviceCents = Math.round(parseFloat(serviceFeeInput.value) * 100);
+      if (proposalCents < 0) {
+        showError("enter a valid proposal fee.");
+        return;
+      }
+      if (!Number.isFinite(serviceCents) || serviceCents < 1) {
+        showError("enter a valid offer amount.");
+        return;
+      }
+      // proposal_budget on the listing is a soft ceiling — enforce only if set.
+      if (listing.proposal_budget != null && proposalCents > Number(listing.proposal_budget) * 100) {
+        showError(`proposal fee can't exceed the business's budget of ${formatUsd(Number(listing.proposal_budget) * 100)}.`);
+        return;
+      }
+      payload.proposal_fee_cents = proposalCents;
+      payload.service_fee_cents = serviceCents;
+      // Mirror the headline cost into amount_cents (NOT NULL) so legacy
+      // surfaces (dashboards, search) still show a sensible number. The
+      // phased payment flow reads proposal_fee_cents + service_fee_cents
+      // explicitly.
+      payload.amount_cents = serviceCents;
+    } else {
+      const cents = Math.round(parseFloat(amountInput.value) * 100);
+      if (!Number.isFinite(cents) || cents < 1) {
+        showError("enter a valid amount.");
+        return;
+      }
+      payload.amount_cents = cents;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.classList.add("is-loading");
     const { error } = await client.from("bids").upsert(payload, { onConflict: "listing_id,consultant_id" });
     if (error) {
-      statusEl.textContent = error.message;
-      statusEl.className = "gr-status error";
+      showError(error.message);
       submitBtn.disabled = false;
       submitBtn.classList.remove("is-loading");
       return;
     }
-    statusEl.textContent = "offer submitted."; statusEl.className = "gr-status success";
+    showSuccess("offer submitted.");
     // Offers are immutable once submitted — reload so the form is replaced
     // by the read-only summary on next render. Keep the spinner up until
     // navigation kicks in so the click can't appear "free" mid-network.
@@ -913,41 +1101,93 @@ async function setupChatDrawer(client, listing, myId, ownerId) {
   const questionWrap = document.getElementById("ld-question-wrap");
   questionWrap.hidden = false;
 
-  const drawer = document.getElementById("ld-chat-drawer");
-  const backdrop = document.getElementById("ld-chat-backdrop");
-  const closeBtn = document.getElementById("ld-chat-close");
-  const thread = document.getElementById("ld-chat-thread");
-  const input = document.getElementById("ld-chat-input");
-  const sendBtn = document.getElementById("ld-chat-send");
-  const chatCharCount = document.getElementById("ld-chat-char-count");
-  const contextBanner = document.getElementById("ld-chat-context");
-  const contextTitle = document.getElementById("ld-chat-context-title");
-  const inboxLink = document.getElementById("ld-chat-inbox-link");
-  if (inboxLink && listing?.id && ownerId && myId && ownerId !== myId) {
-    inboxLink.href = `/dashboard.html#inbox?thread=${encodeURIComponent(listing.id)}:${encodeURIComponent(ownerId)}`;
-  }
-
-  let messages = [];
+  // Drawer markup lives in a <template> — we only clone it into the DOM the
+  // first time the consultant clicks "have a question?". Until then, none of
+  // the chat panel / backdrop / inputs exist in the document at all.
+  let drawer = null;
+  let backdrop = null;
+  let closeBtn = null;
+  let thread = null;
+  let input = null;
+  let sendBtn = null;
+  let chatCharCount = null;
+  let contextBanner = null;
+  let contextTitle = null;
+  let inboxLink = null;
   let drawerLoaded = false;
+  let messages = [];
 
+  // Drive open/close purely off aria-hidden so the CSS transitions on
+  // .ld-chat-drawer__panel (transform) and .ld-chat-drawer__backdrop
+  // (opacity) actually play. The drawer is appended in its closed state
+  // (aria-hidden="true"), so we wait two animation frames before flipping
+  // it open — that lets the browser register the initial off-screen state
+  // before transitioning to the on-screen one.
   function openDrawer() {
-    drawer.hidden = false;
-    drawer.setAttribute("aria-hidden", "false");
+    if (!drawer) return;
     document.body.style.overflow = "hidden";
-    input.focus();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        drawer.setAttribute("aria-hidden", "false");
+        input?.focus();
+      });
+    });
   }
 
   function closeDrawer() {
-    drawer.hidden = true;
+    if (!drawer) return;
     drawer.setAttribute("aria-hidden", "true");
     document.body.style.overflow = "";
   }
 
+  // Lazily clone the drawer template into the body and wire its listeners.
+  // Called the first time the question button is clicked.
+  function mountDrawer() {
+    if (drawerLoaded) return;
+    const tpl = document.getElementById("ld-chat-drawer-template");
+    if (!tpl) return;
+    const fragment = tpl.content.cloneNode(true);
+    document.body.appendChild(fragment);
+
+    drawer = document.getElementById("ld-chat-drawer");
+    backdrop = document.getElementById("ld-chat-backdrop");
+    closeBtn = document.getElementById("ld-chat-close");
+    thread = document.getElementById("ld-chat-thread");
+    input = document.getElementById("ld-chat-input");
+    sendBtn = document.getElementById("ld-chat-send");
+    chatCharCount = document.getElementById("ld-chat-char-count");
+    contextBanner = document.getElementById("ld-chat-context");
+    contextTitle = document.getElementById("ld-chat-context-title");
+    inboxLink = document.getElementById("ld-chat-inbox-link");
+
+    if (inboxLink && listing?.id && ownerId && myId && ownerId !== myId) {
+      inboxLink.href = `/dashboard.html#inbox?thread=${encodeURIComponent(listing.id)}:${encodeURIComponent(ownerId)}`;
+    }
+
+    closeBtn.addEventListener("click", closeDrawer);
+    backdrop.addEventListener("click", closeDrawer);
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && drawer.getAttribute("aria-hidden") === "false") closeDrawer();
+    });
+
+    input.addEventListener("input", () => {
+      if (!contextBanner.hidden) {
+        const remaining = 200 - input.value.length;
+        chatCharCount.textContent = remaining;
+        chatCharCount.classList.toggle("ld-chat-char-count--low", remaining < 40);
+      }
+    });
+
+    sendBtn.addEventListener("click", handleSend);
+    drawerLoaded = true;
+  }
+
   document.getElementById("ld-question-btn").addEventListener("click", async () => {
-    if (!drawerLoaded) {
+    mountDrawer();
+    if (!messages.length && !drawer.dataset.threadLoaded) {
       messages = await loadMessages(client, listing.id, ownerId);
       renderChatThread(thread, messages, myId);
-      drawerLoaded = true;
+      drawer.dataset.threadLoaded = "1";
 
       /* Show locked context header only if this will be the first message */
       if (!messages.length) {
@@ -963,19 +1203,7 @@ async function setupChatDrawer(client, listing, myId, ownerId) {
     openDrawer();
   });
 
-  closeBtn.addEventListener("click", closeDrawer);
-  backdrop.addEventListener("click", closeDrawer);
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !drawer.hidden) closeDrawer(); });
-
-  input.addEventListener("input", () => {
-    if (!contextBanner.hidden) {
-      const remaining = 200 - input.value.length;
-      chatCharCount.textContent = remaining;
-      chatCharCount.classList.toggle("ld-chat-char-count--low", remaining < 40);
-    }
-  });
-
-  sendBtn.addEventListener("click", async () => {
+  async function handleSend() {
     const body = input.value.trim();
     if (!body) return;
 
@@ -1007,7 +1235,7 @@ async function setupChatDrawer(client, listing, myId, ownerId) {
       input.maxLength = 2000;
       chatCharCount.hidden = true;
     }
-  });
+  }
 }
 
 /* Render the full thread inside the chat drawer */
@@ -1131,8 +1359,17 @@ function selectConsultantViewerTab(which) {
   });
   document.querySelectorAll(".ld-cv__panel").forEach((panel) => {
     const active = panel.dataset.cvPanel === which;
-    panel.classList.toggle("is-active", active);
-    panel.hidden = !active;
+    if (active) {
+      // Show first, force reflow so the closed-state CSS commits, then
+      // add .is-active so the opacity/transform transition actually runs.
+      panel.hidden = false;
+      panel.classList.remove("is-active");
+      void panel.offsetWidth;
+      panel.classList.add("is-active");
+    } else {
+      panel.classList.remove("is-active");
+      panel.hidden = true;
+    }
   });
   if (which === "resume") {
     const bid = consultantViewerState.bids[consultantViewerState.index];
@@ -1285,14 +1522,10 @@ function renderConsultantViewerContent({ profile, education, rating }) {
     `
     : "";
 
-  const major = edu.major || "";
-  const minor = edu.minor || "";
-  const school = edu.school || "";
-  const eduParts = [];
-  if (major) eduParts.push(major);
-  if (minor) eduParts.push("minor in " + minor);
-  if (school) eduParts.push(school);
-  const eduLine = eduParts.join(" · ");
+  // Header sub-line uses the first education entry (degree + major + school).
+  const headerLine = formatConsultantEducationLine(edu);
+  // Full education section lists every entry in the array (or falls back).
+  const eduEntriesHtml = renderEducationEntriesList(edu);
 
   contentEl.innerHTML = `
     <div class="pf-bv">
@@ -1300,14 +1533,14 @@ function renderConsultantViewerContent({ profile, education, rating }) {
         ${avatarHtml}
         <div>
           <h2 class="pf-bv__name">${escapeHtml(profile.full_name)}</h2>
-          ${eduLine ? `<p class="pf-bv__meta">${escapeHtml(eduLine)}</p>` : ""}
+          ${headerLine ? `<p class="pf-bv__meta">${escapeHtml(headerLine)}</p>` : ""}
         </div>
       </div>
       ${ratingBreakdown}
-      ${eduLine ? `
+      ${eduEntriesHtml ? `
         <div class="pf-bv__section">
           <p class="pf-bv__section-title">education</p>
-          <p class="pf-bv__detail">${escapeHtml(eduLine)}</p>
+          ${eduEntriesHtml}
         </div>
       ` : ""}
       ${profile.linkedin_url ? `
@@ -1316,7 +1549,7 @@ function renderConsultantViewerContent({ profile, education, rating }) {
           <p class="pf-bv__detail"><a href="${escapeAttr(profile.linkedin_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(profile.linkedin_url)}</a></p>
         </div>
       ` : ""}
-      ${(!profile.linkedin_url && !eduLine && !ratingBreakdown) ? `
+      ${(!profile.linkedin_url && !eduEntriesHtml && !ratingBreakdown) ? `
         <p class="pf-bv__empty">this consultant hasn't shared any public bio details yet.</p>
       ` : ""}
     </div>
@@ -1482,6 +1715,47 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
 
   list.innerHTML = "";
 
+  // Phased multi-accept state. The owner ticks one or more pending phased
+  // bids → a sticky cta at the bottom of the panel charges all selected
+  // proposal fees in a single PaymentIntent.
+  const isPhasedListing = listing.contract_type === "phased";
+  const selectedBidIds = new Set();
+  let proposalCtaEl = null;
+  let proposalCtaBtn = null;
+  let proposalCtaTotalEl = null;
+
+  function renderProposalCta() {
+    if (!proposalCtaEl) return;
+    const selected = bids.filter((b) => selectedBidIds.has(b.id));
+    const total = selected.reduce((sum, b) => sum + Number(b.proposal_fee_cents || 0), 0);
+    if (!selected.length) {
+      proposalCtaEl.classList.add("hidden");
+      return;
+    }
+    proposalCtaEl.classList.remove("hidden");
+    proposalCtaTotalEl.textContent = formatUsd(total);
+    proposalCtaBtn.textContent = selected.length === 1
+      ? "pay proposal fee"
+      : `pay ${selected.length} proposal fees`;
+  }
+
+  async function handlePayProposals() {
+    const selected = bids.filter((b) => selectedBidIds.has(b.id));
+    if (!selected.length) return;
+    proposalCtaBtn.disabled = true;
+    try {
+      const result = await payAndAcceptProposals({ client, bids: selected, listing });
+      if (result?.ok) {
+        showSuccess(`proposal fees in escrow for ${selected.length} consultant${selected.length === 1 ? "" : "s"}.`);
+        window.location.reload();
+      }
+    } catch (err) {
+      showError(err?.message || "could not start payment.");
+    } finally {
+      proposalCtaBtn.disabled = false;
+    }
+  }
+
   for (const b of bids) {
     const card = document.createElement("div");
     card.className = `ld-bid-card ld-bid-card--${b.status || "pending"}`;
@@ -1517,19 +1791,26 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
       ? `<p class="ld-bid-card__counter">your counter: <strong>${formatUsd(b.counter_offer_cents)}</strong>${b.counter_offer_message ? ` — "${escapeHtml(b.counter_offer_message)}"` : ""}</p>`
       : "";
 
+    const amountHtml = isPhasedListing && b.proposal_fee_cents != null
+      ? `<span class="ld-bid-card__amount ld-bid-card__amount--phased">
+           <span class="ld-bid-card__amount-line"><strong>${formatUsd(b.proposal_fee_cents)}</strong> <span class="ld-bid-card__amount-tag">proposal</span></span>
+           <span class="ld-bid-card__amount-line"><strong>${formatUsd(b.service_fee_cents || 0)}</strong> <span class="ld-bid-card__amount-tag">full job</span></span>
+         </span>`
+      : `<span class="ld-bid-card__amount">${formatUsd(b.amount_cents)}</span>`;
+
     card.innerHTML = `
+      ${statusPill ? `<div class="ld-bid-card__top">${statusPill}</div>` : ""}
       <div class="ld-bid-card__head">
         ${img}
         <div class="ld-bid-card__id">
           <span class="ld-bid-card__name">${nameHtml}</span>
           ${educationLine ? `<span class="ld-bid-card__edu">${escapeHtml(educationLine)}</span>` : ""}
         </div>
-        <span class="ld-bid-card__amount">${formatUsd(b.amount_cents)}</span>
+        ${amountHtml}
       </div>
       ${msg}
       ${counterInfo}
       <div class="ld-bid-card__foot">
-        <span class="ld-bid-card__status">${statusPill}</span>
         <div class="ld-bid-card__actions"></div>
       </div>
       <div class="ld-bid-card__counter-form hidden"></div>
@@ -1540,13 +1821,29 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
     const counterFormEl = card.querySelector(".ld-bid-card__counter-form");
     const msgAreaEl = card.querySelector(".ld-bid-card__msg-area");
 
-    /* Accept button */
+    /* Accept button (standard / retainer) or checkbox (phased multi-accept) */
     if (b.status === "pending" || b.status === "countered") {
-      const acceptBtn = document.createElement("button");
-      acceptBtn.className = "gr-btn gr-btn--primary gr-btn--sm";
-      acceptBtn.textContent = "accept";
-      acceptBtn.addEventListener("click", () => handleAcceptBid(client, session, listing, b, card));
-      actionsEl.appendChild(acceptBtn);
+      if (isPhasedListing) {
+        const cbWrap = document.createElement("label");
+        cbWrap.className = "ld-bid-card__select";
+        cbWrap.innerHTML = `
+          <input type="checkbox" class="ld-bid-card__checkbox" />
+          <span>accept proposal</span>
+        `;
+        const cb = cbWrap.querySelector("input");
+        cb.addEventListener("change", () => {
+          if (cb.checked) selectedBidIds.add(b.id);
+          else selectedBidIds.delete(b.id);
+          renderProposalCta();
+        });
+        actionsEl.appendChild(cbWrap);
+      } else {
+        const acceptBtn = document.createElement("button");
+        acceptBtn.className = "gr-btn gr-btn--primary gr-btn--sm";
+        acceptBtn.textContent = "accept";
+        acceptBtn.addEventListener("click", () => handleAcceptBid(client, session, listing, b, card));
+        actionsEl.appendChild(acceptBtn);
+      }
     }
 
     if (b.status === "accepted") {
@@ -1572,10 +1869,13 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
       actionsEl.appendChild(counterBtn);
     }
 
-    /* Message toggle */
+    /* Message toggle — icon-only, hover swaps to accent. */
     const msgBtn = document.createElement("button");
-    msgBtn.className = "gr-btn gr-btn--ghost gr-btn--sm";
-    msgBtn.textContent = "message";
+    msgBtn.type = "button";
+    msgBtn.className = "gr-btn gr-btn--ghost gr-btn--sm gr-btn--icon";
+    msgBtn.title = "message";
+    msgBtn.setAttribute("aria-label", "message");
+    msgBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
     msgBtn.addEventListener("click", () => {
       msgAreaEl.classList.toggle("hidden");
       if (!msgAreaEl.dataset.init) {
@@ -1586,6 +1886,23 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
     actionsEl.appendChild(msgBtn);
 
     list.appendChild(card);
+  }
+
+  // Sticky cta for phased multi-accept. Inserted once after all cards.
+  if (isPhasedListing) {
+    proposalCtaEl = document.createElement("div");
+    proposalCtaEl.className = "ld-proposal-cta hidden";
+    proposalCtaEl.innerHTML = `
+      <div class="ld-proposal-cta__summary">
+        <span class="ld-proposal-cta__label">total in escrow</span>
+        <strong class="ld-proposal-cta__total">$0.00</strong>
+      </div>
+      <button type="button" class="gr-btn gr-btn--primary gr-btn--sm" id="ld-pay-proposals">pay proposal fee</button>
+    `;
+    list.appendChild(proposalCtaEl);
+    proposalCtaBtn = proposalCtaEl.querySelector("#ld-pay-proposals");
+    proposalCtaTotalEl = proposalCtaEl.querySelector(".ld-proposal-cta__total");
+    proposalCtaBtn.addEventListener("click", handlePayProposals);
   }
 
   hydrateRatings(list);
@@ -1632,7 +1949,8 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
   sendBtn.addEventListener("click", async () => {
     const cents = Math.round(parseFloat(amtInput.value) * 100);
     if (!Number.isFinite(cents) || cents < 1) {
-      statusEl.textContent = "enter a valid amount."; statusEl.className = "gr-status error"; return;
+      showError("enter a valid amount.");
+      return;
     }
     sendBtn.disabled = true;
 
@@ -1643,7 +1961,9 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
     }).eq("id", bid.id);
 
     if (error) {
-      statusEl.textContent = error.message; statusEl.className = "gr-status error"; sendBtn.disabled = false; return;
+      showError(error.message);
+      sendBtn.disabled = false;
+      return;
     }
 
     await client.from("notifications").insert({
@@ -1654,6 +1974,7 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
       link: `/listing.html?id=${listing.id}`,
     });
 
+    showSuccess("counter offer sent.");
     window.location.reload();
   });
 }
@@ -1725,10 +2046,13 @@ async function init() {
     let bidsAvailable = false;
 
     if (viewerRole === "consultant") {
-      const { bid, available } = await loadMyBid(client, listingId);
+      const { bid, available } = await loadMyBid(client, listingId, uid);
       existingBid = bid;
       hasExistingBid = Boolean(bid);
       bidsAvailable = available;
+      // Log the view event — only consultants count, owners viewing their
+      // own listings are excluded inside trackListingView itself.
+      trackListingView(client, listingId, uid, listing.owner_id, viewerRole);
     }
 
     if (listingStatus !== "open" && !isOwner && !hasExistingBid) {
@@ -1739,7 +2063,6 @@ async function init() {
 
     const { profile } = populateListing(listing);
     populateAvatarIfAvailable(client, profile);
-    renderListingStatusPill(listing);
     setOwnerSidebarVisible(isOwner);
     if (!isOwner) setOfferRailVisible(false);
 
@@ -1766,6 +2089,21 @@ async function init() {
             )
           : await loadConsultantEducationMap(client, bids.map((b) => b.consultant_id));
         showOwnerBids(client, session, listing, bids, educationMap);
+      }
+
+      // Owner analytics panel — sits above the listing-controls block in
+      // the right sidebar. Loads independently of bids so a slow query on
+      // listing_views can't block the bid list from rendering.
+      const analyticsHost = document.getElementById("ld-owner-analytics");
+      if (analyticsHost) {
+        analyticsHost.hidden = false;
+        loadListingAnalytics(client, listingId, listing.created_at)
+          .then((analytics) =>
+            renderAnalyticsPanel(analyticsHost, analytics, {
+              title: "performance",
+              subtitle: "what consultants are doing with this listing.",
+            })
+          );
       }
     } else {
       showHint('<a href="/signin.html">sign in</a> as a consultant to submit a proposal.');

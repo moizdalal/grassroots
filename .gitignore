@@ -5,3 +5,5 @@ node_modules/
 # Local-only dev tooling state — not part of the project.
 .claude/
 .remember/
+.vercel
+.renders/

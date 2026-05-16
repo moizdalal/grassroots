@@ -116,6 +116,128 @@
   display: none !important;
 }
 
+.eg-retainer-terms {
+  margin-top: 0.6rem;
+  padding: 0.85rem;
+  border-radius: 12px;
+  background: var(--fo-surface-2, rgba(45, 106, 79, 0.04));
+  border: 1px solid var(--fo-line, rgba(45, 106, 79, 0.12));
+}
+
+.eg-period-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Retainer settings + cancel controls — show under the period list. */
+.eg-retainer-controls {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--fo-line);
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+.eg-retainer-controls.hidden { display: none; }
+.eg-retainer-controls__title {
+  margin: 0 0 0.4rem;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fo-text-3);
+}
+.eg-retainer-controls__settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.eg-retainer-controls__date input[type="date"] {
+  width: fit-content;
+}
+.eg-retainer-controls__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.eg-retainer-controls__actions .gr-status {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+.eg-retainer-controls__cancel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--fo-line);
+}
+.eg-retainer-controls__cancel-copy {
+  margin: 0;
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+  line-height: 1.5;
+}
+
+.eg-period {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  background: var(--fo-surface-2, rgba(45, 106, 79, 0.04));
+  border: 1px solid var(--fo-line, rgba(45, 106, 79, 0.12));
+}
+
+.eg-period--released {
+  opacity: 0.7;
+}
+
+.eg-period__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.eg-period__label {
+  font-weight: 600;
+  font-size: var(--type-meta);
+  color: var(--fo-text, var(--green-deep));
+}
+
+.eg-period__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.eg-period__amount {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 600;
+  font-size: var(--type-h3);
+  color: var(--fo-text, var(--green-deep));
+}
+
+.eg-retainer-terms.hidden {
+  display: none;
+}
+
+.eg-retainer-terms__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
 .eg-panel__head {
   display: flex;
   justify-content: space-between;
@@ -152,6 +274,33 @@
   font: inherit;
   font-size: var(--type-body);
   background: var(--sky);
+}
+
+/* Read-only meeting length — shown to the consultant (who can't edit it)
+   and to the owner after they've shared availability. Same eyebrow/value
+   rhythm as the dropdown, no input chrome. */
+.eg-duration-readonly {
+  margin: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.eg-duration-readonly.hidden {
+  display: none;
+}
+
+.eg-duration-readonly__label {
+  font-size: var(--type-eyebrow);
+  font-weight: 700;
+  color: var(--tagline-body);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.eg-duration-readonly__value {
+  font-size: var(--type-body);
+  color: var(--fo-text, var(--ink));
+  font-weight: 600;
 }
 
 .eg-availability-tools {
@@ -296,52 +445,74 @@
   color: var(--ink);
 }
 
-.eg-rating-stars {
-  display: inline-flex;
-  gap: 0.35rem;
-  flex-wrap: wrap;
-}
-
-.eg-rating-star {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.15rem;
-  height: 2.15rem;
-  border-radius: 999px;
-  border: 1px solid var(--card-border);
-  background: #fff;
-  color: var(--tagline-body);
-  font-size: var(--type-body);
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
-}
-
-.eg-rating-star:hover {
-  transform: translateY(-1px);
-  border-color: rgba(45, 106, 79, 0.28);
-}
-
-.eg-rating-star.is-active {
-  background: linear-gradient(180deg, rgba(109, 191, 138, 0.9), rgba(45, 106, 79, 0.92));
-  border-color: rgba(45, 106, 79, 0.4);
-  color: #fff;
-}
-
-.eg-anon-toggle {
+/* Star rating widget — interactive sibling of .gr-rating. Uses the same
+   two-layer ★ technique (line color underneath, accent color clipped on
+   top) so the visual matches the read-only chip. Half-step clicks are
+   handled by 10 invisible button overlays positioned over the stars. */
+.eg-stars {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: var(--type-body);
-  color: var(--muted);
-  cursor: pointer;
+  font-family: "Manrope", system-ui, sans-serif;
+  line-height: 1;
 }
 
-.eg-anon-toggle input {
-  width: 1rem;
-  height: 1rem;
-  accent-color: var(--green-mid);
+.eg-stars__track {
+  position: relative;
+  display: inline-block;
+  font-size: 1.45rem;
+  letter-spacing: 0.12em;
+  color: var(--fo-line-strong, rgba(45, 106, 79, 0.22));
+  user-select: none;
+}
+
+.eg-stars__bg::before {
+  content: "★★★★★";
+}
+
+.eg-stars__fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  color: var(--fo-accent);
+  transition: width 0.15s ease;
+}
+
+.eg-stars__fill::before {
+  content: "★★★★★";
+}
+
+.eg-stars__hits {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}
+
+.eg-stars__hit {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  /* Stretch the hit area vertically beyond the glyph so taps don't
+     feel finicky on touch / small screens. */
+  margin-block: -0.35rem;
+}
+
+.eg-stars__hit:focus-visible {
+  outline: 2px solid var(--fo-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.eg-stars:hover .eg-stars__fill {
+  /* Subtle moss tint shift on hover — no glossy gradient. */
+  color: var(--fo-accent);
+  filter: brightness(1.05);
 }
 
 .eg-review-actions {

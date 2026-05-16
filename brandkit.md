@@ -103,6 +103,27 @@ Set on `<html data-theme="…">` by `theme.js` synchronously in head. Tokens def
 
 Primary button hover uses solid hex (`#b8e0c0` bg + `#14201a` text) because translucent token-based hovers blew out legibility in dark themes. If you ever need to bypass theme tokens for contrast, leave a code comment explaining why.
 
+### Card backgrounds — dark mode has none
+
+In all dark themes (`dark`, `dark-forest`, `forest-soft`), card-shaped containers leave `background` unset (or `transparent`). Cards read as floating outlines defined by `--fo-line` borders + spacing, not as filled panels. Adding `var(--fo-surface)` / `--fo-surface-2` fills under cards in dark mode makes them disappear into the page or read as flat slabs — both reduce the visual hierarchy that the card metaphor is supposed to create.
+
+Light theme keeps the fill because page background and card background need contrast to register as separate planes; on dark themes the border already does that work.
+
+Pattern for scoping a card's fill to light theme only:
+
+```css
+.your-card {
+  background: var(--fo-surface);
+  border: 1px solid var(--fo-line);
+  border-radius: 14px;
+}
+:root:not([data-theme="light"]) .your-card {
+  background: transparent;
+}
+```
+
+Applies to any container the team would call a "card", "panel", "callout", or "tile" — including `.bza__panel`, `.eng-list`, `.eng-actions`, `.gr-card`, and any new component you add.
+
 ---
 
 ## Components

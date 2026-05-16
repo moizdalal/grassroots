@@ -8,11 +8,33 @@ const listingGrid = document.getElementById("listing-grid");
 const listingsStatus = document.getElementById("listings-status");
 
 const LISTING_SELECT =
-  "id, owner_id, title, category, problem_summary, details, budget_cents, created_at, profiles!listings_owner_id_fkey ( full_name, role, avatar_path )";
+  "id, owner_id, title, category, problem_summary, details, budget_cents, contract_type, lat, lng, created_at, profiles!listings_owner_id_fkey ( full_name, role, avatar_path )";
+
+// Distance threshold for the "local" marketplace bucket. 50 miles is
+// the brief — far enough that a metro counts, tight enough that "local"
+// means "could plausibly meet in person." Adjust by changing this one
+// constant; everything downstream reads it.
+const LOCAL_RADIUS_MILES = 50;
 
 let allRows = [];
 let bizMap = {};
+let consultantCity = null; // { lat, lng } once the session is resolved.
 let _client = null;
+
+/* Great-circle distance between two lat/lng pairs, in miles. Standard
+   Haversine — accurate to <0.5% for the radii we care about. */
+function haversineMiles(aLat, aLng, bLat, bLng) {
+  const R = 3958.7613; // earth radius in miles
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(bLat - aLat);
+  const dLng = toRad(bLng - aLng);
+  const lat1 = toRad(aLat);
+  const lat2 = toRad(bLat);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
 
 function escapeHtml(s) {
   return String(s)
@@ -56,6 +78,27 @@ function renderSession(client, session) {
   });
 }
 
+/* Load the signed-in consultant's home-city coords. Stored on
+   consultant_profiles by the city autocomplete (Settings → Personal).
+   When null, the "local" bucket renders nothing — no harm, no error. */
+async function loadConsultantCity(client, session) {
+  if (!session?.user?.id) return null;
+  try {
+    const { data, error } = await client
+      .from("consultant_profiles")
+      .select("city_lat, city_lng")
+      .eq("user_id", session.user.id)
+      .maybeSingle();
+    if (error || !data) return null;
+    const lat = Number(data.city_lat);
+    const lng = Number(data.city_lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    return { lat, lng };
+  } catch (_) {
+    return null;
+  }
+}
+
 async function fetchOpenListings(client) {
   const { data, error } = await client
     .from("listings")
@@ -90,6 +133,39 @@ function condenseSummary(text, max = 90) {
   return (space > 40 ? cut.slice(0, space) : cut).trim() + "…";
 }
 
+/* Returns a relative-time descriptor for the card eyebrow, or null
+   when the listing is older than ~3 months (at that age the badge
+   reads anti-marketing and we drop it). `stale: true` flips the
+   dot prefix to neutral on the card — anything older than a week is
+   stale enough to lose the "fresh" green dot. */
+function formatRecency(createdAt) {
+  if (!createdAt) return null;
+  const then = new Date(createdAt).getTime();
+  if (Number.isNaN(then)) return null;
+  const diffMs = Date.now() - then;
+  if (diffMs < 0) return { label: "today", stale: false };
+  const days = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+  if (days === 0) return { label: "today", stale: false };
+  if (days < 7) return { label: `${days}d ago`, stale: false };
+  const weeks = Math.floor(days / 7);
+  if (weeks < 4) return { label: `${weeks}w ago`, stale: true };
+  const months = Math.floor(days / 30);
+  if (months < 3) return { label: `${months}mo ago`, stale: true };
+  return null;
+}
+
+/* Normalize the DB enum ('standard' | 'phased' | 'retainer') to a
+   reader-friendly label on the card. 'standard' is the lump-sum case
+   so we surface it as 'one-time' to disambiguate from 'phased' and
+   'retainer'. Anything unknown collapses to null so the card omits
+   the line. */
+function formatContractType(t) {
+  const v = String(t || "").toLowerCase();
+  if (v === "standard") return "one-time";
+  if (v === "phased" || v === "retainer") return v;
+  return null;
+}
+
 function renderCard(row, client) {
   const profile = row.profiles;
   const poster = profile?.full_name || "Business";
@@ -107,40 +183,68 @@ function renderCard(row, client) {
     ? `<img class="gr-listing-logo" src="${escapeHtml(avatarUrl)}" alt="" />`
     : `<div class="gr-listing-logo-placeholder">${initial}</div>`;
 
+  // Tags: show first 2 inline; collapse anything past 2 into a "+N" chip
+  // so a 5-category listing doesn't blow out the head row.
+  const visibleTags = categories.slice(0, 2);
+  const overflow = categories.length - visibleTags.length;
+  const tagsHtml = categories.length
+    ? `<div class="gr-listing-tags">${
+        visibleTags
+          .map((c) => `<span class="gr-listing-tag">${escapeHtml(c)}</span>`)
+          .join("")
+      }${
+        overflow > 0
+          ? `<span class="gr-listing-tag gr-listing-tag--more">+${overflow}</span>`
+          : ""
+      }</div>`
+    : "";
+
   const budgetHtml = budgetRange
     ? `<p class="gr-listing-budget">${escapeHtml(formatBudgetRange(budgetRange))}</p>`
     : "";
 
-  const tagsHtml = categories.length
-    ? `<div class="gr-listing-tags">${categories.slice(0, 2).map((c) => `<span class="gr-listing-tag">${escapeHtml(c)}</span>`).join("")}</div>`
+  const contractType = formatContractType(row.contract_type);
+  const contractHtml = contractType
+    ? `<p class="gr-listing-contract">${escapeHtml(contractType)}</p>`
     : "";
 
-  const summary = row.problem_summary
-    ? `<p class="gr-listing-summary">${escapeHtml(condenseSummary(row.problem_summary))}</p>`
+  const recency = formatRecency(row.created_at);
+  const recencyHtml = recency
+    ? `<span class="gr-listing-recency${recency.stale ? " gr-listing-recency--stale" : ""}">${escapeHtml(recency.label)}</span>`
     : "";
 
+  // Summary lives inside the card but renders as a position:fixed
+  // popover on hover (desktop only). Wider preview window (180 chars)
+  // than the deprecated inline summary (90 chars).
+  const summaryText = row.problem_summary
+    ? condenseSummary(row.problem_summary, 180)
+    : "";
+  const summaryHtml = summaryText
+    ? `<p class="gr-listing-summary-pop" data-summary>${escapeHtml(summaryText)}</p>`
+    : "";
+
+  // v2.1 layout — title hero on top, identity row pairs the avatar
+  // tile with a meta stack (biz / budget / contract) on its right,
+  // foot carries tags on the left and the view CTA on the right.
   const card = document.createElement("a");
   card.className = "gr-listing-card";
   card.href = `/listing.html?id=${row.id}`;
   card.innerHTML = `
+    <div class="gr-listing-card-eyebrow">${recencyHtml}</div>
+    <h2 class="gr-listing-title">${escapeHtml(row.title)}</h2>
     <div class="gr-listing-card-head">
       <div class="gr-listing-logo-wrap">${avatarHtml}</div>
-      <div class="gr-listing-card-biz">
-        <span class="gr-listing-biz-label">posted by</span>
+      <div class="gr-listing-card-meta">
         <p class="gr-listing-biz-name">${escapeHtml(businessName)}</p>
+        ${budgetHtml}
+        ${contractHtml}
       </div>
-    </div>
-    <div class="gr-listing-card-body">
-      <h2 class="gr-listing-title">${escapeHtml(row.title)}</h2>
-      ${summary}
     </div>
     <div class="gr-listing-foot">
-      ${tagsHtml || '<span></span>'}
-      <div class="gr-listing-foot-end">
-        ${budgetHtml}
-        <span class="gr-listing-cta-link">view →</span>
-      </div>
+      ${tagsHtml || '<div></div>'}
+      <span class="gr-listing-cta-link">view →</span>
     </div>
+    ${summaryHtml}
   `;
   return card;
 }
@@ -176,13 +280,91 @@ function renderSection({ title, subtitle, rows, emptyText, client }) {
   return section;
 }
 
+/* Hover-summary popover ─ one shared element positioned `fixed` so the
+   horizontal-scroll track's `overflow-x: auto` (which silently
+   upgrades overflow-y to auto) doesn't clip it. Skipped on touch and
+   reduced-motion environments. */
+const HAS_HOVER = typeof window.matchMedia === "function"
+  ? window.matchMedia("(hover: hover)").matches
+  : false;
+
+let hoverPop = null;
+let hoverTimer = null;
+
+function ensureHoverPop() {
+  if (hoverPop) return hoverPop;
+  hoverPop = document.createElement("div");
+  hoverPop.className = "gr-listing-pop";
+  hoverPop.setAttribute("role", "tooltip");
+  document.body.appendChild(hoverPop);
+  return hoverPop;
+}
+
+function showHoverPop(card) {
+  const summary = card.querySelector("[data-summary]")?.textContent;
+  if (!summary) return;
+  const pop = ensureHoverPop();
+  pop.textContent = summary;
+  // Position once content is set so the popover knows its own width.
+  pop.classList.add("is-visible");
+  const rect = card.getBoundingClientRect();
+  pop.style.left = `${rect.left}px`;
+  pop.style.top = `${rect.bottom + 8}px`;
+  pop.style.width = `${rect.width}px`;
+}
+
+function hideHoverPop() {
+  if (!hoverPop) return;
+  hoverPop.classList.remove("is-visible");
+}
+
+function wireHoverPopover(scope) {
+  if (!HAS_HOVER) return;
+  scope.querySelectorAll(".gr-listing-card").forEach((card) => {
+    card.addEventListener("mouseenter", () => {
+      clearTimeout(hoverTimer);
+      hoverTimer = setTimeout(() => showHoverPop(card), 200);
+    });
+    card.addEventListener("mouseleave", () => {
+      clearTimeout(hoverTimer);
+      hideHoverPop();
+    });
+  });
+}
+
 function renderListings(rows, client) {
   listingGrid.innerHTML = "";
+  hideHoverPop();
 
   if (!rows.length) {
     listingGrid.innerHTML =
       '<p class="gr-empty-state">no open opportunities yet. once business owners post needs, they\'ll show up here.</p>';
     return;
+  }
+
+  // "Local" bucket — listings within LOCAL_RADIUS_MILES of the
+  // consultant's home city. Only renders when (a) we know the
+  // consultant's coords and (b) at least one listing is in range.
+  // Listings without their own coords (lat/lng nullable; backfill
+  // pending for old listings) are silently skipped.
+  if (consultantCity) {
+    const localRows = rows.filter((row) => {
+      const lat = Number(row.lat);
+      const lng = Number(row.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+      return haversineMiles(consultantCity.lat, consultantCity.lng, lat, lng)
+        <= LOCAL_RADIUS_MILES;
+    });
+    if (localRows.length) {
+      listingGrid.appendChild(
+        renderSection({
+          title: "local",
+          subtitle: `within ${LOCAL_RADIUS_MILES} miles of where you're based`,
+          rows: localRows,
+          client,
+        })
+      );
+    }
   }
 
   // By tag — bucket every row by each of its categories. A row can
@@ -222,6 +404,8 @@ function renderListings(rows, client) {
       })
     );
   }
+
+  wireHoverPopover(listingGrid);
 }
 
 function populateCategoryDropdown() {
@@ -346,8 +530,13 @@ async function init() {
     renderSession(client, session);
     initNotifBell(client);
 
+    // Load the consultant's home-city coords once. Powers the "local"
+    // bucket in renderListings. Null → bucket simply doesn't render.
+    consultantCity = await loadConsultantCity(client, session);
+
     client.auth.onAuthStateChange(async (_event, nextSession) => {
       renderSession(client, nextSession);
+      consultantCity = await loadConsultantCity(client, nextSession);
     });
 
     await refreshListings(client);

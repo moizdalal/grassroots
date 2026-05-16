@@ -1,0 +1,567 @@
+/* engagement-journey-flowers.css — flower-based engagement journey
+   panel on the consultant dashboard. Replaces the older vine-based
+   `.cdash__journey` layout. */
+
+.cdash__journey-flowers {
+  /* Plant width:height aspect MUST match the plant SVG viewBox 100×160
+     (1:1.6) so preserveAspectRatio="xMidYMid meet" doesn't letterbox
+     the SVG and break apex-to-gridline alignment. 156×250 keeps the
+     math exact at the post-scale-up size. The variables below already
+     bake in the 1.2× scale-up that previously came from `zoom: 1.2` —
+     `zoom` was removed because it re-multiplies any CSS transform
+     applied to descendants (drag translate, hover lift, neighbour
+     slide), so plants overshoot the pointer and overflow narrow
+     viewports. */
+  --plant-w: 156px;
+  --plant-h: 250px;
+  --axis-w: 180px;
+  --meta-h: 72px;
+  position: relative;
+  padding: 1.32rem 1.5rem 1.08rem;
+  border: 1px solid var(--fo-line);
+  border-radius: 17px;
+  background: var(--fo-surface);
+}
+
+:root:not([data-theme="light"]) .cdash__journey-flowers {
+  background: transparent;
+}
+
+/* ── header ──────────────────────────────────────────────────── */
+.cdash__journey-flowers-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.02rem;
+}
+
+.cdash__journey-flowers-title {
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+  letter-spacing: 0.02em;
+}
+
+.cdash__journey-flowers-title strong {
+  color: var(--fo-text);
+  font-weight: 700;
+}
+
+.cdash__journey-flowers-unhide-all {
+  appearance: none;
+  border: 1px solid var(--fo-line);
+  background: transparent;
+  font: inherit;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.cdash__journey-flowers-unhide-all:hover {
+  color: var(--fo-text);
+  border-color: var(--fo-accent);
+}
+
+/* ── canvas: axis column | plants area | garden tile ─────────── */
+/* Three explicit columns so the gridlines (which live inside
+   plants-wrap) stop cleanly at the right edge of the plants area,
+   and the garden tile stays anchored to the right of the panel
+   regardless of how many plants are in the row. */
+.cdash__journey-flowers-canvas {
+  display: grid;
+  grid-template-columns: var(--axis-w) minmax(0, 1fr) var(--plant-w);
+  /* column-gap separates plants from the garden tile; the axis sits
+     flush against plants since the axis column has its own margin. */
+  column-gap: 0.6rem;
+  align-items: stretch;
+}
+
+/* ── y-axis (stage labels positioned at apex altitudes) ──────── */
+/* The axis column shares its height with the plant SVG so each
+   label's `top: ${stagePct}%` lands exactly where that stage's apex
+   renders inside the plant viewBox. */
+.cdash__journey-flowers-axis {
+  position: relative;
+  height: var(--plant-h);
+  margin-right: 0.6rem;
+}
+
+.cdash__journey-flowers-axis-row {
+  position: absolute;
+  right: 0.85rem;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  text-align: right;
+  pointer-events: none;
+  transition: opacity 0.18s ease, color 0.18s ease;
+}
+
+.cdash__journey-flowers-axis-row::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fo-line);
+  flex: 0 0 6px;
+}
+
+.cdash__journey-flowers-axis-row.is-active::after {
+  background: var(--fo-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--fo-accent) 22%, transparent);
+}
+
+.cdash__journey-flowers-axis-name {
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.cdash__journey-flowers-axis-row.is-active .cdash__journey-flowers-axis-name {
+  color: var(--fo-text);
+  font-weight: 600;
+}
+.cdash__journey-flowers-axis-row.is-dimmed { opacity: 0.4; }
+
+/* ── plant row + gridlines ───────────────────────────────────── */
+.cdash__journey-flowers-plants-wrap {
+  position: relative;
+  height: var(--plant-h);
+  margin-bottom: var(--meta-h);
+}
+
+.cdash__journey-flowers-gridlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cdash__journey-flowers-gridline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed var(--fo-line);
+  opacity: 0.35;
+  transition: opacity 0.18s ease, border-color 0.18s ease;
+}
+
+.cdash__journey-flowers-gridline.is-active {
+  border-color: var(--fo-accent);
+  opacity: 0.8;
+}
+
+.cdash__journey-flowers-plants {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 0.3rem;
+  align-items: flex-end;
+  height: var(--plant-h);
+}
+
+/* Each plant column. The SVG occupies the column's full height so
+   each stage's apex lands at the matching gridline percentage. */
+.cdash__journey-flowers-plant {
+  position: relative;
+  flex: 0 0 var(--plant-w);
+  width: var(--plant-w);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: grab;
+  border-radius: 10px;
+  outline: none;
+  /* Default transitions for hover lift + the wire-set drag-slide
+     transition for transform. Pointer-based shuffle overrides
+     `transition` inline when a drag starts (only the dragged plant
+     gets transition: none so it tracks the pointer exactly). */
+  transition: opacity 0.18s ease, box-shadow 0.18s ease;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.cdash__journey-flowers-plant:active { cursor: grabbing; }
+
+/* Picked-up state: lift the plant out of the row with a soft shadow.
+   Scale + translate are driven by the drag JS (transform follows the
+   pointer); this rule just adds the surface affordance. */
+.cdash__journey-flowers-plant.is-dragging {
+  cursor: grabbing;
+  filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.35));
+  z-index: 20;
+}
+
+.cdash__journey-flowers-plant:hover,
+.cdash__journey-flowers-plant:focus-visible {
+  transform: translateY(-2px);
+}
+.cdash__journey-flowers-plant:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--fo-accent) 50%, transparent);
+}
+.cdash__journey-flowers-plant.is-dimmed { opacity: 0.32; }
+
+.cdash__journey-flowers-plant-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.cdash__journey-flowers-plant-canvas .fs-plant {
+  width: var(--plant-w);
+  height: var(--plant-h);
+  display: block;
+}
+
+/* ── per-plant hide button (× on hover) ──────────────────────── */
+.cdash__journey-flowers-plant-hide {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--fo-line);
+  background: var(--fo-surface);
+  color: var(--fo-text-3);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+  z-index: 2;
+}
+.cdash__journey-flowers-plant:hover .cdash__journey-flowers-plant-hide,
+.cdash__journey-flowers-plant-hide:focus-visible {
+  opacity: 1;
+}
+.cdash__journey-flowers-plant-hide:hover {
+  color: var(--fo-plan);
+  border-color: var(--fo-plan);
+}
+.cdash__journey-flowers-plant-hide svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── per-plant unread-message indicator (paper plane) ──
+   Floats above the plant near the top-left. Hovered: tilts + lifts.
+   Click → deep-links to the inbox thread for this engagement. */
+.cdash__journey-flowers-plant-msg {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: 31px;
+  height: 31px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--fo-accent-warm);
+  /* Always white — orange accent backdrop reads poorly with a themed
+     surface color (dark on dark in non-light themes). */
+  color: #fff;
+  text-decoration: none;
+  z-index: 4;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(20, 32, 26, 0.25);
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
+  animation: cdash-journey-plane-bob 3.2s ease-in-out infinite;
+}
+
+.cdash__journey-flowers-plant-msg:hover,
+.cdash__journey-flowers-plant-msg:focus-visible {
+  transform: rotate(-12deg) translateY(-3px) scale(1.08);
+  box-shadow: 0 6px 14px rgba(20, 32, 26, 0.35);
+  outline: none;
+  animation-play-state: paused;
+}
+
+.cdash__journey-flowers-plant-msg svg {
+  width: 17px;
+  height: 17px;
+  margin-left: -1px; /* nudge: paper-plane path leans right */
+}
+
+.cdash__journey-flowers-plant-msg-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--fo-plan, #d4715a);
+  color: var(--fo-surface);
+  font-family: "Manrope", sans-serif;
+  font-size: 0.55rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  border: 1.5px solid var(--fo-surface);
+}
+
+@keyframes cdash-journey-plane-bob {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50%      { transform: translateY(-2px) rotate(-1deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cdash__journey-flowers-plant-msg { animation: none; }
+}
+
+/* ── per-plant action dot (pulses at the plant's current apex) ── */
+.cdash__journey-flowers-action-dot {
+  position: absolute;
+  left: 50%;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: var(--fo-accent-warm);
+  border: 2.4px solid var(--fo-surface);
+  cursor: pointer;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--fo-accent-warm) 55%, transparent);
+  animation: cdash-journey-action-pulse 1.8s ease-out infinite;
+}
+.cdash__journey-flowers-action-dot:hover,
+.cdash__journey-flowers-action-dot:focus-visible {
+  outline: 2px solid var(--fo-accent-warm);
+  outline-offset: 2px;
+}
+@keyframes cdash-journey-action-pulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--fo-accent-warm) 55%, transparent); }
+  70%  { box-shadow: 0 0 0 14px color-mix(in srgb, var(--fo-accent-warm) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--fo-accent-warm) 0%, transparent); }
+}
+
+/* ── per-plant meta (avatar + biz + title) ───────────────────── */
+.cdash__journey-flowers-plant-meta {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.6rem 0.3rem 0;
+  min-width: 0;
+}
+
+.cdash__journey-flowers-plant-avatar {
+  width: 31px;
+  height: 31px;
+  border-radius: 50%;
+  background: var(--fo-surface-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex: 0 0 auto;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fo-text-2);
+}
+.cdash__journey-flowers-plant-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cdash__journey-flowers-plant-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.cdash__journey-flowers-plant-biz {
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 13px;
+  color: var(--fo-text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cdash__journey-flowers-plant-title {
+  font-family: "Fraunces", serif;
+  font-size: 14px;
+  color: var(--fo-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── tooltip (hover card) ────────────────────────────────────── */
+/* Translucent frosted-glass style: the panel surface shows through
+   so the card feels like an overlay, not a solid block. Hidden while
+   a plant is being shuffled — see the .is-shuffling rule below. */
+.cdash__journey-flowers-tooltip {
+  position: absolute;
+  z-index: 50;
+  min-width: 200px;
+  max-width: 280px;
+  padding: 0.7rem 0.9rem;
+  background: color-mix(in srgb, var(--fo-surface) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fo-line) 55%, transparent);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -100%);
+  transition: opacity 0.14s ease;
+}
+.cdash__journey-flowers-tooltip.is-visible { opacity: 1; }
+/* Tooltip is hidden entirely while a plant is being shuffled. */
+.cdash__journey-flowers.is-shuffling .cdash__journey-flowers-tooltip {
+  opacity: 0 !important;
+}
+
+.cdash__journey-flowers-tooltip-main {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+.cdash__journey-flowers-tooltip-title {
+  flex: 1;
+  font-family: "Fraunces", serif;
+  font-size: 13px;
+  color: var(--fo-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cdash__journey-flowers-tooltip-amount {
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fo-accent);
+}
+
+.cdash__journey-flowers-tooltip-status {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 11px;
+  color: var(--fo-text-2);
+}
+.cdash__journey-flowers-tooltip-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fo-accent);
+  flex: 0 0 6px;
+}
+
+.cdash__journey-flowers-tooltip-action {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--fo-line);
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 12px;
+  color: var(--fo-text);
+}
+.cdash__journey-flowers-tooltip-action[hidden] { display: none; }
+.cdash__journey-flowers-tooltip-action-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--fo-accent-warm);
+  font-weight: 700;
+}
+.cdash__journey-flowers-tooltip-action-title { flex: 1; }
+.cdash__journey-flowers-tooltip-action-arrow {
+  color: var(--fo-accent-warm);
+  font-weight: 700;
+}
+
+/* ── garden tile (drop zone on the right, separate grid column) ── */
+.cdash__journey-flowers-garden-tile {
+  align-self: start;
+  width: var(--plant-w);
+  height: var(--plant-h);
+  border: 2px dashed var(--fo-line);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+  text-decoration: none;
+  color: var(--fo-text-3);
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
+  cursor: pointer;
+  transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+.cdash__journey-flowers-garden-tile:hover {
+  border-color: var(--fo-accent);
+  color: var(--fo-text);
+  transform: translateY(-2px);
+}
+.cdash__journey-flowers-garden-tile.is-drop-target {
+  border-color: var(--fo-accent);
+  background: color-mix(in srgb, var(--fo-accent) 14%, transparent);
+  color: var(--fo-accent);
+}
+.cdash__journey-flowers-garden-tile-icon {
+  width: 38px;
+  height: 38px;
+  color: var(--fo-accent);
+  opacity: 0.85;
+}
+.cdash__journey-flowers-garden-tile-label {
+  font-family: "Fraunces", serif;
+  font-weight: 600;
+  font-size: 17px;
+  color: var(--fo-text-2);
+}
+.cdash__journey-flowers-garden-tile-count {
+  font-family: "Fraunces", serif;
+  font-size: 31px;
+  font-weight: 600;
+  color: var(--fo-text);
+  line-height: 1;
+}
+.cdash__journey-flowers-garden-tile-hint {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  opacity: 0.75;
+  line-height: 1.3;
+}
+
+/* ── empty state ─────────────────────────────────────────────── */
+.cdash__journey-flowers-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--fo-text-3);
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
+}

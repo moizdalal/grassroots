@@ -12,10 +12,11 @@
     />
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
+    <link rel="stylesheet" href="/listing-analytics.css" />
     <script src="/theme.js"></script>
     <script src="/loading-overlay.js"></script>
   </head>
-  <body class="gr-body gr-has-side-nav">
+  <body class="gr-body gr-has-side-nav dash-page">
     <main>
       <p id="dash-gate" class="gr-status" style="text-align:center;padding:6rem 1rem;">loading…</p>
 
@@ -29,17 +30,15 @@
               <span class="bza__brand-text">grassroots</span>
             </a>
           </div>
-          <div class="bza__nav-section">work</div>
-          <button type="button" class="bza__nav-item active" data-view="dashboard" title="dashboard">
+          <div class="bza__nav">
+          <button type="button" class="bza__nav-item active" data-view="dashboard" title="home">
             <span class="bza__nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="7" height="9"/>
-                <rect x="14" y="3" width="7" height="5"/>
-                <rect x="14" y="12" width="7" height="9"/>
-                <rect x="3" y="16" width="7" height="5"/>
+                <path d="M3 11.5 12 4l9 7.5"/>
+                <path d="M5 10v10a1 1 0 0 0 1 1h4v-7h4v7h4a1 1 0 0 0 1-1V10"/>
               </svg>
             </span>
-            <span class="bza__nav-label">dashboard</span>
+            <span class="bza__nav-label">home</span>
           </button>
           <button type="button" class="bza__nav-item" data-view="listings" title="my listings">
             <span class="bza__nav-icon" aria-hidden="true">
@@ -63,27 +62,7 @@
             <span class="bza__nav-label">inbox</span>
             <span class="bza__nav-badge" id="dash-inbox-badge" hidden></span>
           </button>
-          <div class="bza__nav-section">system</div>
-          <a href="/settings.html" class="bza__nav-item" title="settings">
-            <span class="bza__nav-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-              </svg>
-            </span>
-            <span class="bza__nav-label">settings</span>
-          </a>
-          <label class="bza__nav-item bza__darkmode" title="dark mode">
-            <span class="bza__nav-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-              </svg>
-            </span>
-            <span class="bza__nav-label">dark mode</span>
-            <input type="checkbox" id="dash-darkmode-toggle" class="bza__darkmode-input" />
-            <span class="bza__darkmode-switch" aria-hidden="true"></span>
-          </label>
-
+          </div>
           <a href="/create-listing.html" class="bza__post" title="post a listing">
             <span class="bza__nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -94,8 +73,33 @@
             <span class="bza__nav-label">post a listing</span>
           </a>
 
+          <!-- System row: icon-only with hover-revealed labels, pinned above the foot. -->
+          <div class="bza__sys-row" role="group" aria-label="system">
+            <a href="/settings.html" class="bza__sys-item" title="settings">
+              <span class="bza__sys-item__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              </span>
+              <span class="bza__sys-item__label">settings</span>
+            </a>
+            <span class="bza__sys-divider" aria-hidden="true">/</span>
+            <a href="/help.html" class="bza__sys-item" title="help">
+              <span class="bza__sys-item__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="4.93" y1="4.93" x2="9.17" y2="9.17"/><line x1="14.83" y1="14.83" x2="19.07" y2="19.07"/><line x1="14.83" y1="9.17" x2="19.07" y2="4.93"/><line x1="4.93" y1="19.07" x2="9.17" y2="14.83"/></svg>
+              </span>
+              <span class="bza__sys-item__label">help</span>
+            </a>
+            <span class="bza__sys-divider" aria-hidden="true">/</span>
+            <label class="bza__sys-darkmode" title="dark mode">
+              <span class="bza__sys-darkmode__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              </span>
+              <input type="checkbox" id="dash-darkmode-toggle" class="bza__darkmode-input" />
+              <span class="bza__darkmode-switch" aria-hidden="true"></span>
+            </label>
+          </div>
+
           <div class="bza__side-foot">
-            <a class="bza__user" id="dash-user-card" href="/settings.html#profile" title="open profile settings">
+            <a class="bza__user" id="dash-user-card" href="/settings.html#personal" title="open profile settings">
               <span class="bza__user-avatar" id="dash-user-avatar"></span>
               <span class="bza__user-meta">
                 <span class="bza__user-name" id="dash-user-name">your account</span>
@@ -197,6 +201,11 @@
                 <div id="dash-agenda-days" class="dash-agenda__days"></div>
               </div>
             </div>
+
+            <!-- Cumulative analytics across all owner's listings.
+                 Populated by dashboard.js once /listing-analytics.js
+                 resolves. -->
+            <div id="dash-analytics"></div>
 
             <div class="dash-bottom-grid">
               <div class="bza__panel">

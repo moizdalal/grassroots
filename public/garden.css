@@ -1,0 +1,419 @@
+/* garden.css — the "your garden" section on /profile.html. Bloomed
+   engagements the consultant has dragged in from the journey panel
+   on the dashboard. Plants in the bed are absolutely positioned and
+   freely drag-to-slide along the x-axis; a butterfly and a bee
+   wander overhead and randomly land on flowers. */
+
+.pp-garden {
+  --garden-plant-w: 130px;
+  --garden-plant-h: 208px;
+  --garden-bed-h: 340px;
+  position: relative;
+  padding: 1.25rem 1.25rem 1rem;
+  border: 1px solid var(--fo-line);
+  border-radius: 16px;
+  background: var(--fo-surface);
+  overflow: hidden;
+}
+:root:not([data-theme="light"]) .pp-garden { background: transparent; }
+
+/* Head sits in front of the sky overlay so the title stays legible
+   while stars (or sun + clouds) drift behind it. */
+.pp-garden__head {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 1rem;
+}
+.pp-garden__title {
+  margin: 0.2rem 0 0.4rem;
+  font-family: "Fraunces", serif;
+  font-weight: 600;
+  font-size: 1.5rem;
+  color: var(--fo-text);
+}
+.pp-garden__copy {
+  margin: 0;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
+  color: var(--fo-text-3);
+}
+
+/* ── garden bed: positioned canvas for plants + pollinators ────── */
+/* The bed itself is just a frame; the visual backdrop (sky + hills +
+   foreground meadow) is the .pp-garden__landscape SVG that the JS
+   prepends as the first child, with z-index 0 so plants (z-index 1)
+   and pollinators (z-index 10) sit in front. */
+.pp-garden__bed {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: var(--garden-bed-h);
+  overflow: hidden;
+  border-radius: 12px;
+  /* Bed is transparent so the section-wide sky shows through the
+     upper portion; the landscape SVG paints the hills along the
+     bottom. */
+  background: transparent;
+}
+
+.pp-garden__landscape {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.pp-garden__landscape-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.pp-garden__empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0 1rem;
+  max-width: 480px;
+  margin-inline: auto;
+  text-align: center;
+  color: var(--fo-text-3);
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
+  font-style: italic;
+}
+
+/* ── individual plant card (drag-to-slide along x) ──────────── */
+.pp-garden__plant {
+  position: absolute;
+  bottom: 0;
+  width: var(--garden-plant-w);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 12px;
+  cursor: grab;
+  outline: none;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  z-index: 1;
+}
+.pp-garden__plant:hover { transform: translateY(-3px); }
+.pp-garden__plant:active { cursor: grabbing; }
+.pp-garden__plant:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--fo-accent) 50%, transparent);
+}
+.pp-garden__plant.is-dragging {
+  cursor: grabbing;
+  transition: none;
+  filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.35));
+  z-index: 5;
+}
+
+.pp-garden__plant-canvas {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+.pp-garden__plant-canvas .fs-plant {
+  width: var(--garden-plant-w);
+  height: var(--garden-plant-h);
+  display: block;
+}
+
+.pp-garden__plant-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--fo-line);
+  background: var(--fo-surface);
+  color: var(--fo-text-3);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+  z-index: 3;
+}
+.pp-garden__plant:hover .pp-garden__plant-remove,
+.pp-garden__plant-remove:focus-visible {
+  opacity: 1;
+}
+.pp-garden__plant-remove:hover {
+  color: var(--fo-plan);
+  border-color: var(--fo-plan);
+}
+.pp-garden__plant-remove svg { width: 12px; height: 12px; }
+
+.pp-garden__plant-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.5rem 0.25rem 0.25rem;
+  min-width: 0;
+}
+.pp-garden__plant-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--fo-surface-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex: 0 0 auto;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fo-text-2);
+}
+.pp-garden__plant-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.pp-garden__plant-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.pp-garden__plant-biz {
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 11px;
+  color: var(--fo-text-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pp-garden__plant-title {
+  font-family: "Fraunces", serif;
+  font-size: 12px;
+  color: var(--fo-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ── pollinators (butterfly + bee) ──────────────────────────── */
+/* Movement is driven by a requestAnimationFrame physics loop in
+   garden.js, which writes `left` / `top` every frame. We deliberately
+   DON'T put a CSS transition on those — the loop handles smoothness
+   itself, and a transition here would lag behind. The inner wobble
+   div adds a small per-element shake only used by the bee. */
+.pp-garden__pollinator {
+  position: absolute;
+  z-index: 10;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+.pp-garden__pollinator-wobble {
+  width: 100%;
+  height: 100%;
+}
+/* Bee buzz: a fast tiny shake on top of the path-following motion. */
+.pp-garden__pollinator--bee .pp-garden__pollinator-wobble {
+  animation: pp-garden__bee-buzz 0.16s ease-in-out infinite;
+}
+@keyframes pp-garden__bee-buzz {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(0.6px, -0.4px); }
+}
+
+/* Bee wings: pre-rewrite scaleX flap. */
+.pp-garden__pollinator--bee .pp-garden__pollinator-wing {
+  transform-box: fill-box;
+  animation: pp-garden__bee-flap var(--flap-ms, 80ms) ease-in-out infinite alternate;
+}
+.pp-garden__pollinator--bee .pp-garden__pollinator-wing--left  { transform-origin: 100% 50%; }
+.pp-garden__pollinator--bee .pp-garden__pollinator-wing--right { transform-origin: 0% 50%; }
+@keyframes pp-garden__bee-flap {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0.2); }
+}
+
+/* ── sky layer: stars + crescent moon (dark) / sun + clouds (light) ─
+   Sits at the .pp-garden level (not the bed), so the starfield and
+   sun/clouds stretch all the way to the top of the section — drifting
+   behind the title as well as the bed. The container itself doesn't
+   intercept pointer events; moon and sun opt back in for hover. Theme
+   visibility is toggled by selectors at the bottom of this block so
+   theme switches don't need a re-render. */
+.pp-garden__sky {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Light-mode sky tint — a soft, dusty blue washing down from the top.
+   Kept low-opacity so the surface card colour still reads, with the
+   blue fading out before it reaches the hills along the bed. */
+[data-theme="light"] .pp-garden__sky::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(150, 188, 220, 0.32) 0%,
+    rgba(176, 208, 230, 0.18) 38%,
+    rgba(200, 220, 232, 0.06) 70%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.pp-garden__star {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #fdf6d6;
+  box-shadow: 0 0 6px rgba(253, 246, 214, 0.55);
+  pointer-events: none;
+  /* Repulsion offset (set in garden.js) rides outside the twinkle
+     keyframe so the two transforms compose without fighting. A long,
+     soft ease makes the spring-back feel gentle rather than rigid. */
+  transform: translate(var(--star-dx, 0px), var(--star-dy, 0px));
+  transition: transform 1.6s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: pp-garden__twinkle var(--twinkle-dur, 3.6s) ease-in-out
+    var(--twinkle-delay, 0s) infinite;
+  will-change: transform, opacity;
+}
+.pp-garden__star--lg { width: 4px; height: 4px; }
+.pp-garden__star--sm { width: 2px; height: 2px; }
+/* Constellation anchor — slightly brighter than a random star so the
+   reader's eye picks out the connected dots. Repulsion is skipped in
+   JS for these, so the linking polyline always meets them. */
+.pp-garden__star--anchor {
+  width: 5px;
+  height: 5px;
+  background: #fffce8;
+  box-shadow: 0 0 10px rgba(253, 246, 214, 0.75);
+}
+
+/* Faint linking lines between constellation anchors. SVG is stretched
+   via preserveAspectRatio="none" so coords match the percentage-based
+   anchor positions exactly; vector-effect: non-scaling-stroke keeps
+   the hairline crisp regardless of aspect ratio. */
+.pp-garden__constellations {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+.pp-garden__constellations polyline {
+  fill: none;
+  stroke: rgba(253, 246, 214, 0.18);
+  stroke-width: 0.7;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+[data-theme="light"] .pp-garden__constellations { display: none; }
+
+@keyframes pp-garden__twinkle {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 1; }
+}
+
+.pp-garden__moon {
+  position: absolute;
+  top: 18px;
+  right: 28px;
+  width: 60px;
+  height: 60px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: auto;
+  cursor: pointer;
+  filter: drop-shadow(0 0 14px rgba(253, 246, 214, 0.45));
+  transition: transform 0.4s ease, filter 0.4s ease;
+}
+.pp-garden__moon:hover,
+.pp-garden__moon:focus-visible {
+  transform: rotate(-12deg) scale(1.1);
+  filter: drop-shadow(0 0 28px rgba(253, 246, 214, 0.85));
+  outline: none;
+}
+
+.pp-garden__sun {
+  position: absolute;
+  top: 22px;
+  right: 30px;
+  width: 70px;
+  height: 70px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: auto;
+  cursor: pointer;
+  filter: drop-shadow(0 0 18px rgba(246, 196, 87, 0.5));
+  transition: transform 0.45s ease, filter 0.45s ease;
+}
+.pp-garden__sun .pp-garden__sun-rays {
+  transform-origin: 40px 40px;
+  transition: transform 0.6s ease;
+}
+.pp-garden__sun:hover,
+.pp-garden__sun:focus-visible {
+  transform: scale(1.12);
+  filter: drop-shadow(0 0 32px rgba(246, 196, 87, 0.85));
+  outline: none;
+}
+.pp-garden__sun:hover .pp-garden__sun-rays,
+.pp-garden__sun:focus-visible .pp-garden__sun-rays {
+  transform: rotate(22deg);
+}
+
+.pp-garden__cloud {
+  position: absolute;
+  left: 0;
+  pointer-events: none;
+  opacity: 0.92;
+  animation: pp-garden__cloud-drift var(--drift-dur, 60s) linear
+    var(--drift-delay, 0s) infinite;
+  will-change: transform;
+}
+@keyframes pp-garden__cloud-drift {
+  from { transform: translateX(-30%) scale(var(--cloud-scale, 1)); }
+  to   { transform: translateX(720%) scale(var(--cloud-scale, 1)); }
+}
+
+/* Theme visibility — celestial set swaps with the data-theme attribute. */
+[data-theme="light"] .pp-garden__star,
+[data-theme="light"] .pp-garden__moon { display: none; }
+:root:not([data-theme="light"]) .pp-garden__sun,
+:root:not([data-theme="light"]) .pp-garden__cloud { display: none; }
+
+/* ── firefly: pulsing yellow-green glow on the inner wobble wrapper
+   so the SVG itself stays static. The green-tinted drop-shadow plus
+   `mix-blend-mode: screen` keep the firefly visibly different from
+   the cream stars even when they're near each other. Per-firefly
+   phase + duration come from inline custom properties set by
+   garden.js. */
+.pp-garden__pollinator--firefly {
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 5px rgba(168, 240, 132, 0.5));
+}
+.pp-garden__pollinator--firefly .pp-garden__pollinator-wobble {
+  animation: pp-garden__firefly-pulse var(--pulse-dur, 1.8s) ease-in-out
+    var(--pulse-delay, 0s) infinite;
+}
+@keyframes pp-garden__firefly-pulse {
+  0%, 100% { opacity: 0.25; transform: scale(0.85); }
+  50%      { opacity: 1;    transform: scale(1.05); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pp-garden__star,
+  .pp-garden__cloud,
+  .pp-garden__pollinator--firefly .pp-garden__pollinator-wobble {
+    animation: none;
+  }
+  .pp-garden__star { transition: none; }
+}
+

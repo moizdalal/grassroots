@@ -1,0 +1,208 @@
+/* Listing analytics panel — used on listing.html (per-listing) and
+   dashboard.html (cumulative). Theme-aware via --fo-* tokens.
+   Brand voice: lowercase, calm, no exclamation. */
+
+.lv-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--fo-surface);
+  border: 1px solid var(--fo-line);
+  border-radius: 14px;
+}
+
+.lv-panel__head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.lv-panel__title {
+  margin: 0;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-h3);
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  color: var(--fo-text);
+}
+
+.lv-panel__sub {
+  margin: 0;
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+}
+
+.lv-panel__empty {
+  margin: 0;
+  font-size: var(--type-meta);
+  color: var(--fo-text-3);
+  font-style: italic;
+}
+
+.lv-panel__empty code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  padding: 0.08em 0.32em;
+  border-radius: 4px;
+  background: var(--fo-surface-2);
+  color: var(--fo-accent);
+  font-style: normal;
+}
+
+/* ── Metric callouts ─────────────────────────────────────────── */
+.lv-metrics {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: var(--space-3);
+}
+
+@media (max-width: 540px) {
+  .lv-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lv-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: var(--space-4);
+  background: var(--fo-surface-2);
+  border: 1px solid var(--fo-line);
+  border-radius: 12px;
+}
+
+/* Accent variant — the headline metric (view → offer rate) gets the
+   moss-soft fill so it reads as the primary signal. */
+.lv-metric--accent {
+  background: var(--fo-accent-soft);
+  border-color: transparent;
+}
+
+.lv-metric__value {
+  margin: 0;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: var(--type-display);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--fo-text);
+}
+
+.lv-metric--accent .lv-metric__value {
+  color: var(--fo-accent);
+}
+
+.lv-metric__label {
+  margin: 0;
+  font-size: var(--type-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fo-text-3);
+}
+
+.lv-metric__sub {
+  margin: 0.35rem 0 0;
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+  line-height: 1.4;
+}
+
+/* ── Section heading inside the panel ────────────────────────── */
+.lv-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.lv-section__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.lv-section__eyebrow {
+  margin: 0;
+  font-size: var(--type-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fo-text-3);
+}
+
+.lv-section__hint {
+  margin: 0;
+  font-size: var(--type-meta);
+  color: var(--fo-text-3);
+}
+
+/* ── Histogram ───────────────────────────────────────────────── */
+.lv-hist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.lv-hist__plot {
+  width: 100%;
+  height: 9.5rem;
+  background: var(--fo-surface-2);
+  border-radius: 10px;
+  padding: 0.6rem;
+  box-sizing: border-box;
+}
+
+.lv-hist__plot svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+/* Bars: faint accent for zero-count days (so the day still reads as
+   present) and full accent for active days. Hover bumps the tint up. */
+.lv-hist__bar {
+  fill: var(--fo-surface-3);
+  transition: fill 0.15s ease;
+}
+
+.lv-hist__bar--has {
+  fill: var(--fo-accent);
+}
+
+.lv-hist__plot svg:hover .lv-hist__bar--has {
+  fill: var(--fo-accent);
+  opacity: 0.85;
+}
+
+.lv-hist__bar--has:hover,
+.lv-hist__bar:hover {
+  fill: var(--fo-accent);
+  opacity: 1;
+}
+
+/* Axis labels — sit in their own SVG strip so they don't get clipped
+   by the bar plot's bounding box. */
+.lv-hist__axis {
+  width: 100%;
+  height: 1.1rem;
+  padding: 0 0.6rem;
+  box-sizing: border-box;
+}
+
+.lv-hist__axis svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.lv-hist__label {
+  fill: var(--fo-text-3);
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 2.6px; /* matches viewBox scale; renders ~10–11px on screen */
+  text-anchor: middle;
+  dominant-baseline: hanging;
+}

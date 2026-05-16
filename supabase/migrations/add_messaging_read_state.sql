@@ -37,6 +37,14 @@ create policy "message_reads_update_own"
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+-- Explicit role grants (supabase removes default grants from `public` on
+-- new projects May 30, 2026 and on existing projects Oct 30, 2026).
+-- No delete privilege — the upsert flow never deletes rows.
+revoke all on public.message_reads from anon;
+revoke all on public.message_reads from authenticated;
+grant select, insert, update on public.message_reads to authenticated;
+grant all on public.message_reads to service_role;
+
 alter table public.profiles
   add column if not exists read_receipts_enabled boolean not null default false;
 
