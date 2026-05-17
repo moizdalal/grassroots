@@ -1,0 +1,85 @@
+// Parked from public/profile-page.js on 2026-05-17.
+//
+// Three pieces to restore together:
+//   1) calculateStageProgress() — pure helper, no side effects.
+//   2) renderProgression() — DOM writes that require the markup in
+//      parked/consultant-progression/progression-section.html to be
+//      back in profile.html.
+//   3) The call site inside init()'s consultant branch:
+//        renderProgression(profile, stats);
+//      Add it back right after `await mountConsultantGarden(...)`.
+
+// Mirrors the staging logic that used to live in profile.js. Keep in sync if
+// the thresholds change there or in any consultant-facing copy.
+function calculateStageProgress(engagementsCompleted, avgRating) {
+  const stages = [
+    {
+      index: 0,
+      name: "seedling",
+      modelLabel: "stage 0: seedling",
+      nextCopy: "complete 1 free engagement and earn an average rating of at least 4.0 stars.",
+      targetEngagements: 1,
+      targetRating: 4,
+    },
+    {
+      index: 1,
+      name: "sprout",
+      modelLabel: "sprout stage placeholder",
+      nextCopy: "maintain a 4.0+ rating and complete 2 engagements to reach stage 2.",
+      targetEngagements: 2,
+      targetRating: 4,
+    },
+    {
+      index: 2,
+      name: "small tree",
+      modelLabel: "small tree stage placeholder",
+      nextCopy: "complete 10+ engagements and keep your rating above 4.0 to unlock giant sequoia status.",
+      targetEngagements: 10,
+      targetRating: 4.1,
+    },
+    {
+      index: 3,
+      name: "giant sequoia",
+      modelLabel: "giant sequoia stage placeholder",
+      nextCopy: "you've reached the highest stage. keep delivering strong work to hold sequoia status.",
+      targetEngagements: 10,
+      targetRating: 4.1,
+    },
+  ];
+
+  let stageIndex = 0;
+  if (avgRating != null && avgRating > 4 && engagementsCompleted >= 10) {
+    stageIndex = 3;
+  } else if (avgRating != null && avgRating >= 4 && engagementsCompleted >= 2) {
+    stageIndex = 2;
+  } else if (avgRating != null && avgRating >= 4 && engagementsCompleted >= 1) {
+    stageIndex = 1;
+  }
+
+  const stage = stages[stageIndex];
+  if (stage.index === stages.length - 1) {
+    return { ...stage, progressPercent: 100 };
+  }
+
+  const engagementProgress = clamp(engagementsCompleted / stage.targetEngagements, 0, 1);
+  const ratingProgress = avgRating == null ? 0 : clamp(avgRating / stage.targetRating, 0, 1);
+  const progressPercent = Math.round((engagementProgress * 0.6 + ratingProgress * 0.4) * 100);
+  return { ...stage, progressPercent };
+}
+
+function renderProgression(profile, stats) {
+  const section = $("pp-progression-section");
+  if (!section) return;
+  section.classList.remove("hidden");
+
+  const firstName = String(profile?.full_name || "").trim().split(/\s+/)[0] || "consultant";
+  const stage = calculateStageProgress(stats.engagementsCompleted, stats.avgRating);
+
+  $("pf-level-title").textContent = `stage ${stage.index}: ${stage.name}`;
+  $("pf-level-name").textContent = firstName;
+  $("pf-stage-model").dataset.stage = String(stage.index);
+  $("pf-stage-model-label").textContent = stage.modelLabel;
+  $("pf-level-progress-fill").style.width = `${stage.progressPercent}%`;
+  $("pf-level-progress-label").textContent = `${stage.progressPercent}%`;
+  $("pf-level-progress-copy").textContent = stage.nextCopy;
+}

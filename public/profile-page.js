@@ -59,63 +59,10 @@ function getRelatedRow(value) {
   return Array.isArray(value) ? value[0] || null : value || null;
 }
 
-// Mirrors the staging logic that used to live in profile.js. Keep in sync if
-// the thresholds change there or in any consultant-facing copy.
-function calculateStageProgress(engagementsCompleted, avgRating) {
-  const stages = [
-    {
-      index: 0,
-      name: "seedling",
-      modelLabel: "stage 0: seedling",
-      nextCopy: "complete 1 free engagement and earn an average rating of at least 4.0 stars.",
-      targetEngagements: 1,
-      targetRating: 4,
-    },
-    {
-      index: 1,
-      name: "sprout",
-      modelLabel: "sprout stage placeholder",
-      nextCopy: "maintain a 4.0+ rating and complete 2 engagements to reach stage 2.",
-      targetEngagements: 2,
-      targetRating: 4,
-    },
-    {
-      index: 2,
-      name: "small tree",
-      modelLabel: "small tree stage placeholder",
-      nextCopy: "complete 10+ engagements and keep your rating above 4.0 to unlock giant sequoia status.",
-      targetEngagements: 10,
-      targetRating: 4.1,
-    },
-    {
-      index: 3,
-      name: "giant sequoia",
-      modelLabel: "giant sequoia stage placeholder",
-      nextCopy: "you've reached the highest stage. keep delivering strong work to hold sequoia status.",
-      targetEngagements: 10,
-      targetRating: 4.1,
-    },
-  ];
-
-  let stageIndex = 0;
-  if (avgRating != null && avgRating > 4 && engagementsCompleted >= 10) {
-    stageIndex = 3;
-  } else if (avgRating != null && avgRating >= 4 && engagementsCompleted >= 2) {
-    stageIndex = 2;
-  } else if (avgRating != null && avgRating >= 4 && engagementsCompleted >= 1) {
-    stageIndex = 1;
-  }
-
-  const stage = stages[stageIndex];
-  if (stage.index === stages.length - 1) {
-    return { ...stage, progressPercent: 100 };
-  }
-
-  const engagementProgress = clamp(engagementsCompleted / stage.targetEngagements, 0, 1);
-  const ratingProgress = avgRating == null ? 0 : clamp(avgRating / stage.targetRating, 0, 1);
-  const progressPercent = Math.round((engagementProgress * 0.6 + ratingProgress * 0.4) * 100);
-  return { ...stage, progressPercent };
-}
+// consultant progression: parked — `calculateStageProgress` lives in
+// parked/consultant-progression/progression-page.js.snippet alongside
+// `renderProgression`. Both were dropped to remove the load-time
+// model-viewer + 3D-model + DOM-write pipeline from /profile.html.
 
 async function loadConsultantStats(supabase, userId, profileRow) {
   const consultantProfile = getRelatedRow(profileRow?.consultant_profiles);
@@ -225,22 +172,9 @@ function renderMetrics(stats, rating) {
   $("pp-metric-earned").textContent = fmtUSD(stats.totalEarnedCents);
 }
 
-function renderProgression(profile, stats) {
-  const section = $("pp-progression-section");
-  if (!section) return;
-  section.classList.remove("hidden");
-
-  const firstName = String(profile?.full_name || "").trim().split(/\s+/)[0] || "consultant";
-  const stage = calculateStageProgress(stats.engagementsCompleted, stats.avgRating);
-
-  $("pf-level-title").textContent = `stage ${stage.index}: ${stage.name}`;
-  $("pf-level-name").textContent = firstName;
-  $("pf-stage-model").dataset.stage = String(stage.index);
-  $("pf-stage-model-label").textContent = stage.modelLabel;
-  $("pf-level-progress-fill").style.width = `${stage.progressPercent}%`;
-  $("pf-level-progress-label").textContent = `${stage.progressPercent}%`;
-  $("pf-level-progress-copy").textContent = stage.nextCopy;
-}
+// consultant progression: parked — `renderProgression` lives in
+// parked/consultant-progression/progression-page.js.snippet. See note
+// above `calculateStageProgress`.
 
 function renderReviews(rating, recentReviews) {
   const section = $("pp-reviews-section");
@@ -381,10 +315,8 @@ async function init() {
         fetchRecentReviews(supabase, session.user.id),
       ]);
       renderMetrics(stats, rating);
-      // Garden section sits between metrics + progression. Mount it
-      // before progression so the bloomed engagements land first.
       await mountConsultantGarden(supabase, session.user.id);
-      renderProgression(profile, stats);
+      // consultant progression: parked — see parked/consultant-progression/.
       renderReviews(rating, recent);
     } else {
       renderOwnerSection();
