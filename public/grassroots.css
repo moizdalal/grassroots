@@ -3828,20 +3828,41 @@ button.gr-bid-link {
   content: "✓";
 }
 
+/* Sticky to the bottom of the bids panel's scroll viewport so a long
+   list of proposals never scrolls the pay action out of reach. The
+   animate-in keyframe fires only when the .hidden class is dropped,
+   so the pill reveals itself on first selection but stays calm on
+   subsequent count/total updates. */
 .ld-proposal-cta {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
   padding: 0.8rem 1rem;
   border: 1.5px solid var(--fo-accent, #2d6a4f);
   border-radius: 12px;
   background: var(--fo-accent-soft, rgba(45, 106, 79, 0.08));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  animation: ld-proposal-cta-pop 0.42s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .ld-proposal-cta.hidden {
   display: none;
+}
+
+@keyframes ld-proposal-cta-pop {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ld-proposal-cta { animation: none; }
 }
 
 .ld-proposal-cta__summary {
@@ -4849,6 +4870,66 @@ button.gr-bid-link {
   border-radius: 0;
   padding: 0;
   margin-bottom: var(--space-5);
+}
+
+/* At-a-glance balance summary card. Sits above the embedded Stripe
+   iframes for active accounts. Card pattern per brandkit: light theme
+   gets a surface fill; dark themes use border-only floating outline. */
+.po-balance {
+  margin: var(--space-4) 0 var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--fo-line);
+  border-radius: 14px;
+  background: var(--fo-surface);
+  display: grid;
+  gap: var(--space-4);
+}
+:root:not([data-theme="light"]) .po-balance {
+  background: transparent;
+}
+
+.po-balance__title {
+  margin: 0;
+}
+
+.po-balance__row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.po-balance__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.po-balance__label {
+  font-size: var(--type-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fo-text-3);
+}
+
+.po-balance__value {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: var(--type-h3);
+  font-weight: 600;
+  color: var(--fo-text);
+  font-variant-numeric: tabular-nums;
+  /* Keep "last payout" lines from blowing out the cell on long values. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .po-balance__row {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
 }
 
 /* Collapsible section primitive used on the payouts page. The head is

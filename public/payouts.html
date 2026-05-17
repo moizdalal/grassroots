@@ -42,6 +42,26 @@
           <div id="po-onboarding" class="po-onboarding"></div>
         </section>
 
+        <!-- At-a-glance balance summary card. Active accounts only;
+             reads the Stripe Balance + last payout via our server. -->
+        <section id="po-balance" class="po-balance" hidden aria-labelledby="po-balance-h">
+          <h2 id="po-balance-h" class="po-balance__title gr-section-h">balance</h2>
+          <div class="po-balance__row">
+            <div class="po-balance__cell">
+              <span class="po-balance__label">available</span>
+              <span class="po-balance__value" id="po-balance-available">—</span>
+            </div>
+            <div class="po-balance__cell">
+              <span class="po-balance__label">pending</span>
+              <span class="po-balance__value" id="po-balance-pending">—</span>
+            </div>
+            <div class="po-balance__cell">
+              <span class="po-balance__label">last payout</span>
+              <span class="po-balance__value" id="po-balance-last">—</span>
+            </div>
+          </div>
+        </section>
+
         <!-- Active: account management (tax info, bank, identity updates) + payouts list.
              Each block is a collapsible section — click the head to fold it
              away. Open/closed state persists per section in localStorage so
@@ -208,6 +228,49 @@
         return res;
       }
 
+      // Number → "$1,234.56" (or "—" when the value isn't a finite cents int).
+      function formatUsd(cents) {
+        if (!Number.isFinite(Number(cents))) return "—";
+        return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(cents) / 100);
+      }
+      // Stripe payout `arrival_date` is a unix-seconds int. We format as
+      // "may 16" — short month + day, lowercase per voice, no year unless
+      // the payout is from a previous calendar year.
+      function formatPayoutDate(arrivalDate) {
+        if (!arrivalDate) return null;
+        const d = new Date(Number(arrivalDate) * 1000);
+        if (Number.isNaN(d.getTime())) return null;
+        const now = new Date();
+        const sameYear = d.getUTCFullYear() === now.getUTCFullYear();
+        return d.toLocaleDateString("en-US", sameYear
+          ? { month: "short", day: "numeric" }
+          : { month: "short", day: "numeric", year: "numeric" }).toLowerCase();
+      }
+      async function refreshBalanceSummary(client) {
+        const card = $("po-balance");
+        if (!card) return;
+        try {
+          const res = await authedFetch(client, "/api/stripe/balance-summary");
+          if (!res.ok) { card.hidden = true; return; }
+          const data = await res.json();
+          if (!data?.onboarded) { card.hidden = true; return; }
+          card.hidden = false;
+          $("po-balance-available").textContent = formatUsd(data.available_cents);
+          $("po-balance-pending").textContent = formatUsd(data.pending_cents);
+          if (data.last_payout) {
+            const when = formatPayoutDate(data.last_payout.arrival_date);
+            $("po-balance-last").textContent = when
+              ? `${formatUsd(data.last_payout.amount_cents)} · ${when}`
+              : formatUsd(data.last_payout.amount_cents);
+          } else {
+            $("po-balance-last").textContent = "no payouts yet";
+          }
+        } catch (_) {
+          // A transient stripe blip shouldn't leave a half-broken card up.
+          card.hidden = true;
+        }
+      }
+
       async function refreshStatus(client) {
         try {
           const res = await authedFetch(client, "/api/stripe/account-status");
@@ -233,6 +296,7 @@
             document.title = "grassroots — your payouts";
             $("po-onboarding-section").hidden = true;
             $("po-active-section").hidden = false;
+            refreshBalanceSummary(client);
             mountAccountManagement();
             mountPayouts();
             stopPolling();

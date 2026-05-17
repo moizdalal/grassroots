@@ -1633,6 +1633,17 @@ function bindReviewInteractions() {
     reviewStatusEl.textContent = "";
     reviewStatusEl.className = "gr-status";
     reviewPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Accent ring flash — drops the class first and forces reflow so
+    // a second click re-fires the animation instead of being ignored
+    // because the class was already there.
+    reviewPanel.classList.remove("eg-panel--flash");
+    void reviewPanel.offsetWidth;
+    reviewPanel.classList.add("eg-panel--flash");
+    reviewPanel.addEventListener(
+      "animationend",
+      () => reviewPanel.classList.remove("eg-panel--flash"),
+      { once: true }
+    );
     const firstStarBtn = ratingGrid?.querySelector(".eg-stars__hit");
     if (firstStarBtn instanceof HTMLElement) firstStarBtn.focus();
   });

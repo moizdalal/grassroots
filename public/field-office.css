@@ -1008,16 +1008,18 @@ body.gr-body .gr-section-h {
   }
 }
 
-/* Row beneath the full-width engagement journey: profile health on the
-   left, unread messages on the right. Same proportions as the old
-   .cdash__top so the visual rhythm of the page is preserved.
-   (Kept for any consumers that still reference the class — the consultant
-   dashboard no longer renders one.) */
+/* Row beneath the full-width engagement journey: profile-completion
+   bucket on the left, recent notifications feed on the right. Equal
+   columns AND equal heights so the two cards read as a matched pair —
+   the left card's natural height (bucket + summary + CTA + rating)
+   sets the row height; the notifications panel stretches to match
+   and scrolls internally if its feed overflows. */
 .cdash__below {
   display: grid;
-  grid-template-columns: 1fr 1.2fr;
+  grid-template-columns: 1fr 1fr;
   gap: 1.25rem;
-  margin-top: 1.25rem;
+  margin-top: 1.5rem;
+  align-items: stretch;
 }
 
 @media (max-width: 900px) {
@@ -1026,180 +1028,27 @@ body.gr-body .gr-section-h {
   }
 }
 
-/* ── Journey block: slim health bar pinned above the journey panel ── */
-.cdash__journey-block {
+.cdash__health-section,
+.cdash__notifications-section {
+  min-width: 0;
+  display: flex;
+}
+
+.cdash__health-section > .bza__panel,
+.cdash__notifications-section > .bza__panel {
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  min-height: 0;
 }
 
-.cdash__health-bar {
-  --bar-tier: var(--fo-accent);
-  position: relative;
-  padding: 0.7rem 0.95rem;
-  border-radius: 12px;
-  background: var(--fo-surface, rgba(255, 255, 255, 0.6));
-  border: 1px solid var(--fo-line);
-  box-shadow: 0 1px 0 rgba(20, 32, 26, 0.04);
-}
-
-.cdash__health-bar[data-tier="good"] { --bar-tier: var(--fo-accent); }
-.cdash__health-bar[data-tier="fair"] { --bar-tier: var(--fo-do, #d4a14a); }
-.cdash__health-bar[data-tier="low"]  { --bar-tier: var(--fo-plan, #d4715a); }
-
-.cdash__health-bar[hidden] { display: none; }
-
-.cdash__health-bar__link {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 0.85rem;
-  text-decoration: none;
-  color: inherit;
-}
-
-.cdash__health-bar__label {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.35rem;
-  font-size: var(--type-meta);
-  font-weight: 600;
-  color: var(--fo-text-2, var(--fo-text));
-  white-space: nowrap;
-}
-
-.cdash__health-bar__label-text {
-  font-size: var(--type-eyebrow);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--fo-text-3, var(--tagline-body));
-}
-
-.cdash__health-bar__pct {
-  font-family: "Fraunces", Georgia, serif;
-  font-weight: 600;
-  font-size: var(--type-h3);
-  color: var(--bar-tier);
-}
-
-.cdash__health-bar__track {
-  position: relative;
-  height: 10px;
-  border-radius: 999px;
-  background: var(--fo-surface-3, rgba(45, 106, 79, 0.08));
-  overflow: hidden;
-  box-shadow: inset 0 1px 2px rgba(20, 32, 26, 0.08);
-}
-
-.cdash__health-bar__fill {
-  position: relative;
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  /* Two-stop gradient gives the fill a bit more dimension than a flat
-     color — lighter at the top, deeper at the bottom. */
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--bar-tier) 80%, white 20%),
-    var(--bar-tier)
-  );
-  transition: width 0.55s var(--ease-framer, ease);
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--bar-tier) 35%, transparent);
-}
-
-/* A slow-moving diagonal sheen across the fill so the bar feels alive
-   without being distracting. Only animates if the user hasn't asked for
-   reduced motion (handled at the bottom of this block). */
-.cdash__health-bar__fill-shine {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  overflow: hidden;
-}
-
-.cdash__health-bar__fill-shine::before {
-  content: "";
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 60%;
-  height: 200%;
-  background: linear-gradient(
-    105deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.45) 50%,
-    transparent 100%
-  );
-  transform: translateX(-160%) skewX(-18deg);
-  animation: cdash-health-bar-sheen 3.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
-}
-
-@keyframes cdash-health-bar-sheen {
-  0%   { transform: translateX(-160%) skewX(-18deg); }
-  60%  { transform: translateX(280%) skewX(-18deg); }
-  100% { transform: translateX(280%) skewX(-18deg); }
-}
-
-/* CTA — proper pill button using the tier color, not a flat text link. */
-.cdash__health-bar__cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.85rem 0.35rem 0.95rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--bar-tier) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--bar-tier) 32%, transparent);
-  color: var(--bar-tier);
-  font-size: var(--type-meta);
-  font-weight: 600;
-  white-space: nowrap;
-  text-decoration: none;
-  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
-}
-
-.cdash__health-bar__cta-arrow {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 14px;
-  height: 14px;
-  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.cdash__health-bar__cta-arrow svg {
-  width: 100%;
-  height: 100%;
-}
-
-.cdash__health-bar__link:hover .cdash__health-bar__cta,
-.cdash__health-bar__link:focus-visible .cdash__health-bar__cta {
-  background: color-mix(in srgb, var(--bar-tier) 22%, transparent);
-  border-color: var(--bar-tier);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--bar-tier) 25%, transparent);
-}
-
-.cdash__health-bar__link:hover .cdash__health-bar__cta-arrow,
-.cdash__health-bar__link:focus-visible .cdash__health-bar__cta-arrow {
-  transform: translateX(2px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cdash__health-bar__fill-shine::before { animation: none; }
-  .cdash__health-bar__cta-arrow { transition: none; }
-}
-
-@media (max-width: 640px) {
-  .cdash__health-bar__link {
-    grid-template-columns: 1fr auto;
-    grid-template-areas:
-      "label cta"
-      "track track";
-    row-gap: 0.5rem;
-  }
-  .cdash__health-bar__label { grid-area: label; }
-  .cdash__health-bar__cta { grid-area: cta; }
-  .cdash__health-bar__track { grid-area: track; }
+/* Notifications feed inside the right card: the panel header stays
+   pinned; the list takes the rest of the card height and scrolls if
+   it has more rows than fit. */
+.cdash__notifications-section .dash-notifications-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .cdash__caught-up {
@@ -3717,124 +3566,45 @@ body.gr-has-side-nav .bza__main {
   border-top: 1px solid var(--fo-line);
 }
 
-/* The post-a-listing CTA sits above the foot divider; pin it to the
-   bottom of the available space using margin-top auto so the foot card
-   stays anchored at the bottom of the sidebar. */
-.bza__post {
-  margin-top: auto;
-}
+/* Post-a-listing now sits inline with the primary nav items as the
+   last "what you do" item before the divider. It keeps its filled-
+   accent button styling so it still reads as a CTA, but no longer
+   pins itself to the bottom — the dark-mode row does that instead. */
 
-/* Consultants don't get a post CTA, so the system row + foot cluster has
-   no upstream anchor pulling it to the bottom. Pin the sys-row to the
-   bottom of the available space — the foot follows it naturally. */
-.bza__side:not(:has(.bza__post)) .bza__sys-row {
-  margin-top: auto;
-}
-
-/* ── Compact system row at the bottom of the sidebar ───────────────
-   Icon-only links (settings, help) separated by "/" slashes, plus a
-   bare dark-mode toggle. Each icon expands inline to reveal its label
-   on hover/focus, with the row growing horizontally rather than
-   popping a tooltip. The label transition runs on max-width + opacity
-   + margin-left so the neighbors slide aside smoothly. */
-.bza__sys-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  padding: 0.6rem 0.25rem;
-  margin-bottom: 0.25rem;
-}
-
-.bza__sys-item {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.3rem 0.45rem;
-  border-radius: 999px;
-  background: transparent;
+/* Hairline that separates the primary nav ("what you do") from the
+   secondary nav ("account / system"). Sits inside .bza__nav with the
+   same horizontal padding as nav items so it doesn't slice all the
+   way across the sidebar. */
+.bza__nav-divider {
   border: 0;
-  color: var(--fo-text-2);
-  font: inherit;
-  font-size: var(--type-meta);
-  text-decoration: none;
-  cursor: pointer;
-  transition: color 0.18s ease, background 0.18s ease;
+  height: 1px;
+  background: var(--fo-line);
+  margin: 0.45rem 0.7rem;
 }
 
-.bza__sys-item:hover,
-.bza__sys-item:focus-visible {
-  background: var(--fo-accent-soft);
-  color: var(--fo-accent);
-  outline: none;
-}
-
-.bza__sys-item__icon {
-  flex: 0 0 auto;
-  display: inline-flex;
-  width: 18px;
-  height: 18px;
-}
-
-.bza__sys-item__icon svg {
-  width: 100%;
-  height: 100%;
-}
-
-.bza__sys-item__label {
-  display: inline-block;
-  max-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  opacity: 0;
-  margin-left: 0;
-  transition: max-width 0.25s ease, opacity 0.18s ease, margin-left 0.25s ease;
-}
-
-.bza__sys-item:hover .bza__sys-item__label,
-.bza__sys-item:focus-visible .bza__sys-item__label {
-  max-width: 5rem;
-  opacity: 1;
-  margin-left: 0.35rem;
-}
-
-.bza__sys-divider {
-  color: var(--fo-text-3);
-  user-select: none;
-  font-size: var(--type-meta);
-  line-height: 1;
-}
-
-/* Dark-mode toggle inside the system row — moon icon + switch, no
-   text label. Reuses the existing .bza__darkmode-switch visuals. */
-.bza__sys-darkmode {
+/* Dark-mode row: pinned just above the foot, sized to match the nav-
+   item rhythm. Icon-left, label-middle, switch-right. Lives as a
+   direct flex child of .bza__side so margin-top: auto anchors it to
+   the bottom of the sidebar across both roles. */
+.bza__darkmode-row {
   position: relative;
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.25rem 0.15rem;
+  gap: 0.6rem;
+  padding: 0.55rem 0.7rem;
+  margin-top: auto;
+  border-radius: 10px;
   color: var(--fo-text-2);
+  font-size: var(--type-body);
+  font-weight: 500;
   cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
-.bza__sys-darkmode__icon {
-  flex: 0 0 auto;
-  display: inline-flex;
-  width: 18px;
-  height: 18px;
-}
-
-.bza__sys-darkmode__icon svg {
-  width: 100%;
-  height: 100%;
-}
-
-/* Collapsed sidebar still fits the row — wrap to a column if needed. */
-.bza--collapsed .bza__sys-row {
-  flex-wrap: wrap;
-  gap: 0.25rem;
-}
-.bza--collapsed .bza__sys-divider {
-  display: none;
+.bza__darkmode-row:hover {
+  background: var(--fo-surface-2);
+  color: var(--fo-text);
 }
 
 .bza__user {
@@ -4064,115 +3834,6 @@ body.gr-has-side-nav .bza__main {
   font-style: italic;
   font-size: var(--type-body);  color: var(--fo-accent);
   letter-spacing: 0.01em;
-}
-
-/* ── stat strip ────────────────────────────────────────────── */
-.dash-stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.85rem;
-  margin-bottom: 1.5rem;
-}
-
-@media (max-width: 900px) {
-  .dash-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-.dash-stat {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  padding: 1rem 1.1rem;
-  border-radius: 16px;
-  background: var(--dash-stat-bg, var(--fo-surface));
-  border: 0;
-  color: var(--fo-text);
-  text-decoration: none;
-  position: relative;
-  overflow: hidden;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
-}
-
-a.dash-stat:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(15, 31, 26, 0.12);
-}
-
-.dash-stat__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.4rem;
-  height: 2.4rem;
-  border-radius: 12px;
-  background: var(--dash-stat-icon-bg, rgba(255, 255, 255, 0.55));
-  color: var(--dash-stat-accent, var(--fo-accent));
-  flex-shrink: 0;
-}
-
-.dash-stat__icon svg {
-  width: 1.15rem;
-  height: 1.15rem;
-}
-
-.dash-stat__body {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.dash-stat__value {
-  font-family: "Fraunces", serif;
-  font-size: var(--type-h1);  font-weight: 600;
-  line-height: 1;
-  color: var(--dash-stat-value, var(--fo-text));
-}
-
-.dash-stat__label {
-  font-family: "Manrope", system-ui, sans-serif;
-  font-size: var(--type-meta);  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--dash-stat-label, var(--fo-text-3));
-  margin-top: 0.32rem;
-}
-
-/* ── green palette ramp: lightest mint → deepest forest ──────────
-   Each tile has its own solid pastel-to-deep green so the four read
-   as a clear left-to-right gradient. Text colors are paired to keep
-   contrast on both light and dark themes. */
-.dash-stat--listings {
-  --dash-stat-accent: #4a8a5e;
-  --dash-stat-bg: #d8eedf;
-  --dash-stat-border: #b8dcc4;
-  --dash-stat-icon-bg: rgba(255, 255, 255, 0.6);
-  --dash-stat-label: #436e54;
-  --dash-stat-value: #143a26;
-}
-.dash-stat--actions {
-  --dash-stat-accent: #2d6a4f;
-  --dash-stat-bg: #95d5b2;
-  --dash-stat-border: #74c096;
-  --dash-stat-icon-bg: rgba(255, 255, 255, 0.55);
-  --dash-stat-label: #1d4530;
-  --dash-stat-value: #0c2a18;
-}
-.dash-stat--offers {
-  --dash-stat-accent: #d4f3da;
-  --dash-stat-bg: #40916c;
-  --dash-stat-border: #2f7a58;
-  --dash-stat-icon-bg: rgba(255, 255, 255, 0.18);
-  --dash-stat-label: rgba(232, 246, 232, 0.85);
-  --dash-stat-value: #f1faf1;
-}
-.dash-stat--inbox {
-  --dash-stat-accent: #d4f3da;
-  --dash-stat-bg: #1b4332;
-  --dash-stat-border: #0f3023;
-  --dash-stat-icon-bg: rgba(255, 255, 255, 0.10);
-  --dash-stat-label: rgba(212, 232, 215, 0.78);
-  --dash-stat-value: #f1faf1;
 }
 
 /* ── action item kind accents (left-edge stripe) ──────────────── */

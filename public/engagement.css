@@ -106,6 +106,33 @@
   gap: 1rem;
 }
 
+/* Brief accent ring on the review panel when the owner clicks
+   "work completed." A `::before` pseudo holds an absolutely-positioned
+   ring that scales in then fades — pseudo-element transform animates
+   reliably where box-shadow interpolation was getting stuck in
+   Chromium. Reduced-motion users see no flash. */
+.eg-panel {
+  position: relative;
+}
+.eg-panel--flash::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border: 2.5px solid var(--fo-accent);
+  border-radius: calc(14px + 6px);
+  pointer-events: none;
+  opacity: 0;
+  animation: eg-panel-flash 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes eg-panel-flash {
+  0%   { opacity: 0; transform: scale(0.985); }
+  25%  { opacity: 0.85; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.01); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eg-panel--flash::before { animation: none; opacity: 0; }
+}
+
 .eg-panel.hidden,
 .eg-duration.hidden,
 .eg-owner-actions-panel.hidden,

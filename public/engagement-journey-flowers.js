@@ -246,9 +246,6 @@ export function mountEngagementJourneyFlowers(container, { client, engagements, 
   container.classList.add("cdash__journey-flowers");
   container.innerHTML = `
     <div class="cdash__journey-flowers-head">
-      <span class="cdash__journey-flowers-title">
-        <strong>your engagement journey</strong>
-      </span>
       <button type="button" class="cdash__journey-flowers-unhide-all" hidden>show hidden (0)</button>
     </div>
     <div class="cdash__journey-flowers-stage" id="cdash-journey-flowers-stage"></div>

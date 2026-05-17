@@ -590,27 +590,14 @@ function renderDashboard(client, data) {
     });
   }
 
-  const newOffers = listings.reduce(
-    (acc, l) => acc + (l.__bids || []).filter((b) => b.status === "submitted" || b.status === "pending").length,
-    0
-  );
-
   let metaBits = [];
   if (liveCount) metaBits.push(`${liveCount} live · ${listings.reduce((a, l) => a + (l.__bidCount || 0), 0)} total offers`);
   if (unreadCount) metaBits.push(`${unreadCount} unread`);
   $("dash-h-meta").textContent = metaBits.join(" · ");
 
-  // At-a-glance stat tiles
-  const statListings = $("dash-stat-listings");
-  const statNotifs = $("dash-stat-notifications");
-  const statOffers = $("dash-stat-offers");
-  const statUnread = $("dash-stat-unread");
-  if (statListings) statListings.textContent = String(liveCount);
-  if (statOffers) statOffers.textContent = String(newOffers);
-  if (statUnread) statUnread.textContent = String(unreadCount);
-
-  // Notifications panel — replaces the old action-items panel. Pulls recent
-  // rows from the notifications table and surfaces them with category icons.
+  // Notifications panel — pulls recent rows from the notifications
+  // table and surfaces them with category icons. The unread count
+  // also drives the sidebar bell badge.
   const notifList = $("dash-notifications-list");
   const notifEmpty = $("dash-notifications-empty");
   if (data.session?.user?.id && notifList) {
@@ -620,7 +607,12 @@ function renderDashboard(client, data) {
       listEl: notifList,
       emptyEl: notifEmpty,
     }).then((result) => {
-      if (statNotifs) statNotifs.textContent = String(result?.unreadCount || 0);
+      const unread = result?.unreadCount || 0;
+      const notifBadge = $("dash-notif-badge");
+      if (notifBadge) {
+        notifBadge.textContent = String(unread);
+        notifBadge.hidden = unread === 0;
+      }
     });
   }
 

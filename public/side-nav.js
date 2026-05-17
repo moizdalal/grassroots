@@ -23,6 +23,8 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/></svg>',
   payouts:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-1"/><path d="M16 12a2 2 0 0 0 0 4h5v-4z"/></svg>',
+  notifications:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
   chevron:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
   plus:
@@ -42,22 +44,14 @@ const ICONS = {
 function buildNavItems(role) {
   if (role === "consultant") {
     // Consultants get "home" (their dashboard), an expandable engagements
-    // hub for managing active and past work, plus marketplace, inbox and
-    // a direct payouts link.
+    // hub for managing active and past work, plus marketplace, inbox,
+    // notifications, and a direct payouts link.
     return [
       { href: "/consultant-dashboard.html", label: "home", icon: ICONS.home, navId: "home" },
-      {
-        href: "/engagements.html",
-        label: "engagements",
-        icon: ICONS.engagements,
-        navId: "engagements",
-        sub: [
-          { href: "/engagements.html?view=current", label: "current", navId: "engagements-current" },
-          { href: "/engagements.html?view=past", label: "past", navId: "engagements-past" },
-        ],
-      },
+      { href: "/engagements.html", label: "engagements", icon: ICONS.engagements, navId: "engagements" },
       { href: "/marketplace.html", label: "marketplace", icon: ICONS.marketplace, navId: "marketplace" },
       { href: "/consultant-dashboard.html#inbox", label: "inbox", icon: ICONS.inbox, navId: "inbox" },
+      { href: "/notifications.html", label: "notifications", icon: ICONS.notifications, navId: "notifications" },
       { href: "/payouts.html", label: "payouts", icon: ICONS.payouts, navId: "payouts" },
     ];
   }
@@ -67,8 +61,17 @@ function buildNavItems(role) {
     { href: "/dashboard.html", label: "home", icon: ICONS.home, navId: "home" },
     { href: "/dashboard.html#listings", label: "my listings", icon: ICONS.listings, navId: "listings" },
     { href: "/dashboard.html#inbox", label: "inbox", icon: ICONS.inbox, navId: "inbox" },
+    { href: "/notifications.html", label: "notifications", icon: ICONS.notifications, navId: "notifications" },
   ];
 }
+
+// Secondary nav (account / system). Same vertical layout as the
+// primary items, but rendered after a divider so the visual grouping
+// reads as "what you do" → hairline → "your account".
+const SECONDARY_NAV_ITEMS = [
+  { href: "/settings.html", label: "settings", icon: ICONS.gear, navId: "settings" },
+  { href: "/help.html", label: "help", icon: ICONS.help, navId: "help" },
+];
 
 function inferActiveNavId(role) {
   const path = window.location.pathname;
@@ -77,13 +80,11 @@ function inferActiveNavId(role) {
   if (path === "/dashboard.html" || path === "/dashboard") return hash || "home";
   if (path === "/consultant-dashboard.html") return hash || "home";
   if (path === "/marketplace.html") return role === "consultant" ? "marketplace" : null;
-  if (path === "/engagements.html") {
-    const view = params.get("view");
-    if (view === "past") return "engagements-past";
-    if (view === "current") return "engagements-current";
-    return "engagements";
-  }
+  if (path === "/engagements.html") return "engagements";
   if (path === "/payouts.html") return role === "consultant" ? "payouts" : null;
+  if (path === "/notifications.html") return "notifications";
+  if (path === "/settings.html") return "settings";
+  if (path === "/help.html" || path.startsWith("/help/")) return "help";
   return null;
 }
 
@@ -135,37 +136,19 @@ function renderNavItem(item, activeNavId) {
 
 function renderSidebar({ role, activeNavId }) {
   const navItems = buildNavItems(role);
-  const nav = navItems.map((it) => renderNavItem(it, activeNavId)).join("");
-  // Owners get a "post a listing" CTA; consultants don't post listings.
+  const primary = navItems.map((it) => renderNavItem(it, activeNavId)).join("");
+  const secondary = SECONDARY_NAV_ITEMS.map((it) => renderNavItem(it, activeNavId)).join("");
+  // Owners get a "post a listing" CTA above the primary→secondary
+  // divider so the styled green button still reads as part of the
+  // "what you do" cluster.
   const postCta =
     role === "consultant"
       ? ""
       : `
-      <a href="/create-listing.html" class="bza__post" id="gr-side-post" title="post a listing">
-        <span class="bza__nav-icon" aria-hidden="true">${ICONS.plus}</span>
-        <span class="bza__nav-label">post a listing</span>
-      </a>`;
-  // Compact system row — icons separated by slashes, labels reveal on
-  // hover. Dark mode is just the toggle (the switch is self-evident, no
-  // descriptor needed).
-  const sysRow = `
-    <div class="bza__sys-row" role="group" aria-label="system">
-      <a href="/settings.html" class="bza__sys-item" title="settings">
-        <span class="bza__sys-item__icon" aria-hidden="true">${ICONS.gear}</span>
-        <span class="bza__sys-item__label">settings</span>
-      </a>
-      <span class="bza__sys-divider" aria-hidden="true">/</span>
-      <a href="/help.html" class="bza__sys-item" title="help">
-        <span class="bza__sys-item__icon" aria-hidden="true">${ICONS.help}</span>
-        <span class="bza__sys-item__label">help</span>
-      </a>
-      <span class="bza__sys-divider" aria-hidden="true">/</span>
-      <label class="bza__sys-darkmode" title="dark mode">
-        <span class="bza__sys-darkmode__icon" aria-hidden="true">${ICON_MOON}</span>
-        <input type="checkbox" id="gr-side-darkmode" class="bza__darkmode-input" />
-        <span class="bza__darkmode-switch" aria-hidden="true"></span>
-      </label>
-    </div>`;
+        <a href="/create-listing.html" class="bza__post" id="gr-side-post" title="post a listing">
+          <span class="bza__nav-icon" aria-hidden="true">${ICONS.plus}</span>
+          <span class="bza__nav-label">post a listing</span>
+        </a>`;
   return `
     <aside class="bza__side" id="gr-side">
       <div class="bza__side-edge" id="gr-side-edge" aria-hidden="true" title="double-click to toggle"></div>
@@ -176,10 +159,16 @@ function renderSidebar({ role, activeNavId }) {
         </a>
       </div>
       <div class="bza__nav" role="navigation" aria-label="primary">
-        ${nav}
+        ${primary}${postCta}
+        <hr class="bza__nav-divider" aria-hidden="true" />
+        ${secondary}
       </div>
-${postCta}
-      ${sysRow}
+      <label class="bza__darkmode-row" title="dark mode">
+        <span class="bza__nav-icon" aria-hidden="true">${ICON_MOON}</span>
+        <span class="bza__nav-label">dark mode</span>
+        <input type="checkbox" id="gr-side-darkmode" class="bza__darkmode-input" />
+        <span class="bza__darkmode-switch" aria-hidden="true"></span>
+      </label>
       <div class="bza__side-foot">
         <a class="bza__user" id="gr-side-user" href="/profile.html" title="open your profile">
           <span class="bza__user-avatar" id="gr-side-user-avatar"></span>

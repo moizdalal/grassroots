@@ -893,6 +893,10 @@ function showConsultantView(client, session, listing, existingBid) {
     const heading = document.querySelector(".ld-offer-panel__heading");
     if (heading) heading.textContent = "your offer";
     const el = document.getElementById("ld-bid-existing");
+    const isAccepted = existingBid.status === "accepted";
+    const badgeHtml = isAccepted
+      ? `<span class="ld-accepted-badge">accepted</span>`
+      : "";
     const messageHtml = existingBid.message
       ? `<span class="ld-bid-existing__message">${escapeHtml(existingBid.message)}</span>`
       : "";
@@ -901,7 +905,7 @@ function showConsultantView(client, session, listing, existingBid) {
            <strong>${formatUsd(existingBid.proposal_fee_cents)}</strong> proposal +
            <strong>${formatUsd(existingBid.service_fee_cents || 0)}</strong> full job</span>`
       : `<span class="ld-bid-existing__amount">offer submitted: <strong>${formatUsd(existingBid.amount_cents)}</strong></span>`;
-    el.innerHTML = `${amountHtml}${messageHtml}`;
+    el.innerHTML = `<span class="ld-bid-existing__header">${amountHtml}${badgeHtml}</span>${messageHtml}`;
     el.hidden = false;
     formWrap.hidden = true;
   }
@@ -955,18 +959,9 @@ function showConsultantView(client, session, listing, existingBid) {
         const refreshed = await refreshFromStripe();
         if (refreshed) status = refreshed;
       }
-      if (status === "active") {
-        setPayoutsBlocked(false);
-      } else {
-        const banners = document.getElementById("ld-bid-banners");
-        const payoutsBanner = document.getElementById("ld-bid-payouts-banner");
-        if (banners && payoutsBanner) {
-          banners.hidden = false;
-          payoutsBanner.hidden = false;
-          const copy = payoutsBanner.querySelector("p");
-          if (copy) copy.textContent = "you need to finish setting up payouts before you can submit an offer. grassroots can't pay you until your stripe account is verified.";
-        }
-      }
+      // Non-active accounts stay payoutsBlocked. The disabled submit
+      // + click-time toast covers the prompt — no separate banner.
+      if (status === "active") setPayoutsBlocked(false);
     } catch (_) {
       // If we can't read the column (older schema), keep the gate up —
       // better the user sees the toast than ships a bid that can't be
@@ -994,13 +989,14 @@ function showConsultantView(client, session, listing, existingBid) {
     charCount.classList.toggle("ld-offer-char-count--low", remaining < 40);
   });
 
-  /* --- Accepted banner --- */
+  /* --- Accepted: badge sits inline in the "your offer" element; the
+         standalone manage-link sits below it as the CTA. --- */
   if (existingBid?.status === "accepted") {
-    const bannersEl = document.getElementById("ld-bid-banners");
-    bannersEl.hidden = false;
-    document.getElementById("ld-bid-accepted-banner").hidden = false;
-    document.getElementById("ld-bid-deadline-text").innerHTML =
-      `your offer was accepted. check your inbox for scheduling updates, or <a href="${engagementLink(existingBid.id)}">manage ongoing work</a>.`;
+    const manageLink = document.getElementById("ld-bid-manage-link");
+    if (manageLink) {
+      manageLink.href = engagementLink(existingBid.id);
+      manageLink.hidden = false;
+    }
     formWrap.hidden = true;
   }
 
@@ -1723,6 +1719,7 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
   let proposalCtaEl = null;
   let proposalCtaBtn = null;
   let proposalCtaTotalEl = null;
+  let proposalCtaLabelEl = null;
 
   function renderProposalCta() {
     if (!proposalCtaEl) return;
@@ -1733,6 +1730,9 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
       return;
     }
     proposalCtaEl.classList.remove("hidden");
+    if (proposalCtaLabelEl) {
+      proposalCtaLabelEl.textContent = `${selected.length} ${selected.length === 1 ? "proposal" : "proposals"} selected`;
+    }
     proposalCtaTotalEl.textContent = formatUsd(total);
     proposalCtaBtn.textContent = selected.length === 1
       ? "pay proposal fee"
@@ -1889,12 +1889,15 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
   }
 
   // Sticky cta for phased multi-accept. Inserted once after all cards.
+  // The label updates to reflect the current selection count, and the
+  // pill itself sticks to the bottom of the bids panel's scroll
+  // viewport — see `.ld-proposal-cta` in grassroots.css.
   if (isPhasedListing) {
     proposalCtaEl = document.createElement("div");
     proposalCtaEl.className = "ld-proposal-cta hidden";
     proposalCtaEl.innerHTML = `
       <div class="ld-proposal-cta__summary">
-        <span class="ld-proposal-cta__label">total in escrow</span>
+        <span class="ld-proposal-cta__label">0 proposals selected</span>
         <strong class="ld-proposal-cta__total">$0.00</strong>
       </div>
       <button type="button" class="gr-btn gr-btn--primary gr-btn--sm" id="ld-pay-proposals">pay proposal fee</button>
@@ -1902,6 +1905,7 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
     list.appendChild(proposalCtaEl);
     proposalCtaBtn = proposalCtaEl.querySelector("#ld-pay-proposals");
     proposalCtaTotalEl = proposalCtaEl.querySelector(".ld-proposal-cta__total");
+    proposalCtaLabelEl = proposalCtaEl.querySelector(".ld-proposal-cta__label");
     proposalCtaBtn.addEventListener("click", handlePayProposals);
   }
 

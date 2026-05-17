@@ -1151,6 +1151,59 @@ app.get("/api/stripe/account-status", async (req, res) => {
   }
 });
 
+// Consultant payouts summary — at-a-glance numbers shown above the
+// embedded Stripe iframes. Returns USD-only totals from the Balance
+// API (available + pending in the platform's eyes on this connected
+// account) and the arrival_date + amount of the most recent payout.
+//
+// Stripe Balance and Payouts are per-account: every call passes
+// `stripeAccount: <acct_id>` so we're reading the consultant's own
+// view, not the platform's. We deliberately ignore non-USD entries
+// — the marketplace is USD-only today, and surfacing zero foreign-
+// currency lines would just be noise.
+app.get("/api/stripe/balance-summary", async (req, res) => {
+  if (!requireStripe(res)) return;
+  const viewer = await getViewerFromRequest(req);
+  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  try {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("stripe_account_id, stripe_account_status")
+      .eq("id", viewer.id)
+      .maybeSingle();
+    if (!profile?.stripe_account_id) {
+      return res.json({ onboarded: false, available_cents: 0, pending_cents: 0, last_payout: null });
+    }
+    const onboarded = profile.stripe_account_status === "active";
+    const sumUsd = (entries) => (entries || [])
+      .filter((e) => String(e.currency || "").toLowerCase() === "usd")
+      .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    // Stripe SDK takes (params, options) — `stripeAccount` is a request
+    // option, not a params field. Passing it as params (the previous
+    // shape) tripped a 500 with "Received unknown parameter: stripeAccount".
+    const [balance, payouts] = await Promise.all([
+      stripe.balance.retrieve(undefined, { stripeAccount: profile.stripe_account_id }),
+      stripe.payouts.list({ limit: 1 }, { stripeAccount: profile.stripe_account_id }),
+    ]);
+    const lastPayout = payouts.data?.[0]
+      ? {
+          amount_cents: Number(payouts.data[0].amount || 0),
+          currency: payouts.data[0].currency || "usd",
+          arrival_date: payouts.data[0].arrival_date || null,
+          status: payouts.data[0].status || null,
+        }
+      : null;
+    return res.json({
+      onboarded,
+      available_cents: sumUsd(balance.available),
+      pending_cents: sumUsd(balance.pending),
+      last_payout: lastPayout,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "could not load balance summary." });
+  }
+});
+
 // Owner: create a PaymentIntent for accepting a bid.
 //
 // Escrow model (separate_charges_and_transfers): the charge captures into the

@@ -545,6 +545,61 @@
   margin-bottom: 0.9rem;
 }
 
+/* Header row inside the existing-offer card: amount line on the left,
+   status pill aligned to the right (when accepted). Wraps if narrow. */
+.ld-bid-existing__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ld-bid-existing__message {
+  display: block;
+  margin-top: 0.4rem;
+}
+
+/* Pill is shared with the (now-removed) banner CSS; override the
+   trailing margin it had in that layout so it sits flush inline. */
+.ld-bid-existing .ld-accepted-badge {
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+/* Standalone "manage ongoing work" CTA sits just below the existing-
+   offer card when the bid has been accepted. Same visual weight as
+   the payouts-banner CTA so the two read as siblings. */
+.ld-bid-manage-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.85rem;
+  margin: 0 0 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--fo-line-strong, rgba(45, 106, 79, 0.28));
+  background: transparent;
+  color: var(--fo-accent, var(--green-deep));
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.ld-bid-manage-link:hover {
+  background: var(--fo-accent-soft, rgba(45, 106, 79, 0.08));
+  border-color: var(--fo-accent, var(--green-mid));
+}
+
+.ld-bid-manage-link__arrow {
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ld-bid-manage-link:hover .ld-bid-manage-link__arrow {
+  transform: translateX(2px);
+}
+
 /* `:not([hidden])` so the class doesn't out-specificity the `hidden`
    attribute — without it, JS-set `.hidden = true` on these rows stays
    visible because `display: flex` wins over the UA `[hidden]` rule. */
@@ -891,25 +946,9 @@
   color: var(--green-deep);
 }
 
-/* --- Accepted / counter banners --- */
-.ld-accepted-banner {
-  background: rgba(45, 106, 79, 0.07);
-  border: 1.5px solid rgba(45, 106, 79, 0.2);
-  border-radius: 12px;
-  padding: 0.85rem 1rem;
-  margin-top: 1rem;
-}
-
-.ld-accepted-banner a {
-  color: var(--green-deep);
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.ld-accepted-banner a:hover {
-  text-decoration: underline;
-}
-
+/* Accepted-state pill — used inline inside the "your offer" card's
+   header row. The standalone "manage ongoing work" CTA below it
+   carries the action; the pill just communicates state. */
 .ld-accepted-badge {
   display: inline-block;
   font-size: var(--type-eyebrow);
@@ -918,41 +957,6 @@
   letter-spacing: 0.07em;
   color: #fff;
   background: var(--green-mid);
-  border-radius: 999px;
-  padding: 0.15rem 0.6rem;
-  margin-bottom: 0.45rem;
-}
-
-/* Soft warning banner shown to consultants whose Stripe account isn't yet
-   active. Not a hard block — the consultant can still submit a bid; the
-   warning just prepares them to set up payouts before acceptance. */
-.ld-payouts-banner {
-  background: var(--fo-accent-soft, rgba(45, 106, 79, 0.06));
-  border: 1px dashed var(--fo-line-strong, var(--card-border));
-  border-radius: 12px;
-  padding: 0.85rem 1rem;
-  margin-top: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  align-items: flex-start;
-}
-
-.ld-payouts-banner p {
-  margin: 0;
-  font-size: var(--type-meta);
-  color: var(--fo-text-2);
-  line-height: 1.45;
-}
-
-.ld-payouts-badge {
-  display: inline-block;
-  font-size: var(--type-eyebrow);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--fo-accent-on, #fff);
-  background: var(--fo-accent, var(--green-mid));
   border-radius: 999px;
   padding: 0.15rem 0.6rem;
 }

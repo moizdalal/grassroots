@@ -92,19 +92,6 @@
               <ul id="ld-quals" class="ld-quals-list"></ul>
             </details>
 
-            <!-- Consultant: status banners (accepted / countered / payouts-needed) -->
-            <div id="ld-bid-banners" hidden>
-              <div id="ld-bid-accepted-banner" class="ld-accepted-banner" hidden>
-                <span class="ld-accepted-badge">accepted</span>
-                <p id="ld-bid-deadline-text"></p>
-              </div>
-              <div id="ld-bid-payouts-banner" class="ld-payouts-banner" hidden>
-                <span class="ld-payouts-badge">heads up</span>
-                <p>set up payouts before this gets accepted — otherwise grassroots can't pay you.</p>
-                <a class="gr-btn gr-btn--ghost gr-btn--sm" href="/payouts.html">set up payouts</a>
-              </div>
-            </div>
-
             <!-- "have a question?" — consultant only -->
             <div id="ld-question-wrap" class="ld-question-wrap" hidden>
               <button type="button" class="ld-question-btn" id="ld-question-btn">
@@ -194,6 +181,10 @@
               <h2 class="ld-offer-panel__heading">make an offer</h2>
 
               <p id="ld-bid-existing" class="ld-bid-existing" hidden></p>
+              <a id="ld-bid-manage-link" class="ld-bid-manage-link" href="#" hidden>
+                manage ongoing work
+                <span class="ld-bid-manage-link__arrow" aria-hidden="true">&rarr;</span>
+              </a>
 
               <div id="ld-offer-form-wrap">
                 <!-- Standard / retainer: single amount. Phased: two amounts. -->

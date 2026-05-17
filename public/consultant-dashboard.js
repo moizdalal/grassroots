@@ -8,6 +8,7 @@ import { fetchRatingFor, renderRatingMarkup } from "/rating.js";
 import { getInitials } from "/initials.js";
 import { renderHealthBucket } from "/health-bucket.js";
 import { mountEngagementJourneyFlowers } from "/engagement-journey-flowers.js";
+import { mountDashboardNotifications } from "/dashboard-notifications.js";
 
 const $ = (id) => document.getElementById(id);
 const escape = (s) =>
@@ -454,53 +455,6 @@ function consultantHealth(profile, consultant, portfolioCount) {
   return { pct, done, total, fields, missing, tierName };
 }
 
-// New thin progress bar above the journey. Replaces the full health card
-// — we keep the % + tier color + a one-line CTA, but ditch the bucket,
-// detail list, and rating chip (rating now lives next to the user's name
-// in the welcome header).
-function renderHealthBar(barEl, health) {
-  if (!barEl) return;
-  const isComplete = health.pct >= 100;
-  let copy;
-  let ctaHref;
-  if (isComplete) {
-    copy = "profile complete";
-    ctaHref = "/profile.html";
-  } else {
-    const next = health.missing[0];
-    copy = next.cta;
-    ctaHref = next.href;
-  }
-  const tier = health.pct >= 67 ? "good" : health.pct >= 34 ? "fair" : "low";
-
-  barEl.hidden = false;
-  barEl.dataset.tier = tier;
-  barEl.innerHTML = `
-    <a class="cdash__health-bar__link" href="${escape(ctaHref)}">
-      <span class="cdash__health-bar__label">
-        <span class="cdash__health-bar__label-text">profile completion</span>
-        <span class="cdash__health-bar__pct">${health.pct}%</span>
-      </span>
-      <span class="cdash__health-bar__track" role="progressbar"
-            aria-valuenow="${health.pct}" aria-valuemin="0" aria-valuemax="100"
-            aria-label="profile completion ${health.pct}%">
-        <span class="cdash__health-bar__fill" style="width: ${health.pct}%">
-          <span class="cdash__health-bar__fill-shine" aria-hidden="true"></span>
-        </span>
-      </span>
-      <span class="cdash__health-bar__cta">
-        <span class="cdash__health-bar__cta-text">${escape(copy)}</span>
-        <span class="cdash__health-bar__cta-arrow" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="5" y1="12" x2="19" y2="12"/>
-            <polyline points="13 6 19 12 13 18"/>
-          </svg>
-        </span>
-      </span>
-    </a>
-  `;
-}
-
 function renderHealth(panel, health, consultantId) {
   const isComplete = health.pct >= 100;
   panel.classList.toggle("is-complete", isComplete);
@@ -535,9 +489,6 @@ function renderHealth(panel, health, consultantId) {
   const tierColor = health.pct >= 67 ? "var(--fo-accent)" : health.pct >= 34 ? "var(--fo-do)" : "var(--fo-plan)";
 
   panel.innerHTML = `
-    <div class="bza__panel-h">
-      <span class="bza__panel-h-title"><strong>profile health</strong></span>
-    </div>
     <div class="bza__health-top">
       ${renderHealthBucket(health)}
       <div class="bza__health-summary">
@@ -553,22 +504,7 @@ function renderHealth(panel, health, consultantId) {
       <span class="bza__health-cta-text">${escape(cta)}</span>
       <span class="bza__health-cta-arrow" aria-hidden="true">→</span>
     </a>
-    <a href="/my-reviews.html" class="bza__health-rating" data-rating-host="">
-      <span class="bza__health-rating__label">your rating</span>
-      <span class="bza__health-rating__chip" data-rating-chip>loading…</span>
-      <span class="bza__health-rating__cta">view reviews →</span>
-    </a>
   `;
-
-  // (The payouts row used to live here — it's been removed; the
-  // sidebar's `payouts` link is the canonical entry point now.)
-
-  if (consultantId) {
-    fetchRatingFor(consultantId).then((rating) => {
-      const chip = panel.querySelector("[data-rating-chip]");
-      if (chip) chip.outerHTML = renderRatingMarkup(rating, { size: "md" });
-    });
-  }
 }
 
 /* ============================================================== */
@@ -636,9 +572,25 @@ function renderDashboard(client, data) {
   const userName = $("cdash-user-name");
   if (userName) userName.textContent = profile?.full_name || "your account";
 
-  // profile health → slim progress bar above the journey
-  const healthBar = $("cdash-health-bar");
-  if (healthBar) renderHealthBar(healthBar, consultantHealth(profile, consultant, portfolioCount));
+  // Profile completion → bucket card beneath the journey.
+  const healthPanel = $("cdash-health");
+  if (healthPanel) renderHealth(healthPanel, consultantHealth(profile, consultant, portfolioCount), userId);
+
+  // Notifications → recent feed (right column of the row beneath the
+  // journey). Shared renderer with the owner dashboard; the unread
+  // count also drives the sidebar bell badge.
+  const notifList = $("cdash-notifications-list");
+  const notifEmpty = $("cdash-notifications-empty");
+  const notifBadge = $("cdash-notif-badge");
+  if (userId && notifList) {
+    mountDashboardNotifications({ client, userId, listEl: notifList, emptyEl: notifEmpty }).then((result) => {
+      const unread = result?.unreadCount || 0;
+      if (notifBadge) {
+        notifBadge.textContent = String(unread);
+        notifBadge.hidden = unread === 0;
+      }
+    });
+  }
 }
 
 function setupShell() {
@@ -659,30 +611,6 @@ function setupShell() {
     try { localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0"); } catch {}
   }
   $("cdash-side-edge")?.addEventListener("dblclick", toggleCollapsed);
-
-  // subnav chevron — expands the engagements group to reveal
-  // current/past sub-links. Open state survives reloads via the same
-  // key the floating side-nav uses, so the user's pick sticks.
-  const ENG_SUBNAV_KEY = "grassroots_side_engagements_open";
-  try {
-    if (localStorage.getItem(ENG_SUBNAV_KEY) === "1") {
-      sidebar.querySelectorAll(".bza__nav-group").forEach((g) => {
-        g.classList.add("is-open");
-        g.querySelector(".bza__nav-toggle")?.setAttribute("aria-expanded", "true");
-      });
-    }
-  } catch {}
-  sidebar.querySelectorAll(".bza__nav-toggle").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      e.preventDefault();
-      const group = btn.closest(".bza__nav-group");
-      if (!group) return;
-      const open = !group.classList.contains("is-open");
-      group.classList.toggle("is-open", open);
-      btn.setAttribute("aria-expanded", String(open));
-      try { localStorage.setItem(ENG_SUBNAV_KEY, open ? "1" : "0"); } catch {}
-    });
-  });
 
   // dark mode mirror
   const darkInput = $("cdash-darkmode-toggle");
