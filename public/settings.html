@@ -30,19 +30,19 @@
     </div>
 
     <main class="gr-shell gr-shell--wide settings-shell">
-      <a href="javascript:history.back()" class="ld-back">← back</a>
-
       <div class="gr-page-intro">
         <p class="gr-page-eyebrow">account</p>
         <h1 class="gr-title">settings</h1>
-        <p class="gr-subtitle">tweak how grassroots looks and behaves for you.</p>
       </div>
 
       <div class="settings-layout">
         <!-- ===== tabs ===== -->
         <aside class="settings-tabs" id="settings-tabs">
           <button type="button" class="settings-tab active" data-tab="general">general</button>
-          <button type="button" class="settings-tab" data-tab="profile">profile</button>
+          <button type="button" class="settings-tab" data-tab="personal">personal</button>
+          <button type="button" class="settings-tab" data-tab="professional">professional</button>
+          <button type="button" class="settings-tab" data-tab="security">security</button>
+          <button type="button" class="settings-tab" data-tab="notifications">notifications</button>
           <button type="button" class="settings-tab" data-tab="payout">payout</button>
         </aside>
 
@@ -111,6 +111,13 @@
               </div>
             </section>
 
+          </section>
+
+          <!-- NOTIFICATIONS — read-receipts today; email + push + in-app
+               cadence to follow. Single panel so growth lands in one
+               place instead of accruing piecemeal across tabs. -->
+          <section class="settings-panel" data-tab="notifications" hidden>
+
             <section class="settings-section">
               <div class="settings-section-h">
                 <h3>messaging</h3>
@@ -130,372 +137,451 @@
             </section>
           </section>
 
-          <!-- PROFILE -->
-          <section class="settings-panel pf-layout" data-tab="profile" hidden>
-            <div class="pf-main-col">
+          <!-- PROFILE FORM wraps personal + professional. One submit
+               handler covers both panels — the user can edit either
+               panel and save once. The form is shown/hidden as a unit;
+               its inner panels are tab-toggled like the other panels.
+               The save-action row sits at the form bottom and is
+               hidden by JS when general/payout tabs are active. -->
+          <form id="profile-form" class="hidden settings-form">
 
-              <div class="pf-preview-bar hidden" id="pf-preview-bar">
-                <label class="pf-toggle-label">
-                  <input type="checkbox" id="pf-preview-toggle" />
-                  <span class="pf-toggle-switch"></span>
-                  <span>preview as business</span>
-                </label>
-              </div>
-
-              <div class="pf-business-view hidden" id="pf-business-view"></div>
+            <!-- PERSONAL (identity that is "you", regardless of role) -->
+            <section class="settings-panel" data-tab="personal" hidden>
 
               <p id="profile-gate" class="gr-status" aria-live="polite"></p>
 
-              <form id="profile-form" class="hidden">
-                <div class="gr-card gr-profile-card">
-                  <div class="pf-form-tabs" id="pf-form-tabs" role="tablist" aria-label="profile sections">
-                    <button
-                      type="button"
-                      class="pf-form-tab is-active"
-                      id="pf-tab-personal"
-                      data-profile-tab="personal"
-                      role="tab"
-                      aria-selected="true"
-                      aria-controls="pf-panel-personal"
-                    >
-                      personal information
-                    </button>
-                    <button
-                      type="button"
-                      class="pf-form-tab hidden"
-                      id="pf-tab-business"
-                      data-profile-tab="business"
-                      role="tab"
-                      aria-selected="false"
-                      aria-controls="pf-panel-business"
-                    >
-                      business information
-                    </button>
-                    <button
-                      type="button"
-                      class="pf-form-tab hidden"
-                      id="pf-tab-credibility"
-                      data-profile-tab="credibility"
-                      role="tab"
-                      aria-selected="false"
-                      aria-controls="pf-panel-credibility"
-                    >
-                      credibility
-                    </button>
+              <!-- Profile photo -->
+              <section class="settings-section">
+                <div class="settings-section-h">
+                  <h3>profile photo</h3>
+                </div>
+                <div class="settings-section__body settings-section__body--avatar">
+                  <div class="gr-profile-avatar-ring">
+                    <img
+                      id="avatar-preview"
+                      class="gr-profile-avatar-img"
+                      src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect fill='%23e8f0ec' width='120' height='120'/%3E%3C/svg%3E"
+                      alt=""
+                      width="120"
+                      height="120"
+                    />
                   </div>
+                  <div class="pf-avatar-controls">
+                    <!-- Empty state: file picker (no avatar yet) -->
+                    <label class="gr-label pf-file-label" id="pf-avatar-upload-label">
+                      <span class="gr-label__hidden-text">upload profile photo</span>
+                      <input
+                        id="avatar-input"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                      />
+                    </label>
+                    <!-- Has-avatar state: change / remove -->
+                    <div class="pf-avatar-actions hidden" id="pf-avatar-actions">
+                      <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="pf-avatar-change-btn">change photo</button>
+                      <button type="button" class="gr-btn gr-btn--danger gr-btn--sm" id="pf-avatar-remove-btn">remove</button>
+                    </div>
+                    <p id="avatar-status" class="gr-status pf-avatar-status" aria-live="polite"></p>
+                  </div>
+                </div>
+              </section>
 
-                  <section
-                    class="pf-form-panel pf-form-panel--active"
-                    id="pf-panel-personal"
-                    data-profile-panel="personal"
-                    role="tabpanel"
-                    aria-labelledby="pf-tab-personal"
-                  >
-                    <div class="gr-profile-layout">
-                      <div class="gr-profile-avatar-block">
-                        <div class="gr-profile-avatar-ring">
-                          <img
-                            id="avatar-preview"
-                            class="gr-profile-avatar-img"
-                            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect fill='%23e8f0ec' width='120' height='120'/%3E%3C/svg%3E"
-                            alt=""
-                            width="120"
-                            height="120"
-                          />
-                        </div>
-                        <label class="gr-label gr-profile-file">
-                          <span>profile photo</span>
-                          <input
-                            id="avatar-input"
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp,image/gif"
-                          />
-                        </label>
-                        <p class="gr-profile-hint">jpeg, png, webp, or gif · up to 2 mb</p>
-                      </div>
-
-                      <div class="gr-profile-fields">
-                        <div class="gr-field-grid">
-                          <label class="gr-label full-width">
-                            <span>email</span>
-                            <input type="text" id="field-email" readonly />
-                          </label>
-                          <label class="gr-label full-width">
-                            <span>phone number</span>
-                            <input type="text" id="field-phone" readonly />
-                          </label>
-                          <label class="gr-label full-width">
-                            <span>full name</span>
-                            <input type="text" name="fullName" id="field-full-name" required />
-                          </label>
-                          <label class="gr-label full-width" id="field-linkedin-wrap">
-                            <span>linkedin</span>
-                            <input
-                              type="url"
-                              name="linkedinUrl"
-                              id="field-linkedin"
-                              placeholder="https://linkedin.com/in/…"
-                            />
-                          </label>
-                        </div>
-
-                        <div id="consultant-education-section" class="hidden">
-                          <p class="gr-section-h">education</p>
-                          <div class="gr-field-grid">
-                            <label class="gr-label">
-                              <span>major</span>
-                              <input type="text" id="field-major" placeholder="e.g. marketing" />
-                            </label>
-                            <label class="gr-label">
-                              <span>minor <span class="gr-optional">optional</span></span>
-                              <input type="text" id="field-minor" placeholder="e.g. data analytics" />
-                            </label>
-                            <label class="gr-label full-width">
-                              <span>school</span>
-                              <input type="text" id="field-school" placeholder="e.g. University of Michigan" />
-                            </label>
-                          </div>
-                        </div>
+              <!-- Personal details -->
+              <section class="settings-section">
+                <div class="settings-section-h">
+                  <h3>personal details</h3>
+                </div>
+                <div class="settings-section__body">
+                  <label class="gr-label">
+                    <span>full name</span>
+                    <input type="text" name="fullName" id="field-full-name" required />
+                  </label>
+                  <div class="settings-grid-2">
+                    <label class="gr-label">
+                      <span>email</span>
+                      <input type="text" id="field-email" readonly />
+                    </label>
+                    <label class="gr-label">
+                      <span>phone number</span>
+                      <input type="text" id="field-phone" readonly />
+                    </label>
+                  </div>
+                  <label class="gr-label" id="field-linkedin-wrap">
+                    <span>linkedin <span class="gr-optional">optional</span></span>
+                    <input
+                      type="url"
+                      name="linkedinUrl"
+                      id="field-linkedin"
+                      placeholder="https://linkedin.com/in/…"
+                    />
+                  </label>
+                  <!-- City: consultant-only; wraps a strict autocomplete
+                       backed by /data/us-cities.json. The hidden inputs
+                       carry the canonical "City, ST" label + lat + lng;
+                       the visible search input is just for typing. -->
+                  <div class="gr-label" id="field-city-wrap" data-city-autocomplete>
+                    <span>city you're based in</span>
+                    <div class="reg-city-ac">
+                      <input
+                        type="text"
+                        class="reg-city-search"
+                        id="field-city-search"
+                        placeholder="start typing your city…"
+                        autocomplete="off"
+                        autocapitalize="words"
+                      />
+                      <input type="hidden" class="reg-city" id="field-city" name="city" />
+                      <input type="hidden" class="reg-city-lat" id="field-city-lat" />
+                      <input type="hidden" class="reg-city-lng" id="field-city-lng" />
+                      <div class="reg-city-ac__panel" hidden>
+                        <ul class="reg-city-ac__list"></ul>
                       </div>
                     </div>
-                  </section>
+                  </div>
+                </div>
+              </section>
+            </section>
 
-                  <section
-                    id="business-section"
-                    class="pf-form-panel hidden"
-                    data-profile-panel="business"
-                    role="tabpanel"
-                    aria-labelledby="pf-tab-business"
-                  >
-                    <div class="gr-field-grid gr-field-grid--business">
-                      <label class="gr-label full-width">
-                        <span>business name</span>
-                        <input type="text" name="businessName" id="field-biz-name" />
+            <!-- PROFESSIONAL (role-specific identity — what businesses
+                 see, or how a business represents itself) -->
+            <section class="settings-panel" data-tab="professional" hidden>
+
+              <!-- Preview-as-business trigger (consultants only). Opens
+                   the modal below; the modal renders identical chrome
+                   to the listing-flow consultant viewer so the
+                   consultant sees exactly what a business sees. -->
+              <p class="pf-preview-bar hidden" id="pf-preview-bar">
+                <button type="button" class="pf-preview-trigger" id="pf-preview-trigger">
+                  preview how businesses see you
+                  <span aria-hidden="true">→</span>
+                </button>
+              </p>
+
+              <!-- Education (consultants only) -->
+              <section class="settings-section hidden" id="consultant-education-section">
+                <div class="settings-section-h">
+                  <h3>education</h3>
+                </div>
+                <div class="settings-section__body">
+                  <div class="settings-grid-2">
+                    <label class="gr-label">
+                      <span>major</span>
+                      <input type="text" id="field-major" placeholder="e.g. marketing" />
+                    </label>
+                    <label class="gr-label">
+                      <span>minor <span class="gr-optional">optional</span></span>
+                      <input type="text" id="field-minor" placeholder="e.g. data analytics" />
+                    </label>
+                  </div>
+                  <label class="gr-label">
+                    <span>school</span>
+                    <input type="text" id="field-school" placeholder="e.g. University of Michigan" />
+                  </label>
+                </div>
+              </section>
+
+              <!-- Resume (consultants only) -->
+              <section class="settings-section hidden" id="consultant-section">
+                <div class="settings-section-h">
+                  <h3>resume</h3>
+                  <p>upload a pdf so businesses can review your experience. toggle public any time.</p>
+                </div>
+                <div class="settings-section__body">
+                  <label class="gr-label pf-file-label" id="pf-resume-upload-label">
+                    <span>upload your resume — pdf only</span>
+                    <input
+                      id="resume-input"
+                      type="file"
+                      name="resume"
+                      accept=".pdf,application/pdf"
+                    />
+                  </label>
+                  <div id="resume-current" class="pf-portfolio-item hidden"></div>
+                </div>
+              </section>
+
+              <!-- Past experience / portfolio (consultants only) -->
+              <section class="settings-section hidden" id="consultant-portfolio-section">
+                <div class="settings-section-h">
+                  <h3>past experience</h3>
+                  <p>add work samples — documents, images, videos, or decks. toggle public per item.</p>
+                </div>
+                <div class="settings-section__body">
+                  <div id="portfolio-list" class="pf-portfolio-list"></div>
+                  <div class="pf-portfolio-add">
+                    <label class="gr-label pf-file-label">
+                      <span>add work sample</span>
+                      <input
+                        id="portfolio-input"
+                        type="file"
+                        accept=".pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg,.webp,.gif,.mp4,.mov,.webm"
+                      />
+                    </label>
+                    <textarea
+                      id="portfolio-desc"
+                      class="pf-portfolio-desc"
+                      maxlength="300"
+                      placeholder="brief explanation of this work (max 300 chars)"
+                      rows="2"
+                    ></textarea>
+                    <div class="pf-portfolio-add-actions">
+                      <label class="pf-toggle-label">
+                        <input type="checkbox" id="portfolio-public-toggle" />
+                        <span class="pf-toggle-switch"></span>
+                        <span>public</span>
                       </label>
-                      <label class="gr-label full-width">
-                        <span>business address</span>
-                        <input
-                          type="text"
-                          name="businessAddress"
-                          id="field-biz-address"
-                          placeholder="street, city, state, zip"
-                        />
-                      </label>
-                      <label class="gr-label full-width">
-                        <span>business bio</span>
-                        <textarea
-                          name="businessDetails"
-                          id="field-biz-details"
-                          rows="2"
-                          placeholder="context, stage, goals…"
-                        ></textarea>
-                      </label>
-                      <label class="gr-label full-width">
-                        <span>website</span>
+                      <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="portfolio-upload-btn">upload</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- Business profile (business owners only) -->
+              <section class="settings-section hidden" id="business-section">
+                <div class="settings-section-h">
+                  <h3>business profile</h3>
+                </div>
+                <div class="settings-section__body">
+                  <label class="gr-label">
+                    <span>business name</span>
+                    <input type="text" name="businessName" id="field-biz-name" />
+                  </label>
+                  <label class="gr-label">
+                    <span>business address</span>
+                    <input
+                      type="text"
+                      name="businessAddress"
+                      id="field-biz-address"
+                      placeholder="street, city, state, zip"
+                    />
+                  </label>
+                  <label class="gr-label">
+                    <span>website <span class="gr-optional">optional</span></span>
+                    <input
+                      type="url"
+                      name="websiteUrl"
+                      id="field-website"
+                      placeholder="https://…"
+                    />
+                  </label>
+                  <label class="gr-label">
+                    <span>about your business</span>
+                    <textarea
+                      name="businessDetails"
+                      id="field-biz-details"
+                      rows="3"
+                      placeholder="context, stage, goals…"
+                    ></textarea>
+                  </label>
+                </div>
+              </section>
+
+              <!-- Social profiles (business owners only) -->
+              <section class="settings-section hidden" id="business-social-section">
+                <div class="settings-section-h">
+                  <h3>social profiles</h3>
+                </div>
+                <div class="settings-section__body">
+                  <div class="gr-social-stack">
+                    <div class="gr-social-platform" data-platform="instagram">
+                      <div class="gr-social-platform__row">
+                        <span class="gr-social-platform__logo" aria-hidden="true">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+                            <defs>
+                              <linearGradient id="pf-ig-grad" x1="0%" y1="100%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#f09433" />
+                                <stop offset="50%" stop-color="#e6683c" />
+                                <stop offset="100%" stop-color="#bc1888" />
+                              </linearGradient>
+                            </defs>
+                            <path fill="url(#pf-ig-grad)" d="M12 2.16c3.2 0 3.58.01 4.85.07 3.25.15 4.77 1.69 4.92 4.92.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.15 3.23-1.66 4.77-4.92 4.92-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-3.26-.15-4.77-1.7-4.92-4.92-.06-1.27-.07-1.64-.07-4.85s.01-3.58.07-4.85c.15-3.23 1.66-4.77 4.92-4.92 1.27-.06 1.64-.07 4.85-.07zm0-2.16C8.74 0 8.33.01 7.05.07 2.7.27.27 2.69.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.2 4.36 2.62 6.78 6.98 6.98 1.28.06 1.69.07 4.95.07s3.67-.01 4.95-.07c4.35-.2 6.78-2.62 6.98-6.98.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.2-4.35-2.63-6.78-6.98-6.98C15.67.01 15.26 0 12 0zm0 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zm0 10.16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z"/>
+                          </svg>
+                        </span>
+                        <label class="gr-social-platform__check">
+                          <input type="checkbox" id="biz-social-instagram-on" />
+                          <span>instagram</span>
+                        </label>
+                      </div>
+                      <div id="biz-social-instagram-field" class="gr-social-platform__field hidden">
                         <input
                           type="url"
-                          name="websiteUrl"
-                          id="field-website"
-                          placeholder="https://…"
+                          name="instagramUrl"
+                          id="field-biz-instagram"
+                          class="gr-input-plain"
+                          placeholder="https://instagram.com/yourhandle"
+                          autocomplete="url"
                         />
-                      </label>
-
-                      <div class="gr-social-stack full-width">
-                        <p class="gr-social-stack__caption">social profiles</p>
-                        <p class="gr-social-stack__hint">paste the link to the page.</p>
-
-                        <div class="gr-social-platform" data-platform="instagram">
-                          <div class="gr-social-platform__row">
-                            <span class="gr-social-platform__logo" aria-hidden="true">
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
-                                <defs>
-                                  <linearGradient id="pf-ig-grad" x1="0%" y1="100%" x2="100%" y2="0%">
-                                    <stop offset="0%" stop-color="#f09433" />
-                                    <stop offset="50%" stop-color="#e6683c" />
-                                    <stop offset="100%" stop-color="#bc1888" />
-                                  </linearGradient>
-                                </defs>
-                                <path fill="url(#pf-ig-grad)" d="M12 2.16c3.2 0 3.58.01 4.85.07 3.25.15 4.77 1.69 4.92 4.92.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.15 3.23-1.66 4.77-4.92 4.92-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-3.26-.15-4.77-1.7-4.92-4.92-.06-1.27-.07-1.64-.07-4.85s.01-3.58.07-4.85c.15-3.23 1.66-4.77 4.92-4.92 1.27-.06 1.64-.07 4.85-.07zm0-2.16C8.74 0 8.33.01 7.05.07 2.7.27.27 2.69.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.2 4.36 2.62 6.78 6.98 6.98 1.28.06 1.69.07 4.95.07s3.67-.01 4.95-.07c4.35-.2 6.78-2.62 6.98-6.98.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.2-4.35-2.63-6.78-6.98-6.98C15.67.01 15.26 0 12 0zm0 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zm0 10.16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z"/>
-                              </svg>
-                            </span>
-                            <label class="gr-social-platform__check">
-                              <input type="checkbox" id="biz-social-instagram-on" />
-                              <span>instagram</span>
-                            </label>
-                          </div>
-                          <div id="biz-social-instagram-field" class="gr-social-platform__field hidden">
-                            <input
-                              type="url"
-                              name="instagramUrl"
-                              id="field-biz-instagram"
-                              class="gr-input-plain"
-                              placeholder="https://instagram.com/yourhandle"
-                              autocomplete="url"
-                            />
-                          </div>
-                        </div>
-
-                        <div class="gr-social-platform" data-platform="facebook">
-                          <div class="gr-social-platform__row">
-                            <span class="gr-social-platform__logo" aria-hidden="true">
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                                <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                              </svg>
-                            </span>
-                            <label class="gr-social-platform__check">
-                              <input type="checkbox" id="biz-social-facebook-on" />
-                              <span>facebook</span>
-                            </label>
-                          </div>
-                          <div id="biz-social-facebook-field" class="gr-social-platform__field hidden">
-                            <input
-                              type="url"
-                              name="facebookUrl"
-                              id="field-biz-facebook"
-                              class="gr-input-plain"
-                              placeholder="https://facebook.com/yourpage"
-                              autocomplete="url"
-                            />
-                          </div>
-                        </div>
-
-                        <div class="gr-social-platform" data-platform="linkedin">
-                          <div class="gr-social-platform__row">
-                            <span class="gr-social-platform__logo" aria-hidden="true">
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                                <path fill="#0A66C2" d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.95v5.66H9.36V9h3.41v1.56h.05c.47-.9 1.63-1.85 3.35-1.85 3.59 0 4.25 2.36 4.25 5.43v6.31zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.55V9h3.57v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.55C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z"/>
-                              </svg>
-                            </span>
-                            <label class="gr-social-platform__check">
-                              <input type="checkbox" id="biz-social-linkedin-on" />
-                              <span>linkedin (company)</span>
-                            </label>
-                          </div>
-                          <div id="biz-social-linkedin-field" class="gr-social-platform__field hidden">
-                            <input
-                              type="url"
-                              name="companyLinkedinUrl"
-                              id="field-biz-company-linkedin"
-                              class="gr-input-plain"
-                              placeholder="https://linkedin.com/company/…"
-                              autocomplete="url"
-                            />
-                          </div>
-                        </div>
                       </div>
                     </div>
-                  </section>
 
-                  <section
-                    id="consultant-section"
-                    class="pf-form-panel hidden"
-                    data-profile-panel="credibility"
-                    role="tabpanel"
-                    aria-labelledby="pf-tab-credibility"
-                  >
-                    <p class="gr-section-h">resume</p>
-                    <div class="pf-resume-row">
-                      <label class="gr-label pf-file-label" id="pf-resume-upload-label">
-                        <span>upload your resume — pdf only</span>
-                        <input
-                          id="resume-input"
-                          type="file"
-                          name="resume"
-                          accept=".pdf,application/pdf"
-                        />
-                      </label>
-                      <label class="pf-toggle-label">
-                        <input type="checkbox" id="resume-public-toggle" />
-                        <span class="pf-toggle-switch"></span>
-                        <span>visible to businesses</span>
-                      </label>
-                    </div>
-                    <div id="resume-current" class="pf-resume-current hidden"></div>
-
-                    <p class="gr-section-h">past experience</p>
-                    <p class="gr-field-hint">
-                      upload documents, images, videos, or presentations of past work. pdf preferred. toggle public to let businesses see them.
-                    </p>
-                    <div id="portfolio-list" class="pf-portfolio-list"></div>
-                    <div class="pf-portfolio-add">
-                      <label class="gr-label pf-file-label">
-                        <span>add work sample</span>
-                        <input
-                          id="portfolio-input"
-                          type="file"
-                          accept=".pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg,.webp,.gif,.mp4,.mov,.webm"
-                        />
-                      </label>
-                      <textarea
-                        id="portfolio-desc"
-                        class="pf-portfolio-desc"
-                        maxlength="300"
-                        placeholder="brief explanation of this work (max 300 chars)"
-                        rows="2"
-                      ></textarea>
-                      <div class="pf-portfolio-add-actions">
-                        <label class="pf-toggle-label">
-                          <input type="checkbox" id="portfolio-public-toggle" />
-                          <span class="pf-toggle-switch"></span>
-                          <span>public</span>
+                    <div class="gr-social-platform" data-platform="facebook">
+                      <div class="gr-social-platform__row">
+                        <span class="gr-social-platform__logo" aria-hidden="true">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                          </svg>
+                        </span>
+                        <label class="gr-social-platform__check">
+                          <input type="checkbox" id="biz-social-facebook-on" />
+                          <span>facebook</span>
                         </label>
-                        <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="portfolio-upload-btn">upload</button>
+                      </div>
+                      <div id="biz-social-facebook-field" class="gr-social-platform__field hidden">
+                        <input
+                          type="url"
+                          name="facebookUrl"
+                          id="field-biz-facebook"
+                          class="gr-input-plain"
+                          placeholder="https://facebook.com/yourpage"
+                          autocomplete="url"
+                        />
                       </div>
                     </div>
-                  </section>
 
-                  <div class="gr-profile-actions">
-                    <button type="submit" class="gr-btn gr-btn--primary" id="save-btn">
-                      save changes
+                    <div class="gr-social-platform" data-platform="linkedin">
+                      <div class="gr-social-platform__row">
+                        <span class="gr-social-platform__logo" aria-hidden="true">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path fill="#0A66C2" d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.95v5.66H9.36V9h3.41v1.56h.05c.47-.9 1.63-1.85 3.35-1.85 3.59 0 4.25 2.36 4.25 5.43v6.31zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.55V9h3.57v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.55C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z"/>
+                          </svg>
+                        </span>
+                        <label class="gr-social-platform__check">
+                          <input type="checkbox" id="biz-social-linkedin-on" />
+                          <span>linkedin (company)</span>
+                        </label>
+                      </div>
+                      <div id="biz-social-linkedin-field" class="gr-social-platform__field hidden">
+                        <input
+                          type="url"
+                          name="companyLinkedinUrl"
+                          id="field-biz-company-linkedin"
+                          class="gr-input-plain"
+                          placeholder="https://linkedin.com/company/…"
+                          autocomplete="url"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+            </section>
+
+            <!-- Save action row — sits at the form bottom across both
+                 personal + professional panels. Hidden via JS when
+                 general / payout tabs are active (those panels have
+                 their own controls and don't share this submit). -->
+            <div class="settings-form__actions">
+              <p id="status" class="gr-status" aria-live="polite"></p>
+              <button type="submit" class="gr-btn gr-btn--primary" id="save-btn">
+                save changes
+              </button>
+            </div>
+          </form>
+
+          <!-- SECURITY — account credential management. Each section is
+               an independent form so a partial fill doesn't gate the
+               other flows. Delete-account is currently a request-only
+               flow that POSTs to /api/account/delete-request; the real
+               teardown (Stripe Connect detach, FK cascade sweep,
+               supabase admin.deleteUser) lands in its own milestone. -->
+          <section class="settings-panel" data-tab="security" hidden>
+
+            <!-- Password -->
+            <section class="settings-section">
+              <div class="settings-section-h">
+                <h3>password</h3>
+                <p>use a long passphrase you don't reuse elsewhere.</p>
+              </div>
+              <div class="settings-section__body">
+                <form id="sec-password-form" class="sec-form">
+                  <label class="gr-label">
+                    <span>current password</span>
+                    <input
+                      type="password"
+                      id="sec-current-password"
+                      name="currentPassword"
+                      autocomplete="current-password"
+                      required
+                    />
+                  </label>
+                  <label class="gr-label">
+                    <span>new password</span>
+                    <input
+                      type="password"
+                      id="sec-new-password"
+                      name="newPassword"
+                      autocomplete="new-password"
+                      minlength="8"
+                      required
+                    />
+                  </label>
+                  <label class="gr-label">
+                    <span>confirm new password</span>
+                    <input
+                      type="password"
+                      id="sec-confirm-password"
+                      name="confirmPassword"
+                      autocomplete="new-password"
+                      minlength="8"
+                      required
+                    />
+                  </label>
+                  <div class="sec-form__actions">
+                    <p class="gr-status" id="sec-password-status" aria-live="polite"></p>
+                    <button type="submit" class="gr-btn gr-btn--primary" id="sec-password-save">
+                      update password
                     </button>
                   </div>
-                </div>
+                </form>
+              </div>
+            </section>
 
-                <p id="status" class="gr-status" aria-live="polite"></p>
-              </form>
-            </div>
-
-            <aside class="pf-sidebar">
-              <div class="gr-card pf-level-card hidden" id="pf-level-card">
-                <p class="pf-level-kicker">consultant progression</p>
-                <h2 class="pf-level-title" id="pf-level-title">stage 0: seedling</h2>
-
-                <div class="pf-level-meta">
-                  <p class="pf-level-name" id="pf-level-name">consultant</p>
-                  <div class="pf-level-stats">
-                    <span class="pf-level-stat" id="pf-level-rating">rating not available yet</span>
-                    <span class="pf-level-stat" id="pf-level-engagements">0 engagements completed</span>
-                  </div>
-                </div>
-
-                <div class="pf-stage-model" id="pf-stage-model" data-stage="0" aria-hidden="true">
-                  <div class="pf-stage-model__scene">
-                    <span class="pf-stage-model__glow"></span>
-                    <span class="pf-stage-model__soil"></span>
-                    <span class="pf-stage-model__shadow"></span>
-                    <span class="pf-stage-model__stem"></span>
-                    <span class="pf-stage-model__canopy"></span>
-                    <span class="pf-stage-model__canopy pf-stage-model__canopy--secondary"></span>
-                    <span class="pf-stage-model__canopy pf-stage-model__canopy--tertiary"></span>
-                    <span class="pf-stage-model__accent"></span>
-                  </div>
-                  <p class="pf-stage-model__label" id="pf-stage-model-label">seedling stage placeholder</p>
-                </div>
-
-                <div class="pf-level-progress">
-                  <div class="pf-level-progress__row">
-                    <span>progress to next stage</span>
-                    <span id="pf-level-progress-label">0%</span>
-                  </div>
-                  <div class="pf-level-progress__track" aria-hidden="true">
-                    <span class="pf-level-progress__fill" id="pf-level-progress-fill"></span>
-                  </div>
-                  <p class="pf-level-progress__copy" id="pf-level-progress-copy">
-                    complete 1 free engagement and earn an average rating of at least 4.0 stars.
-                  </p>
+            <!-- Sign out of other devices -->
+            <section class="settings-section">
+              <div class="settings-section-h">
+                <h3>other devices</h3>
+                <p>sign out everywhere except this browser. useful if you ever shared a device.</p>
+              </div>
+              <div class="settings-section__body">
+                <div class="sec-form__actions">
+                  <p class="gr-status" id="sec-signout-status" aria-live="polite"></p>
+                  <button type="button" class="gr-btn gr-btn--secondary" id="sec-signout-others">
+                    sign out other devices
+                  </button>
                 </div>
               </div>
-            </aside>
+            </section>
+
+            <!-- Danger zone: delete account (request-only for now) -->
+            <section class="settings-section settings-section--danger">
+              <div class="settings-section-h">
+                <h3>delete account</h3>
+                <p>permanently delete your account and all your data. this can't be undone.</p>
+              </div>
+              <div class="settings-section__body">
+                <form id="sec-delete-form" class="sec-form">
+                  <label class="gr-label">
+                    <span>type <em>delete my account</em> to confirm</span>
+                    <input
+                      type="text"
+                      id="sec-delete-confirm"
+                      name="confirmPhrase"
+                      autocomplete="off"
+                      autocapitalize="off"
+                      spellcheck="false"
+                      required
+                    />
+                  </label>
+                  <div class="sec-form__actions">
+                    <p class="gr-status" id="sec-delete-status" aria-live="polite"></p>
+                    <button type="submit" class="gr-btn gr-btn--danger" id="sec-delete-btn">
+                      request account deletion
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </section>
           </section>
 
           <!-- PAYOUT (Stripe Connect) -->
@@ -592,6 +678,19 @@
       </div>
     </main>
 
+    <!-- Preview-as-business modal (consultants only). Reuses the
+         listing-flow consultant viewer chrome (.ld-cv__inner / bar /
+         tabs / panels) so the consultant sees identical layout to what
+         a business owner sees on listing.html when clicking a bid.
+         #pf-business-view is populated by profile.js → renderBusinessPreview;
+         the outer .ld-cv* wrapper provides backdrop + dimensions. -->
+    <div class="ld-cv hidden" id="pf-preview-modal" aria-hidden="true">
+      <div class="ld-cv__backdrop" data-pf-preview-close></div>
+      <div class="ld-cv__dialog" role="dialog" aria-modal="true" aria-labelledby="pf-preview-modal-title">
+        <div class="pf-business-view" id="pf-business-view"></div>
+      </div>
+    </div>
+
     <!-- Resume preview modal (profile tab; profile.js controls open/close) -->
     <div class="pf-resume-viewer hidden" id="pf-resume-viewer" aria-hidden="true">
       <div class="pf-resume-viewer__backdrop" data-resume-viewer-close></div>
@@ -630,20 +729,33 @@
 
     <script type="module" src="/nav-session.js"></script>
 
-    <!-- Tabs: switch between general / profile / payout without page
-         navigation. Hash sync (#general / #profile / #payout) so deep
-         links + side-nav links work. -->
+    <!-- Tabs: switch between general / personal / professional / payout
+         without page navigation. Hash sync so deep links + side-nav
+         links work. `#profile` is kept as a back-compat alias that
+         resolves to `#personal` (older links across the app still
+         point at #profile). The save action row inside the profile
+         form only shows on personal + professional tabs since those
+         are the panels that share the form's submit. -->
     <script>
       (function () {
         const tabs = document.querySelectorAll('.settings-tab[data-tab]');
         const panels = document.querySelectorAll('.settings-panel[data-tab]');
         const validTabs = new Set([...tabs].map(t => t.dataset.tab));
+        const HASH_ALIASES = { profile: 'personal' };
+        const FORM_TABS = new Set(['personal', 'professional']);
+        const formActions = document.querySelector('.settings-form__actions');
 
         function activate(tab, opts) {
+          const aliased = Object.prototype.hasOwnProperty.call(HASH_ALIASES, tab);
+          if (aliased) tab = HASH_ALIASES[tab];
           if (!validTabs.has(tab)) tab = 'general';
           tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
           panels.forEach(p => { p.hidden = p.dataset.tab !== tab; });
-          if (!opts || opts.updateHash !== false) {
+          if (formActions) formActions.hidden = !FORM_TABS.has(tab);
+          // Normalize the URL even when we got here via an alias —
+          // future shares should use the canonical hash, not the alias.
+          const shouldUpdateHash = aliased || !opts || opts.updateHash !== false;
+          if (shouldUpdateHash) {
             const next = '#' + tab;
             if (window.location.hash !== next) {
               history.replaceState(null, '', next);
@@ -735,6 +847,19 @@
          they exist in the DOM regardless of which tab is active. -->
     <script type="module" src="/profile.js"></script>
 
+    <!-- Security tab: password change, sign-out-other-devices,
+         request-delete. Independent module — doesn't share state with
+         profile.js or the tabs script. -->
+    <script type="module" src="/security.js"></script>
+
+    <!-- City autocomplete for the "based in" field in personal. Wires
+         the static `/data/us-cities.json` autocomplete into any
+         `[data-city-autocomplete]` element. -->
+    <script type="module">
+      import { wireAllCityAutocompletes } from "/city-autocomplete.js";
+      wireAllCityAutocompletes();
+    </script>
+
     <!-- Payout tab: Stripe Connect account status + manage actions.
          Reads `stripe_account_id` off the user's profile to decide between
          the empty state and the active state. Server-side Connect endpoints
@@ -773,7 +898,7 @@
 
           const { data: profile, error } = await client
             .from("profiles")
-            .select("stripe_account_id, stripe_payouts_enabled, stripe_charges_enabled")
+            .select("stripe_account_id, stripe_account_status")
             .eq("id", session.user.id)
             .single();
 
@@ -786,56 +911,34 @@
             return;
           }
 
+          // Has account but not fully onboarded — point them back to
+          // /payouts.html to finish the embedded flow.
+          if (profile.stripe_account_status !== "active") {
+            card.hidden = false;
+            copy.textContent = "stripe onboarding is incomplete. open the payouts page to finish.";
+            empty.classList.remove("hidden");
+            connectBtn.textContent = "continue with stripe";
+            return;
+          }
+
           // Active account — show status + balances.
           card.hidden = true;
           active.classList.remove("hidden");
-
-          // Note: balance + payout list require server-side Stripe API calls
-          // (Stripe secret key never goes to the browser). Until the backend
-          // endpoint exists, the values stay as em-dashes and the manage
-          // button shows a "coming soon" message.
         } catch (err) {
           setLoading(false);
           copy.textContent = "could not load payout status. try refreshing.";
         }
       }
 
-      connectBtn?.addEventListener("click", async () => {
-        connectBtn.classList.add("is-loading");
-        connectStatus.textContent = "";
-        try {
-          // Server endpoint to be implemented:
-          //   POST /api/stripe/connect/onboard → { url }
-          // Returns a Stripe-hosted account-link URL that walks the user
-          // through KYC + bank linking, then redirects back here.
-          const res = await fetch("/api/stripe/connect/onboard", { method: "POST" });
-          if (!res.ok) throw new Error("onboard endpoint not ready");
-          const { url } = await res.json();
-          window.location.href = url;
-        } catch (err) {
-          connectBtn.classList.remove("is-loading");
-          connectStatus.textContent = "stripe onboarding isn't wired up yet. coming soon.";
-          connectStatus.className = "gr-status";
-        }
+      // Both connect (set up new) and manage (update existing) route to
+      // /payouts.html, which mounts Stripe's embedded onboarding /
+      // account-management components inline. No domain redirect.
+      connectBtn?.addEventListener("click", () => {
+        window.location.href = "/payouts.html";
       });
 
-      manageBtn?.addEventListener("click", async () => {
-        manageBtn.classList.add("is-loading");
-        manageStatus.textContent = "";
-        try {
-          // Server endpoint to be implemented:
-          //   POST /api/stripe/connect/login-link → { url }
-          // Returns a Stripe-hosted login URL for the connected account.
-          const res = await fetch("/api/stripe/connect/login-link", { method: "POST" });
-          if (!res.ok) throw new Error("login-link endpoint not ready");
-          const { url } = await res.json();
-          window.open(url, "_blank", "noopener,noreferrer");
-          manageBtn.classList.remove("is-loading");
-        } catch (err) {
-          manageBtn.classList.remove("is-loading");
-          manageStatus.textContent = "stripe dashboard link isn't wired up yet. coming soon.";
-          manageStatus.className = "gr-status";
-        }
+      manageBtn?.addEventListener("click", () => {
+        window.location.href = "/payouts.html";
       });
 
       init();

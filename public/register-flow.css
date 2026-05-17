@@ -1,3 +1,32 @@
+/* --- Page intro: tighter on register so slide 1 fits a 720px viewport. --- */
+.gr-shell > .gr-page-intro {
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.gr-shell > .gr-page-intro .gr-page-eyebrow {
+  margin-bottom: 0.15rem;
+}
+
+.gr-shell > .gr-page-intro .gr-title {
+  margin-bottom: 0.2rem;
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+}
+
+.gr-shell > .gr-page-intro .gr-subtitle {
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.gr-shell > .gr-page-intro .gr-subtitle:not(.gr-subtitle--compact) {
+  margin: 0;
+}
+
+/* Auth card: tighter padding on register/signin. */
+.gr-auth-card {
+  padding: 1.25rem 1.4rem;
+}
+
 /* --- Password hint --- */
 .reg-pw-hint {
   font-size: var(--type-meta);
@@ -7,13 +36,36 @@
   opacity: 0.85;
 }
 
-/* `.reg-pw-rules` lives in grassroots.css so any page that needs the live
-   password requirements list (register, reset-password, etc.) gets it for
-   free. */
+/* Password rules: compact single-row layout. Lives in grassroots.css for
+   shared use; this override pulls it into a horizontal flex row so the
+   register slide fits without scroll. */
+.gr-auth-card #reg-pw-rules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.85rem;
+  margin-top: 0.4rem;
+}
+
+.gr-auth-card #reg-pw-rules li {
+  padding-left: 1.05rem;
+  font-size: 0.72rem;
+}
+
+.gr-auth-card #reg-pw-rules li::before {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-width: 1.3px;
+}
+
+.gr-auth-card #reg-pw-rules li::after {
+  left: 0.2rem;
+  width: 0.3rem;
+  height: 0.16rem;
+}
 
 /* --- Progress Bar --- */
 .reg-progress {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   text-align: center;
 }
 
@@ -116,9 +168,136 @@
 }
 
 .reg-role-card__icon {
-  font-size: 1.6rem;
-  line-height: 1;
-  color: var(--green-light);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  color: var(--green-mid);
+  /* Give the animation room to extend past the static svg bounds without
+     clipping. The svg itself also carries overflow="visible" — both layers
+     need it. */
+  overflow: visible;
+}
+
+.reg-role-card__icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+/* ── Business: leaf sprout sway on hover ──
+   Mirrors the loading-overlay's vocabulary (whole-sprout sway + per-leaf
+   rocking) but amplified — the loader is 100px+ and gets to be subtle; at
+   64px these need to push 2-3x harder to read. */
+.rrc-leaf-svg {
+  transform-origin: 50% 95%;
+}
+
+.rrc-leaf-svg__leaf {
+  transform-box: fill-box;
+}
+
+.rrc-leaf-svg__leaf--left {
+  transform-origin: 100% 100%;
+}
+
+.rrc-leaf-svg__leaf--right {
+  transform-origin: 0% 100%;
+}
+
+.reg-role-card:hover .rrc-leaf-svg,
+.reg-role-card:focus-within .rrc-leaf-svg {
+  animation: rrc-leaf-sway 2.4s ease-in-out infinite;
+}
+
+.reg-role-card:hover .rrc-leaf-svg__leaf--left,
+.reg-role-card:focus-within .rrc-leaf-svg__leaf--left {
+  animation: rrc-leaf-left 2.0s ease-in-out infinite;
+}
+
+.reg-role-card:hover .rrc-leaf-svg__leaf--right,
+.reg-role-card:focus-within .rrc-leaf-svg__leaf--right {
+  animation: rrc-leaf-right 2.3s ease-in-out infinite;
+  animation-delay: -0.4s;
+}
+
+@keyframes rrc-leaf-sway {
+  0%, 100% { transform: rotate(-4deg); }
+  50%      { transform: rotate(4deg); }
+}
+
+@keyframes rrc-leaf-left {
+  0%, 100% { transform: rotate(-4deg); }
+  35%      { transform: rotate(8deg); }
+  62%      { transform: rotate(-1deg); }
+  82%      { transform: rotate(6deg); }
+}
+
+@keyframes rrc-leaf-right {
+  0%, 100% { transform: rotate(3deg); }
+  30%      { transform: rotate(-7deg); }
+  58%      { transform: rotate(2deg); }
+  78%      { transform: rotate(-5deg); }
+}
+
+/* ── Consultant: watering can tilts forward, drops fall from the rose ── */
+.rrc-can-svg__body {
+  transform-origin: 30% 100%;
+  transform-box: fill-box;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.rrc-can-svg__drop {
+  opacity: 0;
+  transform-box: fill-box;
+}
+
+.reg-role-card:hover .rrc-can-svg__body,
+.reg-role-card:focus-within .rrc-can-svg__body {
+  transform: rotate(28deg);
+}
+
+.reg-role-card:hover .rrc-can-svg__drop,
+.reg-role-card:focus-within .rrc-can-svg__drop {
+  animation: rrc-drop-fall 0.9s ease-in infinite;
+}
+
+.reg-role-card:hover .rrc-can-svg__drop--1,
+.reg-role-card:focus-within .rrc-can-svg__drop--1 {
+  animation-delay: 0.2s;
+}
+
+.reg-role-card:hover .rrc-can-svg__drop--2,
+.reg-role-card:focus-within .rrc-can-svg__drop--2 {
+  animation-delay: 0.45s;
+}
+
+.reg-role-card:hover .rrc-can-svg__drop--3,
+.reg-role-card:focus-within .rrc-can-svg__drop--3 {
+  animation-delay: 0.7s;
+}
+
+@keyframes rrc-drop-fall {
+  0%   { opacity: 0; transform: translate(0, 0); }
+  20%  { opacity: 1; transform: translate(1px, 3px); }
+  100% { opacity: 0; transform: translate(2px, 22px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reg-role-card:hover .rrc-leaf-svg,
+  .reg-role-card:hover .rrc-leaf-svg__leaf,
+  .reg-role-card:focus-within .rrc-leaf-svg,
+  .reg-role-card:focus-within .rrc-leaf-svg__leaf,
+  .reg-role-card:hover .rrc-can-svg__drop,
+  .reg-role-card:focus-within .rrc-can-svg__drop {
+    animation: none;
+  }
+  .reg-role-card:hover .rrc-can-svg__body,
+  .reg-role-card:focus-within .rrc-can-svg__body {
+    transform: none;
+  }
 }
 
 .reg-role-card__title {
@@ -137,8 +316,8 @@
 /* --- Field Grid Variants --- */
 .reg-field-grid--2 {
   grid-template-columns: 1fr 1fr;
-  gap: 1.35rem 1rem;
-  padding: 0.25rem;
+  gap: 0.8rem 1rem;
+  padding: 0.15rem;
   min-width: 0;
 }
 
@@ -152,13 +331,157 @@
   box-sizing: border-box;
 }
 
+/* --- Education entries (slide 2, consultant) --- */
+.reg-edu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.reg-edu-entry {
+  padding: 0.65rem 0.85rem 0.8rem;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  background: var(--fo-surface-2, rgba(45, 106, 79, 0.04));
+}
+
+.reg-edu-entry__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.45rem;
+}
+
+.reg-edu-entry__num {
+  font-size: var(--type-eyebrow);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--fo-text-3, var(--tagline-body));
+}
+
+.reg-edu-entry__remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--fo-text-3, var(--tagline-body));
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.18s ease, background 0.18s ease;
+}
+
+.reg-edu-entry__remove:hover {
+  color: var(--fo-plan, #d4715a);
+  background: rgba(212, 113, 90, 0.1);
+}
+
+.reg-edu-entry .gr-field-grid {
+  gap: 0.6rem 1rem;
+  padding: 0;
+}
+
+/* --- School autocomplete --- */
+.reg-edu-school-ac {
+  position: relative;
+}
+
+.reg-edu-school-ac__panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--fo-surface, var(--card-bg));
+  border: 1px solid var(--fo-line, var(--card-border));
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(20, 32, 26, 0.18);
+}
+
+.reg-edu-school-ac__panel[hidden] {
+  display: none;
+}
+
+.reg-edu-school-ac__list {
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.reg-edu-school-ac__item {
+  padding: 0.4rem 0.55rem;
+  border-radius: 6px;
+  font-size: var(--type-meta);
+  color: var(--fo-text, var(--green-deep));
+  cursor: pointer;
+  user-select: none;
+}
+
+.reg-edu-school-ac__item:hover,
+.reg-edu-school-ac__item.is-active {
+  background: var(--fo-surface-2, rgba(45, 106, 79, 0.08));
+}
+
+.reg-edu-school-ac__item--other {
+  margin-top: 0.2rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--fo-line, var(--card-border));
+  color: var(--fo-text-3, var(--tagline-body));
+  font-style: italic;
+}
+
+.reg-edu-school-ac__empty {
+  padding: 0.4rem 0.55rem;
+  color: var(--fo-text-3, var(--tagline-body));
+  font-size: var(--type-meta);
+  font-style: italic;
+}
+
+.reg-edu-school-other-wrap {
+  margin-top: 0.35rem;
+}
+
+.reg-edu-school-other-wrap[hidden] {
+  display: none;
+}
+
+.reg-edu-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--green-mid, var(--fo-accent));
+  font: inherit;
+  font-size: var(--type-meta);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.18s ease;
+}
+
+.reg-edu-add:hover {
+  color: var(--green-deep, var(--fo-text));
+}
+
 /* --- Registration Nav --- */
 .reg-nav {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin-top: 1.75rem;
-  padding-top: 1.25rem;
+  margin-top: 1rem;
+  padding-top: 0.85rem;
   border-top: 1px solid var(--card-border);
 }
 

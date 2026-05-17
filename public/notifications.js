@@ -132,6 +132,8 @@ function renderFeed() {
   // Click-to-mark-read: clicking the link (or anywhere on an unread card) marks read.
   list.querySelectorAll(".gr-notification-card").forEach((card) => {
     card.addEventListener("click", (e) => {
+      // Don't mark-read when the click landed on the dismiss button.
+      if (e.target.closest(".gr-notif-dismiss")) return;
       const id = card.dataset.id;
       if (!id) return;
       const notif = _notifs.find((n) => n.id === id);
@@ -139,6 +141,16 @@ function renderFeed() {
         markRead([id]);
       }
       // Don't preventDefault — let the link navigate naturally.
+    });
+  });
+
+  // Dismiss (delete) — stops propagation so the parent card's click doesn't
+  // also fire mark-read on a row we're about to remove.
+  list.querySelectorAll(".gr-notif-dismiss").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dismissNotification(btn.dataset.dismissId);
     });
   });
 }
@@ -151,6 +163,9 @@ function renderCardHtml(n) {
     : "";
   return `
     <article class="gr-notification-card ${unread}" data-id="${escapeHtml(n.id)}">
+      <button type="button" class="gr-notif-dismiss" data-dismiss-id="${escapeHtml(n.id)}" aria-label="dismiss notification" title="dismiss">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+      </button>
       <div class="gr-notification-card__top">
         <div class="gr-notification-card__copy">
           <p class="gr-notification-card__title">${escapeHtml(n.title)}</p>
@@ -163,6 +178,27 @@ function renderCardHtml(n) {
         <span class="gr-notification-card__time">${fmtTime(n.created_at)}</span>
       </div>
     </article>`;
+}
+
+async function dismissNotification(id) {
+  if (!id) return;
+  // Optimistic — drop from local state and re-render. If the server delete
+  // fails (RLS, network), the next page load will resync and the row will
+  // reappear; in practice with the delete policy applied that's rare.
+  _notifs = _notifs.filter((n) => n.id !== id);
+  if (!_notifs.length) {
+    list.innerHTML = '<p class="gr-empty-card">no notifications yet. once bids, messages, or meeting updates come in, they will appear here.</p>';
+    controls.hidden = true;
+  } else {
+    renderFilters();
+    renderFeed();
+    updateMarkAllVisibility();
+  }
+  try {
+    await _client.from("notifications").delete().eq("id", id);
+  } catch (_) {
+    /* best-effort; next reload resyncs */
+  }
 }
 
 async function markRead(ids) {

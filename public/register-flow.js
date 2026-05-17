@@ -1,5 +1,9 @@
 import { getSupabaseClient } from "/supabase-loader.js";
-import { renderOAuthButtons } from "/oauth.js";
+import { wireSchoolAutocomplete } from "/school-autocomplete.js";
+import { wireAllCityAutocompletes } from "/city-autocomplete.js";
+// OAuth is paused until providers are configured in supabase. To re-enable,
+// uncomment the import + the renderOAuthButtons() call below.
+// import { renderOAuthButtons } from "/oauth.js";
 
 const form = document.getElementById("registration-form");
 const statusEl = document.getElementById("status");
@@ -23,6 +27,127 @@ let selectedRole = "";
 const slides = document.querySelectorAll("[data-reg-slide]");
 const segments = progressTrack.querySelectorAll(".reg-progress__seg");
 const steppedFields = [...form.querySelectorAll("[data-reg-slide] input, [data-reg-slide] select, [data-reg-slide] textarea")];
+
+const DEGREE_OPTIONS = [
+  ["associate's", "associate's"],
+  ["bachelor's", "bachelor's"],
+  ["master's", "master's"],
+  ["doctoral", "doctoral"],
+  ["certificate", "certificate"],
+  ["other", "other"],
+];
+
+const eduList = document.getElementById("reg-edu-list");
+const eduAddBtn = document.getElementById("reg-add-edu");
+
+function renderEducationEntry(index) {
+  const wrap = document.createElement("div");
+  wrap.className = "reg-edu-entry";
+  wrap.dataset.eduIndex = String(index);
+  const removeBtn = index === 0
+    ? ""
+    : `<button type="button" class="reg-edu-entry__remove" aria-label="remove degree">&times;</button>`;
+  const options = DEGREE_OPTIONS
+    .map(([val, label]) => `<option value="${val}">${label}</option>`)
+    .join("");
+  wrap.innerHTML = `
+    <div class="reg-edu-entry__head">
+      <span class="reg-edu-entry__num">degree ${index + 1}</span>
+      ${removeBtn}
+    </div>
+    <div class="gr-field-grid reg-field-grid--2">
+      <label class="gr-label">
+        <span>degree</span>
+        <select class="reg-edu-degree" data-initial-required="1" required>
+          <option value="">choose…</option>
+          ${options}
+        </select>
+      </label>
+      <label class="gr-label">
+        <span>major</span>
+        <input type="text" class="reg-edu-major" data-initial-required="1" placeholder="e.g. marketing, computer science" required />
+      </label>
+      <label class="gr-label">
+        <span>minor <span class="gr-optional">optional</span></span>
+        <input type="text" class="reg-edu-minor" data-initial-required="0" placeholder="e.g. data analytics" />
+      </label>
+      <label class="gr-label">
+        <span>school</span>
+        <div class="reg-edu-school-ac">
+          <input type="text" class="reg-edu-school-search" autocomplete="off"
+                 placeholder="search your school…" required />
+          <input type="hidden" class="reg-edu-school" data-initial-required="1" />
+          <div class="reg-edu-school-ac__panel" hidden>
+            <ul class="reg-edu-school-ac__list"></ul>
+          </div>
+          <div class="reg-edu-school-other-wrap" hidden>
+            <input type="text" class="reg-edu-school-other" placeholder="type your school name" />
+          </div>
+        </div>
+      </label>
+    </div>
+  `;
+  wrap.querySelector(".reg-edu-entry__remove")?.addEventListener("click", () => {
+    wrap.remove();
+    relabelEducationEntries();
+  });
+  wireSchoolAutocomplete(wrap.querySelector(".reg-edu-school-ac"));
+  return wrap;
+}
+
+function relabelEducationEntries() {
+  [...eduList.querySelectorAll(".reg-edu-entry")].forEach((entry, idx) => {
+    entry.dataset.eduIndex = String(idx);
+    const numEl = entry.querySelector(".reg-edu-entry__num");
+    if (numEl) numEl.textContent = `degree ${idx + 1}`;
+    const removeEl = entry.querySelector(".reg-edu-entry__remove");
+    if (idx === 0 && removeEl) removeEl.remove();
+  });
+}
+
+function collectEducations() {
+  return [...eduList.querySelectorAll(".reg-edu-entry")].map((entry) => {
+    const schoolInput = entry.querySelector(".reg-edu-school");
+    const otherInput = entry.querySelector(".reg-edu-school-other");
+    const isOther = schoolInput?.dataset?.schoolOther === "1";
+    // Prefer the hidden input's value; if user picked "not listed", the
+    // other-text field is authoritative.
+    let school = (schoolInput?.value || "").trim();
+    if (isOther) {
+      school = (otherInput?.value || "").trim();
+    }
+    return {
+      degree: entry.querySelector(".reg-edu-degree")?.value || null,
+      major: entry.querySelector(".reg-edu-major")?.value.trim() || null,
+      minor: entry.querySelector(".reg-edu-minor")?.value.trim() || null,
+      school: school || null,
+      school_other: isOther || undefined,
+    };
+  });
+}
+
+if (eduList && !eduList.children.length) {
+  eduList.appendChild(renderEducationEntry(0));
+}
+
+// City autocomplete (consultant step). The wrapping div is static in
+// register.html; this just attaches keyboard + click handlers.
+wireAllCityAutocompletes();
+
+function collectCity() {
+  const label = document.getElementById("reg-city")?.value?.trim() || null;
+  const latStr = document.getElementById("reg-city-lat")?.value?.trim() || "";
+  const lngStr = document.getElementById("reg-city-lng")?.value?.trim() || "";
+  const lat = latStr ? Number(latStr) : null;
+  const lng = lngStr ? Number(lngStr) : null;
+  if (!label || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { city: label, city_lat: lat, city_lng: lng };
+}
+
+eduAddBtn?.addEventListener("click", () => {
+  const idx = eduList.children.length;
+  eduList.appendChild(renderEducationEntry(idx));
+});
 
 steppedFields.forEach((field) => {
   field.dataset.initialRequired = field.required ? "1" : "0";
@@ -216,9 +341,8 @@ form.addEventListener("submit", async (e) => {
       const phoneNumber = form.phoneNumber?.value?.trim() || "";
       if (!phoneNumber) throw new Error("phone number is required.");
 
-      const eduMajor = form.major?.value?.trim() || "";
-      const eduMinor = form.minor?.value?.trim() || "";
-      const eduSchool = form.school?.value?.trim() || "";
+      const educations = selectedRole === "consultant" ? collectEducations() : [];
+      const primaryEdu = educations[0] || { major: null, minor: null, school: null };
 
       const res = await fetch("/api/oauth-complete", {
         method: "POST",
@@ -234,13 +358,20 @@ form.addEventListener("submit", async (e) => {
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "profile setup failed.");
 
-      // Save education for consultant
-      if (selectedRole === "consultant" && (eduMajor || eduSchool)) {
+      // Save education + city for consultant. educations jsonb mirrors
+      // to the legacy flat columns for read-compat; city is what feeds
+      // the marketplace "local" bucket. Both writes are non-blocking —
+      // a missing field at this stage just leaves the column null and
+      // the user can fill it in later via Settings → Personal.
+      if (selectedRole === "consultant" && (educations.length || true)) {
+        const cityRecord = collectCity();
         try {
           await supabase.from("consultant_profiles").update({
-            major: eduMajor || null,
-            minor: eduMinor || null,
-            school: eduSchool || null,
+            educations,
+            major: primaryEdu.major,
+            minor: primaryEdu.minor,
+            school: primaryEdu.school,
+            ...(cityRecord || { city: null, city_lat: null, city_lng: null }),
           }).eq("user_id", user.id);
         } catch (_) { /* non-blocking */ }
       }
@@ -267,10 +398,11 @@ form.addEventListener("submit", async (e) => {
     fd.delete("lastName");
     fd.delete("role_choice");
     fd.delete("passwordConfirm");
-    // Education fields sent separately if consultant
-    const eduMajor = fd.get("major") || "";
-    const eduMinor = fd.get("minor") || "";
-    const eduSchool = fd.get("school") || "";
+
+    // Education entries are collected from the dynamic slide-2 list, not
+    // from FormData. Persisted after the user is signed in (below).
+    const educations = selectedRole === "consultant" ? collectEducations() : [];
+    const primaryEdu = educations[0] || { major: null, minor: null, school: null };
 
     const res = await fetch("/api/register", {
       method: "POST",
@@ -298,13 +430,18 @@ form.addEventListener("submit", async (e) => {
       return;
     }
 
-    // Save education fields for consultant
-    if (selectedRole === "consultant" && (eduMajor || eduSchool)) {
+    // Save education + city for consultant. educations jsonb mirrors
+    // to legacy flat columns for read-compat; city feeds the marketplace
+    // "local" bucket. Both writes are non-blocking.
+    if (selectedRole === "consultant") {
+      const cityRecord = collectCity();
       try {
         await supabase.from("consultant_profiles").update({
-          major: eduMajor || null,
-          minor: eduMinor || null,
-          school: eduSchool || null,
+          educations,
+          major: primaryEdu.major,
+          minor: primaryEdu.minor,
+          school: primaryEdu.school,
+          ...(cityRecord || { city: null, city_lat: null, city_lng: null }),
         }).eq("user_id", body.userId);
       } catch (_) { /* non-blocking */ }
     }
@@ -341,7 +478,7 @@ if (isOAuth) {
   });
   submitBtn.textContent = "finish setup";
 } else {
-  renderOAuthButtons("oauth-slot");
+  // renderOAuthButtons("oauth-slot"); // re-enable once oauth providers are configured in supabase
 }
 
 // Hide the third progress segment initially (only shown for consultant)

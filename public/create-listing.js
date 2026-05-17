@@ -124,6 +124,11 @@ function isRetainerContractSelected() {
   return getSelectedContractMode() === "retainer";
 }
 
+function retainerTermsValue() {
+  const radio = document.querySelector('input[name="retainer_terms"]:checked');
+  return radio?.value || "fixed";
+}
+
 function hasMaintenancePhase() {
   return getSelectedContractPhases().includes("maintenance");
 }
@@ -153,6 +158,17 @@ function syncContractDetailFields() {
   if (maintenanceInput) {
     maintenanceInput.toggleAttribute("disabled", !maintenanceSelected);
     if (!maintenanceSelected) maintenanceInput.value = "";
+  }
+
+  // Retainer: hide fee/cadence inputs when 'tentative' is picked.
+  const retainerFields = document.getElementById("ct-retainer-fields");
+  const tentative = retainerTermsValue() === "tentative";
+  if (retainerFields) {
+    retainerFields.classList.toggle("hidden", tentative);
+    retainerFields.querySelectorAll("input, select").forEach((el) => {
+      el.toggleAttribute("disabled", tentative);
+      if (tentative && el.tagName === "INPUT") el.value = "";
+    });
   }
 }
 
@@ -378,6 +394,8 @@ function updateWizardUI() {
   backBtn.classList.toggle("hidden", currentSlide === 0);
   nextBtn.classList.toggle("hidden", currentSlide === slides.length - 1);
   submitBtn.classList.toggle("hidden", currentSlide !== slides.length - 1);
+  const publishNote = document.getElementById("publish-note");
+  if (publishNote) publishNote.classList.toggle("hidden", currentSlide !== slides.length - 1);
 }
 
 function validateSlide(index) {
@@ -412,6 +430,14 @@ function validateSlide(index) {
       if (!isValidMaintenanceTerms(maintenanceTerms)) {
         throw new Error('maintenance terms should look like "$X per hour/day/week/month for X [amount of time]" or "per business discretion."');
       }
+    }
+    if (isRetainerContractSelected() && retainerTermsValue() === "fixed") {
+      const cadence = String(form.elements.retainer_cadence?.value || "").trim();
+      const periods = Number(form.elements.retainer_period_count?.value || 0);
+      const fee = Number(form.elements.retainer_fee?.value || 0);
+      if (!cadence) throw new Error("please pick a retainer cadence.");
+      if (!periods || periods < 1) throw new Error("please enter how many periods the retainer runs.");
+      if (!fee || fee < 1) throw new Error("please enter the fee per period.");
     }
     return;
   }
@@ -809,9 +835,12 @@ form.addEventListener("submit", async (event) => {
     validateAttachmentSelection(selectedAttachments);
 
     const fd = new FormData(form);
+    // Radios emit one of 'standard' | 'phased' | 'retainer'. (The legacy
+    // 'advanced' branch below is a no-op; left in so the details summary
+    // builder still reads contractType for display.)
     const contractMode = String(fd.get("contract_type") || "standard").trim();
     const contractPhases = String(fd.get("contract_phases") || "proposal,solution").trim();
-    const contractType = contractMode === "advanced" ? contractPhases : "standard";
+    const contractType = contractMode === "advanced" ? contractPhases : contractMode;
     const budgetMin = Number(fd.get("budget_min"));
     const budgetMax = Number(fd.get("budget_max"));
 
@@ -849,7 +878,28 @@ form.addEventListener("submit", async (event) => {
         .join("\n") || null,
       turnaround_days: parseInt(String(fd.get("turnaround_days") || "0"), 10),
       status: "open",
+      // Structured contract metadata. proposal_budget + maintenance_terms
+      // only apply when contract_type='phased'; null otherwise so we don't
+      // mislead the offer form.
+      contract_type: contractMode,
+      proposal_budget: contractMode === "phased" && proposalBudget
+        ? parseInt(proposalBudget, 10)
+        : null,
+      maintenance_terms: contractMode === "phased" && maintenanceTerms ? maintenanceTerms : null,
     };
+
+    // Retainer terms — only when contract_type='retainer'. 'tentative' means
+    // cadence/period_count/fee_cents stay null and are negotiated later.
+    if (contractMode === "retainer") {
+      const retainerTerms = retainerTermsValue();
+      payload.retainer_terms = retainerTerms;
+      if (retainerTerms === "fixed") {
+        payload.retainer_cadence = String(fd.get("retainer_cadence") || "monthly");
+        payload.retainer_period_count = parseInt(String(fd.get("retainer_period_count") || "0"), 10) || null;
+        const fee = Number(fd.get("retainer_fee"));
+        payload.retainer_fee_cents = Number.isFinite(fee) ? Math.round(fee * 100) : null;
+      }
+    }
 
     const { data, error } = await supabase.from("listings").insert(payload).select("id").single();
     if (error) throw error;
@@ -874,6 +924,23 @@ form.addEventListener("submit", async (event) => {
       }
       throw attachmentError;
     }
+
+    // Geocode the listing in the background — non-fatal if it fails.
+    // The endpoint reads business_address off the owner's profile and
+    // writes lat/lng back to the listing. Result feeds the marketplace
+    // "local" bucket on the consultant side. We don't await this; the
+    // create flow finishes immediately and geocode completes inline.
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        if (!token) return;
+        await fetch(`/api/listings/${encodeURIComponent(data.id)}/geocode`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch (_) { /* non-fatal */ }
+    })();
 
     statusEl.textContent = "opportunity created.";
     statusEl.className = "gr-status success";

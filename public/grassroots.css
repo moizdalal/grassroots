@@ -473,6 +473,13 @@ img.gr-listing-logo {
   margin-left: 0.1em;
 }
 
+/* Signin form: every field is required, so the asterisks add visual noise
+   without information. Suppress them on this form only. */
+#signin-form .gr-label > span:first-child::after,
+#signin-form .gr-label .cl-field-label__title::after {
+  content: none;
+}
+
 /* Optional hint inside a label — used as <span class="gr-optional">optional</span> */
 .gr-optional {
   margin-left: 0.35em;
@@ -661,11 +668,75 @@ img.gr-listing-logo {
   word-break: break-all;
 }
 
-/* --- Portfolio Section --- */
+/* --- City autocomplete ---
+   Mirrors the school autocomplete's geometry (same dropdown shape,
+   same hit areas) but its own class prefix so the two can coexist
+   on the same page. */
+.reg-city-ac {
+  position: relative;
+}
+
+.reg-city-search {
+  width: 100%;
+}
+
+.reg-city-ac__panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--fo-surface, var(--card-bg));
+  border: 1px solid var(--fo-line, var(--card-border));
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(20, 32, 26, 0.18);
+}
+
+.reg-city-ac__panel[hidden] {
+  display: none;
+}
+
+.reg-city-ac__list {
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.reg-city-ac__item {
+  padding: 0.4rem 0.55rem;
+  border-radius: 6px;
+  font-size: var(--type-meta);
+  color: var(--fo-text, var(--green-deep));
+  cursor: pointer;
+  user-select: none;
+}
+
+.reg-city-ac__item:hover,
+.reg-city-ac__item.is-active {
+  background: var(--fo-surface-2, rgba(45, 106, 79, 0.08));
+}
+
+.reg-city-ac__empty {
+  padding: 0.4rem 0.55rem;
+  font-size: var(--type-meta);
+  color: var(--fo-text-3, var(--tagline-body));
+  font-style: italic;
+}
+
+/* --- Portfolio Section ---
+   Items + add-row sit flush inside their settings-section body with
+   no card chrome. Hairline divider between rows is the only visual
+   delimiter — keeps the section reading as a list, not a stack of
+   boxes-within-a-box. */
 .pf-portfolio-list {
   display: grid;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
+  gap: 0;
+  margin-bottom: var(--space-3);
 }
 
 .pf-portfolio-item {
@@ -673,23 +744,84 @@ img.gr-listing-logo {
   grid-template-columns: 1fr auto auto;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem 0.85rem;
-  border-radius: 12px;
-  border: 1px solid var(--card-border);
-  background: var(--sky);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--fo-line);
+}
+
+.pf-portfolio-item:last-child {
+  border-bottom: 0;
 }
 
 .pf-portfolio-item__info {
   min-width: 0;
 }
 
+/* Filename + download icon row. Filename is a clickable button that
+   opens the preview viewer; download icon is a small, muted icon button. */
+.pf-portfolio-item__name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
 .pf-portfolio-item__name {
   display: block;
-  font-size: var(--type-body);  font-weight: 600;
+  font-size: var(--type-body);
+  font-weight: 600;
   color: var(--green-deep);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* Button-flavoured filename — strips default button chrome but keeps
+   the typographic styling above. */
+.pf-portfolio-item__name--clickable {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--type-body);
+  font-weight: 600;
+  color: var(--green-deep);
+  text-align: left;
+  transition: color 0.15s ease;
+}
+
+.pf-portfolio-item__name--clickable:hover,
+.pf-portfolio-item__name--clickable:focus-visible {
+  color: var(--fo-accent, var(--green-mid));
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.pf-portfolio-item__download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  flex-shrink: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fo-text-3, var(--muted));
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.pf-portfolio-item__download svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.pf-portfolio-item__download:hover,
+.pf-portfolio-item__download:focus-visible {
+  color: var(--fo-accent, var(--green-mid));
+  background: var(--fo-accent-soft, rgba(45, 106, 79, 0.08));
 }
 
 .pf-portfolio-item__desc {
@@ -717,10 +849,15 @@ img.gr-listing-logo {
 .pf-portfolio-add {
   display: grid;
   gap: var(--space-3);
-  padding: var(--space-4);
-  border: 1px dashed var(--fo-line-strong, var(--input-border));
-  border-radius: 14px;
-  background: var(--fo-surface-2, var(--sky));
+  padding: var(--space-4) 0 0;
+  border-top: 1px solid var(--fo-line);
+}
+
+/* Drop the divider when there are no items above — first-child means
+   the add-row IS the first row in the section body. */
+.pf-portfolio-add:first-child {
+  padding-top: 0;
+  border-top: 0;
 }
 
 .pf-portfolio-desc {
@@ -752,16 +889,51 @@ img.gr-listing-logo {
   gap: var(--space-3);
 }
 
-/* --- Preview Bar --- */
+/* Lock the preview modal dialog to constant outer dimensions
+   regardless of which tab is active. The base .ld-cv__inner sizes to
+   its content (so the slideshow viewer on listing.html collapses
+   between proposals — that flow ships its own content sizing). Here
+   we want the consultant to see one steady frame across bio / resume
+   / past work, so they can assess "this is what a business sees"
+   without the dialog jumping. The body scrolls if a tab has more
+   content than fits. */
+#pf-preview-modal .ld-cv__inner {
+  width: min(720px, calc(100vw - 2rem));
+  height: min(720px, 92vh);
+}
+
+/* --- Preview-as-business trigger row ---
+   A quiet, link-styled trigger that opens the full preview modal.
+   The old toggle / banner chrome (accent bg + border) was removed —
+   the action is now a single sentence, not a switch. */
 .pf-preview-bar {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
-  border-radius: 12px;
-  background: rgba(149, 213, 178, 0.12);
-  border: 1px solid rgba(45, 106, 79, 0.15);
-  margin-bottom: 1.25rem;
+  margin: 0 0 var(--space-3);
+}
+
+.pf-preview-trigger {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0.4rem 0;
+  font: inherit;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
+  font-weight: 600;
+  color: var(--fo-accent);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 6px;
+}
+
+.pf-preview-trigger:hover,
+.pf-preview-trigger:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  outline: none;
 }
 
 /* --- Business View (Preview) --- */
@@ -789,10 +961,15 @@ img.gr-listing-logo {
 .pf-bv__avatar,
 .pf-bv__avatar-placeholder {
   --gr-avatar-size: 4.5rem;
-  --gr-avatar-radius: 50%;
+  /* Square (rounded-corner tile) — matches the universal .gr-avatar--tile
+     default. Used by both the settings preview and the canonical business
+     viewer in listing.html, so the consultant headshot reads identically
+     in both places. */
+  --gr-avatar-radius: 12px;
   --gr-avatar-bg: var(--fo-accent-soft, #e8f0ec);
   --gr-avatar-fg: var(--fo-accent, var(--green-mid));
-  font-size: var(--type-h1);}
+  font-size: var(--type-h1);
+}
 
 .pf-bv__name {
   font-family: Fraunces, Georgia, serif;
@@ -1501,6 +1678,48 @@ img.gr-listing-logo {
   border: 1px solid rgba(45, 106, 79, 0.12);
 }
 
+.ct-retainer-terms {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+  padding: 0.95rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(45, 106, 79, 0.12);
+}
+
+.ct-retainer-terms__toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ct-retainer-terms__option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--type-meta);
+  font-weight: 600;
+  color: var(--fo-text, var(--green-deep));
+  cursor: pointer;
+}
+
+.ct-retainer-terms__option input[type="radio"] {
+  accent-color: var(--fo-accent, #2d6a4f);
+  cursor: pointer;
+}
+
+.ct-retainer-terms__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.65rem;
+}
+
+.ct-retainer-terms__fields.hidden {
+  display: none;
+}
+
 /* ── Chain builder ───────────────────────────────────────── */
 
 .ct-builder {
@@ -1946,7 +2165,8 @@ summary:focus-visible,
 }
 
 .gr-btn:disabled,
-.gr-btn[disabled] {
+.gr-btn[disabled],
+.gr-btn[aria-disabled="true"] {
   cursor: not-allowed;
   opacity: 0.55;
   transform: none !important;
@@ -2240,20 +2460,19 @@ summary:focus-visible,
   margin-inline: auto;
 }
 
-/* Auth submit row — single primary button, right-aligned. The "forgot
-   password?" link lives directly under the password input as a subscript
-   hint (see .gr-auth-forgot below), not in this row. */
+/* Auth submit row — forgot-password link on the left, primary button on
+   the right, baseline-aligned so the small link sits with the button. */
 .gr-auth-actions {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 1.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.25rem;
 }
 
-/* Forgot-password link — sits inside the password .gr-label, directly
-   below the input. Reads as a subscript hint: small, muted, right-aligned. */
+/* Forgot-password link — small, muted; sits to the left of the sign-in
+   button in the action row. */
 .gr-auth-forgot {
-  align-self: flex-end;
-  margin-top: 0.35rem;
   font-size: var(--type-meta);
   font-weight: 500;
   color: var(--fo-text-3, var(--tagline-body));
@@ -2397,6 +2616,7 @@ summary:focus-visible,
 }
 
 .gr-notification-card {
+  position: relative;
   display: grid;
   gap: 0.75rem;
   padding: 1rem 1.1rem;
@@ -2405,6 +2625,42 @@ summary:focus-visible,
   border-radius: 16px;
   box-shadow: 0 4px 18px rgba(27, 67, 50, 0.06);
   transition: transform 0.24s var(--ease-framer), box-shadow 0.24s ease, border-color 0.24s ease;
+}
+
+/* Dismiss (×) button — sits in the top-right corner of each card. The
+   button stops propagation in JS so clicks here don't also trigger the
+   card's mark-as-read handler. */
+.gr-notif-dismiss {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--fo-line, var(--card-border));
+  color: var(--fo-text-3, var(--tagline-body));
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.65;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.gr-notif-dismiss svg {
+  width: 12px;
+  height: 12px;
+}
+
+.gr-notif-dismiss:hover,
+.gr-notif-dismiss:focus-visible {
+  opacity: 1;
+  background: var(--fo-surface-2, rgba(255, 255, 255, 0.5));
+  color: var(--fo-plan, var(--danger));
+  border-color: var(--fo-plan, var(--danger));
+  outline: none;
 }
 
 .gr-notification-card:hover {
@@ -3505,6 +3761,146 @@ button.gr-bid-link {
   letter-spacing: -0.01em;
 }
 
+.ld-bid-card__amount--phased {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  font-size: var(--type-h3);
+  line-height: 1.15;
+}
+
+/* Phased "accept proposal" — was a tiny checkbox + label that owners
+   missed. Now styled as a button-shaped toggle that looks like an
+   action, not a setting. The native checkbox stays for accessibility +
+   keyboard activation, just visually replaced with a ::before pill. */
+.ld-bid-card__select {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.85rem;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
+  font-weight: 600;
+  color: var(--fo-accent, var(--green-deep));
+  background: transparent;
+  border: 1px solid var(--fo-accent, var(--green-mid));
+  border-radius: 999px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.ld-bid-card__select:hover,
+.ld-bid-card__select:focus-within {
+  background: var(--fo-accent-soft, rgba(45, 106, 79, 0.12));
+}
+
+/* Checked state — flips to a filled accent pill so the selected state
+   reads as "queued for payment." Native checkbox stays hidden but
+   reachable via keyboard; the label receives the visual treatment. */
+.ld-bid-card__select:has(.ld-bid-card__checkbox:checked) {
+  background: var(--fo-accent, var(--green-mid));
+  color: var(--fo-accent-on, #fff);
+  border-color: var(--fo-accent, var(--green-mid));
+}
+
+.ld-bid-card__checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+/* Tiny check mark glyph rendered before the label text — appears once
+   the proposal is selected, so the user gets a visible confirmation. */
+.ld-bid-card__select::before {
+  content: "+";
+  font-size: 1rem;
+  line-height: 1;
+  width: 0.9rem;
+  text-align: center;
+  transition: content 0.05s linear;
+}
+
+.ld-bid-card__select:has(.ld-bid-card__checkbox:checked)::before {
+  content: "✓";
+}
+
+/* Sticky to the bottom of the bids panel's scroll viewport so a long
+   list of proposals never scrolls the pay action out of reach. The
+   animate-in keyframe fires only when the .hidden class is dropped,
+   so the pill reveals itself on first selection but stays calm on
+   subsequent count/total updates. */
+.ld-proposal-cta {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  padding: 0.8rem 1rem;
+  border: 1.5px solid var(--fo-accent, #2d6a4f);
+  border-radius: 12px;
+  background: var(--fo-accent-soft, rgba(45, 106, 79, 0.08));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  animation: ld-proposal-cta-pop 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ld-proposal-cta.hidden {
+  display: none;
+}
+
+@keyframes ld-proposal-cta-pop {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ld-proposal-cta { animation: none; }
+}
+
+.ld-proposal-cta__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.ld-proposal-cta__label {
+  font-size: var(--type-micro, 0.72rem);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fo-text-3, var(--muted));
+}
+
+.ld-proposal-cta__total {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 600;
+  font-size: var(--type-h3);
+  color: var(--fo-text, var(--green-deep));
+}
+
+.ld-bid-card__amount-line {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.ld-bid-card__amount-tag {
+  font-family: "Manrope", sans-serif;
+  font-weight: 600;
+  font-size: var(--type-micro, 0.7rem);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--fo-text-3, var(--muted));
+}
+
 .ld-bid-card__message {
   margin: 0;
   padding: 0.55rem 0.7rem;
@@ -3525,11 +3921,20 @@ button.gr-bid-link {
   color: var(--fo-text, var(--ink));
 }
 
+/* Status pill row — pinned to the top-left of the card, above the avatar/
+   name row. Renders only when the bid has a non-pending status, so most
+   cards skip this row entirely. */
+.ld-bid-card__top {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.55rem;
+}
+
 .ld-bid-card__foot {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.65rem;
+  justify-content: flex-end;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
@@ -4101,6 +4506,34 @@ button.gr-bid-link {
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
 }
 
+/* "suggestion box" label that floats to the left of the floating
+   button on hover/focus — clarifies what the icon-only chip is. */
+.gr-suggest-btn::after {
+  content: "suggestion box";
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 10px);
+  transform: translateY(-50%) translateX(4px);
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  background: rgba(15, 31, 26, 0.92);
+  color: rgba(255, 255, 255, 0.92);
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.gr-suggest-btn:hover::after,
+.gr-suggest-btn:focus-visible::after {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
 .gr-suggest-btn svg {
   width: 22px;
   height: 22px;
@@ -4362,16 +4795,19 @@ button.gr-bid-link {
   margin-top: 0.85rem;
 }
 
-/* --- Payouts onboarding page (/payouts.html) -------------------- */
+/* --- Payouts onboarding page (/payouts.html) --------------------
+   Flat-on-the-page treatment — no card chrome around the status block
+   or the Stripe-embedded surfaces. Hierarchy comes from typography +
+   spacing only. */
 .po-status {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  padding: 0.85rem 1rem;
-  margin-bottom: 1rem;
-  background: var(--fo-surface);
-  border: 1px solid var(--fo-line);
-  border-radius: 12px;
+  padding: 0;
+  margin: var(--space-4) 0 var(--space-5);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 }
 
 .po-status__row {
@@ -4389,6 +4825,31 @@ button.gr-bid-link {
 
 .po-status__dot[data-state="active"] { background: var(--fo-accent); }
 .po-status__dot[data-state="pending"] { background: var(--fo-accent-warm, #b97a2a); }
+.po-status__dot[data-state="review"] { background: var(--fo-accent-warm, #b97a2a); }
+
+.po-status__requirements {
+  margin: 0.4rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.po-status__requirements li {
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+  padding-left: 1rem;
+  position: relative;
+}
+
+.po-status__requirements li::before {
+  content: "·";
+  position: absolute;
+  left: 0.35rem;
+  color: var(--fo-accent-warm, #b97a2a);
+  font-weight: 700;
+}
 
 .po-status__label {
   font-weight: 600;
@@ -4401,11 +4862,310 @@ button.gr-bid-link {
   color: var(--fo-text-3);
 }
 
-.po-onboarding {
-  background: var(--fo-surface);
+.po-onboarding,
+.po-management,
+.po-payouts {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: var(--space-5);
+}
+
+/* At-a-glance balance summary card. Sits above the embedded Stripe
+   iframes for active accounts. Card pattern per brandkit: light theme
+   gets a surface fill; dark themes use border-only floating outline. */
+.po-balance {
+  margin: var(--space-4) 0 var(--space-5);
+  padding: var(--space-4) var(--space-5);
   border: 1px solid var(--fo-line);
-  border-radius: 16px;
-  padding: 0.6rem;
+  border-radius: 14px;
+  background: var(--fo-surface);
+  display: grid;
+  gap: var(--space-4);
+}
+:root:not([data-theme="light"]) .po-balance {
+  background: transparent;
+}
+
+.po-balance__title {
+  margin: 0;
+}
+
+.po-balance__row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.po-balance__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.po-balance__label {
+  font-size: var(--type-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fo-text-3);
+}
+
+.po-balance__value {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: var(--type-h3);
+  font-weight: 600;
+  color: var(--fo-text);
+  font-variant-numeric: tabular-nums;
+  /* Keep "last payout" lines from blowing out the cell on long values. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .po-balance__row {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+}
+
+/* Collapsible section primitive used on the payouts page. The head is
+   a button so the entire row is clickable + keyboard-focusable; the body
+   uses the grid-template-rows 1fr ↔ 0fr trick to animate height without
+   having to measure content. State is persisted in localStorage by the
+   page script — see setupCollapsibles() in payouts.html. */
+.po-collapsible {
+  border-top: 1px solid var(--fo-line);
+  padding: var(--space-4) 0 var(--space-3);
+  margin: 0;
+}
+
+.po-collapsible:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.po-collapsible__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  background: transparent;
+  border: 0;
+  padding: 0 0 var(--space-2);
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  border-radius: 8px;
+  transition: color 0.15s ease;
+}
+
+.po-collapsible__head:hover .po-collapsible__title,
+.po-collapsible__head:focus-visible .po-collapsible__title {
+  color: var(--fo-text);
+}
+
+.po-collapsible__head:focus-visible {
+  outline: 2px solid var(--fo-accent);
+  outline-offset: 4px;
+}
+
+/* Override the eyebrow tracker's default top margin since the head
+   button already supplies the spacing. */
+.po-collapsible__title.gr-section-h {
+  margin: 0;
+  transition: color 0.15s ease;
+}
+
+.po-collapsible__chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--fo-text-3);
+  border-radius: 6px;
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              background 0.15s ease,
+              color 0.15s ease;
+}
+
+.po-collapsible__chevron svg {
+  width: 14px;
+  height: 14px;
+}
+
+.po-collapsible__head:hover .po-collapsible__chevron {
+  background: var(--fo-surface-2);
+  color: var(--fo-text);
+}
+
+.po-collapsible.is-collapsed .po-collapsible__chevron {
+  transform: rotate(-90deg);
+}
+
+.po-collapsible__body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.2s ease,
+              margin 0.2s ease;
+  opacity: 1;
+}
+
+.po-collapsible.is-collapsed .po-collapsible__body {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  margin-bottom: calc(var(--space-3) * -1);
+}
+
+.po-collapsible__inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ===================================================================
+   App-wide toast notifications  —  see /toast.js
+   =================================================================== */
+
+.gr-toast-stack {
+  position: fixed;
+  bottom: 1.4rem;
+  right: 1.4rem;
+  display: flex;
+  flex-direction: column-reverse; /* newest at bottom-right, older drift up */
+  gap: 0.6rem;
+  z-index: 2147483600; /* above modals + frosted overlays */
+  pointer-events: none;
+  max-width: min(90vw, 420px);
+}
+
+.gr-toast {
+  display: inline-grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.7rem 0.55rem 0.7rem 0.95rem;
+  background: var(--fo-surface, #fff);
+  border: 1px solid var(--fo-line-strong, rgba(0,0,0,0.12));
+  border-left: 3px solid var(--fo-text-3, #6b7a72);
+  border-radius: 12px;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.32),
+              0 2px 6px rgba(0, 0, 0, 0.18);
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--fo-text, #0f1f1a);
+  pointer-events: auto;
+  min-width: 240px;
+  max-width: 100%;
+  opacity: 0;
+  transform: translateX(20px) scale(0.98);
+  transition: opacity 0.22s ease, transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gr-toast.is-visible {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+.gr-toast.is-leaving {
+  opacity: 0;
+  transform: translateX(20px) scale(0.98);
+}
+
+.gr-toast--success { border-left-color: var(--fo-accent, #2f7a5a); }
+.gr-toast--error   { border-left-color: var(--fo-plan, #d97757); }
+
+.gr-toast__icon {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--fo-text-3);
+}
+
+.gr-toast__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.gr-toast--success .gr-toast__icon { color: var(--fo-accent, #2f7a5a); }
+.gr-toast--error   .gr-toast__icon { color: var(--fo-plan, #d97757); }
+
+.gr-toast__text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.gr-toast__action {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--fo-accent, #2f7a5a);
+  font: inherit;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+
+.gr-toast__action:hover,
+.gr-toast__action:focus-visible {
+  background: var(--fo-accent-soft, rgba(47, 122, 90, 0.12));
+  outline: none;
+}
+
+.gr-toast__close {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--fo-text-3);
+  cursor: pointer;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  padding: 0;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.gr-toast__close svg { width: 12px; height: 12px; }
+
+.gr-toast__close:hover,
+.gr-toast__close:focus-visible {
+  color: var(--fo-text, #0f1f1a);
+  background: var(--fo-surface-2);
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gr-toast {
+    transition: opacity 0.18s ease;
+    transform: none !important;
+  }
+}
+
+@media (max-width: 540px) {
+  .gr-toast-stack {
+    bottom: 0.85rem;
+    right: 0.85rem;
+    left: 0.85rem;
+    max-width: none;
+  }
+  .gr-toast {
+    min-width: 0;
+  }
 }
 
 /* --- Frosted loading overlay --- */
@@ -4480,80 +5240,12 @@ button.gr-bid-link {
   78%      { transform: rotate(-4deg); }
 }
 
-/* Wind streak layer — sits behind the sprout. Each streak is a curved
-   SVG wisp; the path itself draws a wave, and the keyframe drifts it
-   across with a gentle Y oscillation so the wind reads as swirling, not
-   as straight lines. Multiple speeds + phases give an uneven breeze. */
-.gr-loader-overlay__wind {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  color: var(--green-light, #6dbf8a);
-}
-
-.gr-loader-overlay__streak {
-  position: absolute;
-  left: 0;
-  width: 32%;
-  height: 38px;
-  color: inherit;
-  filter: blur(0.4px);
-  opacity: 0;
-  will-change: transform, opacity;
-  animation: gr-loader-wind 9s ease-in-out infinite;
-}
-
-.gr-loader-overlay__streak:nth-child(1) {
-  top: 18%;
-  width: 36%;
-  animation-duration: 8.5s;
-  animation-delay: -1.5s;
-}
-.gr-loader-overlay__streak:nth-child(2) {
-  top: 38%;
-  width: 28%;
-  height: 30px;
-  animation-duration: 7.6s;
-  animation-delay: -4.2s;
-}
-.gr-loader-overlay__streak:nth-child(3) {
-  top: 60%;
-  width: 40%;
-  animation-duration: 10s;
-  animation-delay: -0.9s;
-}
-.gr-loader-overlay__streak:nth-child(4) {
-  top: 80%;
-  width: 26%;
-  height: 26px;
-  animation-duration: 7s;
-  animation-delay: -3.4s;
-}
-
-/* Drift across with a gentle vertical bob so the curve looks like it's
-   swirling on the wind. Opacity fades in at left edge, holds, fades out
-   at right edge. The translateX range covers from off-left to off-right. */
-@keyframes gr-loader-wind {
-  0%   { transform: translate(-40vw, 0)    rotate(-2deg); opacity: 0; }
-  15%  { opacity: 0.28; }
-  35%  { transform: translate(20vw, -14px) rotate(3deg); }
-  55%  { transform: translate(60vw, 8px)   rotate(-3deg); }
-  75%  { transform: translate(95vw, -10px) rotate(2deg); }
-  85%  { opacity: 0.28; }
-  100% { transform: translate(140vw, 0)    rotate(0deg); opacity: 0; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .gr-loader-overlay__svg,
   .gr-loader-overlay__leaf,
   .gr-loader-overlay__leaf--left,
-  .gr-loader-overlay__leaf--right,
-  .gr-loader-overlay__streak {
+  .gr-loader-overlay__leaf--right {
     animation: none;
-  }
-  .gr-loader-overlay__streak {
-    opacity: 0;
   }
 }
 

@@ -83,10 +83,15 @@ export async function mountDashboardNotifications({ client, userId, listEl, empt
   if (!listEl) return { unreadCount: 0, total: 0 };
   let notifs = [];
   try {
+    // Dashboard view shows only the last 5 days. Older notifications
+    // remain accessible on /notifications.html — this just keeps the
+    // dashboard panel feeling current.
+    const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
     const { data, error } = await client
       .from("notifications")
       .select("id, type, title, body, link, read, created_at")
       .eq("user_id", userId)
+      .gte("created_at", fiveDaysAgo)
       .order("read", { ascending: true })
       .order("created_at", { ascending: false })
       .limit(limit);

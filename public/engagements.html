@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grassroots — engagements</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/grassroots.css" />
+    <link rel="stylesheet" href="/field-office.css" />
+    <link rel="stylesheet" href="/engagements.css" />
+    <script src="/theme.js"></script>
+    <script src="/loading-overlay.js"></script>
+  </head>
+  <body class="gr-body gr-has-side-nav">
+    <main class="gr-shell gr-shell--wide eng-shell">
+      <div class="gr-page-intro">
+        <p class="gr-page-eyebrow">your work</p>
+        <h1 class="gr-title">engagements</h1>
+        <p class="gr-subtitle">handle pending action items across active work, or revisit a past collaboration. everything in one place.</p>
+      </div>
+
+      <p id="eng-gate" class="gr-status" aria-live="polite">loading…</p>
+
+      <div id="eng-shell" hidden>
+        <div class="eng-toggle-row">
+          <div class="eng-toggle" role="tablist" aria-label="filter engagements">
+            <span class="eng-toggle__indicator" aria-hidden="true"></span>
+            <button type="button" class="eng-toggle__btn is-active" data-view="current" role="tab" aria-selected="true">
+              <span class="eng-toggle__base">current</span><span class="eng-toggle__suffix">&nbsp;engagements</span>
+            </button>
+            <span class="eng-toggle__divider" aria-hidden="true">/</span>
+            <button type="button" class="eng-toggle__btn" data-view="past" role="tab" aria-selected="false">
+              <span class="eng-toggle__base">past</span><span class="eng-toggle__suffix">&nbsp;engagements</span>
+            </button>
+          </div>
+          <span class="eng-count" id="eng-count" aria-live="polite"></span>
+        </div>
+
+        <section class="eng-actions" id="eng-actions" hidden aria-label="pending action items">
+          <div class="eng-actions__head">
+            <span class="eng-kicker">action items · <span id="eng-actions-count">0</span></span>
+            <h2 class="eng-actions__title">things waiting on you</h2>
+          </div>
+          <div class="eng-actions__list" id="eng-actions-list"></div>
+        </section>
+
+        <section class="eng-list-section" aria-label="engagements list">
+          <div class="eng-list" id="eng-list"></div>
+          <p id="eng-empty" class="gr-empty-state" hidden></p>
+        </section>
+      </div>
+    </main>
+
+    <script type="module" src="/nav-session.js"></script>
+    <script type="module" src="/engagements.js"></script>
+    <script type="module" src="/side-nav.js"></script>
+  </body>
+</html>

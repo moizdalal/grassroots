@@ -1,6 +1,6 @@
 // side-nav.js — shared application sidebar.
 // Wraps the page's <main> in a .bza grid and injects the standard
-// sidebar with a brand link to the landing page, work links pointing
+// sidebar with a brand link to the landing page, nav links pointing
 // at dashboard views, and account links to direct pages.
 // Skips itself on pages that already render a .bza__side (the
 // dashboard injects its own from the loaded data).
@@ -8,63 +8,83 @@
 import { getInitials } from "/initials.js";
 
 const COLLAPSE_KEY = "grassroots_dash_sidebar_collapsed";
+const ENG_SUBNAV_KEY = "grassroots_side_engagements_open";
 
 const ICONS = {
-  dashboard:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>',
+  home:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-7h4v7h4a1 1 0 0 0 1-1V10"/></svg>',
   listings:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="17" y2="13"/><line x1="7" y1="17" x2="13" y2="17"/></svg>',
   inbox:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></svg>',
   engagements:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>',
-  archive:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="5" rx="1"/><path d="M5 8v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg>',
-  profile:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="3" y1="13" x2="21" y2="13"/></svg>',
+  marketplace:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/></svg>',
-  bell:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
-  gear:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  payouts:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-1"/><path d="M16 12a2 2 0 0 0 0 4h5v-4z"/></svg>',
+  notifications:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
+  chevron:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
   plus:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
-  hamburger:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>',
+  gear:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  help:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="4.93" y1="4.93" x2="9.17" y2="9.17"/><line x1="14.83" y1="14.83" x2="19.07" y2="19.07"/><line x1="14.83" y1="9.17" x2="19.07" y2="4.93"/><line x1="4.93" y1="19.07" x2="9.17" y2="14.83"/></svg>',
 };
 
-// Work items are built per-role so consultants don't see "my listings"
+// Nav items are built per-role so consultants don't see "my listings"
 // (they don't have any) and owners don't see "marketplace" duplicated as
-// the dashboard. See buildWorkItems().
-const SYSTEM_ITEMS = [
-  { href: "/settings.html", label: "settings", icon: ICONS.gear },
-];
+// the dashboard. See buildNavItems(). System actions (settings, help,
+// dark mode) are rendered separately as a compact icon row pinned to the
+// bottom of the sidebar — see renderSidebar().
 
-function buildWorkItems(role) {
+function buildNavItems(role) {
   if (role === "consultant") {
-    // Mirrors the in-page sidebar on /consultant-dashboard.html so a
-    // consultant gets the same nav everywhere they go. No "my listings"
-    // because consultants don't post listings.
+    // Consultants get "home" (their dashboard), an expandable engagements
+    // hub for managing active and past work, plus marketplace, inbox,
+    // notifications, and a direct payouts link.
     return [
-      { href: "/consultant-dashboard.html", label: "dashboard", icon: ICONS.dashboard, navId: "dashboard" },
-      { href: "/", label: "marketplace", icon: ICONS.profile, navId: "marketplace" },
+      { href: "/consultant-dashboard.html", label: "home", icon: ICONS.home, navId: "home" },
+      { href: "/engagements.html", label: "engagements", icon: ICONS.engagements, navId: "engagements" },
+      { href: "/marketplace.html", label: "marketplace", icon: ICONS.marketplace, navId: "marketplace" },
       { href: "/consultant-dashboard.html#inbox", label: "inbox", icon: ICONS.inbox, navId: "inbox" },
+      { href: "/notifications.html", label: "notifications", icon: ICONS.notifications, navId: "notifications" },
+      { href: "/payouts.html", label: "payouts", icon: ICONS.payouts, navId: "payouts" },
     ];
   }
   // Default to the owner layout. This is also what unauthenticated visitors
   // see, but the sidebar's user card / logout will be hidden in that case.
   return [
-    { href: "/dashboard.html", label: "dashboard", icon: ICONS.dashboard, navId: "dashboard" },
+    { href: "/dashboard.html", label: "home", icon: ICONS.home, navId: "home" },
     { href: "/dashboard.html#listings", label: "my listings", icon: ICONS.listings, navId: "listings" },
     { href: "/dashboard.html#inbox", label: "inbox", icon: ICONS.inbox, navId: "inbox" },
+    { href: "/notifications.html", label: "notifications", icon: ICONS.notifications, navId: "notifications" },
   ];
 }
+
+// Secondary nav (account / system). Same vertical layout as the
+// primary items, but rendered after a divider so the visual grouping
+// reads as "what you do" → hairline → "your account".
+const SECONDARY_NAV_ITEMS = [
+  { href: "/settings.html", label: "settings", icon: ICONS.gear, navId: "settings" },
+  { href: "/help.html", label: "help", icon: ICONS.help, navId: "help" },
+];
 
 function inferActiveNavId(role) {
   const path = window.location.pathname;
   const hash = window.location.hash.replace("#", "");
-  if (path === "/dashboard.html" || path === "/dashboard") return hash || "dashboard";
-  if (path === "/consultant-dashboard.html") return hash || "dashboard";
-  if (path === "/" || path === "/index.html") return role === "consultant" ? "marketplace" : null;
+  const params = new URLSearchParams(window.location.search);
+  if (path === "/dashboard.html" || path === "/dashboard") return hash || "home";
+  if (path === "/consultant-dashboard.html") return hash || "home";
+  if (path === "/marketplace.html") return role === "consultant" ? "marketplace" : null;
+  if (path === "/engagements.html") return "engagements";
+  if (path === "/payouts.html") return role === "consultant" ? "payouts" : null;
+  if (path === "/notifications.html") return "notifications";
+  if (path === "/settings.html") return "settings";
+  if (path === "/help.html" || path.startsWith("/help/")) return "help";
   return null;
 }
 
@@ -73,56 +93,84 @@ const ICON_MOON =
 const ICON_LOGOUT =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>';
 
-function renderSidebar({ role, activeNavId, activeRoute }) {
-  const workItems = buildWorkItems(role);
-  const work = workItems
-    .map((it) => {
-      const active = activeNavId === it.navId ? " active" : "";
-      return `<a href="${it.href}" class="bza__nav-item${active}" data-nav-id="${it.navId}" title="${it.label}">
-      <span class="bza__nav-icon" aria-hidden="true">${it.icon}</span>
-      <span class="bza__nav-label">${it.label}</span>
+function renderNavItem(item, activeNavId) {
+  const childActive = (item.sub || []).some((s) => s.navId === activeNavId);
+  const active = activeNavId === item.navId || childActive ? " active" : "";
+  if (!item.sub) {
+    return `<a href="${item.href}" class="bza__nav-item${active}" data-nav-id="${item.navId}" title="${item.label}">
+      <span class="bza__nav-icon" aria-hidden="true">${item.icon}</span>
+      <span class="bza__nav-label">${item.label}</span>
     </a>`;
+  }
+  // Item has a sub-nav. The main link still navigates to the parent
+  // page; the chevron toggles the sub list. Default open state honours
+  // the active child (if any) so it doesn't slam shut on navigation.
+  let initialOpen = childActive;
+  try {
+    if (!initialOpen) initialOpen = window.localStorage.getItem(ENG_SUBNAV_KEY) === "1";
+  } catch {}
+  const subItems = item.sub
+    .map((s) => {
+      const sActive = activeNavId === s.navId ? " active" : "";
+      return `<a href="${s.href}" class="bza__nav-subitem${sActive}" data-nav-id="${s.navId}">
+        <span class="bza__nav-subitem-dot" aria-hidden="true"></span>
+        <span class="bza__nav-subitem-label">${s.label}</span>
+      </a>`;
     })
     .join("");
-  const renderItem = (it) => {
-    const active = activeRoute === it.href ? " active" : "";
-    return `<a href="${it.href}" class="bza__nav-item${active}" title="${it.label}">
-      <span class="bza__nav-icon" aria-hidden="true">${it.icon}</span>
-      <span class="bza__nav-label">${it.label}</span>
-    </a>`;
-  };
-  const system = SYSTEM_ITEMS.map(renderItem).join("");
-  // Owners get a "post a listing" CTA; consultants don't post listings.
+  return `<div class="bza__nav-group${initialOpen ? " is-open" : ""}" data-nav-group="${item.navId}">
+      <div class="bza__nav-row">
+        <a href="${item.href}" class="bza__nav-item bza__nav-item--has-sub${active}" data-nav-id="${item.navId}" title="${item.label}">
+          <span class="bza__nav-icon" aria-hidden="true">${item.icon}</span>
+          <span class="bza__nav-label">${item.label}</span>
+        </a>
+        <button type="button" class="bza__nav-toggle" aria-expanded="${initialOpen}" aria-controls="bza-sub-${item.navId}" title="toggle ${item.label}">
+          <span class="bza__nav-toggle-icon" aria-hidden="true">${ICONS.chevron}</span>
+        </button>
+      </div>
+      <div class="bza__nav-subnav" id="bza-sub-${item.navId}" role="group">
+        ${subItems}
+      </div>
+    </div>`;
+}
+
+function renderSidebar({ role, activeNavId }) {
+  const navItems = buildNavItems(role);
+  const primary = navItems.map((it) => renderNavItem(it, activeNavId)).join("");
+  const secondary = SECONDARY_NAV_ITEMS.map((it) => renderNavItem(it, activeNavId)).join("");
+  // Owners get a "post a listing" CTA above the primary→secondary
+  // divider so the styled green button still reads as part of the
+  // "what you do" cluster.
   const postCta =
     role === "consultant"
       ? ""
       : `
-      <a href="/create-listing.html" class="bza__post" id="gr-side-post" title="post a listing">
-        <span class="bza__nav-icon" aria-hidden="true">${ICONS.plus}</span>
-        <span class="bza__nav-label">post a listing</span>
-      </a>`;
+        <a href="/create-listing.html" class="bza__post" id="gr-side-post" title="post a listing">
+          <span class="bza__nav-icon" aria-hidden="true">${ICONS.plus}</span>
+          <span class="bza__nav-label">post a listing</span>
+        </a>`;
   return `
     <aside class="bza__side" id="gr-side">
       <div class="bza__side-edge" id="gr-side-edge" aria-hidden="true" title="double-click to toggle"></div>
       <div class="bza__side-head">
-        <a class="bza__brand" href="/home/" title="grassroots — home">
+        <a class="bza__brand" href="/" title="grassroots — home">
           <img class="bza__brand-mark" src="/home/assets/grassroots-icon-syne.svg" width="20" height="34" alt="" />
           <span class="bza__brand-text">grassroots</span>
         </a>
       </div>
-      <div class="bza__nav-section">work</div>
-      ${work}
-      <div class="bza__nav-section">system</div>
-      ${system}
-      <label class="bza__nav-item bza__darkmode" title="dark mode">
+      <div class="bza__nav" role="navigation" aria-label="primary">
+        ${primary}${postCta}
+        <hr class="bza__nav-divider" aria-hidden="true" />
+        ${secondary}
+      </div>
+      <label class="bza__darkmode-row" title="dark mode">
         <span class="bza__nav-icon" aria-hidden="true">${ICON_MOON}</span>
         <span class="bza__nav-label">dark mode</span>
         <input type="checkbox" id="gr-side-darkmode" class="bza__darkmode-input" />
         <span class="bza__darkmode-switch" aria-hidden="true"></span>
       </label>
-${postCta}
       <div class="bza__side-foot">
-        <a class="bza__user" id="gr-side-user" href="/settings.html#profile" title="open profile settings">
+        <a class="bza__user" id="gr-side-user" href="/profile.html" title="open your profile">
           <span class="bza__user-avatar" id="gr-side-user-avatar"></span>
           <span class="bza__user-meta">
             <span class="bza__user-name" id="gr-side-user-name">your account</span>
@@ -186,20 +234,20 @@ async function init() {
   if (!main.classList.contains("bza__main")) main.classList.add("bza__main");
   document.body.classList.add("gr-has-side-nav");
 
-  // Resolve the user's role before rendering so the work items match it
+  // Resolve the user's role before rendering so the nav items match it
   // on first paint. Previously we rendered the owner layout synchronously
   // and mutated it for consultants, which caused both "marketplace" and
   // "my listings" to flash active for consultants on the marketplace page.
   const { client, profile } = await loadProfile();
   const role = profile?.role || null;
   const activeNavId = inferActiveNavId(role);
-  const activeRoute = window.location.pathname;
-  wrap.insertAdjacentHTML("afterbegin", renderSidebar({ role, activeNavId, activeRoute }));
+  wrap.insertAdjacentHTML("afterbegin", renderSidebar({ role, activeNavId }));
 
   applyUserCard(client, profile);
   wireToggle();
   wireDarkMode();
   wireLogout();
+  wireSubnavToggles();
 }
 
 function wireDarkMode() {
@@ -226,7 +274,23 @@ function wireLogout() {
     } catch (err) {
       console.warn("logout failed", err);
     }
-    window.location.replace("/");
+    window.location.replace("/signin.html");
+  });
+}
+
+function wireSubnavToggles() {
+  document.querySelectorAll(".bza__nav-toggle").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const group = btn.closest(".bza__nav-group");
+      if (!group) return;
+      const open = !group.classList.contains("is-open");
+      group.classList.toggle("is-open", open);
+      btn.setAttribute("aria-expanded", String(open));
+      try {
+        window.localStorage.setItem(ENG_SUBNAV_KEY, open ? "1" : "0");
+      } catch {}
+    });
   });
 }
 
@@ -234,11 +298,11 @@ function wireToggle() {
   const toggle = document.getElementById("gr-side-toggle");
   const wrap = document.querySelector(".bza");
   const edge = document.getElementById("gr-side-edge");
-  if (!toggle || !wrap) return;
+  if (!wrap) return;
 
   function setCollapsed(collapsed) {
     wrap.classList.toggle("bza--collapsed", collapsed);
-    toggle.setAttribute("aria-expanded", String(!collapsed));
+    if (toggle) toggle.setAttribute("aria-expanded", String(!collapsed));
     try {
       window.localStorage.setItem(COLLAPSE_KEY, collapsed ? "1" : "0");
     } catch {}
@@ -253,7 +317,7 @@ function wireToggle() {
   function toggleCollapsed() {
     setCollapsed(!wrap.classList.contains("bza--collapsed"));
   }
-  toggle.addEventListener("click", toggleCollapsed);
+  toggle?.addEventListener("click", toggleCollapsed);
   edge?.addEventListener("dblclick", toggleCollapsed);
 }
 

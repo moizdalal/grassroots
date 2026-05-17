@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>card sketch — marketplace v2</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/grassroots.css" />
+    <link rel="stylesheet" href="/field-office.css" />
+    <script src="/theme.js"></script>
+    <style>
+      /* ============================================================
+         Marketplace card v2 — title-dominant layout
+         ============================================================
+         Title gets display weight at the top, full card width. Below
+         it sits a row with the 88×88 avatar tile on the left and the
+         tags wrapped to its right. Biz name + budget + view sit in
+         the foot. Recency lives as a right-aligned eyebrow above the
+         title — moves clear of the title's wrap area and reads as
+         the "when" before you get to the "what". */
+      .sketch-shell {
+        max-width: 1100px;
+        margin: 4rem auto;
+        padding: 0 1.5rem;
+      }
+      .sketch-h1 {
+        font-family: "Fraunces", serif;
+        font-weight: 600;
+        font-size: 2rem;
+        color: var(--fo-text);
+        margin: 0 0 0.4rem;
+      }
+      .sketch-sub {
+        font-family: "Manrope", system-ui, sans-serif;
+        font-size: 0.85rem;
+        color: var(--fo-text-2);
+        margin: 0 0 2.5rem;
+        max-width: 60ch;
+        line-height: 1.55;
+      }
+      .sketch-section + .sketch-section {
+        margin-top: 3rem;
+      }
+      .sketch-section-title {
+        font-family: "Manrope", system-ui, sans-serif;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--fo-text-3);
+        margin: 0 0 1rem;
+      }
+      .sketch-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+        gap: 1.25rem;
+      }
+
+      /* Card itself ------------------------------------------------ */
+      .v2card {
+        display: grid;
+        grid-template-rows: auto auto 1fr auto;
+        gap: 1rem;
+        padding: 1.5rem;
+        background: var(--fo-surface);
+        border: 1px solid var(--fo-line);
+        border-radius: 18px;
+        text-decoration: none;
+        color: inherit;
+        cursor: pointer;
+        position: relative;
+        transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+      }
+      :root:not([data-theme="light"]) .v2card {
+        background: transparent;
+      }
+      .v2card:hover {
+        border-color: var(--fo-accent);
+        transform: translateY(-2px);
+        box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22);
+      }
+
+      /* Eyebrow row: recency, right-aligned. Stays clear of the
+         title's wrap zone so long titles never collide. */
+      .v2card__eyebrow {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        font-family: "Manrope", system-ui, sans-serif;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--fo-text-3);
+        line-height: 1;
+        min-height: 0.7rem;
+      }
+      .v2card__recency::before {
+        content: "";
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--fo-accent);
+        margin-right: 0.45rem;
+        vertical-align: 1px;
+      }
+      .v2card__recency--stale::before {
+        background: var(--fo-text-3);
+      }
+
+      /* Title — display scale, 2-line clamp. Real titles get long
+         (e.g. "looking for someone to redo our brand identity"); the
+         clamp keeps card height from ballooning. */
+      .v2card__title {
+        font-family: "Fraunces", serif;
+        font-weight: 600;
+        font-size: clamp(1.6rem, 3.2vw, 2.1rem);
+        line-height: 1.05;
+        letter-spacing: -0.02em;
+        color: var(--fo-text);
+        margin: 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        overflow-wrap: break-word;
+      }
+
+      /* Identity row — avatar tile + tags wrapping next to it. */
+      .v2card__id {
+        display: grid;
+        grid-template-columns: 96px minmax(0, 1fr);
+        gap: 1rem;
+        align-items: start;
+      }
+      .v2card__tile {
+        width: 96px;
+        height: 96px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: var(--fo-accent-soft);
+        color: var(--fo-accent);
+        font-family: "Fraunces", serif;
+        font-weight: 600;
+        font-size: 2rem;
+        letter-spacing: -0.02em;
+        line-height: 1;
+        text-transform: lowercase;
+        flex-shrink: 0;
+      }
+      .v2card__tile img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .v2card__tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        align-content: flex-start;
+        padding-top: 0.15rem;
+      }
+      .v2card__tag {
+        font-family: "Manrope", system-ui, sans-serif;
+        font-size: 0.78rem;
+        font-weight: 500;
+        color: var(--fo-text-2);
+        padding: 0.32rem 0.75rem;
+        border-radius: 999px;
+        border: 1px solid var(--fo-line-strong);
+        text-transform: lowercase;
+        line-height: 1.2;
+      }
+      .v2card__tag--more {
+        color: var(--fo-text-3);
+        border-color: var(--fo-line);
+      }
+
+      /* Foot — biz on top, budget left + view right beneath. */
+      .v2card__foot {
+        display: grid;
+        grid-template-rows: auto auto;
+        gap: 0.5rem;
+        margin-top: 0.25rem;
+      }
+      .v2card__biz {
+        font-family: "Manrope", system-ui, sans-serif;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--fo-text);
+        margin: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .v2card__foot-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+        gap: 1rem;
+      }
+      .v2card__money {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+        min-width: 0;
+      }
+      .v2card__budget {
+        font-family: "Fraunces", serif;
+        font-style: italic;
+        font-weight: 600;
+        font-size: 1.25rem;
+        color: var(--fo-accent);
+        line-height: 1.05;
+        letter-spacing: -0.01em;
+      }
+      .v2card__contract {
+        font-family: "Manrope", system-ui, sans-serif;
+        font-size: 0.78rem;
+        font-weight: 500;
+        color: var(--fo-text-2);
+        text-transform: lowercase;
+      }
+      .v2card__view {
+        font-family: "Manrope", system-ui, sans-serif;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--fo-text-2);
+        white-space: nowrap;
+        transition: color 0.18s ease, transform 0.18s ease;
+      }
+      .v2card:hover .v2card__view {
+        color: var(--fo-accent);
+        transform: translateX(2px);
+      }
+    </style>
+  </head>
+  <body class="gr-body">
+    <main class="sketch-shell">
+      <h1 class="sketch-h1">marketplace card — v2 mockup</h1>
+      <p class="sketch-sub">
+        title-dominant layout. recency lives as a right-aligned eyebrow
+        above the title so it never competes with long titles for
+        horizontal space. avatar tile + tags form an identity band
+        underneath; biz, budget, contract, view sit in the foot. four
+        states below: short title with avatar, long title with avatar,
+        no-avatar initials fallback, and tag-overflow.
+      </p>
+
+      <section class="sketch-section">
+        <p class="sketch-section-title">states</p>
+        <div class="sketch-grid">
+
+          <!-- 1. The mockup case — short title, has avatar, 2 tags. -->
+          <a class="v2card" href="#">
+            <div class="v2card__eyebrow">
+              <span class="v2card__recency">3d ago</span>
+            </div>
+            <h2 class="v2card__title">Lorem Ipsum</h2>
+            <div class="v2card__id">
+              <span class="v2card__tile">
+                <img src="/home/assets/grassroots-icon-syne.svg" alt="" />
+              </span>
+              <div class="v2card__tags">
+                <span class="v2card__tag">social media</span>
+                <span class="v2card__tag">finance</span>
+              </div>
+            </div>
+            <div class="v2card__foot">
+              <p class="v2card__biz">biz test</p>
+              <div class="v2card__foot-row">
+                <div class="v2card__money">
+                  <span class="v2card__budget">$40–50 / hr</span>
+                  <span class="v2card__contract">standard</span>
+                </div>
+                <span class="v2card__view">view →</span>
+              </div>
+            </div>
+          </a>
+
+          <!-- 2. Realistic long title — clamps to 2 lines. -->
+          <a class="v2card" href="#">
+            <div class="v2card__eyebrow">
+              <span class="v2card__recency">2w ago</span>
+            </div>
+            <h2 class="v2card__title">looking for someone to redo our brand identity</h2>
+            <div class="v2card__id">
+              <span class="v2card__tile">
+                <img src="/home/assets/grassroots-icon-syne.svg" alt="" />
+              </span>
+              <div class="v2card__tags">
+                <span class="v2card__tag">branding</span>
+                <span class="v2card__tag">design</span>
+              </div>
+            </div>
+            <div class="v2card__foot">
+              <p class="v2card__biz">cypress mfg</p>
+              <div class="v2card__foot-row">
+                <div class="v2card__money">
+                  <span class="v2card__budget">$2k–4k</span>
+                  <span class="v2card__contract">phased</span>
+                </div>
+                <span class="v2card__view">view →</span>
+              </div>
+            </div>
+          </a>
+
+          <!-- 3. No avatar — initials fallback. -->
+          <a class="v2card" href="#">
+            <div class="v2card__eyebrow">
+              <span class="v2card__recency">today</span>
+            </div>
+            <h2 class="v2card__title">inventory mgmt system overhaul</h2>
+            <div class="v2card__id">
+              <span class="v2card__tile">mm</span>
+              <div class="v2card__tags">
+                <span class="v2card__tag">operations</span>
+              </div>
+            </div>
+            <div class="v2card__foot">
+              <p class="v2card__biz">mountain materials</p>
+              <div class="v2card__foot-row">
+                <div class="v2card__money">
+                  <span class="v2card__budget">$85–100 / hr</span>
+                  <span class="v2card__contract">standard</span>
+                </div>
+                <span class="v2card__view">view →</span>
+              </div>
+            </div>
+          </a>
+
+          <!-- 4. Tag overflow — five categories → first 2 + "+3". -->
+          <a class="v2card" href="#">
+            <div class="v2card__eyebrow">
+              <span class="v2card__recency v2card__recency--stale">2mo ago</span>
+            </div>
+            <h2 class="v2card__title">multi-channel growth strategy</h2>
+            <div class="v2card__id">
+              <span class="v2card__tile">aw</span>
+              <div class="v2card__tags">
+                <span class="v2card__tag">social media</span>
+                <span class="v2card__tag">finance</span>
+                <span class="v2card__tag v2card__tag--more">+3</span>
+              </div>
+            </div>
+            <div class="v2card__foot">
+              <p class="v2card__biz">acorn works</p>
+              <div class="v2card__foot-row">
+                <div class="v2card__money">
+                  <span class="v2card__budget">$1.2k / mo</span>
+                  <span class="v2card__contract">retainer</span>
+                </div>
+                <span class="v2card__view">view →</span>
+              </div>
+            </div>
+          </a>
+
+        </div>
+      </section>
+
+      <section class="sketch-section">
+        <p class="sketch-section-title">notes</p>
+        <ul style="font-family: 'Manrope', system-ui, sans-serif; font-size: 0.85rem; color: var(--fo-text-2); line-height: 1.6; max-width: 60ch; padding-left: 1.1rem;">
+          <li><strong>Recency placement:</strong> right-aligned eyebrow above the title. Dot prefix (green = fresh, neutral = stale) gives visual freshness without numbers. Stays clear of the title's wrap zone.</li>
+          <li><strong>Title scale:</strong> <code>clamp(1.6rem, 3.2vw, 2.1rem)</code>. Bigger than v1 but capped at 2 lines so long titles don't double the card height.</li>
+          <li><strong>Avatar tile:</strong> 96×96 to balance against the bigger title. Real avatar fills; fallback shows lowercase initials in moss on accent-soft.</li>
+          <li><strong>Card height:</strong> ~280px (was ~240 in v1, ~140 before any redesign). On a 3-column grid that's ~3 cards above the fold instead of 4. Worth confirming the trade is right before shipping.</li>
+          <li><strong>What's missing here that v1 has:</strong> the hover-summary popover. Easy to add — same fixed-positioned shared element, just point its anchor to <code>.v2card</code>.</li>
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>

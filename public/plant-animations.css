@@ -1,0 +1,112 @@
+/* plant-animations.css — shared @keyframes for the flower growth
+   choreography. Imported by anything that renders plants:
+     - /flower-sketch.html (the design lab)
+     - /engagement-journey-flowers.css (consultant dashboard panel)
+   Keep this in sync with the growth builders in /flower-sketch.js. */
+
+/* Generic emerge / retract ramps — used by most simple elements
+   (cotyledons, leaves, calyx, etc.). */
+@keyframes el-emerge {
+  0%   { transform: scale(0); }
+  50%  { transform: scale(0.45, 0.75); }
+  100% { transform: scale(1); }
+}
+@keyframes el-retract {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(0.45, 0.75); }
+  100% { transform: scale(0); }
+}
+
+/* Stem draws from one end to the other. The stem path carries
+   pathLength="1" so dasharray/dashoffset normalize to the full length
+   regardless of curve geometry. */
+@keyframes stem-draw {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+
+/* Leaf growth: blades stretch upward first, then broaden. */
+@keyframes leaf-emerge {
+  0%   { transform: scale(0); }
+  55%  { transform: scale(0.4, 0.85); }
+  100% { transform: scale(1); }
+}
+
+/* Bud swells from a small nub into the full closed-bud shape. */
+@keyframes bud-swell {
+  0%   { transform: scale(0); }
+  55%  { transform: scale(0.55, 0.8); }
+  100% { transform: scale(1); }
+}
+
+/* Tulip bloom: petals unfurl from the bud centre with rotation. */
+@keyframes petal-back-bloom {
+  0%   { transform: scale(0.1, 0); }
+  55%  { transform: scale(0.5, 0.8); }
+  100% { transform: scale(1); }
+}
+@keyframes petal-left-bloom {
+  0%   { transform: scale(0.1, 0) rotate(22deg); }
+  55%  { transform: scale(0.55, 0.8) rotate(8deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes petal-right-bloom {
+  0%   { transform: scale(0.1, 0) rotate(-22deg); }
+  55%  { transform: scale(0.55, 0.8) rotate(-8deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+/* Cotyledon fall-off — when the true leaves emerge and the sprout's
+   cotyledons are no longer needed, they detach, tumble outward +
+   downward, and fade. */
+@keyframes cot-fall-left {
+  0%   { transform: scale(1) translate(0px, 0px) rotate(0deg); opacity: 1; }
+  20%  { transform: scale(1) translate(-2px, 4px) rotate(-14deg); opacity: 0.96; }
+  100% { transform: scale(0.85) translate(-16px, 44px) rotate(-82deg); opacity: 0; }
+}
+@keyframes cot-fall-right {
+  0%   { transform: scale(1) translate(0px, 0px) rotate(0deg); opacity: 1; }
+  20%  { transform: scale(1) translate(2px, 4px) rotate(14deg); opacity: 0.96; }
+  100% { transform: scale(0.85) translate(16px, 44px) rotate(82deg); opacity: 0; }
+}
+
+/* Pre-bud "riding the tip" — after the pre-bud has emerged at the
+   young-plant apex, it travels upward with the growing stem tip
+   toward the budding height. Per-species via --rise-y inline. */
+@keyframes pre-bud-rise {
+  0%   { transform: scale(1) translate(0px, 0px); }
+  100% { transform: scale(1.15) translate(0px, var(--rise-y, -45px)); }
+}
+@keyframes pre-bud-fade {
+  0%   { transform: scale(1.15) translate(0px, var(--rise-y, -45px)); opacity: 1; }
+  100% { transform: scale(0.55) translate(0px, var(--rise-y, -45px)); opacity: 0; }
+}
+
+/* Sunflower disc morphing from closed-bud center → bloom center. */
+@keyframes sunflower-disc-grow {
+  0%   { transform: translate(0px, 0px) scale(1); }
+  100% { transform: translate(0px, -14px) scale(1.33, 1.78); }
+}
+
+/* Hydrangea closed-bud morphing toward the bloom position. */
+@keyframes hydrangea-bud-morph {
+  0%   { transform: translate(0px, 0px) scale(1); opacity: 1; }
+  60%  { transform: translate(0px, -11px) scale(0.7); opacity: 0.85; }
+  100% { transform: translate(0px, -15px) scale(0); opacity: 0; }
+}
+
+/* Azalea closed-bud morphing toward the funnel bloom on its branch.
+   Each branch sets its own --rise-y inline. */
+@keyframes azalea-bud-morph {
+  0%   { transform: translate(0px, 0px) scale(1); opacity: 1; }
+  60%  { transform: translate(0px, calc(var(--rise-y, -10px) * 0.7)) scale(0.7); opacity: 0.85; }
+  100% { transform: translate(0px, var(--rise-y, -10px)) scale(0); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fs-plant g, .fs-plant path, .fs-plant ellipse, .fs-plant circle {
+    animation: none !important;
+    transform: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+}

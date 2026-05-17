@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="/create-listing.css" />
   </head>
   <body class="gr-body"><main class="gr-shell gr-shell--wide cl-layout-shell">
-      <a href="/" class="ld-back">&larr; back to marketplace</a>
+      <a href="/marketplace.html" class="ld-back">&larr; back to marketplace</a>
       <div class="gr-page-intro">
         <p class="gr-page-eyebrow">opportunity setup</p>
         <h1 class="gr-title">create a new opportunity</h1>
@@ -135,7 +135,47 @@
                             </span>
                           </label>
                           <div class="ct-suboption__body">
-                            <p class="ct-retainer-note">retainers work well for ongoing marketing, weekly operations, content production, and other workflows where a consistent cadence matters more than fixed deliverables. you'll outline cadence and scope expectations in the description.</p>
+                            <p class="ct-retainer-note">retainers work well for ongoing marketing, weekly operations, content production, and other workflows where a consistent cadence matters more than fixed deliverables.</p>
+
+                            <div class="ct-retainer-terms">
+                              <p class="ct-builder__heading">retainer terms</p>
+
+                              <div class="ct-retainer-terms__toggle">
+                                <label class="ct-retainer-terms__option">
+                                  <input type="radio" name="retainer_terms" value="fixed" checked />
+                                  <span>set terms now</span>
+                                </label>
+                                <label class="ct-retainer-terms__option">
+                                  <input type="radio" name="retainer_terms" value="tentative" />
+                                  <span>tentative — discuss with consultant</span>
+                                </label>
+                              </div>
+
+                              <div class="ct-retainer-terms__fields" id="ct-retainer-fields">
+                                <label class="gr-label">
+                                  <span>cadence</span>
+                                  <select name="retainer_cadence" id="ct-retainer-cadence">
+                                    <option value="weekly">weekly</option>
+                                    <option value="biweekly">every two weeks</option>
+                                    <option value="monthly" selected>monthly</option>
+                                    <option value="quarterly">quarterly</option>
+                                  </select>
+                                </label>
+
+                                <label class="gr-label">
+                                  <span>periods</span>
+                                  <input type="number" name="retainer_period_count" id="ct-retainer-periods" min="1" max="52" step="1" placeholder="e.g. 6" />
+                                </label>
+
+                                <label class="gr-label">
+                                  <span>fee per period</span>
+                                  <div class="cl-inline-money">
+                                    <span class="cl-inline-money__prefix">$</span>
+                                    <input type="number" name="retainer_fee" id="ct-retainer-fee" min="1" step="1" inputmode="numeric" placeholder="e.g. 500" />
+                                  </div>
+                                </label>
+                              </div>
+                            </div>
                           </div>
                         </div>
 
@@ -305,6 +345,7 @@
             <button type="button" class="gr-btn gr-btn--primary" id="next-btn">continue</button>
             <button type="submit" class="gr-btn gr-btn--primary hidden" id="submit-btn">create opportunity</button>
           </div>
+          <p id="publish-note" class="cl-publish-note hidden">publishing makes this listing visible to consultants. it's hard to undo after bids come in.</p>
         </div>
 
         <p id="status" class="gr-status" aria-live="polite"></p>

@@ -456,6 +456,19 @@
   border-top: 1px solid var(--card-border);
 }
 
+/* Calm cue under the publish CTA on the final step. Reads like a
+   subtitle on the button — not a warning chip. */
+.cl-publish-note {
+  margin: 0.6rem 0 0;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
+  color: var(--fo-text-3, var(--muted));
+  letter-spacing: 0;
+  line-height: 1.5;
+  text-align: right;
+}
+.cl-publish-note.hidden { display: none; }
+
 /* --- Category tags (multi-select) --- */
 .cl-cat-tags {
   display: flex;

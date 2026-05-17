@@ -18,7 +18,7 @@
   <body class="gr-body">
     <nav class="gr-nav" aria-label="Primary">
       <div class="gr-nav__inner">
-        <a class="gr-nav__brand" href="/home/">
+        <a class="gr-nav__brand" href="/">
           <img class="gr-nav__logo" src="/home/assets/grassroots-icon-syne.svg" width="20" height="34" alt="" />
           <span class="gr-nav__wordmark">grassroots</span>
         </a>
@@ -66,7 +66,25 @@
                 <label class="reg-role-card">
                   <input type="radio" name="role_choice" value="business_owner" />
                   <span class="reg-role-card__face">
-                    <span class="reg-role-card__icon" aria-hidden="true">◇</span>
+                    <span class="reg-role-card__icon" aria-hidden="true">
+                      <svg viewBox="0 0 163 275" overflow="visible" fill="currentColor" aria-hidden="true" class="rrc-leaf-svg">
+                        <g transform="translate(72, 130)">
+                          <g class="rrc-leaf-svg__stem">
+                            <path d="M19 10.15C19 4.54431 14.7467 0 9.5 0C4.25329 0 0 4.54431 0 10.15C7.91804 91.2467 8.44249 120.691 0 134.85C0 140.456 4.25329 145 9.5 145C14.7467 145 19 140.456 19 134.85C16.2169 71.2734 12.3479 23.288 19 10.15Z"/>
+                          </g>
+                        </g>
+                        <g transform="translate(0, 65)">
+                          <g class="rrc-leaf-svg__leaf rrc-leaf-svg__leaf--left">
+                            <path d="M84 87C21 71.5333 -6.5625 42.5333 1.3125 0C56.4375 3.86667 84 32.8667 84 87Z"/>
+                          </g>
+                        </g>
+                        <g transform="translate(82, 0)">
+                          <g class="rrc-leaf-svg__leaf rrc-leaf-svg__leaf--right">
+                            <path d="M0 147C48.6 116.053 75.6 67.0526 81 0C27 5.1579 0 54.1579 0 147Z"/>
+                          </g>
+                        </g>
+                      </svg>
+                    </span>
                     <span class="reg-role-card__title">business owner</span>
                     <span class="reg-role-card__hint"
                       >you run a small business and want hands-on help.</span
@@ -76,10 +94,24 @@
                 <label class="reg-role-card">
                   <input type="radio" name="role_choice" value="consultant" />
                   <span class="reg-role-card__face">
-                    <span class="reg-role-card__icon" aria-hidden="true">✦</span>
+                    <span class="reg-role-card__icon" aria-hidden="true">
+                      <svg viewBox="0 0 32 32" overflow="visible" fill="currentColor" aria-hidden="true" class="rrc-can-svg">
+                        <g class="rrc-can-svg__body">
+                          <rect x="9" y="5" width="8" height="3" rx="1"/>
+                          <path d="M5 9 L21 9 L19 23 Q19 25 17 25 H9 Q7 25 7 23 Z"/>
+                          <path d="M21 12 L29 9 L29 14 L22 16 Z"/>
+                          <circle cx="29" cy="11.5" r="2"/>
+                        </g>
+                        <g class="rrc-can-svg__drops">
+                          <circle class="rrc-can-svg__drop rrc-can-svg__drop--1" cx="29" cy="14" r="1.4"/>
+                          <circle class="rrc-can-svg__drop rrc-can-svg__drop--2" cx="30.5" cy="14" r="1.1"/>
+                          <circle class="rrc-can-svg__drop rrc-can-svg__drop--3" cx="27.5" cy="14" r="1.2"/>
+                        </g>
+                      </svg>
+                    </span>
                     <span class="reg-role-card__title">consultant</span>
                     <span class="reg-role-card__hint"
-                      >you're a student or pro offering scoped work.</span
+                      >you're a student offering scoped work.</span
                     >
                   </span>
                 </label>
@@ -134,11 +166,11 @@
                     </button>
                   </div>
                   <ul class="reg-pw-rules" id="reg-pw-rules" aria-live="polite">
-                    <li data-rule="length">at least 8 characters</li>
-                    <li data-rule="uppercase">an uppercase letter</li>
-                    <li data-rule="lowercase">a lowercase letter</li>
-                    <li data-rule="number">a number</li>
-                    <li data-rule="special">a special character</li>
+                    <li data-rule="length">8+ chars</li>
+                    <li data-rule="uppercase">uppercase</li>
+                    <li data-rule="lowercase">lowercase</li>
+                    <li data-rule="number">number</li>
+                    <li data-rule="special">symbol</li>
                   </ul>
                 </label>
                 <label class="gr-label" data-oauth-hide="true">
@@ -176,21 +208,39 @@
             >
               <p class="gr-section-h">education</p>
               <p class="gr-subtitle gr-subtitle--compact">
-                help business owners understand your background.
+                help business owners understand your background. add multiple degrees if you have them.
               </p>
-              <div class="gr-field-grid reg-field-grid--2">
-                <label class="gr-label">
-                  <span>major</span>
-                  <input type="text" name="major" placeholder="e.g. marketing, computer science" required />
-                </label>
-                <label class="gr-label">
-                  <span>minor <span class="gr-optional">optional</span></span>
-                  <input type="text" name="minor" placeholder="e.g. data analytics" />
-                </label>
-                <label class="gr-label full-width">
-                  <span>school</span>
-                  <input type="text" name="school" placeholder="e.g. University of Michigan" required />
-                </label>
+
+              <div class="reg-edu-list" id="reg-edu-list"></div>
+
+              <button type="button" class="reg-edu-add" id="reg-add-edu">
+                <span aria-hidden="true">+</span> add another degree
+              </button>
+
+              <!-- City: powers the marketplace "local" row. Required so
+                   every new consultant has a home base before they
+                   browse. Strict autocomplete from /data/us-cities.json. -->
+              <div class="reg-city-wrap" id="reg-city-wrap" data-city-autocomplete>
+                <p class="gr-section-h" style="margin-top: 1.5rem">where you're based</p>
+                <p class="gr-subtitle gr-subtitle--compact">
+                  used to show you opportunities near you. you can change this any time in settings.
+                </p>
+                <div class="reg-city-ac">
+                  <input
+                    type="text"
+                    class="reg-city-search"
+                    id="reg-city-search"
+                    placeholder="start typing your city…"
+                    autocomplete="off"
+                    autocapitalize="words"
+                  />
+                  <input type="hidden" class="reg-city" id="reg-city" name="city" />
+                  <input type="hidden" class="reg-city-lat" id="reg-city-lat" />
+                  <input type="hidden" class="reg-city-lng" id="reg-city-lng" />
+                  <div class="reg-city-ac__panel" hidden>
+                    <ul class="reg-city-ac__list"></ul>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

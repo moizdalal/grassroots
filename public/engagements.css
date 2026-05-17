@@ -1,0 +1,288 @@
+/* engagements.css — page styles for /engagements.html.
+   Reuses .cdash__eng-row visuals from the consultant dashboard for
+   the row list, and adds:
+   - a segmented current / past toggle styled after the sidebar
+     system row (icons + slash dividers)
+   - a "pending action items" callout that surfaces engagements
+     waiting on the consultant
+*/
+
+.eng-shell {
+  max-width: 980px;
+}
+
+/* ── toggle row ─────────────────────────────────────────────── */
+.eng-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 0.6rem 0 1.2rem;
+}
+
+.eng-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3rem 0.45rem;
+  background: var(--fo-surface-2);
+  border: 1px solid var(--fo-line);
+  border-radius: 999px;
+}
+
+/* Sliding pill indicator. Sized + positioned by JS to match the
+   currently active button. Sits behind the buttons and animates
+   transform + width together so it appears to glide between options. */
+.eng-toggle__indicator {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 0;
+  height: calc(100% - 0.6rem);
+  background: var(--fo-accent-soft);
+  border-radius: 999px;
+  transform: translate(0, -50%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.eng-toggle__btn {
+  position: relative;
+  z-index: 1;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
+  font-weight: 500;
+  color: var(--fo-text-2);
+  padding: 0.32rem 0.85rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.2s ease, font-weight 0.2s ease;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+}
+
+.eng-toggle__btn:hover,
+.eng-toggle__btn:focus-visible {
+  color: var(--fo-text);
+  outline: none;
+}
+
+.eng-toggle__btn.is-active {
+  color: var(--fo-accent);
+  font-weight: 700;
+}
+
+/* "engagements" suffix only appears on the active option. Animates
+   max-width + opacity together so it slides in/out alongside the
+   pill indicator with no jarring snap. */
+.eng-toggle__suffix {
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  white-space: nowrap;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.22s ease;
+}
+
+.eng-toggle__btn.is-active .eng-toggle__suffix {
+  max-width: 12rem;
+  opacity: 1;
+}
+
+/* When the JS measurement pass is running, freeze every transition
+   so getBoundingClientRect returns the final layout immediately,
+   then resume normal animation. */
+.eng-toggle--measuring,
+.eng-toggle--measuring * {
+  transition: none !important;
+}
+
+.eng-toggle__divider {
+  position: relative;
+  z-index: 1;
+  color: var(--fo-text-3);
+  font-size: var(--type-meta);
+  user-select: none;
+  padding: 0 0.05rem;
+}
+
+.eng-count {
+  font-size: var(--type-meta);
+  color: var(--fo-text-3);
+  font-family: "Manrope", system-ui, sans-serif;
+}
+
+/* ── action items callout ───────────────────────────────────── */
+.eng-actions {
+  background: var(--fo-surface);
+  border: 1px solid var(--fo-line);
+  border-radius: 14px;
+  padding: 1rem 1.1rem 1.1rem;
+  margin-bottom: 1.4rem;
+  position: relative;
+}
+
+/* Dark-mode card backgrounds — cards drop their surface fill in
+   every dark theme so they read as floating outlines instead of
+   flat panels that blend into the page. Light theme keeps the
+   fill because surface contrast is what makes a card feel like a
+   card on a light background. See brandkit.md → Color. */
+:root:not([data-theme="light"]) .eng-actions,
+:root:not([data-theme="light"]) .eng-action,
+:root:not([data-theme="light"]) .eng-list {
+  background: transparent;
+}
+
+.eng-actions::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.85rem;
+  bottom: 0.85rem;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--fo-accent-warm, var(--fo-accent));
+}
+
+.eng-actions__head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0 0 0.85rem;
+  padding-left: 0.4rem;
+}
+
+.eng-kicker {
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-eyebrow);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--fo-text-3);
+}
+
+.eng-actions__title {
+  margin: 0;
+  font-family: "Fraunces", serif;
+  font-weight: 600;
+  font-size: var(--type-h2);
+  color: var(--fo-text);
+  letter-spacing: -0.01em;
+}
+
+.eng-actions__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.eng-action {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.85rem;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  background: var(--fo-surface-2);
+  border: 1px solid var(--fo-line);
+  border-radius: 12px;
+}
+
+.eng-action__avatar {
+  --gr-avatar-size: 40px;
+  --gr-avatar-radius: 9px;
+  --gr-avatar-bg: var(--fo-surface-3);
+  --gr-avatar-fg: var(--fo-text-2);
+}
+
+.eng-action__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.eng-action__title {
+  font-family: "Fraunces", serif;
+  font-weight: 600;
+  font-size: var(--type-h3);
+  color: var(--fo-text);
+  letter-spacing: -0.01em;
+}
+
+.eng-action__sub {
+  font-size: var(--type-meta);
+  color: var(--fo-text-3);
+  font-weight: 500;
+}
+
+.eng-action__copy {
+  margin: 0.15rem 0 0;
+  font-size: var(--type-body);
+  color: var(--fo-text-2);
+  line-height: 1.4;
+}
+
+.eng-action__cta {
+  white-space: nowrap;
+}
+
+/* ── engagement row enhancements ────────────────────────────── */
+.eng-list {
+  background: var(--fo-surface);
+  border: 1px solid var(--fo-line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.eng-row {
+  /* Add a pill column between the meta and the amount. */
+  grid-template-columns: auto 1fr auto auto auto !important;
+  align-items: center;
+}
+
+.eng-row__meta {
+  gap: 0.1rem;
+}
+
+.eng-row__sub {
+  font-size: var(--type-meta);
+  color: var(--fo-text-3);
+  font-weight: 500;
+}
+
+.eng-row__pill {
+  letter-spacing: 0.04em;
+}
+
+.eng-row[data-bucket="past"] .cdash__eng-amount {
+  color: var(--fo-text-2);
+  font-style: normal;
+}
+
+@media (max-width: 720px) {
+  .eng-row {
+    grid-template-columns: auto 1fr auto !important;
+  }
+  .eng-row .cdash__eng-amount,
+  .eng-row .cdash__eng-arrow {
+    display: none;
+  }
+  .eng-action {
+    grid-template-columns: auto 1fr;
+  }
+  .eng-action__cta {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    text-align: center;
+  }
+}

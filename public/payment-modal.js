@@ -255,3 +255,268 @@ export async function payAndAcceptBid({ client, bid, listing }) {
     })();
   });
 }
+
+/**
+ * Phased contracts: accept proposal fees for one or more bids in a single
+ * charge. Mirrors payAndAcceptBid but hits the /phased/* endpoints and
+ * confirms via payment_intent_id instead of bid_id.
+ *
+ * @param {object} params
+ *   client: Supabase client.
+ *   bids:   Array<{ id, proposal_fee_cents, consultant_name? }>
+ *   listing: { id, title }
+ */
+export async function payAndAcceptProposals({ client, bids, listing }) {
+  const totalAmount = bids.reduce((sum, b) => sum + Number(b.proposal_fee_cents || 0), 0);
+  const titleLabel = bids.length === 1
+    ? `proposal fee · ${listing?.title || "engagement"}`
+    : `${bids.length} proposal fees · ${listing?.title || "engagement"}`;
+  const overlay = buildModal({ amount: totalAmount, title: titleLabel });
+  const submitBtn = overlay.querySelector("#pay-submit");
+  const statusEl = overlay.querySelector("#pay-status");
+  const elementHost = overlay.querySelector("#pay-element");
+
+  // Reframe the intro copy for the proposal phase.
+  const intro = overlay.querySelector(".pay-modal__intro");
+  if (intro) {
+    intro.innerHTML = `proposal fees go <strong>into escrow</strong> as soon as you pay. consultants are paid out only after they deliver their proposal and you mark it accepted. test card: <code>4242 4242 4242 4242</code>.`;
+  }
+  submitBtn.textContent = bids.length === 1 ? "pay proposal fee" : `pay ${bids.length} proposal fees`;
+
+  return new Promise((resolve) => {
+    let cleanedUp = false;
+    function cleanup(result) {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      closeModal(overlay);
+      resolve(result);
+    }
+
+    overlay.querySelectorAll("[data-pay-close]").forEach((el) => {
+      el.addEventListener("click", () => cleanup({ ok: false, reason: "cancelled" }));
+    });
+
+    (async () => {
+      try {
+        const { data: { session } } = await client.auth.getSession();
+        const headers = { "Content-Type": "application/json" };
+        if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+
+        const intentRes = await fetch("/api/stripe/phased/accept-proposals", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ bid_ids: bids.map((b) => b.id) }),
+        });
+        const intentData = await intentRes.json();
+        if (!intentRes.ok) throw new Error(intentData.error || "could not start payment.");
+
+        const stripe = await loadStripe();
+        const css = getComputedStyle(document.documentElement);
+        const v = (name, fallback) => (css.getPropertyValue(name).trim() || fallback);
+        const surface2 = v("--fo-surface-2", "#f6f3ea");
+        const surface = v("--fo-surface", "#ffffff");
+        const text = v("--fo-text", "#0f1f1a");
+        const textMuted = v("--fo-text-3", "#7d8b85");
+        const accent = v("--fo-accent", "#2d6a4f");
+        const line = v("--fo-line", "rgba(20,32,26,0.16)");
+        const isDarkMode = (() => {
+          const m = surface.match(/^#?([0-9a-f]{6})$/i);
+          if (!m) return false;
+          const r = parseInt(m[1].slice(0, 2), 16);
+          const g = parseInt(m[1].slice(2, 4), 16);
+          const b = parseInt(m[1].slice(4, 6), 16);
+          return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+        })();
+
+        const elements = stripe.elements({
+          clientSecret: intentData.client_secret,
+          appearance: {
+            theme: isDarkMode ? "night" : "stripe",
+            variables: {
+              colorPrimary: accent,
+              colorBackground: surface2,
+              colorText: text,
+              colorTextSecondary: textMuted,
+              colorTextPlaceholder: textMuted,
+              colorDanger: "#d4715a",
+              fontFamily: "Manrope, system-ui, sans-serif",
+              fontSizeBase: "0.92rem",
+              fontSizeSm: "0.8rem",
+              borderRadius: "10px",
+              spacingUnit: "4px",
+            },
+          },
+        });
+        const paymentElement = elements.create("payment");
+        paymentElement.mount(elementHost);
+        paymentElement.on("ready", () => { submitBtn.disabled = false; });
+
+        submitBtn.addEventListener("click", async () => {
+          submitBtn.disabled = true;
+          statusEl.textContent = "processing payment…";
+          statusEl.className = "gr-status";
+
+          const { error: confirmErr } = await stripe.confirmPayment({
+            elements,
+            redirect: "if_required",
+          });
+          if (confirmErr) {
+            statusEl.textContent = confirmErr.message || "payment failed.";
+            statusEl.className = "gr-status error";
+            submitBtn.disabled = false;
+            return;
+          }
+
+          const confirmRes = await fetch("/api/stripe/phased/confirm-proposals", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ payment_intent_id: intentData.payment_intent_id }),
+          });
+          const confirmData = await confirmRes.json();
+          if (!confirmRes.ok) {
+            statusEl.textContent = confirmData.error || "payment captured but server failed to confirm. contact support.";
+            statusEl.className = "gr-status error";
+            submitBtn.disabled = false;
+            return;
+          }
+
+          statusEl.textContent = "proposal fees held in escrow. reloading…";
+          statusEl.className = "gr-status success";
+          setTimeout(() => cleanup({ ok: true, bid_ids: confirmData.bid_ids }), 700);
+        });
+      } catch (err) {
+        statusEl.textContent = err.message || "something went wrong.";
+        statusEl.className = "gr-status error";
+      }
+    })();
+  });
+}
+
+/**
+ * Phased contracts: pay the service fee for a single bid after the owner
+ * decided to move forward with that consultant. Single PI into platform
+ * escrow; released later when the owner submits their review.
+ */
+export async function payAndStartService({ client, bid, listing }) {
+  const amount = Number(bid.service_fee_cents);
+  const overlay = buildModal({
+    amount,
+    title: `service fee · ${listing?.title || "engagement"}`,
+  });
+  const submitBtn = overlay.querySelector("#pay-submit");
+  const statusEl = overlay.querySelector("#pay-status");
+  const elementHost = overlay.querySelector("#pay-element");
+
+  const intro = overlay.querySelector(".pay-modal__intro");
+  if (intro) {
+    intro.innerHTML = `the service fee goes <strong>into escrow</strong> as soon as you pay. it releases to the consultant once you mark the work complete and submit your review. test card: <code>4242 4242 4242 4242</code>.`;
+  }
+  submitBtn.textContent = "pay service fee";
+
+  return new Promise((resolve) => {
+    let cleanedUp = false;
+    function cleanup(result) {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      closeModal(overlay);
+      resolve(result);
+    }
+
+    overlay.querySelectorAll("[data-pay-close]").forEach((el) => {
+      el.addEventListener("click", () => cleanup({ ok: false, reason: "cancelled" }));
+    });
+
+    (async () => {
+      try {
+        const { data: { session } } = await client.auth.getSession();
+        const headers = { "Content-Type": "application/json" };
+        if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+
+        const intentRes = await fetch("/api/stripe/phased/start-service", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ bid_id: bid.id }),
+        });
+        const intentData = await intentRes.json();
+        if (!intentRes.ok) throw new Error(intentData.error || "could not start payment.");
+
+        const stripe = await loadStripe();
+        const css = getComputedStyle(document.documentElement);
+        const v = (name, fallback) => (css.getPropertyValue(name).trim() || fallback);
+        const surface2 = v("--fo-surface-2", "#f6f3ea");
+        const surface = v("--fo-surface", "#ffffff");
+        const text = v("--fo-text", "#0f1f1a");
+        const textMuted = v("--fo-text-3", "#7d8b85");
+        const accent = v("--fo-accent", "#2d6a4f");
+        const isDarkMode = (() => {
+          const m = surface.match(/^#?([0-9a-f]{6})$/i);
+          if (!m) return false;
+          const r = parseInt(m[1].slice(0, 2), 16);
+          const g = parseInt(m[1].slice(2, 4), 16);
+          const b = parseInt(m[1].slice(4, 6), 16);
+          return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+        })();
+
+        const elements = stripe.elements({
+          clientSecret: intentData.client_secret,
+          appearance: {
+            theme: isDarkMode ? "night" : "stripe",
+            variables: {
+              colorPrimary: accent,
+              colorBackground: surface2,
+              colorText: text,
+              colorTextSecondary: textMuted,
+              colorTextPlaceholder: textMuted,
+              colorDanger: "#d4715a",
+              fontFamily: "Manrope, system-ui, sans-serif",
+              fontSizeBase: "0.92rem",
+              fontSizeSm: "0.8rem",
+              borderRadius: "10px",
+              spacingUnit: "4px",
+            },
+          },
+        });
+        const paymentElement = elements.create("payment");
+        paymentElement.mount(elementHost);
+        paymentElement.on("ready", () => { submitBtn.disabled = false; });
+
+        submitBtn.addEventListener("click", async () => {
+          submitBtn.disabled = true;
+          statusEl.textContent = "processing payment…";
+          statusEl.className = "gr-status";
+
+          const { error: confirmErr } = await stripe.confirmPayment({
+            elements,
+            redirect: "if_required",
+          });
+          if (confirmErr) {
+            statusEl.textContent = confirmErr.message || "payment failed.";
+            statusEl.className = "gr-status error";
+            submitBtn.disabled = false;
+            return;
+          }
+
+          const confirmRes = await fetch("/api/stripe/phased/confirm-service", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ payment_intent_id: intentData.payment_intent_id }),
+          });
+          const confirmData = await confirmRes.json();
+          if (!confirmRes.ok) {
+            statusEl.textContent = confirmData.error || "payment captured but server failed to confirm. contact support.";
+            statusEl.className = "gr-status error";
+            submitBtn.disabled = false;
+            return;
+          }
+
+          statusEl.textContent = "service fee held in escrow. reloading…";
+          statusEl.className = "gr-status success";
+          setTimeout(() => cleanup({ ok: true }), 700);
+        });
+      } catch (err) {
+        statusEl.textContent = err.message || "something went wrong.";
+        statusEl.className = "gr-status error";
+      }
+    })();
+  });
+}

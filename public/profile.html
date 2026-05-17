@@ -2,18 +2,211 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>grassroots — profile</title>
-    <!-- Profile is now rendered as the "profile" tab inside /settings.html.
-         Preserve any existing query string and forward immediately. -->
-    <script>
-      (function () {
-        var qs = window.location.search || "";
-        window.location.replace("/settings.html" + qs + "#profile");
-      })();
-    </script>
-    <meta http-equiv="refresh" content="0; url=/settings.html#profile" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grassroots — your profile</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/grassroots.css" />
+    <link rel="stylesheet" href="/field-office.css" />
+    <link rel="stylesheet" href="/profile-seedling.css" />
+    <link rel="stylesheet" href="/plant-animations.css" />
+    <link rel="stylesheet" href="/garden.css" />
+    <script src="/theme.js"></script>
+    <script src="/loading-overlay.js"></script>
+    <!-- model-viewer powers the interactive 3D seedling on stage 0 of the
+         consultant progression card. loaded as a module so it registers the
+         <model-viewer> custom element. -->
+    <script
+      type="module"
+      src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"
+    ></script>
   </head>
-  <body>
-    <p>redirecting to <a href="/settings.html#profile">settings → profile</a>…</p>
+  <body class="gr-body gr-has-side-nav">
+    <main class="gr-shell gr-shell--wide pp-shell">
+      <p id="pp-gate" class="gr-status" aria-live="polite">loading…</p>
+
+      <section id="pp-page" hidden>
+        <!-- Header card: avatar, name, role, edit button -->
+        <header class="pp-header">
+          <span class="gr-avatar gr-avatar--xl gr-avatar--round" id="pp-avatar"></span>
+          <div class="pp-header__copy">
+            <p class="gr-page-eyebrow" id="pp-eyebrow">your profile</p>
+            <h1 class="gr-title" id="pp-name">your account</h1>
+            <p class="pp-header__role" id="pp-role"></p>
+            <p class="pp-header__bio" id="pp-bio" hidden></p>
+          </div>
+          <div class="pp-header__actions">
+            <a class="gr-btn gr-btn--secondary" href="/settings.html#personal">
+              edit profile
+            </a>
+          </div>
+        </header>
+
+        <!-- Consultant-only: one-look metrics strip (rating · engagements · earned) -->
+        <section class="pp-section pp-section--metrics hidden" id="pp-metrics-section">
+          <div class="pp-metrics" role="list">
+            <div class="pp-metric" role="listitem">
+              <span class="pp-metric__label">overall rating</span>
+              <span class="pp-metric__row">
+                <span class="pp-metric__value" id="pp-metric-rating">—</span>
+                <span class="pp-metric__rating-stars" aria-hidden="true">
+                  <span class="gr-rating__stars">
+                    <span class="gr-rating__fill" id="pp-metric-rating-fill" style="width:0%"></span>
+                  </span>
+                </span>
+                <span class="pp-metric__rating-count" id="pp-metric-rating-count" hidden></span>
+              </span>
+            </div>
+            <div class="pp-metric" role="listitem">
+              <span class="pp-metric__label">engagements</span>
+              <span class="pp-metric__row">
+                <span class="pp-metric__value" id="pp-metric-engagements">0</span>
+                <span class="pp-metric__sub">completed</span>
+              </span>
+            </div>
+            <div class="pp-metric" role="listitem">
+              <span class="pp-metric__label">total earned</span>
+              <span class="pp-metric__value" id="pp-metric-earned">$0</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Consultant-only: garden (bloomed engagements moved here
+             from the dashboard journey). Lives above progression so
+             a consultant who's debating the seedling progression can
+             see their actual harvested wins first. -->
+        <section class="pp-section pp-section--garden hidden" id="pp-garden-section">
+          <div class="pp-garden" id="pp-garden"></div>
+        </section>
+
+        <!-- Consultant-only: progression card (moved from settings) -->
+        <section class="pp-section pp-section--progression hidden" id="pp-progression-section">
+          <div class="pf-level-card pf-level-card--hero" id="pf-level-card">
+            <div class="pf-level-card__copy">
+              <p class="pf-level-kicker">consultant progression</p>
+              <h2 class="pf-level-title" id="pf-level-title">stage 0: seedling</h2>
+              <div class="pf-level-meta">
+                <p class="pf-level-name" id="pf-level-name">consultant</p>
+              </div>
+              <div class="pf-level-progress">
+                <div class="pf-level-progress__row">
+                  <span>progress to next stage</span>
+                  <span id="pf-level-progress-label">0%</span>
+                </div>
+                <div class="pf-level-progress__track" aria-hidden="true">
+                  <span class="pf-level-progress__fill" id="pf-level-progress-fill"></span>
+                </div>
+                <p class="pf-level-progress__copy" id="pf-level-progress-copy">
+                  complete 1 free engagement and earn an average rating of at least 4.0 stars.
+                </p>
+              </div>
+            </div>
+            <div class="pf-stage-model" id="pf-stage-model" data-stage="0" aria-hidden="true">
+              <!-- stage 0: interactive 3d seedling. drag to rotate, wind sway
+                   plays on autoload. css below hides this for stages 1+ and
+                   falls back to the gradient scene placeholder. -->
+              <model-viewer
+                class="pf-stage-model__viewer"
+                id="pf-stage-model-viewer"
+                src="/assets/seedling.glb"
+                alt="seedling sprouting from a cracked seed"
+                autoplay
+                camera-controls
+                interaction-prompt="none"
+                disable-zoom
+                disable-pan
+                field-of-view="36deg"
+                camera-orbit="0deg 80deg 8.5m"
+                camera-target="0m 1.6m 0m"
+                min-camera-orbit="auto 65deg 8.5m"
+                max-camera-orbit="auto 95deg 8.5m"
+                shadow-intensity="0"
+                exposure="1.05"
+                loading="eager"
+              ></model-viewer>
+              <script>
+                // The seedling glb exports one animation per object (WindRoot,
+                // LeafR_pivot, LeafL_pivot). model-viewer's autoplay only fires
+                // the first one. To get the stem and each leaf moving with
+                // independent wind, we reach into model-viewer's internal
+                // three.js scene on load and start every clip on the shared
+                // AnimationMixer.
+                (() => {
+                  const viewer = document.getElementById('pf-stage-model-viewer');
+                  if (!viewer) return;
+                  const playAllClips = () => {
+                    const sceneSym = Object.getOwnPropertySymbols(viewer)
+                      .find(s => s.description === 'scene');
+                    const scene = sceneSym && viewer[sceneSym];
+                    if (!scene || !scene.mixer || !Array.isArray(scene.animations)) return;
+                    // Stop any single-clip action that autoplay started so it
+                    // doesn't conflict with us starting every clip.
+                    scene.mixer.stopAllAction();
+                    for (const clip of scene.animations) {
+                      const action = scene.mixer.clipAction(clip);
+                      action.reset();
+                      action.setLoop(window.THREE?.LoopRepeat ?? 2201, Infinity);
+                      action.play();
+                    }
+                  };
+                  viewer.addEventListener('load', playAllClips, { once: true });
+                  if (viewer.loaded) playAllClips();
+                })();
+              </script>
+              <div class="pf-stage-model__scene">
+                <span class="pf-stage-model__glow"></span>
+                <span class="pf-stage-model__soil"></span>
+                <span class="pf-stage-model__shadow"></span>
+                <span class="pf-stage-model__stem"></span>
+                <span class="pf-stage-model__canopy"></span>
+                <span class="pf-stage-model__canopy pf-stage-model__canopy--secondary"></span>
+                <span class="pf-stage-model__canopy pf-stage-model__canopy--tertiary"></span>
+                <span class="pf-stage-model__accent"></span>
+              </div>
+              <p class="pf-stage-model__label" id="pf-stage-model-label">stage 0: seedling</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Consultant-only: reviews & ratings summary -->
+        <section class="pp-section pp-section--reviews hidden" id="pp-reviews-section">
+          <header class="pp-section__head">
+            <h2>ratings <span class="fo-title-italic">& reviews</span></h2>
+            <a class="gr-btn gr-btn--ghost gr-btn--sm" href="/my-reviews.html">see all reviews →</a>
+          </header>
+
+          <div class="pp-reviews-overall">
+            <div class="pp-reviews-dims" id="pp-reviews-dims"></div>
+          </div>
+
+          <div class="pp-reviews-recent" id="pp-reviews-recent" hidden>
+            <p class="pp-reviews-recent__head">recent endorsements</p>
+            <div class="pp-reviews-recent__list" id="pp-reviews-recent-list"></div>
+          </div>
+          <p class="gr-empty-state" id="pp-reviews-empty" hidden>
+            no reviews yet — once a business endorses you, it'll appear here.
+          </p>
+        </section>
+
+        <!-- Owner-only: minimal pointer back to dashboard -->
+        <section class="pp-section pp-section--owner hidden" id="pp-owner-section">
+          <header class="pp-section__head">
+            <h2>your business</h2>
+            <a class="gr-btn gr-btn--ghost gr-btn--sm" href="/dashboard.html">open dashboard →</a>
+          </header>
+          <p class="pp-owner-copy">
+            your listings, bids, and engagements live on the owner dashboard.
+            this page collects everything tied to your account profile.
+          </p>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="/profile-page.js"></script>
+    <script type="module" src="/side-nav.js"></script>
   </body>
 </html>

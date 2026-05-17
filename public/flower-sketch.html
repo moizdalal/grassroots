@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en" data-theme="dark-forest">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>flower draft — engagement journey</title>
+  <link rel="stylesheet" href="/grassroots.css" />
+  <link rel="stylesheet" href="/field-office.css" />
+  <link rel="stylesheet" href="/plant-animations.css" />
+  <style>
+    body {
+      margin: 0;
+      padding: var(--space-6);
+      background: var(--fo-bg);
+      color: var(--fo-text);
+      font-family: "Manrope", system-ui, sans-serif;
+      min-height: 100vh;
+    }
+    .fs-shell { max-width: 1200px; margin: 0 auto; }
+    .fs-h {
+      margin: 0 0 var(--space-2);
+      font-family: "Fraunces", serif;
+      font-weight: 600;
+      font-size: var(--type-h1);
+    }
+    .fs-sub {
+      margin: 0 0 var(--space-5);
+      max-width: 720px;
+      color: var(--fo-text-2);
+      font-size: var(--type-body);
+      line-height: 1.5;
+    }
+    .fs-controls {
+      display: flex;
+      gap: var(--space-3);
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: var(--space-5);
+      padding: var(--space-3) var(--space-4);
+      border: 1px solid var(--fo-line);
+      border-radius: 12px;
+    }
+    :root:not([data-theme="light"]) .fs-controls { background: transparent; }
+    :root[data-theme="light"] .fs-controls { background: var(--fo-surface); }
+    .fs-controls-label {
+      font-size: var(--type-eyebrow);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--fo-text-2);
+      font-weight: 700;
+    }
+    .fs-theme-btn {
+      appearance: none;
+      border: 1px solid var(--fo-line);
+      background: transparent;
+      color: var(--fo-text);
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      font-family: inherit;
+      font-size: var(--type-meta);
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+    .fs-theme-btn:hover { border-color: var(--fo-line-strong); }
+    .fs-theme-btn.is-active {
+      background: var(--fo-accent-soft);
+      color: var(--fo-accent);
+      border-color: var(--fo-accent);
+      font-weight: 700;
+    }
+
+    /* grid: 8 species rows × 5 stage columns. row label down left, stage
+       header across top, plant svg in each cell. */
+    .fs-grid {
+      display: grid;
+      grid-template-columns: 140px repeat(5, 1fr);
+      border: 1px solid var(--fo-line);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    :root[data-theme="light"] .fs-grid { background: var(--fo-surface); }
+
+    .fs-cell {
+      padding: var(--space-3);
+      border-right: 1px solid var(--fo-line);
+      border-bottom: 1px solid var(--fo-line);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      min-height: 240px;
+      position: relative;
+    }
+    .fs-cell:nth-child(6n) { border-right: 0; } /* last col */
+    .fs-grid > .fs-cell:nth-last-child(-n+6) { border-bottom: 0; }
+
+    .fs-corner {
+      align-items: flex-end;
+      justify-content: flex-start;
+      padding: var(--space-4) var(--space-3) var(--space-3);
+      font-family: "Fraunces", serif;
+      font-style: italic;
+      font-weight: 500;
+      font-size: var(--type-meta);
+      color: var(--fo-text-3);
+      min-height: auto;
+    }
+
+    .fs-stage-head {
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: flex-end;
+      gap: 0.2rem;
+      padding: var(--space-3);
+      min-height: auto;
+    }
+    .fs-stage-head .stage-key {
+      font-size: var(--type-eyebrow);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-weight: 800;
+      color: var(--fo-accent);
+    }
+    .fs-stage-head .stage-name {
+      font-family: "Manrope", system-ui, sans-serif;
+      font-size: 11px;
+      color: var(--fo-text-2);
+      line-height: 1.3;
+    }
+    .fs-stage-head .stage-plant {
+      font-family: "Fraunces", serif;
+      font-style: italic;
+      font-size: 11px;
+      color: var(--fo-text-3);
+    }
+
+    .fs-row-label {
+      align-items: center;
+      justify-content: flex-start;
+      padding-left: var(--space-4);
+      font-family: "Fraunces", serif;
+      font-weight: 600;
+      font-size: var(--type-h3);
+      color: var(--fo-text);
+      text-transform: lowercase;
+    }
+    :root:not([data-theme="light"]) .fs-row-label { background: transparent; }
+    :root[data-theme="light"] .fs-row-label { background: var(--fo-surface-2); }
+
+    .fs-plant {
+      width: 130px;
+      height: 208px;
+      display: block;
+    }
+
+    /* Per-cell play button — dev affordance so growth animations are
+       paused by default and played one at a time. Hidden once the cell
+       is animating; reappears when all its animations finish. */
+    .fs-play {
+      position: absolute;
+      inset: var(--space-3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 20, 19, 0.42);
+      border: 1px solid var(--fo-line);
+      color: var(--fo-text);
+      font: inherit;
+      cursor: pointer;
+      border-radius: 8px;
+      padding: 0;
+      transition: opacity 0.18s ease, background-color 0.15s ease, border-color 0.15s ease;
+    }
+    :root[data-theme="light"] .fs-play { background: rgba(245, 240, 230, 0.55); }
+    .fs-play::before {
+      content: "▶";
+      font-size: 18px;
+      opacity: 0.85;
+      transform: translateX(2px);
+    }
+    .fs-play:hover {
+      background: rgba(15, 20, 19, 0.62);
+      border-color: var(--fo-accent);
+    }
+    :root[data-theme="light"] .fs-play:hover { background: rgba(245, 240, 230, 0.75); }
+    .fs-play:focus-visible {
+      outline: 2px solid var(--fo-accent);
+      outline-offset: 2px;
+    }
+    .fs-cell.is-playing .fs-play { opacity: 0; pointer-events: none; }
+
+    .fs-footnote {
+      margin-top: var(--space-5);
+      color: var(--fo-text-3);
+      font-size: var(--type-meta);
+      font-style: italic;
+      line-height: 1.5;
+      max-width: 720px;
+    }
+
+    /* Plant growth @keyframes live in /plant-animations.css so the
+       consultant-dashboard panel can use them too. */
+  </style>
+</head>
+<body class="gr-body">
+<div class="fs-shell">
+  <h1 class="fs-h">flower draft — engagement journey</h1>
+  <p class="fs-sub">eight species across five lifecycle stages. each plant is one engagement, growing from a seed in the soil up to full bloom. stems and leaves use the live theme accent so the plants ground into the page; petals carry a hand-picked decorative color that stays inside the brand's earthy-warm space.</p>
+
+  <div class="fs-controls">
+    <span class="fs-controls-label">theme</span>
+    <button type="button" class="fs-theme-btn is-active" data-theme-btn="dark-forest">dark forest</button>
+    <button type="button" class="fs-theme-btn" data-theme-btn="forest-soft">forest soft</button>
+    <button type="button" class="fs-theme-btn" data-theme-btn="dark">dark</button>
+    <button type="button" class="fs-theme-btn" data-theme-btn="light">light</button>
+  </div>
+
+  <div class="fs-grid" id="fs-grid"></div>
+
+  <p class="fs-footnote">this is silhouette-only. no growth animation, no idle sway, no hover state — just the shapes so we can lock identity before wiring anything up. tell me which ones to redraw and i'll iterate.</p>
+</div>
+
+<script type="module" src="/flower-sketch.js"></script>
+</body>
+</html>

@@ -4,9 +4,11 @@
 // to browse, an unread-only inbox preview, and profile health.
 
 import { getSupabaseClient } from "/supabase-loader.js";
-import { mountDashboardNotifications } from "/dashboard-notifications.js";
 import { fetchRatingFor, renderRatingMarkup } from "/rating.js";
 import { getInitials } from "/initials.js";
+import { renderHealthBucket } from "/health-bucket.js";
+import { mountEngagementJourneyFlowers } from "/engagement-journey-flowers.js";
+import { mountDashboardNotifications } from "/dashboard-notifications.js";
 
 const $ = (id) => document.getElementById(id);
 const escape = (s) =>
@@ -46,17 +48,24 @@ function publicAvatarUrl(client, path) {
 /* ============================================================== */
 
 async function loadData(client, userId) {
-  const [profileRes, consultantRes] = await Promise.all([
+  const [profileRes, consultantRes, portfolioRes] = await Promise.all([
     client
       .from("profiles")
-      .select("id, full_name, role, avatar_path, linkedin_url, resume_path")
+      .select("id, full_name, role, avatar_path, linkedin_url, resume_path, stripe_account_status")
       .eq("id", userId)
       .single(),
     client
       .from("consultant_profiles")
-      .select("user_id, headline, bio, major, school")
+      .select("user_id, headline, bio, major, minor, school")
       .eq("user_id", userId)
       .maybeSingle(),
+    // Count of portfolio items — feeds the profile-health "past work" check.
+    // We only need the count, not the rows; supabase's `head: true` returns it
+    // in a header without payload.
+    client
+      .from("portfolio_items")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId),
   ]);
 
   if (profileRes.error) {
@@ -65,12 +74,16 @@ async function loadData(client, userId) {
   }
   const profile = profileRes.data;
   const consultant = consultantRes.data;
+  const portfolioCount = portfolioRes.count || 0;
 
-  // Bids the consultant has placed (status, counter offers, accepted, etc.)
+  // Bids the consultant has placed. The flower journey wants every
+  // status (pending → accepted → completed → released) so a freshly
+  // submitted bid can render as a seed; `payment_status` distinguishes
+  // stage 4 (work delivered, awaiting payout) from stage 5 (paid out).
   const { data: bids } = await client
     .from("bids")
     .select(
-      "id, listing_id, consultant_id, amount_cents, message, status, counter_offer_cents, counter_offer_message, accepted_at, proposal_due_at, proposal_path, created_at"
+      "id, listing_id, consultant_id, amount_cents, message, status, payment_status, paid_at, released_at, counter_offer_cents, counter_offer_message, accepted_at, proposal_due_at, proposal_path, created_at"
     )
     .eq("consultant_id", userId)
     .order("created_at", { ascending: false });
@@ -97,6 +110,55 @@ async function loadData(client, userId) {
     ]);
     for (const p of ownerProfiles || []) ownerMap.set(p.id, p);
     for (const b of ownerBiz || []) ownerBizMap.set(b.user_id, b.business_name);
+  }
+
+  // Engagement schedules — keyed by bid id so the journey panel can derive
+  // each engagement's lifecycle stage. Stage 3 (kickoff scheduled) and
+  // stage 4 (work delivered) are both read off `engagement_schedules.status`;
+  // stage 5 (payout received) is read off `bids.payment_status`. We try the
+  // database first, then fall back to localStorage for any bid that didn't
+  // return a row.
+  // engagement.js writes a copy under `grassroots_engagement_schedule_<bid>`
+  // when the supabase table is missing or the user is mid-flow without a
+  // round-trip; reading from there means the action-dot still fires for
+  // engagements only persisted client-side.
+  const acceptedBidIds = (bids || [])
+    .filter((b) => b.status === "accepted")
+    .map((b) => b.id);
+  const scheduleMap = new Map();
+  if (acceptedBidIds.length) {
+    try {
+      // The journey only needs `bid_id` + `status` to derive the stage
+      // and the action item. Earlier we also selected `selected_start`,
+      // `selected_end` and `duration_minutes`, but `duration_minutes`
+      // doesn't exist in the production schema and the whole query
+      // failed silently as a result — every engagement loaded with a
+      // `null` schedule and stage detection fell through to the
+      // listing-based fallback (so a completed engagement read as
+      // stage 3 / "work delivered" instead of stage 4 / "completed",
+      // and its filtering behaviour was wrong on the current/all toggle).
+      // Keep the select narrow + tied to fields the journey actually uses.
+      const { data: schedules, error } = await client
+        .from("engagement_schedules")
+        .select("bid_id, status")
+        .in("bid_id", acceptedBidIds);
+      if (error) console.warn("schedule fetch error", error);
+      for (const s of schedules || []) scheduleMap.set(s.bid_id, s);
+    } catch (err) {
+      console.warn("schedule load failed", err);
+    }
+    // localStorage fallback for any bid that didn't come back from the DB
+    for (const bidId of acceptedBidIds) {
+      if (scheduleMap.has(bidId)) continue;
+      try {
+        const raw = localStorage.getItem(`grassroots_engagement_schedule_${bidId}`);
+        if (!raw) continue;
+        const local = JSON.parse(raw);
+        if (local && typeof local === "object") {
+          scheduleMap.set(bidId, local);
+        }
+      } catch (_) {}
+    }
   }
 
   // Recommended: most recent open listing the consultant hasn't bid on
@@ -195,16 +257,35 @@ async function loadData(client, userId) {
   }
 
   return {
+    userId,
     profile,
     consultant,
+    portfolioCount,
     bids: bids || [],
     listingMap,
     ownerMap,
     ownerBizMap,
+    scheduleMap,
     recommended,
     unreadThreads,
     unreadCount,
   };
+}
+
+// Build the engagements list the journey panel consumes. Now returns
+// every bid in any status — the flower journey shows pending bids as
+// seeds (stage 1), accepted bids as sprouts (stage 2), etc. The panel
+// itself filters out premature engagements (those that ended without
+// payout). Each entry is joined with its listing, owner, counterpart
+// name, and engagement_schedule (when present).
+function journeyEngagements(bids, listingMap, ownerMap, ownerBizMap, scheduleMap) {
+  return (bids || []).map((bid) => {
+    const listing = listingMap.get(bid.listing_id);
+    const owner = ownerMap.get(listing?.owner_id);
+    const counterpart = counterpartName(listing?.owner_id, ownerMap, ownerBizMap);
+    const schedule = scheduleMap?.get(bid.id) || null;
+    return { bid, listing, owner, counterpart, schedule };
+  });
 }
 
 /* ============================================================== */
@@ -215,49 +296,11 @@ function counterpartName(ownerId, ownerMap, ownerBizMap) {
   return ownerBizMap.get(ownerId) || ownerMap.get(ownerId)?.full_name || "business";
 }
 
-function activeEngagements(bids, listingMap, ownerMap, ownerBizMap) {
-  return bids
-    .filter((b) => b.status === "accepted" && (listingMap.get(b.listing_id)?.status !== "closed"))
-    .map((bid) => {
-      const listing = listingMap.get(bid.listing_id);
-      const owner = ownerMap.get(listing?.owner_id);
-      const counterpart = counterpartName(listing?.owner_id, ownerMap, ownerBizMap);
-      return { bid, listing, owner, counterpart };
-    });
-}
-
-function renderEngagements(client, engagements) {
-  const root = $("cdash-engagements-rows");
-  const empty = $("cdash-engagements-empty");
-  $("cdash-engagements-count").textContent = String(engagements.length);
-  if (!engagements.length) {
-    root.innerHTML = "";
-    empty.hidden = false;
-    return;
-  }
-  empty.hidden = true;
-  root.innerHTML = engagements
-    .map(({ bid, listing, owner, counterpart }) => {
-      const avatarUrl = publicAvatarUrl(client, owner?.avatar_path);
-      const avatar = avatarUrl
-        ? `<img src="${escape(avatarUrl)}" alt=""/>`
-        : escape(getInitials(counterpart));
-      const status = bid.proposal_path ? "in progress" : bid.proposal_due_at ? "proposal due" : "kickoff pending";
-      return `
-        <a class="cdash__eng-row" href="/engagement.html?bid=${escape(bid.id)}">
-          <span class="cdash__eng-avatar">${avatar}</span>
-          <div class="cdash__eng-meta">
-            <span class="cdash__eng-biz">${escape(counterpart)}</span>
-            <span class="cdash__eng-title">${escape(listing?.title || "engagement")}</span>
-          </div>
-          <span class="cdash__eng-status">${escape(status)}</span>
-          <span class="cdash__eng-amount">${escape(fmtUSD(bid.amount_cents))}</span>
-          <span class="cdash__eng-arrow" aria-hidden="true">→</span>
-        </a>
-      `;
-    })
-    .join("");
-}
+// activeEngagements + renderEngagements were retired when the
+// notifications + active engagements panels were replaced by the
+// engagement journey. Stage detection + species assignment now live
+// in /engagement-journey-flowers.js; we just hand it every bid
+// enriched with listing/owner/schedule.
 
 function renderRecommended(client, listing, ownerMap, ownerBizMap) {
   const root = $("cdash-recommended");
@@ -354,53 +397,62 @@ const HEALTH_PALETTE = [
   "var(--fo-accent-warm)",
 ];
 
-function consultantHealth(profile, consultant) {
-  const fields = [
-    { label: "full name", filled: !!profile?.full_name, href: "/profile.html" },
-    { label: "profile photo", filled: !!profile?.avatar_path, href: "/profile.html" },
-    { label: "linkedin", filled: !!profile?.linkedin_url, href: "/profile.html" },
-    { label: "resume", filled: !!profile?.resume_path, href: "/profile.html" },
-    { label: "school", filled: !!consultant?.school, href: "/profile.html" },
-    { label: "headline", filled: !!consultant?.headline, href: "/profile.html" },
-  ];
-  fields.forEach((f, i) => (f.color = HEALTH_PALETTE[i % HEALTH_PALETTE.length]));
+/* Profile-health fields are weighted by impact on a consultant's ability
+   to land work. Stripe payouts is the largest single item — without it,
+   they literally can't be paid (and bid submission is gated on it). Resume
+   and past-work samples carry the next-highest weight because that's the
+   credibility evidence businesses scan first. */
+const HEALTH_FIELDS = [
+  { key: "payouts",     label: "payouts",       cta: "set up payouts",        weight: 25, href: "/payouts.html" },
+  { key: "resume",      label: "resume",        cta: "upload your resume",    weight: 15, href: "/settings.html#professional" },
+  { key: "portfolio",   label: "past work",     cta: "add past work samples", weight: 15, href: "/settings.html#professional" },
+  { key: "photo",       label: "profile photo", cta: "add a profile photo",   weight: 10, href: "/settings.html#personal" },
+  { key: "name",        label: "full name",     cta: "add your full name",    weight: 10, href: "/settings.html#personal" },
+  { key: "linkedin",    label: "linkedin",      cta: "link your linkedin",    weight:  8, href: "/settings.html#personal" },
+  { key: "school",      label: "school",        cta: "add your school",       weight:  7, href: "/settings.html#professional" },
+  { key: "major",       label: "major",         cta: "add your major",        weight:  5, href: "/settings.html#professional" },
+  { key: "minor",       label: "minor",         cta: "add your minor",        weight:  5, href: "/settings.html#professional" },
+];
+
+function consultantHealth(profile, consultant, portfolioCount) {
+  const filledChecks = {
+    payouts:   profile?.stripe_account_status === "active",
+    resume:    !!profile?.resume_path,
+    portfolio: (portfolioCount || 0) > 0,
+    photo:     !!profile?.avatar_path,
+    name:      !!(profile?.full_name && profile.full_name.trim()),
+    linkedin:  !!profile?.linkedin_url,
+    school:    !!consultant?.school,
+    major:     !!consultant?.major,
+    minor:     !!consultant?.minor,
+  };
+
+  const fields = HEALTH_FIELDS.map((f, i) => ({
+    ...f,
+    filled: !!filledChecks[f.key],
+    color: HEALTH_PALETTE[i % HEALTH_PALETTE.length],
+  }));
+
+  const totalWeight = fields.reduce((sum, f) => sum + f.weight, 0);
+  const filledWeight = fields.filter((f) => f.filled).reduce((sum, f) => sum + f.weight, 0);
+  const pct = Math.round((filledWeight / totalWeight) * 100);
+
   const done = fields.filter((f) => f.filled).length;
   const total = fields.length;
-  const pct = Math.round((done / total) * 100);
-  const missing = fields.filter((f) => !f.filled);
+
+  // Sort missing items by weight DESC so the CTA always names the highest-
+  // impact gap first. Stable order keeps lower-weight ties predictable.
+  const missing = fields
+    .filter((f) => !f.filled)
+    .sort((a, b) => b.weight - a.weight);
+
   let tierName;
   if (pct >= 100) tierName = "complete";
   else if (pct >= 67) tierName = "almost there";
   else if (pct >= 34) tierName = "needs attention";
   else tierName = "needs love";
-  return { pct, done, total, fields, missing, tierName };
-}
 
-function renderHealthDonut(health) {
-  const size = 132;
-  const stroke = 12;
-  const radius = (size - stroke) / 2 - 1;
-  const center = size / 2;
-  const circumference = 2 * Math.PI * radius;
-  const filledLen = (health.pct / 100) * circumference;
-  return `
-    <div class="bza__health-donut" role="img" aria-label="${health.pct}% profile complete">
-      <svg viewBox="0 0 ${size} ${size}" aria-hidden="true">
-        <g transform="rotate(-90 ${center} ${center})">
-          <circle cx="${center}" cy="${center}" r="${radius}" fill="none"
-                  stroke="var(--fo-surface-3)" stroke-width="${stroke}" />
-          <circle cx="${center}" cy="${center}" r="${radius}" fill="none"
-                  stroke="var(--fo-accent)" stroke-width="${stroke}" stroke-linecap="round"
-                  class="bza__health-slice is-filled"
-                  stroke-dasharray="${filledLen} ${circumference - filledLen}" />
-        </g>
-      </svg>
-      <div class="bza__health-center">
-        <span class="bza__health-pct">${health.pct}<small>%</small></span>
-        <span class="bza__health-fraction">${health.done} of ${health.total}</span>
-      </div>
-    </div>
-  `;
+  return { pct, done, total, fields, missing, tierName };
 }
 
 function renderHealth(panel, health, consultantId) {
@@ -410,23 +462,35 @@ function renderHealth(panel, health, consultantId) {
 
   let copy;
   let cta;
+  let ctaHref;
   if (isComplete) {
     copy = "your profile is complete. businesses can see exactly who they'd hire.";
     cta = "open profile";
+    ctaHref = "/profile.html";
   } else {
+    // health.missing is sorted by weight DESC, so the first item is always
+    // the highest-impact gap (typically payouts, then resume, then portfolio).
     const next = health.missing[0];
-    copy = `add your ${next.label} so businesses know more about you.`;
-    cta = `add ${next.label}`;
+    cta = next.cta;
+    ctaHref = next.href;
+    // Tone copy for the top three weight tiers; everything else gets a
+    // generic line so we don't ship dozens of bespoke strings.
+    if (next.key === "payouts") {
+      copy = "set up payouts so businesses can accept your offers.";
+    } else if (next.key === "resume") {
+      copy = "upload a resume so businesses can review your experience.";
+    } else if (next.key === "portfolio") {
+      copy = "add a few past work samples so businesses can see your range.";
+    } else {
+      copy = `${next.cta} so businesses know more about you.`;
+    }
   }
 
   const tierColor = health.pct >= 67 ? "var(--fo-accent)" : health.pct >= 34 ? "var(--fo-do)" : "var(--fo-plan)";
 
   panel.innerHTML = `
-    <div class="bza__panel-h">
-      <span class="bza__panel-h-title"><strong>profile health</strong></span>
-    </div>
     <div class="bza__health-top">
-      ${renderHealthDonut(health)}
+      ${renderHealthBucket(health)}
       <div class="bza__health-summary">
         <span class="bza__health-tier" style="color:${tierColor}">
           <span class="bza__health-tier-mark" aria-hidden="true"></span>
@@ -436,56 +500,11 @@ function renderHealth(panel, health, consultantId) {
         <p class="bza__health-eyebrow">${escape(copy)}</p>
       </div>
     </div>
-    <a href="/profile.html" class="bza__health-cta">
+    <a href="${escape(ctaHref)}" class="bza__health-cta">
       <span class="bza__health-cta-text">${escape(cta)}</span>
       <span class="bza__health-cta-arrow" aria-hidden="true">→</span>
     </a>
-    <a href="/payouts.html" class="bza__health-rating" data-payouts-row>
-      <span class="bza__health-rating__label">payouts</span>
-      <span class="bza__health-rating__chip" data-payouts-chip>checking…</span>
-      <span class="bza__health-rating__cta" data-payouts-cta>set up →</span>
-    </a>
-    <a href="/my-reviews.html" class="bza__health-rating" data-rating-host="">
-      <span class="bza__health-rating__label">your rating</span>
-      <span class="bza__health-rating__chip" data-rating-chip>loading…</span>
-      <span class="bza__health-rating__cta">view reviews →</span>
-    </a>
   `;
-
-  // Payouts onboarding status — surfaces a clear active/setup-needed pill.
-  (async () => {
-    const chip = panel.querySelector("[data-payouts-chip]");
-    const cta = panel.querySelector("[data-payouts-cta]");
-    if (!chip) return;
-    try {
-      const sb = await getSupabaseClient();
-      const { data: { session } } = await sb.auth.getSession();
-      const headers = {};
-      if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-      const res = await fetch("/api/stripe/account-status", { headers });
-      const data = await res.json().catch(() => ({}));
-      if (data?.onboarded) {
-        chip.textContent = "active";
-        chip.className = "gr-pill gr-pill--accepted gr-pill--no-dot";
-        if (cta) cta.textContent = "manage →";
-      } else if (data?.details_submitted) {
-        chip.textContent = "verifying";
-        chip.className = "gr-pill gr-pill--warn gr-pill--no-dot";
-      } else {
-        chip.textContent = "not set up";
-        chip.className = "gr-pill gr-pill--muted gr-pill--no-dot";
-      }
-    } catch (_) {
-      chip.textContent = "—";
-    }
-  })();
-
-  if (consultantId) {
-    fetchRatingFor(consultantId).then((rating) => {
-      const chip = panel.querySelector("[data-rating-chip]");
-      if (chip) chip.outerHTML = renderRatingMarkup(rating, { size: "md" });
-    });
-  }
 }
 
 /* ============================================================== */
@@ -493,43 +512,55 @@ function renderHealth(panel, health, consultantId) {
 /* ============================================================== */
 
 function renderDashboard(client, data) {
-  const { profile, consultant, bids, listingMap, ownerMap, ownerBizMap, recommended, unreadThreads, unreadCount } = data;
+  const { userId, profile, consultant, portfolioCount, bids, listingMap, ownerMap, ownerBizMap, scheduleMap, recommended, unreadThreads, unreadCount } = data;
 
-  // welcome
+  // welcome line with a rating chip pinned right after the first name.
+  // The chip is a link to /my-reviews.html. We render it as a placeholder
+  // first then fill it asynchronously from fetchRatingFor.
   const firstName = (profile?.full_name || "").split(" ")[0] || "there";
-  $("cdash-welcome").textContent = `welcome back, ${firstName}.`;
-
-  // header meta
-  const engagements = activeEngagements(bids, listingMap, ownerMap, ownerBizMap);
-  const headMeta = $("cdash-h-meta");
-  const subBits = [];
-  if (engagements.length) subBits.push(`${engagements.length} active engagement${engagements.length === 1 ? "" : "s"}`);
-  if (unreadCount) subBits.push(`${unreadCount} unread message${unreadCount === 1 ? "" : "s"}`);
-  if (headMeta) headMeta.textContent = subBits.join(" · ");
-
-  const sub = $("cdash-page-sub");
-  if (sub) sub.textContent = "you're caught up. browse the marketplace to find your next project.";
-
-  // Notifications panel — replaces the old action-items panel.
-  const notifList = $("cdash-notifications-list");
-  const notifEmpty = $("cdash-notifications-empty");
-  const userId = data?.session?.user?.id;
-  if (userId && notifList) {
-    mountDashboardNotifications({
-      client,
-      userId,
-      listEl: notifList,
-      emptyEl: notifEmpty,
-    }).then((result) => {
-      if (sub && result?.unreadCount) {
-        sub.textContent = `${result.unreadCount} new notification${result.unreadCount === 1 ? "" : "s"}.`;
-      }
-    });
+  const welcomeEl = $("cdash-welcome");
+  if (welcomeEl) {
+    welcomeEl.innerHTML = `welcome back, ${escape(firstName)}.`;
   }
 
-  renderEngagements(client, engagements);
-  renderRecommended(client, recommended, ownerMap, ownerBizMap);
-  renderInboxPreview(client, unreadThreads, unreadCount);
+  // Build a map of bid_id → unread thread so each plant in the journey
+  // can show a paper-plane indicator. The unreadThreads list is keyed by
+  // (listing_id, other_user_id); each bid pairs a listing with the
+  // listing's owner (the consultant's counterparty), so we match by that.
+  const unreadByBid = new Map();
+  for (const b of bids || []) {
+    const listing = listingMap?.get?.(b.listing_id);
+    const ownerId = listing?.owner_id;
+    if (!ownerId) continue;
+    for (const t of unreadThreads || []) {
+      const tListingId = t.listingId || t.listing_id;
+      const tOtherId = t.otherId || t.other_user_id;
+      if (b.listing_id === tListingId && ownerId === tOtherId) {
+        unreadByBid.set(b.id, {
+          unread: t.unread,
+          threadKey: `${tListingId}:${tOtherId}`,
+        });
+        break;
+      }
+    }
+  }
+
+  // Engagement journey — one flower per engagement across the five
+  // lifecycle stages (seed → bloom). The module computes stage,
+  // species, and premature-engagement filtering internally; we just
+  // hand it every bid enriched with listing/owner/schedule + the
+  // per-bid unread map for the in-plant message indicator.
+  const journeyPanel = $("cdash-journey-panel");
+  if (journeyPanel) {
+    const engagements = journeyEngagements(bids, listingMap, ownerMap, ownerBizMap, scheduleMap);
+    mountEngagementJourneyFlowers(journeyPanel, {
+      client,
+      engagements,
+      userId,
+      unreadByBid,
+      threadLinkBase: "/consultant-dashboard.html#inbox",
+    });
+  }
 
   // user card (sidebar bottom)
   const avatarUrl = publicAvatarUrl(client, profile?.avatar_path);
@@ -541,9 +572,25 @@ function renderDashboard(client, data) {
   const userName = $("cdash-user-name");
   if (userName) userName.textContent = profile?.full_name || "your account";
 
-  // profile health
-  const healthPanel = $("cdash-health-panel");
-  if (healthPanel) renderHealth(healthPanel, consultantHealth(profile, consultant), profile?.id);
+  // Profile completion → bucket card beneath the journey.
+  const healthPanel = $("cdash-health");
+  if (healthPanel) renderHealth(healthPanel, consultantHealth(profile, consultant, portfolioCount), userId);
+
+  // Notifications → recent feed (right column of the row beneath the
+  // journey). Shared renderer with the owner dashboard; the unread
+  // count also drives the sidebar bell badge.
+  const notifList = $("cdash-notifications-list");
+  const notifEmpty = $("cdash-notifications-empty");
+  const notifBadge = $("cdash-notif-badge");
+  if (userId && notifList) {
+    mountDashboardNotifications({ client, userId, listEl: notifList, emptyEl: notifEmpty }).then((result) => {
+      const unread = result?.unreadCount || 0;
+      if (notifBadge) {
+        notifBadge.textContent = String(unread);
+        notifBadge.hidden = unread === 0;
+      }
+    });
+  }
 }
 
 function setupShell() {
@@ -584,7 +631,7 @@ function setupShell() {
       const client = await getSupabaseClient();
       await client.auth.signOut();
     } catch {}
-    window.location.replace("/");
+    window.location.replace("/signin.html");
   });
 
   // view switcher (dashboard ↔ inbox)

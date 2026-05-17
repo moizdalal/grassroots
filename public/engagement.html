@@ -66,14 +66,21 @@
                 <p class="eg-kicker">meeting coordination</p>
                 <h2 class="eg-panel__title" id="eg-panel-title">set meeting availability</h2>
               </div>
+              <!-- Owner sets meeting length when sharing availability;
+                   consultant sees it as a read-only label so they only choose
+                   a time, not a duration. -->
               <div class="eg-duration hidden" id="eg-duration-wrap">
                 <label for="eg-duration-select">meeting length</label>
                 <select id="eg-duration-select">
-                  <option value="30">30 min</option>
-                  <option value="60" selected>60 min</option>
+                  <option value="30" selected>30 min</option>
+                  <option value="60">60 min</option>
                   <option value="90">90 min</option>
                 </select>
               </div>
+              <p class="eg-duration-readonly hidden" id="eg-duration-readonly">
+                <span class="eg-duration-readonly__label">meeting length</span>
+                <span class="eg-duration-readonly__value" id="eg-duration-readonly-value">30 min</span>
+              </p>
             </div>
 
             <p class="eg-panel__body" id="eg-panel-copy"></p>
@@ -101,6 +108,164 @@
             <p id="eg-meeting-status" class="gr-status" aria-live="polite"></p>
           </section>
 
+          <section class="gr-card eg-panel hidden" id="eg-proposal-decision-panel">
+            <div class="eg-panel__head">
+              <div>
+                <p class="eg-kicker">proposal phase</p>
+                <h2 class="eg-panel__title">ready to move forward?</h2>
+              </div>
+              <span class="gr-pill gr-pill--warn gr-pill--no-dot" id="eg-proposal-status-pill">in escrow</span>
+            </div>
+
+            <p class="eg-panel__body" id="eg-proposal-body">
+              this consultant submitted their proposal and the kickoff meeting is scheduled. once you've met, decide whether to continue with the full job. either way, the proposal fee is released to the consultant now — they earned it.
+            </p>
+
+            <div class="eg-owner-actions" id="eg-proposal-actions">
+              <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="eg-proposal-decline-btn">stay at proposal only</button>
+              <button type="button" class="gr-btn gr-btn--primary gr-btn--sm" id="eg-proposal-select-btn">move forward</button>
+            </div>
+
+            <p id="eg-proposal-status" class="gr-status" aria-live="polite"></p>
+          </section>
+
+          <section class="gr-card eg-panel hidden" id="eg-retainer-periods-panel">
+            <div class="eg-panel__head">
+              <div>
+                <p class="eg-kicker">retainer periods</p>
+                <h2 class="eg-panel__title">period escrow</h2>
+              </div>
+            </div>
+
+            <p class="eg-panel__body">each period is escrowed when stripe bills the card, and released to the consultant once you mark the work delivered.</p>
+
+            <ul class="eg-period-list" id="eg-period-list"></ul>
+
+            <p id="eg-period-status" class="gr-status" aria-live="polite"></p>
+
+            <!-- Retainer controls: owner gets auto-release toggle + termination
+                 date; both parties get the "end after current period" button.
+                 Populated by renderRetainerControls() in engagement.js. -->
+            <div class="eg-retainer-controls hidden" id="eg-retainer-controls"></div>
+          </section>
+
+          <section class="gr-card eg-panel hidden" id="eg-retainer-offer-panel">
+            <div class="eg-panel__head">
+              <div>
+                <p class="eg-kicker">ongoing work</p>
+                <h2 class="eg-panel__title" id="eg-offer-title">keep this consultant on retainer?</h2>
+              </div>
+              <span class="gr-pill gr-pill--muted gr-pill--no-dot" id="eg-offer-status-pill">no offer yet</span>
+            </div>
+
+            <p class="eg-panel__body" id="eg-offer-body">
+              you can offer this consultant ongoing retainer work for repeatable tasks. they'll bill on a cadence you set and you can cancel any time.
+            </p>
+
+            <div class="eg-retainer-terms hidden" id="eg-offer-form">
+              <div class="eg-retainer-terms__grid">
+                <label class="gr-label">
+                  <span>cadence</span>
+                  <select id="eg-offer-cadence">
+                    <option value="weekly">weekly</option>
+                    <option value="biweekly">every two weeks</option>
+                    <option value="monthly" selected>monthly</option>
+                    <option value="quarterly">quarterly</option>
+                  </select>
+                </label>
+                <label class="gr-label">
+                  <span>periods</span>
+                  <input type="number" id="eg-offer-periods" min="1" max="52" step="1" placeholder="e.g. 6" />
+                </label>
+                <label class="gr-label">
+                  <span>fee per period</span>
+                  <div class="cl-inline-money">
+                    <span class="cl-inline-money__prefix">$</span>
+                    <input type="number" id="eg-offer-fee" min="1" step="1" inputmode="numeric" placeholder="e.g. 500" />
+                  </div>
+                </label>
+              </div>
+              <label class="gr-label full-width">
+                <span>message <span class="gr-optional">optional</span></span>
+                <textarea id="eg-offer-message" rows="2" maxlength="240" placeholder="anything you want to say to the consultant?"></textarea>
+              </label>
+            </div>
+
+            <div class="eg-owner-actions" id="eg-offer-actions">
+              <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm hidden" id="eg-offer-decline-btn">decline</button>
+              <button type="button" class="gr-btn gr-btn--primary gr-btn--sm" id="eg-offer-primary-btn">offer retainer</button>
+            </div>
+
+            <p id="eg-offer-status" class="gr-status" aria-live="polite"></p>
+          </section>
+
+          <section class="gr-card eg-panel hidden" id="eg-retainer-decision-panel">
+            <div class="eg-panel__head">
+              <div>
+                <p class="eg-kicker">retainer</p>
+                <h2 class="eg-panel__title" id="eg-retainer-title">continue as a retainer?</h2>
+              </div>
+              <span class="gr-pill gr-pill--muted gr-pill--no-dot" id="eg-retainer-status-pill">decision pending</span>
+            </div>
+
+            <p class="eg-panel__body" id="eg-retainer-body">
+              the first period was released. continue billing at the listing's cadence, or close this engagement as a one-off.
+            </p>
+
+            <div class="eg-retainer-terms hidden" id="eg-retainer-terms-form">
+              <p class="eg-helper">no terms were locked in. set them now:</p>
+              <div class="eg-retainer-terms__grid">
+                <label class="gr-label">
+                  <span>cadence</span>
+                  <select id="eg-retainer-cadence-input">
+                    <option value="weekly">weekly</option>
+                    <option value="biweekly">every two weeks</option>
+                    <option value="monthly" selected>monthly</option>
+                    <option value="quarterly">quarterly</option>
+                  </select>
+                </label>
+                <label class="gr-label">
+                  <span>periods</span>
+                  <input type="number" id="eg-retainer-periods-input" min="1" max="52" step="1" placeholder="e.g. 6" />
+                </label>
+                <label class="gr-label">
+                  <span>fee per period</span>
+                  <div class="cl-inline-money">
+                    <span class="cl-inline-money__prefix">$</span>
+                    <input type="number" id="eg-retainer-fee-input" min="1" step="1" inputmode="numeric" placeholder="e.g. 500" />
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div class="eg-owner-actions" id="eg-retainer-actions">
+              <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="eg-retainer-oneoff-btn">close as one-off</button>
+              <button type="button" class="gr-btn gr-btn--primary gr-btn--sm" id="eg-retainer-continue-btn">continue retainer</button>
+            </div>
+
+            <p id="eg-retainer-status" class="gr-status" aria-live="polite"></p>
+          </section>
+
+          <section class="gr-card eg-panel hidden" id="eg-service-phase-panel">
+            <div class="eg-panel__head">
+              <div>
+                <p class="eg-kicker">service phase</p>
+                <h2 class="eg-panel__title" id="eg-service-title">collect the service fee</h2>
+              </div>
+              <span class="gr-pill gr-pill--muted gr-pill--no-dot" id="eg-service-status-pill">pending</span>
+            </div>
+
+            <p class="eg-panel__body" id="eg-service-body">
+              you moved forward with this consultant. collect the service fee to start the work — it goes into escrow and releases when you submit your review.
+            </p>
+
+            <div class="eg-owner-actions" id="eg-service-actions">
+              <button type="button" class="gr-btn gr-btn--primary gr-btn--sm" id="eg-service-pay-btn">pay service fee</button>
+            </div>
+
+            <p id="eg-service-status" class="gr-status" aria-live="polite"></p>
+          </section>
+
           <section class="gr-card eg-panel hidden" id="eg-owner-actions-panel">
             <div class="eg-panel__head">
               <div>
@@ -112,10 +277,12 @@
             <div class="eg-owner-actions">
               <a class="gr-btn gr-btn--ghost gr-btn--sm" id="eg-review-offers-link">review other offers</a>
               <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="eg-close-listing-btn">close opportunity</button>
+              <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm hidden" id="eg-refund-btn">request refund</button>
               <button type="button" class="gr-btn gr-btn--primary gr-btn--sm" id="eg-work-completed-btn" disabled>work completed</button>
             </div>
 
             <p class="eg-helper">you can keep the listing open while work is underway, or close it once you are ready.</p>
+            <p class="eg-helper hidden" id="eg-refund-helper">the 24-hour no-questions refund window has passed. <a href="mailto:support@grassroots.com">contact support</a> to request a refund.</p>
             <p id="eg-owner-action-status" class="gr-status" aria-live="polite"></p>
           </section>
 
@@ -142,11 +309,6 @@
                   maxlength="280"
                   placeholder="what stood out about working with this consultant?"
                 ></textarea>
-              </label>
-
-              <label class="eg-anon-toggle">
-                <input type="checkbox" id="eg-anon" />
-                <span>share this review anonymously</span>
               </label>
 
               <div class="eg-review-actions">

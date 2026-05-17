@@ -1,5 +1,7 @@
 import { getSupabaseClient } from "/supabase-loader.js";
 import { renderRatingMarkup, fetchRatingFor } from "/rating.js";
+import { showSuccess, showError } from "/toast.js";
+import { payAndStartService } from "/payment-modal.js";
 
 const gate = document.getElementById("eg-gate");
 const detail = document.getElementById("eg-detail");
@@ -13,6 +15,8 @@ const panelTitleEl = document.getElementById("eg-panel-title");
 const panelCopyEl = document.getElementById("eg-panel-copy");
 const durationWrap = document.getElementById("eg-duration-wrap");
 const durationSelect = document.getElementById("eg-duration-select");
+const durationReadonly = document.getElementById("eg-duration-readonly");
+const durationReadonlyValue = document.getElementById("eg-duration-readonly-value");
 const ownerTools = document.getElementById("eg-owner-tools");
 const clearAvailabilityBtn = document.getElementById("eg-clear-availability");
 const calendarEl = document.getElementById("eg-calendar");
@@ -27,12 +31,56 @@ const ownerActionsPanel = document.getElementById("eg-owner-actions-panel");
 const reviewOffersLink = document.getElementById("eg-review-offers-link");
 const closeListingBtn = document.getElementById("eg-close-listing-btn");
 const workCompletedBtn = document.getElementById("eg-work-completed-btn");
+const refundBtn = document.getElementById("eg-refund-btn");
+const refundHelper = document.getElementById("eg-refund-helper");
 const ownerActionStatusEl = document.getElementById("eg-owner-action-status");
+const proposalDecisionPanel = document.getElementById("eg-proposal-decision-panel");
+const proposalStatusPill = document.getElementById("eg-proposal-status-pill");
+const proposalBodyEl = document.getElementById("eg-proposal-body");
+const proposalActionsEl = document.getElementById("eg-proposal-actions");
+const proposalSelectBtn = document.getElementById("eg-proposal-select-btn");
+const proposalDeclineBtn = document.getElementById("eg-proposal-decline-btn");
+const proposalStatusEl = document.getElementById("eg-proposal-status");
+const servicePhasePanel = document.getElementById("eg-service-phase-panel");
+const serviceTitleEl = document.getElementById("eg-service-title");
+const serviceStatusPill = document.getElementById("eg-service-status-pill");
+const serviceBodyEl = document.getElementById("eg-service-body");
+const serviceActionsEl = document.getElementById("eg-service-actions");
+const servicePayBtn = document.getElementById("eg-service-pay-btn");
+const serviceStatusEl = document.getElementById("eg-service-status");
+const retainerPeriodsPanel = document.getElementById("eg-retainer-periods-panel");
+const periodListEl = document.getElementById("eg-period-list");
+const periodStatusEl = document.getElementById("eg-period-status");
+const retainerOfferPanel = document.getElementById("eg-retainer-offer-panel");
+const offerTitleEl = document.getElementById("eg-offer-title");
+const offerStatusPill = document.getElementById("eg-offer-status-pill");
+const offerBodyEl = document.getElementById("eg-offer-body");
+const offerFormEl = document.getElementById("eg-offer-form");
+const offerActionsEl = document.getElementById("eg-offer-actions");
+const offerPrimaryBtn = document.getElementById("eg-offer-primary-btn");
+const offerDeclineBtn = document.getElementById("eg-offer-decline-btn");
+const offerStatusEl = document.getElementById("eg-offer-status");
+const offerCadenceInput = document.getElementById("eg-offer-cadence");
+const offerPeriodsInput = document.getElementById("eg-offer-periods");
+const offerFeeInput = document.getElementById("eg-offer-fee");
+const offerMessageInput = document.getElementById("eg-offer-message");
+let offerFormVisible = false;
+const retainerDecisionPanel = document.getElementById("eg-retainer-decision-panel");
+const retainerTitleEl = document.getElementById("eg-retainer-title");
+const retainerStatusPill = document.getElementById("eg-retainer-status-pill");
+const retainerBodyEl = document.getElementById("eg-retainer-body");
+const retainerActionsEl = document.getElementById("eg-retainer-actions");
+const retainerContinueBtn = document.getElementById("eg-retainer-continue-btn");
+const retainerOneoffBtn = document.getElementById("eg-retainer-oneoff-btn");
+const retainerStatusEl = document.getElementById("eg-retainer-status");
+const retainerTermsForm = document.getElementById("eg-retainer-terms-form");
+const retainerCadenceInput = document.getElementById("eg-retainer-cadence-input");
+const retainerPeriodsInput = document.getElementById("eg-retainer-periods-input");
+const retainerFeeInput = document.getElementById("eg-retainer-fee-input");
 const reviewPanel = document.getElementById("eg-review-panel");
 const reviewForm = document.getElementById("eg-review-form");
 const ratingGrid = document.getElementById("eg-rating-grid");
 const endorsementInput = document.getElementById("eg-endorsement");
-const anonInput = document.getElementById("eg-anon");
 const submitReviewBtn = document.getElementById("eg-submit-review");
 const reviewStatusEl = document.getElementById("eg-review-status");
 
@@ -60,6 +108,11 @@ let scheduleStore = "remote";
 let reviewStore = "remote";
 let scheduleState = null;
 let reviewState = null;
+let proposalPhase = null; // bid_phase_payments row for phase='proposal'
+let servicePhase = null;  // bid_phase_payments row for phase='service'
+let retainerSub = null;   // retainer_subscriptions row
+let retainerDeclined = false; // owner clicked "close as one-off"
+let retainerPeriods = []; // bid_phase_payments rows for phase='retainer_period'
 const ownerSelection = new Set();
 const reviewRatings = Object.create(null);
 let consultantChosen = null;
@@ -258,7 +311,7 @@ async function insertNotification(userId, title, body, link, type) {
 async function loadBid(bidId) {
   const { data, error } = await supabase
     .from("bids")
-    .select("id, listing_id, consultant_id, amount_cents, message, status, accepted_at, proposal_due_at")
+    .select("id, listing_id, consultant_id, amount_cents, proposal_fee_cents, service_fee_cents, move_forward_status, move_forward_decided_at, message, status, accepted_at, proposal_due_at, payment_status, payment_amount_cents, paid_at")
     .eq("id", bidId)
     .maybeSingle();
   return { data, error };
@@ -267,10 +320,65 @@ async function loadBid(bidId) {
 async function loadListing(listingId) {
   const { data, error } = await supabase
     .from("listings")
-    .select("id, owner_id, title, status, created_at")
+    .select("id, owner_id, title, status, created_at, contract_type, proposal_budget, retainer_terms, retainer_cadence, retainer_period_count, retainer_fee_cents")
     .eq("id", listingId)
     .maybeSingle();
   return { data, error };
+}
+
+async function loadProposalPhase(bidId) {
+  const { data, error } = await supabase
+    .from("bid_phase_payments")
+    .select("id, status, amount_cents, paid_at, released_at, transfer_id, charge_id, payment_intent_id")
+    .eq("bid_id", bidId)
+    .eq("phase", "proposal")
+    .maybeSingle();
+  if (error) {
+    console.warn("loadProposalPhase:", error.message);
+    return null;
+  }
+  return data;
+}
+
+async function loadServicePhase(bidId) {
+  const { data, error } = await supabase
+    .from("bid_phase_payments")
+    .select("id, status, amount_cents, paid_at, released_at, transfer_id, charge_id, payment_intent_id")
+    .eq("bid_id", bidId)
+    .eq("phase", "service")
+    .maybeSingle();
+  if (error) {
+    console.warn("loadServicePhase:", error.message);
+    return null;
+  }
+  return data;
+}
+
+async function loadRetainerPeriods(bidId) {
+  const { data, error } = await supabase
+    .from("bid_phase_payments")
+    .select("id, period_index, amount_cents, status, paid_at, released_at, transfer_id, charge_id")
+    .eq("bid_id", bidId)
+    .eq("phase", "retainer_period")
+    .order("period_index", { ascending: true });
+  if (error) {
+    console.warn("loadRetainerPeriods:", error.message);
+    return [];
+  }
+  return data || [];
+}
+
+async function loadRetainerSubscription(bidId) {
+  const { data, error } = await supabase
+    .from("retainer_subscriptions")
+    .select("id, stripe_subscription_id, cadence, period_count, periods_billed, fee_cents, status, started_at, ends_at, canceled_at, offered_by, offered_at, accepted_at, declined_at, offer_message")
+    .eq("bid_id", bidId)
+    .maybeSingle();
+  if (error) {
+    console.warn("loadRetainerSubscription:", error.message);
+    return null;
+  }
+  return data;
 }
 
 async function loadProfile(userId) {
@@ -313,11 +421,28 @@ async function saveSchedule(nextSchedule) {
     owner_availability: nextSchedule.owner_availability || { slots: [] },
   };
   if (scheduleStore === "remote") {
-    const { data, error } = await supabase
-      .from("engagement_schedules")
-      .upsert(payload, { onConflict: "bid_id" })
-      .select()
-      .single();
+    // RLS: only owners have an INSERT policy on engagement_schedules;
+    // consultants only have UPDATE. `upsert` evaluates both policies up
+    // front, so consultants would fail the INSERT check on an existing
+    // row. Branch on payload.id so the consultant's "confirm this time"
+    // flow does a pure UPDATE, while the owner's first availability
+    // share still falls through to upsert for the INSERT.
+    let data;
+    let error;
+    if (payload.id) {
+      ({ data, error } = await supabase
+        .from("engagement_schedules")
+        .update(payload)
+        .eq("id", payload.id)
+        .select()
+        .single());
+    } else {
+      ({ data, error } = await supabase
+        .from("engagement_schedules")
+        .upsert(payload, { onConflict: "bid_id" })
+        .select()
+        .single());
+    }
 
     if (error && isMissing(error)) {
       scheduleStore = "local";
@@ -384,8 +509,15 @@ async function saveReview(payload) {
   return payload;
 }
 
+/* Duration source of truth:
+   - If the owner has already saved a duration into the schedule state, use that
+     for both views (consultant must accept the predetermined length).
+   - Otherwise (owner hasn't saved yet), read from the dropdown — owner is
+     actively picking. Default falls back to 30 minutes. */
 function getSelectedDuration() {
-  return Number(durationSelect.value || "60");
+  const stateDuration = Number(scheduleState?.duration_minutes);
+  if (Number.isFinite(stateDuration) && stateDuration > 0) return stateDuration;
+  return Number(durationSelect.value || "30");
 }
 
 function canFitDuration(slotKey, durationMinutes, availableSet) {
@@ -481,22 +613,39 @@ function renderMeetingSummary() {
   refreshInviteLink();
 }
 
+function isValidRating(v) {
+  return typeof v === "number" && v >= 0.5 && v <= 5 && (v * 2) % 1 === 0;
+}
+
 function updateReviewSubmitState() {
-  const ready = RATING_DIMENSIONS.every(([key]) => Number.isInteger(reviewRatings[key]) && reviewRatings[key] >= 1);
+  const ready = RATING_DIMENSIONS.every(([key]) => isValidRating(reviewRatings[key]));
   submitReviewBtn.disabled = !ready;
 }
 
 function renderRatings() {
+  // 5 stars, each with a left-half + right-half hit target so the user
+  // can choose any 0.5-step value from 0.5 → 5. Visual fill is a
+  // single .eg-stars__fill width track, matching the .gr-rating
+  // component's pattern.
   ratingGrid.innerHTML = RATING_DIMENSIONS.map(([key, label]) => {
-    const stars = Array.from({ length: 5 }, (_, idx) => {
-      const value = idx + 1;
-      const active = reviewRatings[key] === value ? "is-active" : "";
-      return `<button type="button" class="eg-rating-star ${active}" data-rating-key="${key}" data-rating-value="${value}">${value}</button>`;
+    const value = Number(reviewRatings[key]) || 0;
+    const fillPct = Math.max(0, Math.min(5, value)) / 5 * 100;
+    const valueLabel = value ? `${value} of 5` : "not yet rated";
+    const hits = Array.from({ length: 10 }, (_, i) => {
+      const v = (i + 1) / 2;
+      const star = v === 1 ? "star" : "stars";
+      return `<button type="button" class="eg-stars__hit" data-rating-key="${key}" data-rating-value="${v}" aria-label="rate ${v} ${star}"></button>`;
     }).join("");
     return `
       <div class="eg-rating-row">
         <div class="eg-rating-label">${label}</div>
-        <div class="eg-rating-stars">${stars}</div>
+        <div class="eg-stars" data-value="${value}" role="img" aria-label="${valueLabel}">
+          <span class="eg-stars__track" aria-hidden="true">
+            <span class="eg-stars__bg">★★★★★</span>
+            <span class="eg-stars__fill" style="width: ${fillPct.toFixed(2)}%">★★★★★</span>
+          </span>
+          <span class="eg-stars__hits">${hits}</span>
+        </div>
       </div>
     `;
   }).join("");
@@ -527,7 +676,558 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
+const REFUND_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+function renderRetainerPeriodsPanel() {
+  if (!retainerPeriodsPanel || !periodListEl) return;
+
+  // Show the panel as soon as there's a subscription on file — even
+  // before the first invoice fires — so the owner can configure
+  // auto-release / termination date / cancel from day one.
+  const hasSub = retainerSub && ["active", "pending", "canceled", "completed"].includes(retainerSub.status);
+  if (!hasSub) {
+    retainerPeriodsPanel.classList.add("hidden");
+    return;
+  }
+  retainerPeriodsPanel.classList.remove("hidden");
+
+  periodListEl.innerHTML = "";
+  if (retainerPeriods.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "eg-period eg-period--empty";
+    empty.innerHTML = `<span class="eg-period__label">no periods billed yet — the first invoice fires at the start of the next billing cycle.</span>`;
+    periodListEl.appendChild(empty);
+  }
+  for (const p of retainerPeriods) {
+    const li = document.createElement("li");
+    li.className = `eg-period eg-period--${p.status}`;
+    const pillKind = p.status === "released" ? "accepted" : p.status === "held" ? "warn" : "muted";
+    li.innerHTML = `
+      <div class="eg-period__head">
+        <span class="eg-period__label">period ${p.period_index + 1}</span>
+        <span class="gr-pill gr-pill--${pillKind} gr-pill--no-dot">${p.status}</span>
+      </div>
+      <div class="eg-period__row">
+        <span class="eg-period__amount">${formatUsd(p.amount_cents)}</span>
+        <span class="eg-period__actions"></span>
+      </div>
+    `;
+    const actionsSlot = li.querySelector(".eg-period__actions");
+    if (p.status === "held" && viewRole === "owner") {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "gr-btn gr-btn--primary gr-btn--sm";
+      btn.textContent = "release";
+      btn.addEventListener("click", () => releaseRetainerPeriod(p.period_index, btn));
+      actionsSlot.appendChild(btn);
+    }
+    periodListEl.appendChild(li);
+  }
+
+  // Settings + cancel controls. Owner sees the full settings (auto-release
+  // toggle + termination date). Either party gets the "end after current
+  // period" button. Both panels stay hidden once the sub is canceled or
+  // completed — nothing left to control.
+  renderRetainerControls();
+}
+
+function renderRetainerControls() {
+  const host = document.getElementById("eg-retainer-controls");
+  if (!host) return;
+  const active = retainerSub && (retainerSub.status === "active" || retainerSub.status === "pending");
+  if (!active) {
+    host.innerHTML = "";
+    host.classList.add("hidden");
+    return;
+  }
+  host.classList.remove("hidden");
+  const isOwner = viewRole === "owner";
+  const auto = !!retainerSub.auto_release;
+  const terminates = retainerSub.terminates_at
+    ? new Date(retainerSub.terminates_at).toISOString().slice(0, 10)
+    : "";
+
+  const settingsBlock = isOwner ? `
+    <div class="eg-retainer-controls__settings">
+      <p class="eg-retainer-controls__title">retainer settings</p>
+      <label class="settings-toggle eg-retainer-controls__toggle">
+        <span class="settings-toggle-copy">
+          <span class="settings-toggle-title">auto-release each period</span>
+          <span class="settings-toggle-sub">funds release to the consultant the moment each invoice is paid. you can toggle this off any time.</span>
+        </span>
+        <input type="checkbox" id="eg-retainer-auto-release" ${auto ? "checked" : ""} />
+        <span class="settings-toggle-switch" aria-hidden="true"></span>
+      </label>
+      <label class="gr-label eg-retainer-controls__date">
+        <span>termination date <span class="gr-optional">optional</span></span>
+        <input type="date" id="eg-retainer-terminates-at" value="${terminates}" />
+      </label>
+      <div class="eg-retainer-controls__actions">
+        <p id="eg-retainer-controls-status" class="gr-status" aria-live="polite"></p>
+        <button type="button" class="gr-btn gr-btn--secondary gr-btn--sm" id="eg-retainer-save-settings">save settings</button>
+      </div>
+    </div>
+  ` : "";
+
+  const cancelBlock = `
+    <div class="eg-retainer-controls__cancel">
+      <p class="eg-retainer-controls__cancel-copy">${isOwner
+        ? "ending the retainer after the current period keeps this month's work and payment in place. no future invoices."
+        : "you can end your end of the retainer after the current period. your current period's work and pay stay in place."}</p>
+      <button type="button" class="gr-btn gr-btn--danger gr-btn--sm" id="eg-retainer-cancel-btn">end after current period</button>
+    </div>
+  `;
+
+  host.innerHTML = settingsBlock + cancelBlock;
+
+  // Wire handlers.
+  document.getElementById("eg-retainer-save-settings")?.addEventListener("click", saveRetainerSettings);
+  document.getElementById("eg-retainer-cancel-btn")?.addEventListener("click", endRetainerAfterPeriod);
+}
+
+async function saveRetainerSettings() {
+  const status = document.getElementById("eg-retainer-controls-status");
+  const btn = document.getElementById("eg-retainer-save-settings");
+  if (!currentBid?.id) return;
+  if (btn) btn.disabled = true;
+  if (status) { status.textContent = "saving…"; status.className = "gr-status"; }
+  try {
+    const autoEl = document.getElementById("eg-retainer-auto-release");
+    const dateEl = document.getElementById("eg-retainer-terminates-at");
+    const body = { bid_id: currentBid.id };
+    if (autoEl) body.auto_release = !!autoEl.checked;
+    if (dateEl) {
+      body.terminates_at = dateEl.value
+        ? new Date(`${dateEl.value}T23:59:59Z`).toISOString()
+        : null;
+    }
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers = { "Content-Type": "application/json" };
+    if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+    const res = await fetch("/api/stripe/retainer/update-settings", {
+      method: "POST", headers, body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (status) { status.textContent = data.error || "could not save."; status.className = "gr-status error"; }
+      if (btn) btn.disabled = false;
+      return;
+    }
+    retainerSub = { ...retainerSub, ...(data.auto_release !== undefined ? { auto_release: data.auto_release } : {}), terminates_at: data.terminates_at };
+    // Catch-up releases (auto_release flipped on) may have changed period rows.
+    retainerPeriods = await loadRetainerPeriods(currentBid.id);
+    renderRetainerPeriodsPanel();
+    const catchUp = (data.catch_up_released || []).filter((r) => r.ok).length;
+    const msg = catchUp > 0
+      ? `saved. released ${catchUp} held period${catchUp === 1 ? "" : "s"}.`
+      : "saved.";
+    if (status) { status.textContent = msg; status.className = "gr-status success"; }
+    if (btn) btn.disabled = false;
+  } catch (err) {
+    if (status) { status.textContent = err.message || "could not reach the payment server."; status.className = "gr-status error"; }
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function endRetainerAfterPeriod() {
+  if (!currentBid?.id) return;
+  const confirmCopy = viewRole === "owner"
+    ? "end this retainer after the current period? this month's work and payment continue normally, then no further invoices."
+    : "stop your end of this retainer after the current period? you'll finish out this month's work and payment.";
+  if (!window.confirm(confirmCopy)) return;
+  const status = document.getElementById("eg-retainer-controls-status");
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers = { "Content-Type": "application/json" };
+    if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+    const res = await fetch("/api/stripe/retainer/cancel-subscription", {
+      method: "POST", headers, body: JSON.stringify({ bid_id: currentBid.id }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showError(data.error || "could not end retainer.");
+      return;
+    }
+    showSuccess("retainer will end at the end of the current period.", { duration: 5000 });
+    // The DB row stays 'active' (intent recorded on Stripe); periods continue
+    // until the webhook flips us to canceled. Re-render to surface state.
+    retainerPeriods = await loadRetainerPeriods(currentBid.id);
+    renderRetainerPeriodsPanel();
+  } catch (err) {
+    showError(err.message || "could not reach the payment server.");
+  }
+}
+
+async function releaseRetainerPeriod(periodIndex, btnEl) {
+  if (!currentBid?.id) return;
+  if (!window.confirm(`release period ${periodIndex + 1}'s escrow to the consultant?`)) return;
+  if (btnEl) btnEl.disabled = true;
+  periodStatusEl.textContent = "";
+  periodStatusEl.className = "gr-status";
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers = { "Content-Type": "application/json" };
+    if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+    const res = await fetch("/api/stripe/retainer/release-period", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ bid_id: currentBid.id, period_index: periodIndex }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      periodStatusEl.textContent = data.error || "could not release period.";
+      periodStatusEl.className = "gr-status error";
+      if (btnEl) btnEl.disabled = false;
+      return;
+    }
+    retainerPeriods = await loadRetainerPeriods(currentBid.id);
+    showSuccess(`period ${periodIndex + 1} released.`);
+    renderRetainerPeriodsPanel();
+  } catch (err) {
+    periodStatusEl.textContent = err.message || "could not reach the payment server.";
+    periodStatusEl.className = "gr-status error";
+    if (btnEl) btnEl.disabled = false;
+  }
+}
+
+function renderRetainerOfferPanel() {
+  if (!retainerOfferPanel) return;
+
+  // Offer flow only applies to non-retainer-contract engagements that are
+  // past the release moment. Retainer-contract engagements have their own
+  // continue / cancel decision in renderRetainerDecisionPanel.
+  const isRetainerContract = currentListing?.contract_type === "retainer";
+  const released = currentBid?.payment_status === "released";
+  if (isRetainerContract || !released) {
+    retainerOfferPanel.classList.add("hidden");
+    return;
+  }
+
+  const status = retainerSub?.status || null;
+
+  // No offer yet.
+  if (!status) {
+    retainerOfferPanel.classList.remove("hidden");
+    if (viewRole === "owner") {
+      offerTitleEl.textContent = "keep this consultant on retainer?";
+      offerStatusPill.textContent = "no offer yet";
+      offerStatusPill.className = "gr-pill gr-pill--muted gr-pill--no-dot";
+      offerBodyEl.textContent = "you can offer this consultant ongoing retainer work for repeatable tasks. they'll bill on a cadence you set, and you can cancel any time.";
+      offerActionsEl.classList.remove("hidden");
+      offerDeclineBtn.classList.add("hidden");
+      offerPrimaryBtn.classList.remove("hidden");
+      offerPrimaryBtn.textContent = offerFormVisible ? "send offer" : "offer retainer";
+      offerFormEl.classList.toggle("hidden", !offerFormVisible);
+    } else {
+      // No offer for the consultant to see yet.
+      retainerOfferPanel.classList.add("hidden");
+    }
+    return;
+  }
+
+  // Offered, awaiting consultant response.
+  if (status === "offered") {
+    retainerOfferPanel.classList.remove("hidden");
+    offerFormEl.classList.add("hidden");
+    offerStatusPill.textContent = "offer pending";
+    offerStatusPill.className = "gr-pill gr-pill--warn gr-pill--no-dot";
+    const feeLabel = retainerSub.fee_cents ? formatUsd(Number(retainerSub.fee_cents)) : "—";
+    const summary = `${feeLabel} every ${cadenceLabel(retainerSub.cadence)} for ${retainerSub.period_count} period${retainerSub.period_count === 1 ? "" : "s"}`;
+    if (viewRole === "owner") {
+      offerTitleEl.textContent = "offer sent";
+      offerBodyEl.textContent = `waiting for the consultant to accept or decline: ${summary}.`;
+      offerActionsEl.classList.add("hidden");
+    } else {
+      offerTitleEl.textContent = "retainer offer";
+      const note = retainerSub.offer_message
+        ? ` they wrote: "${retainerSub.offer_message}"`
+        : "";
+      offerBodyEl.textContent = `the business is offering ${summary}.${note}`;
+      offerActionsEl.classList.remove("hidden");
+      offerDeclineBtn.classList.remove("hidden");
+      offerPrimaryBtn.classList.remove("hidden");
+      offerPrimaryBtn.textContent = "accept retainer";
+    }
+    return;
+  }
+
+  // Accepted → live subscription.
+  if (status === "active" || status === "pending") {
+    retainerOfferPanel.classList.remove("hidden");
+    offerFormEl.classList.add("hidden");
+    offerStatusPill.textContent = status === "pending" ? "starting…" : "active";
+    offerStatusPill.className = "gr-pill gr-pill--accepted gr-pill--no-dot";
+    offerTitleEl.textContent = "retainer is live";
+    const feeLabel = retainerSub.fee_cents ? formatUsd(Number(retainerSub.fee_cents)) : "—";
+    offerBodyEl.textContent = `billing ${feeLabel} every ${cadenceLabel(retainerSub.cadence)} — period ${retainerSub.periods_billed} of ${retainerSub.period_count}. each period escrows on payment and releases after the work is marked delivered.`;
+    if (viewRole === "owner") {
+      offerActionsEl.classList.remove("hidden");
+      offerDeclineBtn.classList.add("hidden");
+      offerPrimaryBtn.classList.remove("hidden");
+      offerPrimaryBtn.textContent = "cancel retainer";
+    } else {
+      offerActionsEl.classList.add("hidden");
+    }
+    return;
+  }
+
+  // Declined.
+  if (status === "declined") {
+    retainerOfferPanel.classList.remove("hidden");
+    offerFormEl.classList.add("hidden");
+    offerStatusPill.textContent = "declined";
+    offerStatusPill.className = "gr-pill gr-pill--muted gr-pill--no-dot";
+    offerTitleEl.textContent = "offer declined";
+    offerBodyEl.textContent = viewRole === "owner"
+      ? "the consultant declined the retainer offer."
+      : "you declined this retainer offer.";
+    offerActionsEl.classList.add("hidden");
+    return;
+  }
+
+  // Canceled / completed → show summary, no further actions.
+  if (status === "canceled" || status === "completed") {
+    retainerOfferPanel.classList.remove("hidden");
+    offerFormEl.classList.add("hidden");
+    offerStatusPill.textContent = status;
+    offerStatusPill.className = "gr-pill gr-pill--muted gr-pill--no-dot";
+    offerTitleEl.textContent = "retainer ended";
+    offerBodyEl.textContent = `the retainer ran for ${retainerSub.periods_billed} period${retainerSub.periods_billed === 1 ? "" : "s"} and is now closed.`;
+    offerActionsEl.classList.add("hidden");
+    return;
+  }
+
+  retainerOfferPanel.classList.add("hidden");
+}
+
+function renderRetainerDecisionPanel() {
+  if (!retainerDecisionPanel) return;
+  const isRetainer = currentListing?.contract_type === "retainer";
+  // Only relevant after the first period is released. Standard flow tracks
+  // first-period state on the bid (payment_status='released').
+  const firstReleased = currentBid?.payment_status === "released";
+  if (!isRetainer || !firstReleased) {
+    retainerDecisionPanel.classList.add("hidden");
+    return;
+  }
+  retainerDecisionPanel.classList.remove("hidden");
+
+  if (retainerSub?.status === "active" || retainerSub?.status === "pending") {
+    retainerTitleEl.textContent = "retainer is live";
+    retainerStatusPill.textContent = retainerSub.status === "pending" ? "starting…" : "active";
+    retainerStatusPill.className = "gr-pill gr-pill--accepted gr-pill--no-dot";
+    // Open-ended now: subscriptions run until either party cancels at
+    // end of period (or `terminates_at` hits, set in the controls panel
+    // below). Surface the next-bill cadence + how many periods have
+    // settled so far.
+    const periodsLine = retainerSub.periods_billed
+      ? `${retainerSub.periods_billed} period${retainerSub.periods_billed === 1 ? "" : "s"} billed so far.`
+      : "first period bills at the start of the next cycle.";
+    retainerBodyEl.textContent = `billing every ${cadenceLabel(retainerSub.cadence)}. ${periodsLine} each period escrows on payment and releases after you mark the work delivered.`;
+    retainerTermsForm.classList.add("hidden");
+    // The cancel control moved to the retainer-controls panel under the
+    // period list (handles both owner + consultant). Suppress the old
+    // action buttons in this status panel to avoid two cancel paths.
+    retainerActionsEl.classList.add("hidden");
+    return;
+  }
+  if (retainerSub?.status === "canceled") {
+    retainerTitleEl.textContent = "retainer ended";
+    retainerStatusPill.textContent = "canceled";
+    retainerStatusPill.className = "gr-pill gr-pill--muted gr-pill--no-dot";
+    retainerBodyEl.textContent = `the retainer ran for ${retainerSub.periods_billed} period${retainerSub.periods_billed === 1 ? "" : "s"} and is now closed. the consultant keeps whatever was paid out.`;
+    retainerActionsEl.classList.add("hidden");
+    retainerTermsForm.classList.add("hidden");
+    return;
+  }
+  if (retainerDeclined) {
+    retainerTitleEl.textContent = "closed as one-off";
+    retainerStatusPill.textContent = "one-off";
+    retainerStatusPill.className = "gr-pill gr-pill--muted gr-pill--no-dot";
+    retainerBodyEl.textContent = "you chose not to continue. this engagement closes here, with just the first period paid out.";
+    retainerActionsEl.classList.add("hidden");
+    retainerTermsForm.classList.add("hidden");
+    return;
+  }
+
+  // No subscription yet. Owner sees the decision; consultant sees status only.
+  if (viewRole !== "owner") {
+    retainerTitleEl.textContent = "first period delivered";
+    retainerStatusPill.textContent = "owner deciding";
+    retainerStatusPill.className = "gr-pill gr-pill--warn gr-pill--no-dot";
+    retainerBodyEl.textContent = "the business is deciding whether to continue billing on a retainer cadence or close out as a one-off.";
+    retainerActionsEl.classList.add("hidden");
+    retainerTermsForm.classList.add("hidden");
+    return;
+  }
+
+  retainerTitleEl.textContent = "continue as a retainer?";
+  retainerStatusPill.textContent = "decision pending";
+  retainerStatusPill.className = "gr-pill gr-pill--warn gr-pill--no-dot";
+  retainerActionsEl.classList.remove("hidden");
+  retainerContinueBtn.classList.remove("hidden");
+  retainerOneoffBtn.textContent = "close as one-off";
+  retainerOneoffBtn.classList.remove("hidden");
+
+  const fixed = currentListing.retainer_terms !== "tentative"
+    && currentListing.retainer_cadence
+    && currentListing.retainer_period_count
+    && currentListing.retainer_fee_cents;
+
+  if (fixed) {
+    const feeLabel = formatUsd(Number(currentListing.retainer_fee_cents));
+    retainerBodyEl.textContent = `continue billing ${feeLabel} every ${cadenceLabel(currentListing.retainer_cadence)} for ${currentListing.retainer_period_count} period${currentListing.retainer_period_count === 1 ? "" : "s"}, or close as a one-off.`;
+    retainerTermsForm.classList.add("hidden");
+    retainerContinueBtn.textContent = "continue retainer";
+  } else {
+    retainerBodyEl.textContent = "no terms were locked in at listing. fill them in below to start the retainer, or close as a one-off.";
+    retainerTermsForm.classList.remove("hidden");
+    retainerContinueBtn.textContent = "start retainer";
+  }
+}
+
+function cadenceLabel(c) {
+  if (c === "weekly") return "week";
+  if (c === "biweekly") return "two weeks";
+  if (c === "monthly") return "month";
+  if (c === "quarterly") return "quarter";
+  return c;
+}
+
+function renderServicePhasePanel() {
+  if (!servicePhasePanel) return;
+  const isPhased = currentListing?.contract_type === "phased";
+  const selected = currentBid?.move_forward_status === "selected";
+  if (!isPhased || !selected) {
+    servicePhasePanel.classList.add("hidden");
+    return;
+  }
+  servicePhasePanel.classList.remove("hidden");
+
+  const status = servicePhase?.status || null;
+
+  if (status === "released") {
+    serviceTitleEl.textContent = "service fee released";
+    serviceStatusPill.textContent = "released";
+    serviceStatusPill.className = "gr-pill gr-pill--accepted gr-pill--no-dot";
+    serviceBodyEl.textContent = "the service fee was paid out to the consultant. engagement complete.";
+    serviceActionsEl.classList.add("hidden");
+    return;
+  }
+  if (status === "held") {
+    serviceTitleEl.textContent = "service fee in escrow";
+    serviceStatusPill.textContent = "in escrow";
+    serviceStatusPill.className = "gr-pill gr-pill--warn gr-pill--no-dot";
+    serviceBodyEl.textContent = viewRole === "owner"
+      ? "the service fee is locked in. mark the work complete and submit your review below to release it to the consultant."
+      : "the service fee is in escrow. it releases to you once the business marks the work complete and submits their review.";
+    serviceActionsEl.classList.add("hidden");
+    return;
+  }
+  if (status === "authorizing") {
+    serviceTitleEl.textContent = "service fee — payment in flight";
+    serviceStatusPill.textContent = "authorizing";
+    serviceStatusPill.className = "gr-pill gr-pill--warn gr-pill--no-dot";
+    serviceBodyEl.textContent = "a payment is in progress. if it doesn't complete, the owner can retry from here.";
+    serviceActionsEl.classList.toggle("hidden", viewRole !== "owner");
+    return;
+  }
+
+  // No service phase row yet → owner sees the cta, consultant sees waiting copy.
+  if (viewRole === "owner") {
+    serviceTitleEl.textContent = "collect the service fee";
+    serviceStatusPill.textContent = "pending";
+    serviceStatusPill.className = "gr-pill gr-pill--muted gr-pill--no-dot";
+    const fee = Number(currentBid?.service_fee_cents);
+    const feeLabel = Number.isFinite(fee) ? formatUsd(fee) : "the service fee";
+    serviceBodyEl.textContent = `you moved forward with this consultant. ${Number.isFinite(fee) ? `${feeLabel} ` : ""}goes into escrow and releases once you submit your review.`;
+    servicePayBtn.textContent = Number.isFinite(fee) ? `pay ${feeLabel}` : "pay service fee";
+    serviceActionsEl.classList.remove("hidden");
+  } else {
+    serviceTitleEl.textContent = "service phase";
+    serviceStatusPill.textContent = "awaiting payment";
+    serviceStatusPill.className = "gr-pill gr-pill--muted gr-pill--no-dot";
+    serviceBodyEl.textContent = "the business is moving forward with you. they'll collect the service fee next, then the work begins.";
+    serviceActionsEl.classList.add("hidden");
+  }
+}
+
+function renderProposalDecisionPanel() {
+  if (!proposalDecisionPanel) return;
+  const isPhased = currentListing?.contract_type === "phased";
+  if (!isPhased || !proposalPhase) {
+    proposalDecisionPanel.classList.add("hidden");
+    return;
+  }
+  proposalDecisionPanel.classList.remove("hidden");
+
+  const decided = currentBid?.move_forward_status && currentBid.move_forward_status !== "pending";
+  const phaseStatus = proposalPhase.status;
+
+  // Render the status pill based on where we are in the lifecycle.
+  if (phaseStatus === "released") {
+    proposalStatusPill.textContent = "released";
+    proposalStatusPill.className = "gr-pill gr-pill--accepted gr-pill--no-dot";
+  } else if (phaseStatus === "held") {
+    proposalStatusPill.textContent = "in escrow";
+    proposalStatusPill.className = "gr-pill gr-pill--warn gr-pill--no-dot";
+  } else if (phaseStatus === "refunded") {
+    proposalStatusPill.textContent = "refunded";
+    proposalStatusPill.className = "gr-pill gr-pill--muted gr-pill--no-dot";
+  } else {
+    proposalStatusPill.textContent = phaseStatus || "pending";
+    proposalStatusPill.className = "gr-pill gr-pill--muted gr-pill--no-dot";
+  }
+
+  // Body copy + actions visibility depend on viewer role and decision state.
+  if (decided) {
+    proposalActionsEl.classList.add("hidden");
+    if (currentBid.move_forward_status === "selected") {
+      proposalBodyEl.textContent = "you moved forward with this consultant. the proposal payment was released — service phase is up next.";
+    } else {
+      proposalBodyEl.textContent = "you closed out at the proposal phase. the consultant was paid for their proposal work. no further charges.";
+    }
+    return;
+  }
+
+  if (viewRole !== "owner") {
+    proposalActionsEl.classList.add("hidden");
+    proposalBodyEl.textContent = "your proposal fee is in escrow. the business will release it once they've met with you and decided whether to move forward with the full job.";
+    return;
+  }
+
+  // Owner, pending decision.
+  proposalActionsEl.classList.remove("hidden");
+  proposalBodyEl.textContent = "this consultant's proposal fee is in escrow. once you've met, decide whether to continue with the full job. either way, the proposal fee releases to the consultant now — they earned it.";
+}
+
+function renderRefundCta() {
+  if (!refundBtn || !refundHelper) return;
+  const paymentStatus = currentBid?.payment_status;
+  const paidAt = currentBid?.paid_at ? new Date(currentBid.paid_at).getTime() : null;
+  const inWindow = paidAt && Date.now() - paidAt < REFUND_WINDOW_MS;
+
+  if (paymentStatus === "held" && inWindow) {
+    refundBtn.classList.remove("hidden");
+    refundHelper.classList.add("hidden");
+  } else if (paymentStatus === "held") {
+    refundBtn.classList.add("hidden");
+    refundHelper.classList.remove("hidden");
+  } else {
+    refundBtn.classList.add("hidden");
+    refundHelper.classList.add("hidden");
+  }
+}
+
 function renderOwnerActions() {
+  // The phased + retainer panels render for both roles (owner sees actions,
+  // consultant sees status) so they live outside the owner-only gate.
+  renderProposalDecisionPanel();
+  renderServicePhasePanel();
+  renderRetainerDecisionPanel();
+  renderRetainerOfferPanel();
+  renderRetainerPeriodsPanel();
+
   if (viewRole !== "owner") {
     ownerActionsPanel.classList.add("hidden");
     reviewPanel.classList.add("hidden");
@@ -537,6 +1237,7 @@ function renderOwnerActions() {
   const engagementOngoing = scheduleState?.status === "scheduled" || scheduleState?.status === "completed";
   workCompletedBtn.disabled = !engagementOngoing;
   closeListingBtn.disabled = currentListing.status === "closed";
+  renderRefundCta();
 
   if (reviewState) {
     workCompletedBtn.textContent = "review submitted";
@@ -574,6 +1275,7 @@ function renderByState() {
   saveAvailabilityBtn.classList.add("hidden");
   confirmTimeBtn.classList.add("hidden");
   durationWrap.classList.add("hidden");
+  durationReadonly?.classList.add("hidden");
   ownerTools.classList.add("hidden");
   meetingStatusEl.textContent = "";
   meetingStatusEl.className = "gr-status";
@@ -598,8 +1300,14 @@ function renderByState() {
     if (schedule.status === "awaiting_owner") {
       panelTitleEl.textContent = "share times that work";
       panelCopyEl.textContent =
-        "highlight the time ranges that work for you this week. the consultant will pick one of those options from their inbox.";
+        "pick how long the kickoff should be, then highlight the time ranges that work for you this week. the consultant will pick one of those options from their inbox.";
       ownerTools.classList.remove("hidden");
+      // Owner picks the duration on first run. Pre-select whatever's
+      // already persisted (in case they revisit this step).
+      durationWrap.classList.remove("hidden");
+      if (schedule.duration_minutes) {
+        durationSelect.value = String(schedule.duration_minutes);
+      }
       saveAvailabilityBtn.classList.remove("hidden");
       renderCalendar("owner");
       return;
@@ -608,6 +1316,8 @@ function renderByState() {
     panelTitleEl.textContent = "waiting on consultant";
     panelCopyEl.textContent =
       "your availability has been shared. the consultant can now choose a time within the ranges you marked.";
+    // Show the duration the owner locked in (read-only) so they can see it.
+    showDurationReadonly();
     renderCalendar("scheduled");
     return;
   }
@@ -623,9 +1333,18 @@ function renderByState() {
   panelTitleEl.textContent = "pick your kickoff time";
   panelCopyEl.textContent =
     "choose one meeting time inside the availability the business highlighted, then submit it to generate the calendar invite.";
-  durationWrap.classList.remove("hidden");
+  // Consultant doesn't pick a duration — the business owner locked it in
+  // when they shared availability. Show it as a read-only line instead.
+  showDurationReadonly();
   confirmTimeBtn.classList.remove("hidden");
   renderCalendar("consultant");
+}
+
+function showDurationReadonly() {
+  if (!durationReadonly || !durationReadonlyValue) return;
+  const minutes = getSelectedDuration();
+  durationReadonlyValue.textContent = `${minutes} min`;
+  durationReadonly.classList.remove("hidden");
 }
 
 function selectedMeetingTimes() {
@@ -638,8 +1357,7 @@ function selectedMeetingTimes() {
 
 async function saveOwnerAvailability() {
   if (!ownerSelection.size) {
-    meetingStatusEl.textContent = "highlight at least one time block first.";
-    meetingStatusEl.className = "gr-status error";
+    showError("highlight at least one time block first.");
     return;
   }
 
@@ -647,6 +1365,7 @@ async function saveOwnerAvailability() {
     ...(scheduleState || getDefaultSchedule()),
     status: "awaiting_consultant",
     week_start: scheduleState?.week_start || toDateKey(getWeekStartDate()),
+    duration_minutes: Number(durationSelect.value || "30"),
     owner_availability: {
       slots: [...ownerSelection].sort(),
     },
@@ -664,70 +1383,75 @@ async function saveOwnerAvailability() {
   );
 
   renderByState();
-  meetingStatusEl.textContent = "availability shared. the consultant can now choose a meeting time.";
-  meetingStatusEl.className = "gr-status success";
+  showSuccess("availability shared. the consultant can now choose a meeting time.");
 }
 
 async function confirmConsultantTime() {
   const times = selectedMeetingTimes();
   if (!times) {
-    meetingStatusEl.textContent = "choose a start time first.";
-    meetingStatusEl.className = "gr-status error";
+    showError("choose a start time first.");
     return;
   }
 
-  const next = {
-    ...scheduleState,
-    status: "scheduled",
-    selected_start: times.start.toISOString(),
-    selected_end: times.end.toISOString(),
-  };
+  // Disable the button while the request is in flight so the click
+  // never feels dead. Success/failure surfaces via toast.
+  confirmTimeBtn.disabled = true;
 
-  await saveSchedule(next);
+  try {
+    const next = {
+      ...scheduleState,
+      status: "scheduled",
+      selected_start: times.start.toISOString(),
+      selected_end: times.end.toISOString(),
+    };
 
-  const when = formatDateTimeRange(next.selected_start, next.selected_end);
-  const body = `${when}. grassroots wishes you both the best of luck, and we're excited to hear back.`;
-  await Promise.all([
-    insertNotification(
-      currentListing.owner_id,
-      "kickoff meeting confirmed",
-      body,
-      `/engagement.html?bid=${currentBid.id}`,
-      "meeting_scheduled"
-    ),
-    insertNotification(
-      currentBid.consultant_id,
-      "kickoff meeting confirmed",
-      body,
-      `/engagement.html?bid=${currentBid.id}`,
-      "meeting_scheduled"
-    ),
-  ]);
+    await saveSchedule(next);
 
-  renderByState();
-  meetingStatusEl.textContent = "meeting confirmed. the calendar invite is ready.";
-  meetingStatusEl.className = "gr-status success";
+    const when = formatDateTimeRange(next.selected_start, next.selected_end);
+    const body = `${when}. grassroots wishes you both the best of luck, and we're excited to hear back.`;
+    await Promise.all([
+      insertNotification(
+        currentListing.owner_id,
+        "kickoff meeting confirmed",
+        body,
+        `/engagement.html?bid=${currentBid.id}`,
+        "meeting_scheduled"
+      ),
+      insertNotification(
+        currentBid.consultant_id,
+        "kickoff meeting confirmed",
+        body,
+        `/engagement.html?bid=${currentBid.id}`,
+        "meeting_scheduled"
+      ),
+    ]);
+
+    renderByState();
+    showSuccess("meeting confirmed. the calendar invite is ready.");
+  } catch (err) {
+    console.error("confirmConsultantTime failed", err);
+    showError(err?.message || "could not confirm meeting time. try again in a moment.");
+  } finally {
+    confirmTimeBtn.disabled = false;
+  }
 }
 
 async function closeListing() {
   const { error } = await supabase.from("listings").update({ status: "closed" }).eq("id", currentListing.id);
   if (error) {
-    ownerActionStatusEl.textContent = error.message || "could not close listing.";
-    ownerActionStatusEl.className = "gr-status error";
+    showError(error.message || "could not close listing.");
     return;
   }
   currentListing.status = "closed";
   listingStatusEl.textContent = "closed";
   closeListingBtn.disabled = true;
-  ownerActionStatusEl.textContent = "opportunity closed. you can still manage this engagement here.";
-  ownerActionStatusEl.className = "gr-status success";
+  showSuccess("opportunity closed. you can still manage this engagement here.");
 }
 
 async function submitReview() {
-  const ready = RATING_DIMENSIONS.every(([key]) => Number.isInteger(reviewRatings[key]) && reviewRatings[key] >= 1);
+  const ready = RATING_DIMENSIONS.every(([key]) => isValidRating(reviewRatings[key]));
   if (!ready) {
-    reviewStatusEl.textContent = "rate the consultant on all five dimensions before submitting.";
-    reviewStatusEl.className = "gr-status error";
+    showError("rate the consultant on all five dimensions before submitting.");
     return;
   }
 
@@ -744,7 +1468,6 @@ async function submitReview() {
     professionalism: reviewRatings.professionalism,
     cost_value: reviewRatings.cost_value,
     endorsement: endorsement || null,
-    is_anonymous: anonInput.checked,
   };
 
   await saveReview(payload);
@@ -756,12 +1479,20 @@ async function submitReview() {
   // Release escrowed funds to the consultant. Best-effort: review has saved
   // either way; if the transfer fails (consultant hasn't onboarded yet, etc.)
   // the owner sees the reason inline and can retry from the engagement page.
+  //
+  // Phased contracts use the per-phase endpoint (release-service), which
+  // operates on `bid_phase_payments` instead of the bid's
+  // `payment_intent_id` column (which is null for phased bids).
+  const isPhased = currentListing?.contract_type === "phased";
+  const releaseEndpoint = isPhased
+    ? "/api/stripe/phased/release-service"
+    : "/api/stripe/release-funds";
   let releaseMessage = "";
   try {
     const { data: { session } } = await supabase.auth.getSession();
     const headers = { "Content-Type": "application/json" };
     if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-    const res = await fetch("/api/stripe/release-funds", {
+    const res = await fetch(releaseEndpoint, {
       method: "POST",
       headers,
       body: JSON.stringify({ bid_id: currentBid.id }),
@@ -776,9 +1507,17 @@ async function submitReview() {
     releaseMessage = " escrow release will retry — couldn't reach the payment server.";
   }
 
-  reviewStatusEl.textContent = `thank you from grassroots. we appreciate the thoughtful review.${releaseMessage}`;
-  reviewStatusEl.className = "gr-status success";
+  showSuccess(`thank you for the thoughtful review.${releaseMessage}`, { duration: 5000 });
   renderOwnerActions();
+  // renderOwnerActions resets reviewStatusEl to the generic post-review
+  // message. Append the release outcome so the in-page status surfaces it
+  // too — toast disappears in 5s, the status row sticks around.
+  if (reviewStatusEl && releaseMessage) {
+    reviewStatusEl.textContent = `thank you from grassroots. your review has been saved.${releaseMessage}`;
+    reviewStatusEl.className = releaseMessage.includes("released to the consultant")
+      ? "gr-status success"
+      : "gr-status";
+  }
   setStatusPill(scheduleState.status);
 }
 
@@ -839,13 +1578,10 @@ function bindCalendarInteractions() {
     if (viewRole === "consultant" && scheduleState?.status === "awaiting_consultant") {
       const available = new Set(scheduleState?.owner_availability?.slots || []);
       if (!canFitDuration(id, getSelectedDuration(), available)) {
-        meetingStatusEl.textContent = "choose a start time that fits inside the highlighted range.";
-        meetingStatusEl.className = "gr-status error";
+        showError("choose a start time that fits inside the highlighted range.");
         return;
       }
       consultantChosen = id;
-      meetingStatusEl.textContent = "";
-      meetingStatusEl.className = "gr-status";
       renderCalendar("consultant");
     }
   });
@@ -868,13 +1604,431 @@ function bindReviewInteractions() {
     renderRatings();
   });
 
+  // Hover preview — fill snaps to the value under the cursor while hovering,
+  // then snaps back to the committed value on widget exit. Uses mouseover /
+  // mouseout (which bubble) and a relatedTarget check so moving between
+  // sibling halves inside the same widget doesn't flicker through the
+  // committed value mid-traversal.
+  function previewFill(hit, value) {
+    const fill = hit.closest(".eg-stars")?.querySelector(".eg-stars__fill");
+    if (!fill) return;
+    fill.style.width = `${(Math.max(0, Math.min(5, value)) / 5) * 100}%`;
+  }
+  ratingGrid.addEventListener("mouseover", (event) => {
+    const hit = event.target.closest(".eg-stars__hit");
+    if (!hit) return;
+    previewFill(hit, Number(hit.dataset.ratingValue));
+  });
+  ratingGrid.addEventListener("mouseout", (event) => {
+    const hit = event.target.closest(".eg-stars__hit");
+    if (!hit) return;
+    const widget = hit.closest(".eg-stars");
+    if (event.relatedTarget && widget?.contains(event.relatedTarget)) return;
+    const committed = Number(reviewRatings[hit.dataset.ratingKey]) || 0;
+    previewFill(hit, committed);
+  });
+
   workCompletedBtn.addEventListener("click", () => {
     reviewPanel.classList.remove("hidden");
     reviewStatusEl.textContent = "";
     reviewStatusEl.className = "gr-status";
     reviewPanel.scrollIntoView({ behavior: "smooth", block: "start" });
-    const firstStarBtn = ratingGrid?.querySelector(".eg-rating-star");
+    // Accent ring flash — drops the class first and forces reflow so
+    // a second click re-fires the animation instead of being ignored
+    // because the class was already there.
+    reviewPanel.classList.remove("eg-panel--flash");
+    void reviewPanel.offsetWidth;
+    reviewPanel.classList.add("eg-panel--flash");
+    reviewPanel.addEventListener(
+      "animationend",
+      () => reviewPanel.classList.remove("eg-panel--flash"),
+      { once: true }
+    );
+    const firstStarBtn = ratingGrid?.querySelector(".eg-stars__hit");
     if (firstStarBtn instanceof HTMLElement) firstStarBtn.focus();
+  });
+
+  async function submitProposalDecision(decision) {
+    if (!currentBid?.id) return;
+    proposalSelectBtn.disabled = true;
+    proposalDeclineBtn.disabled = true;
+    proposalStatusEl.textContent = "";
+    proposalStatusEl.className = "gr-status";
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers = { "Content-Type": "application/json" };
+      if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+      const res = await fetch("/api/stripe/phased/proposal-decision", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ bid_id: currentBid.id, decision }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        proposalStatusEl.textContent = data.error || "could not record decision.";
+        proposalStatusEl.className = "gr-status error";
+        proposalSelectBtn.disabled = false;
+        proposalDeclineBtn.disabled = false;
+        return;
+      }
+      // Refresh local state and re-render. Re-load the bid to surface the
+      // service-fee phase row that the server creates on 'selected', so the
+      // "pay service fee" panel appears without forcing the user to reload.
+      currentBid.move_forward_status = decision;
+      currentBid.move_forward_decided_at = new Date().toISOString();
+      proposalPhase = await loadProposalPhase(currentBid.id);
+      if (decision === "selected") {
+        servicePhase = await loadServicePhase(currentBid.id);
+      }
+      const verbed = decision === "selected" ? "moving forward" : "closing out at proposal phase";
+      showSuccess(`decision saved — ${verbed}. proposal payment released.`, { duration: 5000 });
+      renderProposalDecisionPanel();
+      renderServicePhasePanel();
+    } catch (err) {
+      proposalStatusEl.textContent = err.message || "could not reach the payment server.";
+      proposalStatusEl.className = "gr-status error";
+      proposalSelectBtn.disabled = false;
+      proposalDeclineBtn.disabled = false;
+    }
+  }
+
+  proposalSelectBtn?.addEventListener("click", () => submitProposalDecision("selected"));
+
+  async function refreshRetainerAndRender() {
+    retainerSub = await loadRetainerSubscription(currentBid.id);
+    renderRetainerOfferPanel();
+    renderRetainerDecisionPanel();
+  }
+
+  offerPrimaryBtn?.addEventListener("click", async () => {
+    if (!currentBid?.id) return;
+
+    // Click 1 (owner, no offer yet): expand the form. Click 2: submit.
+    if (viewRole === "owner" && !retainerSub) {
+      if (!offerFormVisible) {
+        offerFormVisible = true;
+        renderRetainerOfferPanel();
+        return;
+      }
+      const cadence = offerCadenceInput?.value || "";
+      const periods = Number(offerPeriodsInput?.value);
+      const fee = Number(offerFeeInput?.value);
+      const message = offerMessageInput?.value?.trim() || null;
+      if (!cadence) {
+        offerStatusEl.textContent = "pick a cadence.";
+        offerStatusEl.className = "gr-status error";
+        return;
+      }
+      if (!Number.isFinite(periods) || periods < 1) {
+        offerStatusEl.textContent = "enter how many periods.";
+        offerStatusEl.className = "gr-status error";
+        return;
+      }
+      if (!Number.isFinite(fee) || fee < 1) {
+        offerStatusEl.textContent = "enter the fee per period.";
+        offerStatusEl.className = "gr-status error";
+        return;
+      }
+      offerPrimaryBtn.disabled = true;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers = { "Content-Type": "application/json" };
+        if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+        const res = await fetch("/api/stripe/retainer/offer", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            bid_id: currentBid.id,
+            cadence,
+            period_count: periods,
+            fee,
+            message,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          offerStatusEl.textContent = data.error || "could not send offer.";
+          offerStatusEl.className = "gr-status error";
+          return;
+        }
+        offerFormVisible = false;
+        showSuccess("offer sent — waiting on the consultant.");
+        await refreshRetainerAndRender();
+      } catch (err) {
+        offerStatusEl.textContent = err.message || "could not reach the server.";
+        offerStatusEl.className = "gr-status error";
+      } finally {
+        offerPrimaryBtn.disabled = false;
+      }
+      return;
+    }
+
+    // Consultant accepting offer.
+    if (viewRole === "consultant" && retainerSub?.status === "offered") {
+      offerPrimaryBtn.disabled = true;
+      offerDeclineBtn.disabled = true;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers = { "Content-Type": "application/json" };
+        if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+        const res = await fetch("/api/stripe/retainer/accept-offer", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ bid_id: currentBid.id }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          offerStatusEl.textContent = data.error || "could not accept.";
+          offerStatusEl.className = "gr-status error";
+          return;
+        }
+        showSuccess("retainer accepted — billing starts now.");
+        await refreshRetainerAndRender();
+      } catch (err) {
+        offerStatusEl.textContent = err.message || "could not reach the server.";
+        offerStatusEl.className = "gr-status error";
+      } finally {
+        offerPrimaryBtn.disabled = false;
+        offerDeclineBtn.disabled = false;
+      }
+      return;
+    }
+
+    // Owner cancelling an active subscription.
+    if (viewRole === "owner" && (retainerSub?.status === "active" || retainerSub?.status === "pending")) {
+      const confirmed = window.confirm("cancel this retainer? no further periods will be billed.");
+      if (!confirmed) return;
+      offerPrimaryBtn.disabled = true;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers = { "Content-Type": "application/json" };
+        if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+        const res = await fetch("/api/stripe/retainer/cancel-subscription", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ bid_id: currentBid.id }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          offerStatusEl.textContent = data.error || "could not cancel.";
+          offerStatusEl.className = "gr-status error";
+          return;
+        }
+        showSuccess("retainer canceled.");
+        await refreshRetainerAndRender();
+      } catch (err) {
+        offerStatusEl.textContent = err.message || "could not reach the server.";
+        offerStatusEl.className = "gr-status error";
+      } finally {
+        offerPrimaryBtn.disabled = false;
+      }
+    }
+  });
+
+  offerDeclineBtn?.addEventListener("click", async () => {
+    if (!currentBid?.id || retainerSub?.status !== "offered") return;
+    offerPrimaryBtn.disabled = true;
+    offerDeclineBtn.disabled = true;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers = { "Content-Type": "application/json" };
+      if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+      const res = await fetch("/api/stripe/retainer/decline-offer", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ bid_id: currentBid.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        offerStatusEl.textContent = data.error || "could not decline.";
+        offerStatusEl.className = "gr-status error";
+        return;
+      }
+      await refreshRetainerAndRender();
+    } catch (err) {
+      offerStatusEl.textContent = err.message || "could not reach the server.";
+      offerStatusEl.className = "gr-status error";
+    } finally {
+      offerPrimaryBtn.disabled = false;
+      offerDeclineBtn.disabled = false;
+    }
+  });
+
+  retainerContinueBtn?.addEventListener("click", async () => {
+    if (!currentBid?.id) return;
+    retainerStatusEl.textContent = "";
+    retainerStatusEl.className = "gr-status";
+    retainerContinueBtn.disabled = true;
+    retainerOneoffBtn.disabled = true;
+
+    const tentative = currentListing.retainer_terms === "tentative"
+      || !currentListing.retainer_cadence
+      || !currentListing.retainer_period_count
+      || !currentListing.retainer_fee_cents;
+
+    const body = { bid_id: currentBid.id };
+    if (tentative) {
+      const cadence = retainerCadenceInput?.value || "";
+      const periods = Number(retainerPeriodsInput?.value);
+      const fee = Number(retainerFeeInput?.value);
+      if (!cadence) {
+        retainerStatusEl.textContent = "pick a cadence.";
+        retainerStatusEl.className = "gr-status error";
+        retainerContinueBtn.disabled = false;
+        retainerOneoffBtn.disabled = false;
+        return;
+      }
+      if (!Number.isFinite(periods) || periods < 1) {
+        retainerStatusEl.textContent = "enter how many periods.";
+        retainerStatusEl.className = "gr-status error";
+        retainerContinueBtn.disabled = false;
+        retainerOneoffBtn.disabled = false;
+        return;
+      }
+      if (!Number.isFinite(fee) || fee < 1) {
+        retainerStatusEl.textContent = "enter the fee per period.";
+        retainerStatusEl.className = "gr-status error";
+        retainerContinueBtn.disabled = false;
+        retainerOneoffBtn.disabled = false;
+        return;
+      }
+      body.cadence = cadence;
+      body.period_count = periods;
+      body.fee = fee;
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers = { "Content-Type": "application/json" };
+      if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+      const res = await fetch("/api/stripe/retainer/start-subscription", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        retainerStatusEl.textContent = data.error || "could not start retainer.";
+        retainerStatusEl.className = "gr-status error";
+        retainerContinueBtn.disabled = false;
+        retainerOneoffBtn.disabled = false;
+        return;
+      }
+      retainerSub = await loadRetainerSubscription(currentBid.id);
+      showSuccess(`retainer started — ${data.cadence} × ${data.period_count}.`);
+      renderRetainerDecisionPanel();
+    } catch (err) {
+      retainerStatusEl.textContent = err.message || "could not reach the payment server.";
+      retainerStatusEl.className = "gr-status error";
+      retainerContinueBtn.disabled = false;
+      retainerOneoffBtn.disabled = false;
+    }
+  });
+
+  retainerOneoffBtn?.addEventListener("click", async () => {
+    if (!currentBid?.id) return;
+    // Branch: if there's already an active subscription, cancel it.
+    // Otherwise the owner is choosing "close as one-off" before any
+    // subscription was started — no server call needed, just record locally
+    // and re-render. (Persisted state is implicit: no retainer_subscriptions
+    // row means the engagement is a one-off.)
+    if (retainerSub?.status === "active" || retainerSub?.status === "pending") {
+      const confirmed = window.confirm("cancel this retainer? no further periods will be billed. periods already paid will remain with the consultant.");
+      if (!confirmed) return;
+      retainerContinueBtn.disabled = true;
+      retainerOneoffBtn.disabled = true;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers = { "Content-Type": "application/json" };
+        if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+        const res = await fetch("/api/stripe/retainer/cancel-subscription", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ bid_id: currentBid.id }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          retainerStatusEl.textContent = data.error || "could not cancel.";
+          retainerStatusEl.className = "gr-status error";
+          retainerContinueBtn.disabled = false;
+          retainerOneoffBtn.disabled = false;
+          return;
+        }
+        retainerSub = await loadRetainerSubscription(currentBid.id);
+        showSuccess("retainer canceled.");
+        renderRetainerDecisionPanel();
+      } catch (err) {
+        retainerStatusEl.textContent = err.message || "could not reach the payment server.";
+        retainerStatusEl.className = "gr-status error";
+        retainerContinueBtn.disabled = false;
+        retainerOneoffBtn.disabled = false;
+      }
+      return;
+    }
+
+    // No subscription yet — record "one-off" locally and re-render.
+    retainerDeclined = true;
+    renderRetainerDecisionPanel();
+  });
+
+  servicePayBtn?.addEventListener("click", async () => {
+    if (!currentBid?.id) return;
+    servicePayBtn.disabled = true;
+    try {
+      const result = await payAndStartService({ client: supabase, bid: currentBid, listing: currentListing });
+      if (result?.ok) {
+        showSuccess("service fee in escrow. reloading…");
+        window.location.reload();
+      }
+    } catch (err) {
+      showError(err?.message || "could not start payment.");
+    } finally {
+      servicePayBtn.disabled = false;
+    }
+  });
+
+  proposalDeclineBtn?.addEventListener("click", () => {
+    const confirmed = window.confirm(
+      "stay at proposal only? the consultant will be paid for their proposal work and the engagement closes here. you won't be charged the full service fee."
+    );
+    if (!confirmed) return;
+    submitProposalDecision("declined");
+  });
+
+  refundBtn?.addEventListener("click", async () => {
+    const confirmed = window.confirm(
+      "refund this engagement? the funds will return to your payment method and the consultant will be notified. this cannot be undone."
+    );
+    if (!confirmed) return;
+    refundBtn.disabled = true;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers = { "Content-Type": "application/json" };
+      if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+      const res = await fetch("/api/stripe/refund-payment", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ bid_id: currentBid.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (data.windowExpired) {
+          showError(data.error || "refund window expired.");
+          currentBid.payment_status = currentBid.payment_status; // no-op; re-render so helper shows
+          renderRefundCta();
+        } else {
+          showError(data.error || "could not process refund.");
+        }
+        return;
+      }
+      currentBid.payment_status = "refunded";
+      showSuccess("refund issued. funds will return within a few days.", { duration: 5000 });
+      renderOwnerActions();
+    } catch (err) {
+      showError("could not reach the payment server.");
+    } finally {
+      refundBtn.disabled = false;
+    }
   });
 
   reviewForm.addEventListener("submit", async (event) => {
@@ -929,12 +2083,21 @@ async function init() {
     scheduleState = (await loadSchedule(bidId)) || getDefaultSchedule();
     reviewState = await loadReview(bidId);
 
+    if (currentListing.contract_type === "phased") {
+      proposalPhase = await loadProposalPhase(bidId);
+      servicePhase = await loadServicePhase(bidId);
+    }
+    // Always load the retainer_subscriptions row so the convert-to-retainer
+    // offer flow (non-retainer engagements) can render an offer pending /
+    // accepted / declined state.
+    retainerSub = await loadRetainerSubscription(bidId);
+    retainerPeriods = await loadRetainerPeriods(bidId);
+
     if (reviewState) {
       for (const [key] of RATING_DIMENSIONS) {
         reviewRatings[key] = Number(reviewState[key]) || 0;
       }
       endorsementInput.value = reviewState.endorsement || "";
-      anonInput.checked = Boolean(reviewState.is_anonymous);
     }
 
     renderRatings();
@@ -961,15 +2124,10 @@ confirmTimeBtn.addEventListener("click", async () => {
   await confirmConsultantTime();
 });
 
-durationSelect.addEventListener("change", () => {
-  if (viewRole === "consultant" && scheduleState?.status === "awaiting_consultant") {
-    const available = new Set(scheduleState?.owner_availability?.slots || []);
-    if (consultantChosen && !canFitDuration(consultantChosen, getSelectedDuration(), available)) {
-      consultantChosen = null;
-    }
-    renderCalendar("consultant");
-  }
-});
+// Duration is owner-controlled. The dropdown only shows during the
+// `awaiting_owner` step (before they share availability), so a change here
+// just updates the working value used by saveOwnerAvailability — no
+// re-render needed.
 
 closeListingBtn.addEventListener("click", async () => {
   await closeListing();

@@ -51,7 +51,7 @@
 
           if (profile) {
             // Route by role so business owners land on the dashboard directly.
-            window.location.href = profile.role === "business_owner" ? "/dashboard.html" : "/";
+            window.location.href = profile.role === "business_owner" ? "/dashboard.html" : "/marketplace.html";
           } else {
             window.location.href = "/register.html?oauth=1";
           }

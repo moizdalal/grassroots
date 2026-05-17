@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grassroots — help</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/grassroots.css" />
+    <link rel="stylesheet" href="/field-office.css" />
+    <link rel="stylesheet" href="/help.css" />
+    <script src="/theme.js"></script>
+    <script src="/loading-overlay.js"></script>
+  </head>
+  <body class="gr-body gr-has-side-nav">
+    <main class="gr-shell gr-shell--wide help-shell">
+      <div class="gr-page-intro">
+        <p class="gr-page-eyebrow">support</p>
+        <h1 class="gr-title">help center</h1>
+        <p class="gr-subtitle">short reads on how grassroots actually works — payments, reviews, kickoffs, and the rest.</p>
+      </div>
+
+      <div class="help-layout">
+        <aside class="help-nav" id="help-nav" aria-label="help articles">
+          <input
+            type="search"
+            id="help-search"
+            class="help-search"
+            placeholder="search articles…"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <nav id="help-nav-list" class="help-nav__list" aria-live="polite"></nav>
+        </aside>
+
+        <article class="help-article" id="help-article">
+          <p id="help-gate" class="gr-status" aria-live="polite">loading…</p>
+          <div id="help-body" class="help-prose" hidden></div>
+        </article>
+      </div>
+    </main>
+
+    <script type="module" src="/nav-session.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+    <script type="module" src="/help.js"></script>
+    <script type="module" src="/side-nav.js"></script>
+  </body>
+</html>
