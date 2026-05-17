@@ -1,3 +1,14 @@
+// suggestion-box.js — floating "send us feedback" button + popup.
+// Wires the popup that already lives in every page's markup, and (since
+// 2026-05-17) actually persists submissions to public.suggestions and
+// uploads attached files to the suggestion-attachments storage bucket.
+//
+// Limits — kept generous but bounded so storage doesn't run wild:
+//   - up to 5 files per submission
+//   - up to 10 MB per file (also enforced by the bucket)
+//   - up to 25 MB total per submission
+//   - any mime type (screenshots, short videos, pdfs, logs)
+
 (function initSuggestionBox() {
   const btn = document.getElementById("gr-suggest-btn");
   const overlay = document.getElementById("gr-suggest-overlay");
@@ -8,6 +19,95 @@
   const closeBtn = document.getElementById("gr-suggest-close");
 
   if (!btn || !overlay || !submit || !input || !form || !thanks) return;
+
+  const MAX_FILES = 5;
+  const MAX_PER_FILE = 10 * 1024 * 1024; // 10 MB
+  const MAX_TOTAL = 25 * 1024 * 1024;    // 25 MB
+  const selectedFiles = [];
+
+  // Inject the attachments UI just above the submit button so the
+  // popup picks them up without each page's HTML being touched.
+  const fileWrap = document.createElement("div");
+  fileWrap.className = "gr-suggest-popup__attachments";
+  fileWrap.innerHTML = `
+    <label class="gr-suggest-popup__attach-btn" tabindex="0">
+      <span class="gr-suggest-popup__attach-icon" aria-hidden="true">+</span>
+      <span>attach files</span>
+      <input type="file" id="gr-suggest-files" multiple hidden />
+    </label>
+    <span class="gr-suggest-popup__attach-hint" id="gr-suggest-attach-hint">up to ${MAX_FILES} files · 10 MB each · 25 MB total</span>
+    <ul class="gr-suggest-popup__attach-list" id="gr-suggest-attach-list"></ul>
+    <p class="gr-suggest-popup__attach-error" id="gr-suggest-attach-error" hidden></p>
+  `;
+  form.insertBefore(fileWrap, submit);
+
+  const fileInput = document.getElementById("gr-suggest-files");
+  const fileList = document.getElementById("gr-suggest-attach-list");
+  const errEl = document.getElementById("gr-suggest-attach-error");
+
+  function fmtSize(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function showError(msg) {
+    if (!msg) {
+      errEl.hidden = true;
+      errEl.textContent = "";
+      return;
+    }
+    errEl.hidden = false;
+    errEl.textContent = msg;
+  }
+
+  function renderFiles() {
+    fileList.innerHTML = selectedFiles
+      .map(
+        (f, i) =>
+          `<li class="gr-suggest-popup__attach-item">
+            <span class="gr-suggest-popup__attach-name">${escapeHtml(f.name)}</span>
+            <span class="gr-suggest-popup__attach-size">${fmtSize(f.size)}</span>
+            <button type="button" class="gr-suggest-popup__attach-remove" data-i="${i}" aria-label="remove ${escapeHtml(f.name)}">&times;</button>
+          </li>`
+      )
+      .join("");
+  }
+
+  fileWrap.addEventListener("click", (e) => {
+    const rm = e.target.closest(".gr-suggest-popup__attach-remove");
+    if (!rm) return;
+    e.preventDefault();
+    const i = parseInt(rm.dataset.i, 10);
+    selectedFiles.splice(i, 1);
+    renderFiles();
+    syncSubmitState();
+    showError("");
+  });
+
+  fileInput.addEventListener("change", () => {
+    showError("");
+    const incoming = [...fileInput.files];
+    fileInput.value = ""; // reset so re-selecting the same file fires change
+    for (const f of incoming) {
+      if (selectedFiles.length >= MAX_FILES) {
+        showError(`max ${MAX_FILES} files per submission.`);
+        break;
+      }
+      if (f.size > MAX_PER_FILE) {
+        showError(`"${f.name}" is over the 10 MB per-file limit.`);
+        continue;
+      }
+      const total = selectedFiles.reduce((a, x) => a + x.size, 0) + f.size;
+      if (total > MAX_TOTAL) {
+        showError("that batch is over the 25 MB total limit.");
+        break;
+      }
+      selectedFiles.push(f);
+    }
+    renderFiles();
+    syncSubmitState();
+  });
 
   function syncSubmitState() {
     submit.disabled = !input.value.trim();
@@ -42,22 +142,79 @@
 
   input.addEventListener("input", syncSubmitState);
 
-  submit.addEventListener("click", () => {
-    if (!input.value.trim()) return;
+  submit.addEventListener("click", async () => {
+    const body = input.value.trim();
+    if (!body) return;
 
-    form.hidden = true;
-    thanks.hidden = false;
+    submit.disabled = true;
+    const originalLabel = submit.textContent;
+    submit.textContent = "sending…";
+    showError("");
 
-    window.setTimeout(() => {
-      close({ restoreFocus: false });
+    try {
+      const { getSupabaseClient } = await import("/supabase-loader.js");
+      const client = await getSupabaseClient();
+      const { data: { session } } = await client.auth.getSession();
+      const userId = session?.user?.id || null;
+
+      // Upload attachments first so the suggestion row can reference
+      // the storage paths in its `attachments` column. Files are
+      // namespaced under <userId or "anon">/<timestamp>/<filename>
+      // so different users don't collide and a single submission's
+      // files stay grouped on disk.
+      const storedPaths = [];
+      if (selectedFiles.length) {
+        const prefix = `${userId || "anon"}/${Date.now()}`;
+        for (const f of selectedFiles) {
+          const safeName = f.name.replace(/[^a-zA-Z0-9._-]+/g, "_");
+          const path = `${prefix}/${safeName}`;
+          const { error: upErr } = await client.storage
+            .from("suggestion-attachments")
+            .upload(path, f, { upsert: false, contentType: f.type || undefined });
+          if (upErr) throw new Error(`upload failed: ${upErr.message}`);
+          storedPaths.push(path);
+        }
+      }
+
+      const { error } = await client.from("suggestions").insert({
+        user_id: userId,
+        body,
+        attachments: storedPaths,
+        page_url: window.location.pathname + window.location.search,
+        user_agent: navigator.userAgent.slice(0, 500),
+      });
+      if (error) throw error;
+
+      form.hidden = true;
+      thanks.hidden = false;
+
       window.setTimeout(() => {
-        form.hidden = false;
-        thanks.hidden = true;
-        input.value = "";
-        syncSubmitState();
-      }, 350);
-    }, 1800);
+        close({ restoreFocus: false });
+        window.setTimeout(() => {
+          form.hidden = false;
+          thanks.hidden = true;
+          input.value = "";
+          selectedFiles.length = 0;
+          renderFiles();
+          showError("");
+          syncSubmitState();
+          submit.textContent = originalLabel;
+        }, 350);
+      }, 1400);
+    } catch (err) {
+      showError(err?.message || "couldn't send. try again?");
+      submit.disabled = false;
+      submit.textContent = originalLabel;
+    }
   });
+
+  function escapeHtml(s) {
+    return String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
 
   syncSubmitState();
 })();

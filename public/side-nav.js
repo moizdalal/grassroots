@@ -138,17 +138,18 @@ function renderSidebar({ role, activeNavId }) {
   const navItems = buildNavItems(role);
   const primary = navItems.map((it) => renderNavItem(it, activeNavId)).join("");
   const secondary = SECONDARY_NAV_ITEMS.map((it) => renderNavItem(it, activeNavId)).join("");
-  // Owners get a "post a listing" CTA above the primary→secondary
-  // divider so the styled green button still reads as part of the
-  // "what you do" cluster.
+  // Owners get a "post a listing" CTA pinned to the bottom of the
+  // sidebar, sitting just above the dark-mode toggle. `margin-top: auto`
+  // on `.bza__post` (set in CSS) anchors it + everything below to the
+  // bottom of the flex column.
   const postCta =
     role === "consultant"
       ? ""
       : `
-        <a href="/create-listing.html" class="bza__post" id="gr-side-post" title="post a listing">
-          <span class="bza__nav-icon" aria-hidden="true">${ICONS.plus}</span>
-          <span class="bza__nav-label">post a listing</span>
-        </a>`;
+      <a href="/create-listing.html" class="bza__post" id="gr-side-post" title="post a listing">
+        <span class="bza__nav-icon" aria-hidden="true">${ICONS.plus}</span>
+        <span class="bza__nav-label">post a listing</span>
+      </a>`;
   return `
     <aside class="bza__side" id="gr-side">
       <div class="bza__side-edge" id="gr-side-edge" aria-hidden="true" title="double-click to toggle"></div>
@@ -159,10 +160,10 @@ function renderSidebar({ role, activeNavId }) {
         </a>
       </div>
       <div class="bza__nav" role="navigation" aria-label="primary">
-        ${primary}${postCta}
+        ${primary}
         <hr class="bza__nav-divider" aria-hidden="true" />
         ${secondary}
-      </div>
+      </div>${postCta}
       <label class="bza__darkmode-row" title="dark mode">
         <span class="bza__nav-icon" aria-hidden="true">${ICON_MOON}</span>
         <span class="bza__nav-label">dark mode</span>

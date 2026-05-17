@@ -72,15 +72,6 @@
             <span class="bza__nav-label">notifications</span>
             <span class="bza__nav-badge" id="dash-notif-badge" hidden></span>
           </a>
-          <a href="/create-listing.html" class="bza__post" title="post a listing">
-            <span class="bza__nav-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"/>
-                <line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-            </span>
-            <span class="bza__nav-label">post a listing</span>
-          </a>
 
           <!-- Hairline separating "what you do" (primary) from
                "account / system" (secondary). One rule, no labels. -->
@@ -100,7 +91,21 @@
           </a>
           </div>
 
-          <!-- Dark-mode toggle: pinned just above the foot. -->
+          <!-- Post-a-listing CTA: pinned to the bottom of the nav, just
+               above the dark-mode toggle. margin-top: auto on .bza__post
+               pushes it + everything below it (dark-mode, foot) to the
+               bottom of the flex column. -->
+          <a href="/create-listing.html" class="bza__post" title="post a listing">
+            <span class="bza__nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+            </span>
+            <span class="bza__nav-label">post a listing</span>
+          </a>
+
+          <!-- Dark-mode toggle: sits just below the post CTA. -->
           <label class="bza__darkmode-row" title="dark mode">
             <span class="bza__nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -135,8 +140,16 @@
         <!-- ===== main ===== -->
         <main class="bza__main">
 
-          <!-- ── DASHBOARD VIEW ── -->
-          <section class="dash-view" data-view="dashboard">
+          <!-- ── DASHBOARD VIEW ──
+               No-scroll home: header on top, two-column grid below.
+               Left column is the primary listings panel (internal
+               scroll if the list is long); right rail stacks the
+               condensed analytics, profile health, and a slim
+               notifications block. The full inbox + the day-by-day
+               agenda are no longer on this page — inbox is reachable
+               via the sidebar "inbox" link; notifications also via
+               the bell. -->
+          <section class="dash-view dash-view--home" data-view="dashboard">
             <div class="bza__page-h dash-page-h">
               <div class="dash-page-h__main">
                 <h1 id="dash-welcome">welcome back.</h1>
@@ -147,75 +160,103 @@
               </div>
             </div>
 
-            <div class="dash-actions-grid">
-              <div class="bza__panel dash-actions-panel">
-                <div class="bza__panel-h">
-                  <span class="bza__panel-h-title"><strong>notifications</strong></span>
-                  <a class="bza__panel-h-link" href="/notifications.html">see all →</a>
-                </div>
-                <div id="dash-notifications-list" class="dash-notifications-list"></div>
-                <p id="dash-notifications-empty" class="gr-empty-state" hidden style="padding:1rem;text-align:center">no notifications yet — you're all caught up.</p>
-              </div>
-
-              <div class="bza__panel">
-                <div class="bza__panel-h">
-                  <span class="bza__panel-h-title"><strong>unread messages</strong></span>
-                  <button type="button" class="bza__panel-h-link" data-view="inbox">open inbox →</button>
-                </div>
-                <div id="dash-inbox-preview"></div>
-                <p id="dash-inbox-empty" class="gr-empty-state" hidden style="padding:1rem;">no messages yet.</p>
-              </div>
-
-              <div class="bza__panel dash-agenda">
-                <div class="bza__panel-h">
-                  <span class="bza__panel-h-title"><strong>next 3 days</strong></span>
-                </div>
-                <div id="dash-agenda-days" class="dash-agenda__days"></div>
-              </div>
-            </div>
-
-            <!-- Cumulative analytics across all owner's listings.
-                 Populated by dashboard.js once /listing-analytics.js
-                 resolves. -->
-            <div id="dash-analytics"></div>
-
-            <div class="dash-bottom-grid">
-              <div class="bza__panel">
+            <div class="dash-home-grid">
+              <!-- LEFT: primary listings panel -->
+              <div class="bza__panel dash-listings-panel">
                 <div class="bza__panel-h">
                   <span class="bza__panel-h-title"><strong>your listings</strong> · <span id="dash-listings-count">0</span> total</span>
                   <div class="bza__panel-h-tabs" id="dash-listings-tabs">
                     <button type="button" class="active" data-state="all">all <span data-count="all">0</span></button>
-                    <button type="button" data-state="open">live <span data-count="open">0</span></button>
-                    <button type="button" data-state="hired">in progress <span data-count="hired">0</span></button>
-                    <button type="button" data-state="paused">paused <span data-count="paused">0</span></button>
-                    <button type="button" data-state="closed">closed <span data-count="closed">0</span></button>
+                    <button type="button" data-state="draft"><span class="bza__tab-dot" style="background:var(--fo-draft)"></span>drafts <span data-count="draft">0</span></button>
+                    <button type="button" data-state="open"><span class="bza__tab-dot" style="background:#9aa3aa"></span>live <span data-count="open">0</span></button>
+                    <button type="button" data-state="hired"><span class="bza__tab-dot" style="background:var(--fo-accent)"></span>in progress <span data-count="hired">0</span></button>
+                    <button type="button" data-state="paused"><span class="bza__tab-dot" style="background:var(--fo-accent-warm)"></span>paused <span data-count="paused">0</span></button>
+                    <button type="button" data-state="closed"><span class="bza__tab-dot" style="background:#a83232"></span>closed <span data-count="closed">0</span></button>
                   </div>
                 </div>
-                <div id="dash-listings-rows"></div>
-                <p id="dash-listings-empty" class="gr-empty-state" hidden>no listings yet — post one to start collecting offers.</p>
+                <div class="dash-listings-rows-wrap">
+                  <div id="dash-listings-rows"></div>
+                </div>
+                <p id="dash-listings-empty" class="gr-empty-state" hidden>no listings yet — <a href="/create-listing.html" class="gr-empty-state__link">post one</a> to start collecting offers.</p>
               </div>
 
-              <div class="bza__panel bza__health" id="dash-profile-health">
-                <div class="bza__panel-h">
-                  <span class="bza__panel-h-title"><strong>profile health</strong></span>
+              <!-- RIGHT: stacked side rail. Notifications removed — the
+                   bell + nav badge already surface them. -->
+              <aside class="dash-home-rail" aria-label="dashboard summary">
+                <div id="dash-analytics"></div>
+
+                <div class="bza__panel bza__health" id="dash-profile-health">
+                  <p class="bza__health-loading">loading…</p>
                 </div>
-                <p class="bza__health-loading">loading…</p>
-              </div>
+              </aside>
             </div>
           </section>
 
-          <!-- ── LISTINGS VIEW (full table — same content but no widgets) ── -->
-          <section class="dash-view" data-view="listings" hidden>
+          <!-- ── LISTINGS VIEW ──
+               A self-contained surface — marketplace-style card grid
+               with a search + sort toolbar above. No panel chrome,
+               no overlap with the home dashboard's "your listings"
+               summary panel. The two surfaces serve different jobs:
+               home gives a quick glance; this view is for browsing
+               and managing the full set. -->
+          <section class="dash-view dash-view--my-listings" data-view="listings" hidden>
             <div class="bza__page-h">
               <h1>my listings</h1>
-              <span class="bza__page-h-meta" id="dash-listings-meta">manage what's live, paused, and hired.</span>
+              <span class="bza__page-h-meta" id="dash-listings-meta">browse, search, and manage everything you've posted.</span>
             </div>
-            <div class="bza__panel">
-              <div class="bza__panel-h">
-                <span class="bza__panel-h-title"><strong>all listings</strong></span>
+
+            <div class="ml-toolbar">
+              <div class="ml-toolbar__search">
+                <input
+                  type="search"
+                  id="ml-search"
+                  class="ml-search-input"
+                  placeholder="search your listings…"
+                  autocomplete="off"
+                />
               </div>
-              <div id="dash-listings-rows-full"></div>
+              <div class="ml-toolbar__sort">
+                <label class="ml-sort-label" for="ml-sort">sort</label>
+                <select id="ml-sort" class="ml-sort-select">
+                  <option value="newest">newest first</option>
+                  <option value="oldest">oldest first</option>
+                  <option value="offers">most offers</option>
+                  <option value="budget">highest budget</option>
+                </select>
+              </div>
             </div>
+
+            <ul class="ml-legend" id="ml-legend" aria-label="filter by status">
+              <li>
+                <button type="button" class="ml-legend-chip" data-state="draft" aria-pressed="false">
+                  <span class="ml-legend__dot" style="background:var(--fo-draft)"></span>draft
+                </button>
+              </li>
+              <li>
+                <button type="button" class="ml-legend-chip" data-state="open" aria-pressed="false">
+                  <span class="ml-legend__dot" style="background:#9aa3aa"></span>live
+                </button>
+              </li>
+              <li>
+                <button type="button" class="ml-legend-chip" data-state="hired" aria-pressed="false">
+                  <span class="ml-legend__dot" style="background:var(--fo-accent)"></span>in progress
+                </button>
+              </li>
+              <li>
+                <button type="button" class="ml-legend-chip" data-state="paused" aria-pressed="false">
+                  <span class="ml-legend__dot" style="background:var(--fo-accent-warm)"></span>paused
+                </button>
+              </li>
+              <li>
+                <button type="button" class="ml-legend-chip" data-state="closed" aria-pressed="false">
+                  <span class="ml-legend__dot" style="background:#a83232"></span>closed
+                </button>
+              </li>
+            </ul>
+
+            <p id="ml-result-count" class="ml-result-count"></p>
+            <div id="dash-listings-cards" class="ml-card-grid"></div>
+            <p id="ml-empty" class="gr-empty-state ml-empty" hidden>no listings match — try a different search or sort.</p>
           </section>
 
           <!-- ── INBOX VIEW (two-pane) ── -->

@@ -4,10 +4,6 @@
   margin-bottom: 0.75rem;
 }
 
-.gr-shell > .gr-page-intro .gr-page-eyebrow {
-  margin-bottom: 0.15rem;
-}
-
 .gr-shell > .gr-page-intro .gr-title {
   margin-bottom: 0.2rem;
   font-size: clamp(1.6rem, 3vw, 2.1rem);

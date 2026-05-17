@@ -14,10 +14,17 @@
      viewports. */
   --plant-w: 156px;
   --plant-h: 250px;
-  --axis-w: 180px;
+  /* Axis column was 180px to leave generous breathing room for the
+     stage labels. The longest label ("kickoff scheduled") only
+     needs ~115px including its dot, so 140px sits flush without
+     crowding and reclaims ~40px of horizontal space for plants. */
+  --axis-w: 140px;
   --meta-h: 72px;
   position: relative;
-  padding: 1.32rem 1.5rem 1.08rem;
+  /* Reduce left padding so the axis labels sit closer to the panel
+     edge — pairs with the narrower --axis-w above to tighten the
+     whole left margin. Top/right/bottom stay unchanged. */
+  padding: 1.32rem 1.5rem 1.08rem 1rem;
   border: 1px solid var(--fo-line);
   border-radius: 17px;
   background: var(--fo-surface);
@@ -131,15 +138,51 @@
 .cdash__journey-flowers-axis-row.is-dimmed { opacity: 0.4; }
 
 /* ── plant row + gridlines ───────────────────────────────────── */
+/* The wrap is the horizontal scroll container for the plant row.
+   Its rightmost ~25% fades to transparent so the cutoff reads as
+   "more to see, scroll right" rather than a hard edge. The wrap
+   is now tall enough to contain both the plant SVG band AND the
+   per-plant meta strip that sits just below each plant — that way
+   overflow-y can stay hidden without clipping any plant labels. */
 .cdash__journey-flowers-plants-wrap {
   position: relative;
-  height: var(--plant-h);
-  margin-bottom: var(--meta-h);
+  height: calc(var(--plant-h) + var(--meta-h));
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* Webkit scrollbar styling lives below; this trims Firefox to
+     match. Track stays transparent, thumb picks up the panel's
+     line color so it reads as a hairline cue. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--fo-line-strong) transparent;
+  /* The right-edge fade. Solid out to 75%, then linearly fades to
+     transparent by the right edge. Vendor prefix keeps Safari happy. */
+  -webkit-mask-image: linear-gradient(to right, black 0%, black 75%, transparent 100%);
+          mask-image: linear-gradient(to right, black 0%, black 75%, transparent 100%);
 }
 
+.cdash__journey-flowers-plants-wrap::-webkit-scrollbar {
+  height: 6px;
+}
+.cdash__journey-flowers-plants-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+.cdash__journey-flowers-plants-wrap::-webkit-scrollbar-thumb {
+  background: var(--fo-line-strong);
+  border-radius: 3px;
+}
+.cdash__journey-flowers-plants-wrap::-webkit-scrollbar-thumb:hover {
+  background: var(--fo-text-3);
+}
+
+/* Gridlines stay within the plant-row band only — without the
+   height clamp they'd extend down through the meta strip and
+   read like a second axis under each plant's name/avatar row. */
 .cdash__journey-flowers-gridlines {
   position: absolute;
-  inset: 0;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: var(--plant-h);
   pointer-events: none;
 }
 
@@ -564,4 +607,22 @@
   color: var(--fo-text-3);
   font-family: "Manrope", system-ui, sans-serif;
   font-size: var(--type-meta);
+}
+
+/* Inline CTA inside the empty-state copy — picks up the brand
+   accent + soft underline so it reads as actionable without breaking
+   the calm tone of the line. */
+.cdash__journey-flowers-empty-link {
+  color: var(--fo-accent);
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--fo-accent) 35%, transparent);
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.cdash__journey-flowers-empty-link:hover,
+.cdash__journey-flowers-empty-link:focus-visible {
+  color: var(--fo-accent);
+  border-bottom-color: var(--fo-accent);
+  outline: none;
 }

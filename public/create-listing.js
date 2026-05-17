@@ -58,6 +58,14 @@ let currentSlide = 0;
 let bizProfile = null;
 let selectedAttachments = [];
 
+// If the wizard is launched with `?draft=<id>` and the row is owned
+// by the signed-in user with status='draft', boot() loads it and sets
+// this id. The save / publish handlers then UPDATE that row instead
+// of inserting a new one, and "save as draft" keeps status='draft'
+// while "create opportunity" promotes it to status='open'.
+let editingDraftId = null;
+const saveDraftBtn = document.getElementById("save-draft-btn");
+
 const MAX_ATTACHMENT_COUNT = 3;
 const MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024;
 const MAX_ATTACHMENT_TOTAL = 12 * 1024 * 1024;
@@ -488,6 +496,17 @@ async function boot() {
 
     populatePreviewBiz();
     renderAttachmentSelection();
+
+    // If the URL carries ?draft=<id>, hydrate the form from the
+    // stored draft_form snapshot. Anything left unfilled by the
+    // user just doesn't get applied. After hydrate, repaint the
+    // preview so the right-rail shows the loaded values.
+    const params = new URLSearchParams(window.location.search);
+    const draftIdParam = params.get("draft");
+    if (draftIdParam) {
+      await hydrateDraft(draftIdParam);
+    }
+
     updatePreview();
 
     gate.textContent = "";
@@ -823,6 +842,176 @@ document.addEventListener("click", (event) => {
   }
 });
 
+/* ============================================================== */
+/*                        DRAFT  HANDLING                          */
+/* ============================================================== */
+
+// Collect every form value the wizard exposes — without validation
+// — into a flat JSON blob. Stored in listings.draft_form so reopening
+// a draft reproduces the exact wizard state, including partial fills.
+function collectFormSnapshot() {
+  const fd = new FormData(form);
+  return {
+    title: String(fd.get("title") || ""),
+    contract_type: String(fd.get("contract_type") || "standard"),
+    contract_phases: String(fd.get("contract_phases") || ""),
+    retainer_terms: String(fd.get("retainer_terms") || ""),
+    retainer_cadence: String(fd.get("retainer_cadence") || ""),
+    retainer_period_count: String(fd.get("retainer_period_count") || ""),
+    retainer_fee: String(fd.get("retainer_fee") || ""),
+    issue_context: String(fd.get("issue_context") || ""),
+    business_problem: String(fd.get("business_problem") || ""),
+    expected_output: String(fd.get("expected_output") || ""),
+    proposal_budget: String(fd.get("proposal_budget") || ""),
+    maintenance_terms: String(fd.get("maintenance_terms") || ""),
+    additional_details: String(fd.get("additional_details") || ""),
+    categories: [...selectedCategories],
+    budget_min: String(fd.get("budget_min") || ""),
+    budget_max: String(fd.get("budget_max") || ""),
+    turnaround_days: String(fd.get("turnaround_days") || ""),
+    qualifications: [...qualList.querySelectorAll("input")]
+      .map((i) => i.value)
+      .filter((v) => v.trim().length),
+  };
+}
+
+// Apply a previously-captured snapshot back onto the form. Skips any
+// keys the snapshot doesn't carry so partial drafts hydrate cleanly.
+function applyFormSnapshot(snap) {
+  if (!snap || typeof snap !== "object") return;
+  const setField = (name, value) => {
+    if (value == null || value === "") return;
+    const el = form.elements[name];
+    if (!el) return;
+    if (el instanceof RadioNodeList) {
+      for (const node of el) {
+        if (node.value === String(value)) node.checked = true;
+      }
+    } else {
+      el.value = value;
+    }
+  };
+  setField("title", snap.title);
+  setField("contract_type", snap.contract_type);
+  setField("contract_phases", snap.contract_phases);
+  setField("retainer_terms", snap.retainer_terms);
+  setField("retainer_cadence", snap.retainer_cadence);
+  setField("retainer_period_count", snap.retainer_period_count);
+  setField("retainer_fee", snap.retainer_fee);
+  setField("issue_context", snap.issue_context);
+  setField("business_problem", snap.business_problem);
+  setField("expected_output", snap.expected_output);
+  setField("proposal_budget", snap.proposal_budget);
+  setField("maintenance_terms", snap.maintenance_terms);
+  setField("additional_details", snap.additional_details);
+  setField("budget_min", snap.budget_min);
+  setField("budget_max", snap.budget_max);
+  setField("turnaround_days", snap.turnaround_days);
+
+  // Categories — restore selection set, then refresh the chip strip.
+  if (Array.isArray(snap.categories)) {
+    selectedCategories.clear();
+    for (const c of snap.categories) selectedCategories.add(c);
+    if (typeof renderCategoryTags === "function") renderCategoryTags();
+  }
+
+  // Qualifications — add a row per saved value beyond the first.
+  if (Array.isArray(snap.qualifications) && snap.qualifications.length) {
+    const inputs = qualList.querySelectorAll("input");
+    inputs[0].value = snap.qualifications[0] || "";
+    for (let i = 1; i < snap.qualifications.length; i++) {
+      addQualBtn.click();
+    }
+    const updated = qualList.querySelectorAll("input");
+    snap.qualifications.forEach((v, i) => {
+      if (updated[i]) updated[i].value = v;
+    });
+  }
+
+  // Show/hide the conditional advanced-contract sub-rows based on the
+  // restored contract_type — keeps the UI in sync with the data.
+  const restored = snap.contract_type;
+  if (restored === "phased" || restored === "retainer") {
+    const adv = document.getElementById("ct-advanced");
+    if (adv && !adv.hasAttribute("open")) adv.setAttribute("open", "");
+  }
+  document.dispatchEvent(new CustomEvent("cl:snapshot-applied"));
+  // Re-run conditional UI logic by triggering a change event on the
+  // contract-type radio so the proposal-budget + maintenance fields
+  // unhide for phased contracts.
+  const checkedCt = form.querySelector('input[name="contract_type"]:checked');
+  if (checkedCt) checkedCt.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+async function hydrateDraft(draftId) {
+  const { data, error } = await supabase
+    .from("listings")
+    .select("id, status, draft_form")
+    .eq("id", draftId)
+    .eq("owner_id", userId)
+    .maybeSingle();
+  if (error || !data || data.status !== "draft") {
+    return; // silently ignore — fall through to a blank form
+  }
+  editingDraftId = data.id;
+  applyFormSnapshot(data.draft_form || {});
+  // Swap the primary CTA copy so the wizard reads as "edit & publish"
+  // rather than "create a new listing".
+  if (submitBtn) submitBtn.textContent = "publish opportunity";
+}
+
+// "Save as draft" — no validation, just snapshot and persist. Stores
+// whatever fragments the user has typed so far. Redirects to the
+// dashboard's drafts tab so they can pick it back up later.
+saveDraftBtn?.addEventListener("click", async () => {
+  if (!supabase || !userId) return;
+  statusEl.textContent = "";
+  statusEl.className = "gr-status";
+  saveDraftBtn.disabled = true;
+  const originalLabel = saveDraftBtn.textContent;
+  saveDraftBtn.textContent = "saving…";
+  try {
+    const snap = collectFormSnapshot();
+    const payload = {
+      owner_id: userId,
+      // Title is required by the DB; fall back to a placeholder so
+      // the insert succeeds even on slide 0 with nothing typed.
+      title: (snap.title || "untitled draft").trim(),
+      status: "draft",
+      contract_type: snap.contract_type || "standard",
+      draft_form: snap,
+    };
+    let id = editingDraftId;
+    if (id) {
+      const { error } = await supabase
+        .from("listings")
+        .update(payload)
+        .eq("id", id)
+        .eq("owner_id", userId);
+      if (error) throw error;
+    } else {
+      const { data, error } = await supabase
+        .from("listings")
+        .insert(payload)
+        .select("id")
+        .single();
+      if (error) throw error;
+      id = data.id;
+      editingDraftId = id;
+    }
+    statusEl.textContent = "saved as draft.";
+    statusEl.className = "gr-status success";
+    setTimeout(() => {
+      window.location.href = "/dashboard.html#listings";
+    }, 600);
+  } catch (err) {
+    statusEl.textContent = err?.message || "could not save draft.";
+    statusEl.className = "gr-status error";
+    saveDraftBtn.disabled = false;
+    saveDraftBtn.textContent = originalLabel;
+  }
+});
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   statusEl.textContent = "";
@@ -901,26 +1090,50 @@ form.addEventListener("submit", async (event) => {
       }
     }
 
-    const { data, error } = await supabase.from("listings").insert(payload).select("id").single();
-    if (error) throw error;
+    // When editing a draft, update the existing row + clear the
+    // draft_form snapshot. Otherwise insert a fresh row.
+    payload.draft_form = null;
+    let listingId;
+    if (editingDraftId) {
+      const { data, error } = await supabase
+        .from("listings")
+        .update(payload)
+        .eq("id", editingDraftId)
+        .eq("owner_id", userId)
+        .select("id")
+        .single();
+      if (error) throw error;
+      listingId = data.id;
+    } else {
+      const { data, error } = await supabase
+        .from("listings")
+        .insert(payload)
+        .select("id")
+        .single();
+      if (error) throw error;
+      listingId = data.id;
+    }
 
     try {
-      const attachments = await uploadListingAttachments(data.id);
+      const attachments = await uploadListingAttachments(listingId);
       if (attachments.length) {
         const { error: updateError } = await supabase
           .from("listings")
           .update({ attachments })
-          .eq("id", data.id);
+          .eq("id", listingId);
         if (updateError) throw updateError;
       }
     } catch (attachmentError) {
-      try {
-        const { error: deleteError } = await supabase.from("listings").delete().eq("id", data.id);
-        if (deleteError) {
+      // For brand-new listings we can roll back by deleting; for an
+      // edited draft we leave the published row in place (the user
+      // can re-attach files from the listing page once it's live).
+      if (!editingDraftId) {
+        try {
+          const { error: deleteError } = await supabase.from("listings").delete().eq("id", listingId);
+          if (deleteError) console.warn("listing rollback failed:", deleteError);
+        } catch (deleteError) {
           console.warn("listing rollback failed:", deleteError);
         }
-      } catch (deleteError) {
-        console.warn("listing rollback failed:", deleteError);
       }
       throw attachmentError;
     }
@@ -935,18 +1148,18 @@ form.addEventListener("submit", async (event) => {
         const { data: { session } } = await supabase.auth.getSession();
         const token = session?.access_token;
         if (!token) return;
-        await fetch(`/api/listings/${encodeURIComponent(data.id)}/geocode`, {
+        await fetch(`/api/listings/${encodeURIComponent(listingId)}/geocode`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
         });
       } catch (_) { /* non-fatal */ }
     })();
 
-    statusEl.textContent = "opportunity created.";
+    statusEl.textContent = editingDraftId ? "opportunity published." : "opportunity created.";
     statusEl.className = "gr-status success";
 
     setTimeout(() => {
-      window.location.href = `/listing.html?id=${data.id}`;
+      window.location.href = `/listing.html?id=${listingId}`;
     }, 800);
   } catch (err) {
     statusEl.textContent = err.message || "could not create opportunity.";

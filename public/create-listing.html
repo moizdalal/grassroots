@@ -17,9 +17,8 @@
     <link rel="stylesheet" href="/create-listing.css" />
   </head>
   <body class="gr-body"><main class="gr-shell gr-shell--wide cl-layout-shell">
-      <a href="/marketplace.html" class="ld-back">&larr; back to marketplace</a>
+      <a href="javascript:history.back()" class="ld-back">&larr; back</a>
       <div class="gr-page-intro">
-        <p class="gr-page-eyebrow">opportunity setup</p>
         <h1 class="gr-title">create a new opportunity</h1>
         <p class="gr-subtitle">describe the opportunity your business is trying to pursue — consultants will see this and submit offers.</p>
       </div>
@@ -342,10 +341,11 @@
           <div class="cl-nav">
             <button type="button" class="gr-btn gr-btn--ghost hidden" id="back-btn">back</button>
             <div class="gr-action-spacer" aria-hidden="true"></div>
+            <button type="button" class="gr-btn gr-btn--ghost" id="save-draft-btn">save as draft</button>
             <button type="button" class="gr-btn gr-btn--primary" id="next-btn">continue</button>
             <button type="submit" class="gr-btn gr-btn--primary hidden" id="submit-btn">create opportunity</button>
           </div>
-          <p id="publish-note" class="cl-publish-note hidden">publishing makes this listing visible to consultants. it's hard to undo after bids come in.</p>
+          <p id="publish-note" class="cl-publish-note hidden">publishing makes this listing visible to consultants.</p>
         </div>
 
         <p id="status" class="gr-status" aria-live="polite"></p>

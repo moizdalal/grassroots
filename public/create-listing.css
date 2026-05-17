@@ -224,12 +224,16 @@
   gap: 0.18rem;
 }
 
+/* Title row inside .cl-field-label was previously Fraunces serif at
+   h3 size, which made slide 2's labels feel like display headings
+   compared to every other label in the form (small Manrope/600
+   meta). Match the standard .gr-label > span typography so labels
+   read consistently across the whole wizard. */
 .cl-field-label__title {
-  font-family: Fraunces, Georgia, serif;
-  font-size: var(--type-h3);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--green-deep);
+  font-size: var(--type-meta);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--muted);
 }
 
 .cl-field-label__subtext {

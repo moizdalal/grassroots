@@ -16,11 +16,10 @@
     <script src="/loading-overlay.js"></script>
   </head>
   <body class="gr-body gr-has-side-nav">
-    <main class="gr-shell">
+    <main class="gr-shell gr-shell--wide po-shell">
       <a href="javascript:history.back()" class="ld-back">← back</a>
 
       <div class="gr-page-intro">
-        <p class="gr-page-eyebrow">payouts · sandbox mode</p>
         <h1 class="gr-title" id="po-page-title">set up <span class="fo-title-italic">payouts</span></h1>
         <p class="gr-subtitle" id="po-page-subtitle">verify your identity so grassroots can pay you when an engagement is marked complete. this runs in stripe's sandbox — no real bank info needed.</p>
       </div>
@@ -28,19 +27,38 @@
       <p id="po-gate" class="gr-status" aria-live="polite">loading…</p>
 
       <div id="po-shell" hidden>
+        <!-- Status row (dot + headline label) sits at the very top so
+             the account state is the first thing the user sees. The
+             "stripe still needs:" detail + requirements list used to
+             live here; they moved to the collapsible below so the
+             primary CTA ("Add information") stays above the fold. -->
         <div class="po-status" id="po-status-card" hidden>
           <div class="po-status__row">
             <span class="po-status__dot" id="po-status-dot"></span>
             <span class="po-status__label" id="po-status-label">checking…</span>
           </div>
-          <p class="po-status__detail" id="po-status-detail"></p>
-          <ul class="po-status__requirements" id="po-status-requirements" hidden></ul>
         </div>
 
-        <!-- Pending: full account-onboarding flow (KYC + bank + W-9 data) -->
+        <!-- Pending: full account-onboarding flow (KYC + bank + W-9
+             data). Moved above the requirements collapsible so the
+             "Add information" button is the first action the user
+             sees once they land on a pending account. -->
         <section id="po-onboarding-section" hidden>
           <div id="po-onboarding" class="po-onboarding"></div>
         </section>
+
+        <!-- Collapsible breakdown of what stripe still needs. Hidden
+             entirely when the account is active. Defaults closed so
+             the page doesn't lead with a checklist. -->
+        <details id="po-requirements-collapsible" class="po-requirements-collapsible" hidden>
+          <summary class="po-requirements-collapsible__head">
+            <span class="po-requirements-collapsible__title" id="po-status-detail">stripe still needs:</span>
+            <span class="po-requirements-collapsible__chevron" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          </summary>
+          <ul class="po-status__requirements" id="po-status-requirements"></ul>
+        </details>
 
         <!-- At-a-glance balance summary card. Active accounts only;
              reads the Stripe Balance + last payout via our server. -->
@@ -280,12 +298,14 @@
           const label = $("po-status-label");
           const detail = $("po-status-detail");
           const requirements = $("po-status-requirements");
+          const reqCollapsible = $("po-requirements-collapsible");
           card.hidden = false;
           if (data.onboarded) {
             dot.dataset.state = "active";
             label.textContent = "payouts active — you're all set.";
-            detail.textContent = "we can transfer escrowed funds to your bank when an engagement is marked complete.";
-            requirements.hidden = true;
+            // Active accounts don't need the "stripe still needs"
+            // collapsible at all — hide the whole element.
+            if (reqCollapsible) reqCollapsible.hidden = true;
             requirements.innerHTML = "";
             // Flip the page H1 + subtitle out of onboarding voice once the
             // account is active — same page handles both states.
@@ -308,16 +328,19 @@
             const due = dedupeRequirements(data.requirements_due || []);
             if (due.length) {
               detail.textContent = "stripe still needs:";
-              requirements.hidden = false;
               requirements.innerHTML = due.map((d) => `<li>${escapeHtml(d)}</li>`).join("");
+              if (reqCollapsible) reqCollapsible.hidden = false;
             } else if (data.details_submitted) {
               detail.textContent = "stripe is reviewing your submission. this can take a moment.";
-              requirements.hidden = true;
               requirements.innerHTML = "";
+              if (reqCollapsible) reqCollapsible.hidden = false;
             } else {
-              detail.textContent = "fill out the form below — your data is sent directly to stripe.";
-              requirements.hidden = true;
+              // No specific requirements to list and no submission
+              // yet — the onboarding card above already explains the
+              // next step, so hide the collapsible entirely.
+              detail.textContent = "";
               requirements.innerHTML = "";
+              if (reqCollapsible) reqCollapsible.hidden = true;
             }
             $("po-onboarding-section").hidden = false;
             $("po-active-section").hidden = true;

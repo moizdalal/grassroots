@@ -89,6 +89,233 @@ function getListingId() {
 }
 
 /* ================================================================
+   Consultant-side counter response panel. Renders inside the
+   `.ld-offer-panel` when the consultant's bid sits in `countered`
+   status with an active counter. Three actions:
+     - accept counter   → bid.amount_cents updates to counter price,
+                          status → pending, counter cleared (the owner
+                          now sees a normal pending bid at the new
+                          price they can accept).
+     - decline counter  → counter cleared, status → pending, original
+                          amount stays. Same effect as 24h expiry.
+     - optional message → stored in counter_response_message and
+                          included in the owner-facing notification.
+   ================================================================ */
+function fmtCounterDeadline(iso) {
+  if (!iso) return "";
+  const ms = new Date(iso).getTime() - Date.now();
+  if (ms <= 0) return "expired";
+  const hours = Math.round(ms / 3600000);
+  if (hours >= 24) return `${hours} hours left`;
+  if (hours >= 1) return `${hours} ${hours === 1 ? "hour" : "hours"} left`;
+  const minutes = Math.max(1, Math.round(ms / 60000));
+  return `${minutes} ${minutes === 1 ? "minute" : "minutes"} left`;
+}
+
+function renderConsultantCounterPanel(client, listing, bid) {
+  const root = document.getElementById("ld-counter-response");
+  if (!root) return;
+  const counter = bid.counter_offer_cents;
+  const counterMsg = bid.counter_offer_message;
+  const deadline = fmtCounterDeadline(bid.counter_expires_at);
+  root.hidden = false;
+  root.innerHTML = `
+    <p class="ld-counter-response__eyebrow">counter from the business</p>
+    <p class="ld-counter-response__amount">
+      <strong>${formatUsd(counter)}</strong>
+      <span class="ld-counter-response__delta">was ${formatUsd(bid.amount_cents)}</span>
+    </p>
+    ${counterMsg ? `<p class="ld-counter-response__msg">"${escapeHtml(counterMsg)}"</p>` : ""}
+    <p class="ld-counter-response__deadline">${escapeHtml(deadline)} to respond</p>
+    <label class="gr-label full-width">
+      <span>your reply (optional)</span>
+      <textarea class="ld-counter-response__textarea" rows="2" maxlength="500" placeholder="add a note for the business…"></textarea>
+    </label>
+    <div class="ld-counter-response__actions">
+      <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" data-counter-action="decline">decline counter</button>
+      <button type="button" class="gr-btn gr-btn--primary gr-btn--sm" data-counter-action="accept">accept counter</button>
+    </div>
+    <p class="gr-status ld-counter-response__status" aria-live="polite"></p>
+  `;
+  const statusEl = root.querySelector(".ld-counter-response__status");
+  const textarea = root.querySelector(".ld-counter-response__textarea");
+
+  async function respond(action) {
+    const buttons = root.querySelectorAll("button[data-counter-action]");
+    buttons.forEach((b) => (b.disabled = true));
+    const responseMsg = textarea.value.trim() || null;
+    const now = new Date().toISOString();
+    try {
+      if (action === "accept") {
+        // The counter becomes the new agreed-upon price. amount_cents
+        // updates so the owner — when they finally hit accept — pays
+        // the countered amount (and our handleAcceptBid always reads
+        // amount_cents). Status returns to pending so the owner sees
+        // a normal acceptable bid.
+        const { error } = await client
+          .from("bids")
+          .update({
+            status: "pending",
+            amount_cents: counter,
+            counter_offer_cents: null,
+            counter_offer_message: null,
+            counter_expires_at: null,
+            counter_responded_at: now,
+            counter_response_message: responseMsg,
+          })
+          .eq("id", bid.id);
+        if (error) throw error;
+        await client.from("notifications").insert({
+          user_id: listing.owner_id,
+          type: "counter_accepted",
+          title: "counter accepted",
+          body: `the consultant accepted your ${formatUsd(counter)} counter on "${listing.title}". you can finalize the deal now.`,
+          link: `/listing.html?id=${listing.id}`,
+        });
+        statusEl.textContent = "accepted. the business can now finalize.";
+        statusEl.className = "gr-status ld-counter-response__status success";
+      } else {
+        const { error } = await client
+          .from("bids")
+          .update({
+            status: "pending",
+            counter_offer_cents: null,
+            counter_offer_message: null,
+            counter_expires_at: null,
+            counter_responded_at: now,
+            counter_response_message: responseMsg,
+          })
+          .eq("id", bid.id);
+        if (error) throw error;
+        await client.from("notifications").insert({
+          user_id: listing.owner_id,
+          type: "counter_declined",
+          title: "counter declined",
+          body: `the consultant declined your counter on "${listing.title}". their original ${formatUsd(bid.amount_cents)} offer is back on the table.`,
+          link: `/listing.html?id=${listing.id}`,
+        });
+        statusEl.textContent = "counter declined. your original offer is back on the table.";
+        statusEl.className = "gr-status ld-counter-response__status success";
+      }
+      setTimeout(() => window.location.reload(), 900);
+    } catch (err) {
+      statusEl.textContent = err?.message || "could not send response.";
+      statusEl.className = "gr-status ld-counter-response__status error";
+      buttons.forEach((b) => (b.disabled = false));
+    }
+  }
+
+  root.querySelectorAll("button[data-counter-action]").forEach((btn) => {
+    btn.addEventListener("click", () => respond(btn.dataset.counterAction));
+  });
+}
+
+/* ================================================================
+   Confirm modal — shared helper. Resolves with:
+     "confirm"   → primary button clicked
+     "secondary" → optional alt button clicked (e.g. "counter instead")
+     "cancel"    → backdrop / esc / cancel button
+   `actions` is an ordered list of {label, kind, value}. `kind` is one
+   of "primary" | "secondary" | "ghost" | "danger" and maps to the
+   shared button classes.
+   ================================================================ */
+function openConfirmModal({ title, body, actions = [] }) {
+  return new Promise((resolve) => {
+    const root = document.getElementById("ld-modal");
+    if (!root) { resolve("cancel"); return; }
+    const titleEl = document.getElementById("ld-modal-title");
+    const bodyEl = document.getElementById("ld-modal-body");
+    const actionsEl = document.getElementById("ld-modal-actions");
+    titleEl.textContent = title || "";
+    if (Array.isArray(body)) {
+      bodyEl.innerHTML = body
+        .map((line) => `<span class="ld-modal__line">${escapeHtml(line)}</span>`)
+        .join("");
+    } else {
+      bodyEl.textContent = body || "";
+    }
+    actionsEl.innerHTML = "";
+    actions.forEach((a) => {
+      const btn = document.createElement("button");
+      const kind = a.kind || "primary";
+      btn.type = "button";
+      btn.className = `gr-btn gr-btn--${kind} gr-btn--sm ld-modal__btn`;
+      btn.textContent = a.label;
+      btn.addEventListener("click", () => close(a.value || "confirm"));
+      actionsEl.appendChild(btn);
+    });
+
+    function close(value) {
+      root.hidden = true;
+      root.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("ld-modal-open");
+      document.removeEventListener("keydown", onKey);
+      root.querySelector(".ld-modal__backdrop")?.removeEventListener("click", onBackdrop);
+      resolve(value);
+    }
+    function onKey(e) { if (e.key === "Escape") close("cancel"); }
+    function onBackdrop() { close("cancel"); }
+
+    root.hidden = false;
+    root.setAttribute("aria-hidden", "false");
+    document.body.classList.add("ld-modal-open");
+    document.addEventListener("keydown", onKey);
+    root.querySelector(".ld-modal__backdrop")?.addEventListener("click", onBackdrop);
+  });
+}
+
+/* ================================================================
+   Counter-offer 24h expiration sweep. Runs once per page load —
+   any bid where the counter has elapsed gets reverted client-side:
+   status returns to 'pending', counter fields cleared,
+   counter_attempted stays true so the owner can't counter again.
+   Also fires a notification to the owner. Mutates each affected
+   bid object in place so the calling render sees the new state.
+   ================================================================ */
+async function sweepExpiredCounters(client, bids, listing) {
+  if (!Array.isArray(bids) || !bids.length) return;
+  const now = Date.now();
+  const expired = bids.filter(
+    (b) =>
+      b.status === "countered" &&
+      b.counter_expires_at &&
+      new Date(b.counter_expires_at).getTime() < now
+  );
+  if (!expired.length) return;
+  await Promise.all(
+    expired.map(async (b) => {
+      const { error } = await client
+        .from("bids")
+        .update({
+          status: "pending",
+          counter_offer_cents: null,
+          counter_offer_message: null,
+          counter_expires_at: null,
+          // counter_attempted intentionally LEFT true so the owner
+          // can't try again on this bid.
+        })
+        .eq("id", b.id);
+      if (error) return;
+      // Mirror in-place so the calling render sees the revert without
+      // a second fetch.
+      b.status = "pending";
+      b.counter_offer_cents = null;
+      b.counter_offer_message = null;
+      b.counter_expires_at = null;
+      try {
+        await client.from("notifications").insert({
+          user_id: listing.owner_id,
+          type: "counter_expired",
+          title: "counter expired",
+          body: `your counter on "${listing.title}" expired without a response — the offer is back to the original price.`,
+          link: `/listing.html?id=${listing.id}`,
+        });
+      } catch (_) {}
+    })
+  );
+}
+
+/* ================================================================
    Data loaders
    ================================================================ */
 
@@ -161,7 +388,7 @@ async function loadMyBid(client, listingId, userId) {
   if (!userId) return { bid: null, available: true };
   const { data, error } = await client
     .from("bids")
-    .select("id, amount_cents, proposal_fee_cents, service_fee_cents, message, status, counter_offer_cents, counter_offer_message, accepted_at, proposal_due_at, proposal_path")
+    .select("id, amount_cents, proposal_fee_cents, service_fee_cents, message, status, counter_offer_cents, counter_offer_message, counter_expires_at, counter_responded_at, counter_response_message, counter_attempted, accepted_at, proposal_due_at, proposal_path")
     .eq("listing_id", listingId)
     .eq("consultant_id", userId)
     .maybeSingle();
@@ -198,7 +425,8 @@ async function loadOwnerBids(client, listingId) {
     .from("bids")
     .select(
       `id, listing_id, consultant_id, amount_cents, proposal_fee_cents, service_fee_cents, move_forward_status, message, status,
-       counter_offer_cents, counter_offer_message, accepted_at, proposal_due_at, proposal_path, created_at,
+       counter_offer_cents, counter_offer_message, counter_expires_at, counter_responded_at, counter_response_message, counter_attempted,
+       accepted_at, proposal_due_at, proposal_path, created_at,
        profiles!bids_consultant_id_fkey ( id, full_name, linkedin_url, avatar_path )`
     )
     .eq("listing_id", listingId)
@@ -890,12 +1118,37 @@ function showConsultantView(client, session, listing, existingBid) {
 
   /* --- Populate existing bid (read-only — offers cannot be edited once submitted) --- */
   if (existingBid) {
+    // Lazy-expire: if the consultant lands on the page after their
+    // 24h response window closed, revert client-side before rendering.
+    if (
+      existingBid.status === "countered" &&
+      existingBid.counter_expires_at &&
+      new Date(existingBid.counter_expires_at).getTime() < Date.now()
+    ) {
+      await client
+        .from("bids")
+        .update({
+          status: "pending",
+          counter_offer_cents: null,
+          counter_offer_message: null,
+          counter_expires_at: null,
+        })
+        .eq("id", existingBid.id);
+      existingBid.status = "pending";
+      existingBid.counter_offer_cents = null;
+      existingBid.counter_offer_message = null;
+      existingBid.counter_expires_at = null;
+    }
+
     const heading = document.querySelector(".ld-offer-panel__heading");
     if (heading) heading.textContent = "your offer";
     const el = document.getElementById("ld-bid-existing");
     const isAccepted = existingBid.status === "accepted";
-    const badgeHtml = isAccepted
+    const isCountered = existingBid.status === "countered" && existingBid.counter_offer_cents != null;
+    const stateBadge = isAccepted
       ? `<span class="ld-accepted-badge">accepted</span>`
+      : isCountered
+      ? `<span class="ld-accepted-badge ld-accepted-badge--countered">countered</span>`
       : "";
     const messageHtml = existingBid.message
       ? `<span class="ld-bid-existing__message">${escapeHtml(existingBid.message)}</span>`
@@ -905,9 +1158,15 @@ function showConsultantView(client, session, listing, existingBid) {
            <strong>${formatUsd(existingBid.proposal_fee_cents)}</strong> proposal +
            <strong>${formatUsd(existingBid.service_fee_cents || 0)}</strong> full job</span>`
       : `<span class="ld-bid-existing__amount">offer submitted: <strong>${formatUsd(existingBid.amount_cents)}</strong></span>`;
-    el.innerHTML = `<span class="ld-bid-existing__header">${amountHtml}${badgeHtml}</span>${messageHtml}`;
+    el.innerHTML = `<span class="ld-bid-existing__header">${amountHtml}${stateBadge}</span>${messageHtml}`;
     el.hidden = false;
     formWrap.hidden = true;
+
+    // Counter-response panel: only when the owner has an active
+    // counter awaiting this consultant's decision.
+    if (isCountered) {
+      renderConsultantCounterPanel(client, listing, existingBid);
+    }
   }
 
   /* --- Hard-block bid submission until Stripe payouts are fully active.
@@ -1760,21 +2019,45 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
     const card = document.createElement("div");
     card.className = `ld-bid-card ld-bid-card--${b.status || "pending"}`;
     const p = b.profiles;
-    const education = b.education || educationMap.get(b.consultant_id) || null;
-    const educationLine = formatConsultantEducationLine(education);
     const rawName = p?.full_name || "Consultant";
     const name = escapeHtml(rawName);
+    // Rating chip sits on its own row beneath the name so longer names
+    // get more horizontal room before they truncate.
     const ratingChip = b.consultant_id
       ? `<span class="ld-bid-card__rating" data-consultant-rating="${escapeAttr(b.consultant_id)}" data-rating-size="sm" data-rating-count="false"></span>`
       : "";
+    // Avatar AND name both open the consultant viewer (deeper profile).
+    // The bottom-right "view profile →" link below is a third entry
+    // point — three obvious affordances so the owner doesn't miss it.
+    const cvAttrs = b.consultant_id
+      ? ` data-cv-open data-cv-bid-id="${escapeAttr(b.id)}"`
+      : "";
     const nameHtml = b.consultant_id
-      ? `<button type="button" class="ld-bid-card__name-btn" data-cv-open data-cv-bid-id="${escapeAttr(b.id)}">${name}</button>${ratingChip}`
-      : `<span class="ld-bid-card__name-btn">${name}</span>${ratingChip}`;
+      ? `<button type="button" class="ld-bid-card__name-btn"${cvAttrs} aria-label="view ${name}'s profile">${name}</button>`
+      : `<span class="ld-bid-card__name-btn">${name}</span>`;
     const avatar = publicAvatarUrl(client, p?.avatar_path);
     const msg = b.message ? `<p class="ld-bid-card__message">${escapeHtml(b.message)}</p>` : "";
-    const img = avatar
-      ? `<img class="ld-bid-avatar" src="${escapeAttr(avatar)}" width="44" height="44" alt="" />`
-      : `<div class="ld-bid-avatar ld-bid-avatar--placeholder" aria-hidden="true">${escapeHtml(getInitials(rawName))}</div>`;
+    const avatarInner = avatar
+      ? `<img src="${escapeAttr(avatar)}" width="68" height="68" alt="" />`
+      : `<span class="ld-bid-card__avatar-fallback" aria-hidden="true">${escapeHtml(getInitials(rawName))}</span>`;
+    const avatarHtml = b.consultant_id
+      ? `<button type="button" class="ld-bid-card__avatar"${cvAttrs} tabindex="-1" aria-hidden="true">${avatarInner}</button>`
+      : `<span class="ld-bid-card__avatar" aria-hidden="true">${avatarInner}</span>`;
+
+    // Bio — "major @ school" under the rating. Inline format on
+    // purpose (not formatConsultantEducationLine, which the consultant
+    // viewer modal still uses): drops the "bachelor's in" degree
+    // prefix and lowercases both parts per the bid-card mockup spec.
+    const education = b.education || educationMap.get(b.consultant_id) || null;
+    const eduPrimary = Array.isArray(education?.educations) && education.educations[0]
+      ? education.educations[0]
+      : education || {};
+    const eduMajor = (eduPrimary.major || "").trim().toLowerCase();
+    const eduSchool = (eduPrimary.school || "").trim().toLowerCase();
+    const eduLine = eduMajor && eduSchool
+      ? `${eduMajor} @ ${eduSchool}`
+      : eduMajor || eduSchool || "";
+    const bioHtml = eduLine ? `<p class="ld-bid-card__bio">${escapeHtml(eduLine)}</p>` : "";
 
     // One status pill — pending shows nothing (default state); accepted/countered/declined get a chip.
     const statusPillMap = {
@@ -1791,27 +2074,45 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
       ? `<p class="ld-bid-card__counter">your counter: <strong>${formatUsd(b.counter_offer_cents)}</strong>${b.counter_offer_message ? ` — "${escapeHtml(b.counter_offer_message)}"` : ""}</p>`
       : "";
 
+    // Amount stack — phased shows proposal + full-job rows; standard
+    // shows a single value. Both use the same vertical stack so the
+    // visual rhythm is consistent across listing types.
     const amountHtml = isPhasedListing && b.proposal_fee_cents != null
-      ? `<span class="ld-bid-card__amount ld-bid-card__amount--phased">
-           <span class="ld-bid-card__amount-line"><strong>${formatUsd(b.proposal_fee_cents)}</strong> <span class="ld-bid-card__amount-tag">proposal</span></span>
-           <span class="ld-bid-card__amount-line"><strong>${formatUsd(b.service_fee_cents || 0)}</strong> <span class="ld-bid-card__amount-tag">full job</span></span>
-         </span>`
-      : `<span class="ld-bid-card__amount">${formatUsd(b.amount_cents)}</span>`;
+      ? `<div class="ld-bid-card__amounts">
+           <div class="ld-bid-card__amount-row"><strong class="ld-bid-card__amount-value">${formatUsd(b.proposal_fee_cents)}</strong><span class="ld-bid-card__amount-tag">proposal</span></div>
+           <div class="ld-bid-card__amount-row"><strong class="ld-bid-card__amount-value">${formatUsd(b.service_fee_cents || 0)}</strong><span class="ld-bid-card__amount-tag">full job</span></div>
+         </div>`
+      : `<div class="ld-bid-card__amounts">
+           <div class="ld-bid-card__amount-row"><strong class="ld-bid-card__amount-value">${formatUsd(b.amount_cents)}</strong><span class="ld-bid-card__amount-tag">offer</span></div>
+         </div>`;
 
+    // "view profile →" link in the bottom-right of the foot. Uses the
+    // same data-cv-open hook as the avatar + name so the consultant
+    // viewer opens regardless of which affordance the owner clicks.
+    const viewProfileLink = b.consultant_id
+      ? `<button type="button" class="ld-bid-card__view-profile"${cvAttrs}>view profile <span aria-hidden="true">→</span></button>`
+      : "";
+
+    // Message icon sits absolute top-right of the card (per the
+    // mockup). Placeholder; the real button is created and wired
+    // below so we keep the click handler in JS.
     card.innerHTML = `
       ${statusPill ? `<div class="ld-bid-card__top">${statusPill}</div>` : ""}
+      <div class="ld-bid-card__msg-toggle-slot"></div>
       <div class="ld-bid-card__head">
-        ${img}
+        ${avatarHtml}
         <div class="ld-bid-card__id">
           <span class="ld-bid-card__name">${nameHtml}</span>
-          ${educationLine ? `<span class="ld-bid-card__edu">${escapeHtml(educationLine)}</span>` : ""}
+          ${ratingChip}
+          ${bioHtml}
         </div>
-        ${amountHtml}
       </div>
+      ${amountHtml}
       ${msg}
       ${counterInfo}
       <div class="ld-bid-card__foot">
         <div class="ld-bid-card__actions"></div>
+        ${viewProfileLink}
       </div>
       <div class="ld-bid-card__counter-form hidden"></div>
       <div class="ld-bid-card__msg-area hidden"></div>
@@ -1841,7 +2142,43 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
         const acceptBtn = document.createElement("button");
         acceptBtn.className = "gr-btn gr-btn--primary gr-btn--sm";
         acceptBtn.textContent = "accept";
-        acceptBtn.addEventListener("click", () => handleAcceptBid(client, session, listing, b, card));
+        acceptBtn.addEventListener("click", async () => {
+          // If there's an active counter awaiting a consultant
+          // response, accepting now MUST charge the consultant's
+          // original price — not the owner's counter (which the
+          // consultant hasn't agreed to). Warn explicitly and confirm.
+          if (b.status === "countered" && b.counter_offer_cents != null) {
+            const choice = await openConfirmModal({
+              title: "accept the original offer?",
+              body: [
+                `${rawName} hasn't decided on your counter yet.`,
+                `accepting now charges their original price of ${formatUsd(b.amount_cents)}, not your counter of ${formatUsd(b.counter_offer_cents)}.`,
+              ],
+              actions: [
+                { label: "cancel", kind: "ghost", value: "cancel" },
+                { label: `accept at ${formatUsd(b.amount_cents)}`, kind: "primary", value: "confirm" },
+              ],
+            });
+            if (choice !== "confirm") return;
+            // Strip the counter so handleAcceptBid sees a plain bid
+            // and uses amount_cents (its existing fallback path).
+            await client
+              .from("bids")
+              .update({
+                status: "pending",
+                counter_offer_cents: null,
+                counter_offer_message: null,
+                counter_expires_at: null,
+                counter_responded_at: new Date().toISOString(),
+              })
+              .eq("id", b.id);
+            b.status = "pending";
+            b.counter_offer_cents = null;
+            b.counter_offer_message = null;
+            b.counter_expires_at = null;
+          }
+          handleAcceptBid(client, session, listing, b, card);
+        });
         actionsEl.appendChild(acceptBtn);
       }
     }
@@ -1854,8 +2191,70 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
       actionsEl.appendChild(manageLink);
     }
 
-    /* Counter button (only if no counter yet and under limit) */
-    if (!b.counter_offer_cents && totalCounters < 3 && (b.status === "pending")) {
+    /* Decline button — pre-acceptance only (pending/countered). The
+       confirmation is a styled modal that (a) makes it clear decline
+       is permanent, (b) offers "counter instead" as the alternative
+       (when the bid still has a counter slot available), and (c)
+       warns if the consultant hasn't yet responded to an outstanding
+       counter. No money has moved yet, so the actual decline is a
+       simple bids.status flip. */
+    if (b.status === "pending" || b.status === "countered") {
+      const declineBtn = document.createElement("button");
+      declineBtn.type = "button";
+      declineBtn.className = "gr-btn gr-btn--danger gr-btn--sm ld-bid-card__decline";
+      declineBtn.textContent = "decline";
+      declineBtn.addEventListener("click", async () => {
+        const hasOutstandingCounter = b.status === "countered" && b.counter_offer_cents != null;
+        const canCounter = !b.counter_attempted && !b.counter_offer_cents && totalCounters < 3 && b.status === "pending";
+        const body = [
+          `declining is permanent — ${rawName}'s offer disappears and they'll be notified.`,
+        ];
+        if (hasOutstandingCounter) {
+          body.unshift(`${rawName} hasn't decided on your counter yet.`);
+        } else if (canCounter) {
+          body.push(`if the price isn't right, you can counter instead.`);
+        }
+        const actions = [{ label: "cancel", kind: "ghost", value: "cancel" }];
+        if (canCounter) {
+          actions.push({ label: "counter instead", kind: "secondary", value: "secondary" });
+        }
+        actions.push({ label: "decline forever", kind: "danger", value: "confirm" });
+        const choice = await openConfirmModal({
+          title: `decline this offer?`,
+          body,
+          actions,
+        });
+        if (choice === "secondary") {
+          counterFormEl.classList.remove("hidden");
+          if (!counterFormEl.dataset.init) {
+            counterFormEl.dataset.init = "1";
+            buildCounterForm(client, listing, b, counterFormEl, card, budgetEl, totalCounters);
+          }
+          return;
+        }
+        if (choice !== "confirm") return;
+        declineBtn.disabled = true;
+        try {
+          const { error } = await client
+            .from("bids")
+            .update({ status: "declined", declined_at: new Date().toISOString() })
+            .eq("id", b.id);
+          if (error) throw error;
+          showSuccess("offer declined.");
+          window.location.reload();
+        } catch (err) {
+          showError(err?.message || "could not decline offer.");
+          declineBtn.disabled = false;
+        }
+      });
+      actionsEl.appendChild(declineBtn);
+    }
+
+    /* Counter button — only if the bid has never been countered (1
+       counter per bid, permanent — even after expiry reverts the
+       offer), no active counter, and the listing-wide cap (3) isn't
+       hit. */
+    if (!b.counter_attempted && !b.counter_offer_cents && totalCounters < 3 && (b.status === "pending")) {
       const counterBtn = document.createElement("button");
       counterBtn.className = "gr-btn gr-btn--ghost gr-btn--sm";
       counterBtn.textContent = "counter";
@@ -1869,10 +2268,12 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
       actionsEl.appendChild(counterBtn);
     }
 
-    /* Message toggle — icon-only, hover swaps to accent. */
+    /* Message toggle — icon-only, sits absolute top-right of the
+       card per the mockup. Slot is `.ld-bid-card__msg-toggle-slot`
+       inserted into the card markup above. */
     const msgBtn = document.createElement("button");
     msgBtn.type = "button";
-    msgBtn.className = "gr-btn gr-btn--ghost gr-btn--sm gr-btn--icon";
+    msgBtn.className = "ld-bid-card__msg-icon";
     msgBtn.title = "message";
     msgBtn.setAttribute("aria-label", "message");
     msgBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
@@ -1883,7 +2284,8 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
         buildOwnerMsgThread(client, listing.id, session.user.id, b.consultant_id, msgAreaEl);
       }
     });
-    actionsEl.appendChild(msgBtn);
+    const msgSlot = card.querySelector(".ld-bid-card__msg-toggle-slot");
+    if (msgSlot) msgSlot.appendChild(msgBtn);
 
     list.appendChild(card);
   }
@@ -1919,7 +2321,12 @@ async function handleAcceptBid(client, session, listing, bid, card) {
   const result = await payAndAcceptBid({ client, bid, listing });
   if (!result?.ok) return;
 
-  const paidAmount = bid.counter_offer_cents != null ? bid.counter_offer_cents : bid.amount_cents;
+  // Always charge the consultant's amount_cents — the per-bid record
+  // of what THEY agreed to. The owner's counter is just a proposal
+  // until the consultant accepts it (at which point amount_cents
+  // updates to the counter value). Reading from counter_offer_cents
+  // here would let the owner pay their own discount unilaterally.
+  const paidAmount = bid.amount_cents;
   await client.from("notifications").insert({
     user_id: bid.consultant_id,
     type: "bid_accepted",
@@ -1934,6 +2341,9 @@ async function handleAcceptBid(client, session, listing, bid, card) {
 function buildCounterForm(client, listing, bid, container, card, budgetEl, currentCount) {
   container.innerHTML = `
     <div class="ld-counter-form-inner">
+      <p class="ld-counter-form-notice">
+        this is your only counter on this offer. the consultant has 24 hours to accept, decline, or counter back. if they don't respond, the offer reverts to their original price — and you can't counter again.
+      </p>
       <label class="gr-label"><span>counter amount (usd)</span>
         <input type="number" class="ld-counter-amount" min="0.01" step="0.01" placeholder="0.00" />
       </label>
@@ -1958,10 +2368,13 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
     }
     sendBtn.disabled = true;
 
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const { error } = await client.from("bids").update({
       status: "countered",
       counter_offer_cents: cents,
       counter_offer_message: msgInput.value.trim() || null,
+      counter_expires_at: expiresAt,
+      counter_attempted: true,
     }).eq("id", bid.id);
 
     if (error) {
@@ -1974,11 +2387,11 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
       user_id: bid.consultant_id,
       type: "counter_offer",
       title: "you received a counter-offer",
-      body: `the owner of "${escapeHtml(listing.title)}" countered your bid with ${formatUsd(cents)}.`,
+      body: `the owner of "${escapeHtml(listing.title)}" countered your bid with ${formatUsd(cents)}. you have 24 hours to respond.`,
       link: `/listing.html?id=${listing.id}`,
     });
 
-    showSuccess("counter offer sent.");
+    showSuccess("counter offer sent. the consultant has 24 hours to respond.");
     window.location.reload();
   });
 }
@@ -2065,10 +2478,31 @@ async function init() {
       return;
     }
 
+    const isDraft = listing.status === "draft";
+
+    // Drafts are owner-only. Anyone else gets bounced.
+    if (isDraft && !isOwner) {
+      gate.textContent = "this listing isn't published yet.";
+      gate.className = "gr-status error";
+      return;
+    }
+
     const { profile } = populateListing(listing);
     populateAvatarIfAvailable(client, profile);
     setOwnerSidebarVisible(isOwner);
     if (!isOwner) setOfferRailVisible(false);
+
+    // Owner viewing a draft: show the resume-editing banner, hide
+    // the listing-controls panel (irrelevant for an unpublished
+    // listing — there's nothing to pause / close yet), and skip the
+    // bid + analytics loads since neither applies to a draft.
+    const draftBanner = document.getElementById("ld-draft-banner");
+    if (isDraft && isOwner && draftBanner) {
+      draftBanner.hidden = false;
+      const cta = document.getElementById("ld-draft-banner-cta");
+      if (cta) cta.href = `/create-listing.html?draft=${encodeURIComponent(listing.id)}`;
+      setOwnerSidebarVisible(false);
+    }
 
     if (uid && !isOwner) {
       if (viewerRole === "consultant") {
@@ -2080,10 +2514,14 @@ async function init() {
       } else {
         showHint("only consultants can bid on listings.");
       }
-    } else if (isOwner) {
+    } else if (isOwner && !isDraft) {
       setupOwnerListingActions(client, listing);
       const { bids, available } = await loadOwnerBids(client, listingId);
       if (available) {
+        // Auto-revert any counters that hit their 24h expiry without
+        // a consultant response. Mutates bids[] in place so the next
+        // render sees the new state.
+        await sweepExpiredCounters(client, bids, listing);
         const embeddedEducation = bids.some((b) => b.education);
         const educationMap = embeddedEducation
           ? new Map(
@@ -2109,6 +2547,9 @@ async function init() {
             })
           );
       }
+    } else if (isOwner && isDraft) {
+      // Owner is previewing their own draft — the draft banner above
+      // already explains the state, no extra hint needed.
     } else {
       showHint('<a href="/signin.html">sign in</a> as a consultant to submit a proposal.');
     }

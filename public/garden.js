@@ -153,11 +153,23 @@ export async function mountGarden(container, { client, userId }) {
     spawnBugs();
   }
 
+  // Shared with wirePlantDrag — when a plant is being dragged the
+  // cursor is the user's focus, so the star repulsion handler bails
+  // early to free the main thread for the drag's transform writes.
+  let isDraggingPlant = false;
+
   // Cursor-driven star repulsion. Stars carry their resting position
   // as `data-base-x` / `data-base-y` percentages relative to the
   // whole .pp-garden (since the sky spans the section, not just the
   // bed). Listener sits on the garden so pointermove anywhere in the
   // section — head text included — feeds the repulsion.
+  //
+  // Three perf moves vs. the naive version:
+  //   1) Skip entirely while a plant drag is in flight (see flag above).
+  //   2) rAF-coalesce: a 1000Hz mouse pointermove rate gets collapsed
+  //      to one update per animation frame.
+  //   3) Cache parsed data-base-x/y per star at wire time so we don't
+  //      parseFloat 56 times per frame.
   function wireStarRepulsion() {
     // Anchor stars belong to a constellation polyline and must stay
     // put, otherwise their connecting line would drift off them.
@@ -165,40 +177,65 @@ export async function mountGarden(container, { client, userId }) {
       gardenEl.querySelectorAll(
         ".pp-garden__star:not(.pp-garden__star--anchor)"
       )
-    );
+    ).map((el) => ({
+      el,
+      baseXPct: parseFloat(el.dataset.baseX),
+      baseYPct: parseFloat(el.dataset.baseY),
+    }));
     if (!stars.length) return null;
     const RADIUS = 90;
     const STRENGTH = 22;
-    const onMove = (e) => {
+    let pendingX = 0;
+    let pendingY = 0;
+    let pending = false;
+    let rafId = 0;
+    const apply = () => {
+      rafId = 0;
+      pending = false;
+      // Drag started between when the event landed and the frame
+      // fired — skip the update entirely.
+      if (isDraggingPlant) return;
       const gR = gardenEl.getBoundingClientRect();
       if (!gR.width || !gR.height) return;
-      const cx = e.clientX - gR.left;
-      const cy = e.clientY - gR.top;
-      for (const star of stars) {
-        const baseX = (parseFloat(star.dataset.baseX) / 100) * gR.width;
-        const baseY = (parseFloat(star.dataset.baseY) / 100) * gR.height;
-        const dx = baseX - cx;
-        const dy = baseY - cy;
+      const cx = pendingX - gR.left;
+      const cy = pendingY - gR.top;
+      const w = gR.width;
+      const h = gR.height;
+      for (const s of stars) {
+        const dx = (s.baseXPct / 100) * w - cx;
+        const dy = (s.baseYPct / 100) * h - cy;
         const dist = Math.hypot(dx, dy);
         if (dist < RADIUS && dist > 0) {
           const f = (1 - dist / RADIUS) * STRENGTH;
-          star.style.setProperty("--star-dx", `${((dx / dist) * f).toFixed(2)}px`);
-          star.style.setProperty("--star-dy", `${((dy / dist) * f).toFixed(2)}px`);
+          s.el.style.setProperty("--star-dx", `${((dx / dist) * f).toFixed(2)}px`);
+          s.el.style.setProperty("--star-dy", `${((dy / dist) * f).toFixed(2)}px`);
         } else {
-          star.style.removeProperty("--star-dx");
-          star.style.removeProperty("--star-dy");
+          s.el.style.removeProperty("--star-dx");
+          s.el.style.removeProperty("--star-dy");
         }
       }
     };
+    const onMove = (e) => {
+      if (isDraggingPlant) return;
+      pendingX = e.clientX;
+      pendingY = e.clientY;
+      if (pending) return;
+      pending = true;
+      rafId = requestAnimationFrame(apply);
+    };
     const onLeave = () => {
-      for (const star of stars) {
-        star.style.removeProperty("--star-dx");
-        star.style.removeProperty("--star-dy");
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = 0;
+      pending = false;
+      for (const s of stars) {
+        s.el.style.removeProperty("--star-dx");
+        s.el.style.removeProperty("--star-dy");
       }
     };
     gardenEl.addEventListener("pointermove", onMove);
     gardenEl.addEventListener("pointerleave", onLeave);
     return () => {
+      if (rafId) cancelAnimationFrame(rafId);
       gardenEl.removeEventListener("pointermove", onMove);
       gardenEl.removeEventListener("pointerleave", onLeave);
     };
@@ -261,6 +298,10 @@ export async function mountGarden(container, { client, userId }) {
         if (!dragging) {
           if (Math.abs(dx) > DRAG_THRESHOLD) {
             dragging = true;
+            // Flip the shared flag so the star-repulsion handler
+            // bails for the duration of the drag — its per-frame
+            // work was the main source of choppiness here.
+            isDraggingPlant = true;
             plantEl.classList.add("is-dragging");
             plantEl.style.transition = "none";
             plantEl.style.zIndex = "5";
@@ -279,6 +320,7 @@ export async function mountGarden(container, { client, userId }) {
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onUp);
         if (dragging) {
+          isDraggingPlant = false;
           plantEl.classList.remove("is-dragging");
           plantEl.style.transition = "";
           plantEl.style.zIndex = "";

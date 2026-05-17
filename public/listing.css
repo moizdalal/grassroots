@@ -377,6 +377,163 @@
   margin-top: 0.45rem;
 }
 
+/* --- Counter-offer notice inside the owner counter form --- */
+.ld-counter-form-notice {
+  margin: 0 0 0.6rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--fo-accent-warm, #e88e5a) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fo-accent-warm, #e88e5a) 32%, transparent);
+  font-size: var(--type-meta);
+  color: var(--fo-text-2, var(--muted));
+  line-height: 1.5;
+}
+
+/* --- Generic confirm modal --- */
+.ld-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.ld-modal[hidden] { display: none; }
+.ld-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+}
+.ld-modal__dialog {
+  position: relative;
+  width: min(440px, 100%);
+  background: var(--fo-surface, var(--card-bg));
+  border: 1px solid var(--fo-line-strong, var(--card-border));
+  border-radius: 14px;
+  padding: 1.25rem 1.35rem 1.1rem;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.32);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.ld-modal__title {
+  margin: 0;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: var(--type-h3);
+  font-weight: 700;
+  color: var(--fo-text, var(--ink));
+  letter-spacing: -0.01em;
+}
+.ld-modal__body {
+  margin: 0;
+  font-size: var(--type-meta);
+  color: var(--fo-text-2, var(--muted));
+  line-height: 1.5;
+}
+.ld-modal__line {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+.ld-modal__line:last-child { margin-bottom: 0; }
+.ld-modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+.ld-modal__btn { min-width: 5.5rem; }
+body.ld-modal-open { overflow: hidden; }
+
+/* --- Consultant counter-response panel --- */
+.ld-counter-response {
+  margin: 0.5rem 0 0.9rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--fo-accent-warm, #e88e5a) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fo-accent-warm, #e88e5a) 32%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.ld-counter-response[hidden] { display: none; }
+.ld-counter-response__eyebrow {
+  margin: 0;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fo-accent-warm, #e88e5a);
+}
+.ld-counter-response__amount {
+  margin: 0;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: var(--type-h2);
+  font-weight: 600;
+  color: var(--fo-text, var(--ink));
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.ld-counter-response__delta {
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
+  font-weight: 500;
+  color: var(--fo-text-3, var(--tagline-body));
+  text-decoration: line-through;
+}
+.ld-counter-response__msg {
+  margin: 0;
+  font-size: var(--type-meta);
+  color: var(--fo-text-2, var(--muted));
+  font-style: italic;
+  line-height: 1.5;
+}
+.ld-counter-response__deadline {
+  margin: 0;
+  font-size: var(--type-eyebrow);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fo-text-3, var(--tagline-body));
+  font-weight: 600;
+}
+.ld-counter-response__textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 3rem;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--fo-line-strong, var(--input-border));
+  background: var(--fo-surface, transparent);
+  color: var(--fo-text, var(--ink));
+}
+.ld-counter-response__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+.ld-counter-response__status {
+  margin: 0;
+  font-size: var(--type-meta);
+}
+.ld-counter-response__status.success {
+  color: var(--fo-accent, var(--green-mid));
+}
+.ld-counter-response__status.error {
+  color: var(--fo-plan, var(--danger));
+}
+
+/* Countered pill variant — warm accent (vs the accepted moss green). */
+.ld-accepted-badge--countered {
+  background: var(--fo-accent-warm, #e88e5a);
+}
+
 /* --- Sticky sidebar --- */
 .ld-sidebar {
   position: sticky;
@@ -386,6 +543,65 @@
 .ld-rail {
   position: sticky;
   top: 5rem;
+}
+
+/* Draft banner — pinned above the listing layout when the owner is
+   previewing their own unpublished listing. Purple hairline + soft
+   tint so the page reads as "in progress" without screaming. */
+.ld-draft-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid color-mix(in srgb, var(--fo-draft) 50%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--fo-draft) 12%, transparent);
+}
+
+.ld-draft-banner[hidden] {
+  display: none;
+}
+
+.ld-draft-banner__copy {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.ld-draft-banner__badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fo-accent-on);
+  background: var(--fo-draft);
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+}
+
+.ld-draft-banner__text {
+  margin: 0;
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+  line-height: 1.4;
+}
+
+/* Owner analytics slot in the main content column. The inner
+   .lv-panel renders its own card chrome — this wrapper just gives
+   it some breathing room from the listing sections above. */
+.ld-content__analytics {
+  margin-top: 1.5rem;
+}
+
+.ld-content__analytics[hidden] {
+  display: none;
 }
 
 /* bids-owner uses shared ld-sidebar__panel styles */

@@ -383,14 +383,6 @@ img.gr-listing-logo {
   text-align: center;
 }
 
-.gr-page-eyebrow {
-  margin: 0;
-  font-size: var(--type-eyebrow);  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--tagline-body);
-}
-
 .gr-optional {
   font-weight: 400;
   color: var(--tagline-body);
@@ -3658,8 +3650,11 @@ button.gr-bid-link {
 }
 
 /* --- Bids list (owner) --- */
+/* Sit close to the listing-controls panel above. The previous 2rem
+   gap left an empty band of sidebar between the two sibling panels;
+   a tighter spacing reads as "these belong together." */
 .ld-bids-owner {
-  margin-top: 2rem;
+  margin-top: 0.75rem;
 }
 
 .ld-bids-list {
@@ -3674,13 +3669,14 @@ button.gr-bid-link {
 }
 
 .ld-bid-card {
+  position: relative; /* anchor for absolute msg icon top-right */
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 14px;
-  padding: 0.95rem 1.05rem;
+  padding: 1.1rem 1.15rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0.75rem;
 }
 
 .ld-bid-card--accepted {
@@ -3688,86 +3684,136 @@ button.gr-bid-link {
   border-color: var(--fo-accent-soft, rgba(143, 184, 134, 0.18));
 }
 
+/* Head row: avatar (left) + identity stack (right). The amount block
+   now sits below this row (full-width) to match the mockup's vertical
+   rhythm — was previously a third column in the head. */
 .ld-bid-card__head {
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 0.85rem;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: flex-start;
+  gap: 0.95rem;
 }
 
-.ld-bid-avatar,
-.ld-bid-avatar--placeholder {
-  --gr-avatar-size: 44px;
-  --gr-avatar-radius: 12px;
-  --gr-avatar-bg: var(--fo-surface-3, rgba(45, 106, 79, 0.08));
+/* Avatar — square rounded ~68px. Whole avatar is a button so clicking
+   it opens the consultant viewer (same data-cv-open delegation as the
+   name). tabindex=-1 on the avatar so keyboard users still hit name
+   first (visible focus order). */
+.ld-bid-card__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 68px;
+  height: 68px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  background: var(--fo-surface-3, rgba(45, 106, 79, 0.08));
+  border: 0;
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.ld-bid-card__avatar:hover,
+.ld-bid-card__avatar:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  outline: none;
+}
+.ld-bid-card__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.ld-bid-card__avatar-fallback {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 600;
+  font-size: 1.6rem;
+  color: var(--fo-accent, var(--green-mid));
+  text-transform: lowercase;
 }
 
 .ld-bid-card__id {
   display: flex;
   flex-direction: column;
+  gap: 0.1rem;
   min-width: 0;
+  padding-top: 0.1rem;
 }
 
 .ld-bid-card__name {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
+  display: block;
   min-width: 0;
 }
 
 .ld-bid-card__name-btn {
   font-family: "Manrope", system-ui, sans-serif;
   font-weight: 700;
-  font-size: var(--type-body);
+  font-size: var(--type-h2);
+  letter-spacing: -0.01em;
+  line-height: 1.15;
   color: var(--fo-text, var(--ink));
   background: transparent;
   border: 0;
-  /* Vertical padding bumps the click target to ≥32px (WCAG 2.5.5) without
-     visually shifting the card. The negative inline margin keeps the name
-     left-aligned with the avatar/meta column. */
-  padding: 0.4rem 0.4rem;
-  margin: 0 -0.4rem;
+  padding: 0;
   cursor: pointer;
   text-align: left;
-  font: inherit;
-  font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+  transition: color 0.15s ease;
 }
 
+/* Rating chip — sits directly under the name. The name button no
+   longer carries oversized vertical padding, so the rating doesn't
+   need a negative margin to tuck up. */
 .ld-bid-card__rating {
-  flex-shrink: 0;
+  align-self: flex-start;
 }
 
-.ld-bid-card__name-btn:hover {
+.ld-bid-card__name-btn:hover,
+.ld-bid-card__name-btn:focus-visible {
   color: var(--fo-accent, var(--green-mid));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+  outline: none;
 }
 
-.ld-bid-card__edu {
-  font-size: var(--type-meta);  color: var(--fo-text-3, var(--muted));
-  margin-top: 0.15rem;
+/* Education / bio line under the rating. "major @ school" — pulled
+   from the consultant's consultant_profiles row via educationMap. */
+.ld-bid-card__bio {
+  margin: 0.15rem 0 0;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
+  color: var(--fo-text-3, var(--muted));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.ld-bid-card__amount {
-  font-family: "Fraunces", Georgia, serif;
-  font-weight: 600;
-  font-size: var(--type-h2);  color: var(--fo-text, var(--green-deep));
-  flex-shrink: 0;
-  letter-spacing: -0.01em;
-}
-
-.ld-bid-card__amount--phased {
+/* Amount stack — full-width vertical rhythm. Each row pairs a bold
+   serif value with a small Manrope label ("proposal", "full job",
+   "offer"). Mirrors the mockup's two-line price treatment. */
+.ld-bid-card__amounts {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
   gap: 0.25rem;
-  font-size: var(--type-h3);
-  line-height: 1.15;
+  margin: 0.15rem 0;
+}
+.ld-bid-card__amount-row {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.55rem;
+}
+.ld-bid-card__amount-value {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 600;
+  font-size: var(--type-h2);
+  letter-spacing: -0.01em;
+  color: var(--fo-text, var(--green-deep));
+  line-height: 1.05;
 }
 
 /* Phased "accept proposal" — was a tiny checkbox + label that owners
@@ -3886,19 +3932,69 @@ button.gr-bid-link {
   color: var(--fo-text, var(--green-deep));
 }
 
-.ld-bid-card__amount-line {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.4rem;
+.ld-bid-card__amount-tag {
+  font-family: "Manrope", system-ui, sans-serif;
+  font-weight: 500;
+  font-size: var(--type-meta);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--fo-text-3, var(--muted));
 }
 
-.ld-bid-card__amount-tag {
-  font-family: "Manrope", sans-serif;
+/* Message icon — absolute top-right of the card per the mockup. The
+   slot in the markup is just an anchor; the actual button is appended
+   by JS so the click handler stays close to the bid context. */
+.ld-bid-card__msg-toggle-slot {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  z-index: 2;
+}
+.ld-bid-card__msg-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--fo-text-2, var(--muted));
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.ld-bid-card__msg-icon:hover,
+.ld-bid-card__msg-icon:focus-visible {
+  color: var(--fo-accent);
+  border-color: var(--fo-line);
+  outline: none;
+}
+.ld-bid-card__msg-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* "view profile →" link — third entry point to the consultant viewer
+   (alongside the avatar and name). Sits in the bottom-right of the
+   foot, after the accept/counter actions, so it reads as the
+   exploratory affordance rather than a primary action. */
+.ld-bid-card__view-profile {
+  margin-left: auto;
+  background: transparent;
+  border: 0;
+  padding: 0.35rem 0;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
   font-weight: 600;
-  font-size: var(--type-micro, 0.7rem);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--fo-text-3, var(--muted));
+  color: var(--fo-text-2, var(--muted));
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.ld-bid-card__view-profile:hover,
+.ld-bid-card__view-profile:focus-visible {
+  color: var(--fo-accent);
+  outline: none;
 }
 
 .ld-bid-card__message {
@@ -4635,6 +4731,122 @@ button.gr-bid-link {
   box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
 }
 
+/* Attachments block — sits between the textarea and the submit
+   button. The "attach files" label triggers the hidden <input
+   type="file" multiple>. Each picked file becomes a chip in the
+   list below with a remove (×) button. */
+.gr-suggest-popup__attachments {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.65rem;
+}
+
+.gr-suggest-popup__attach-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px dashed var(--fo-line-strong, var(--card-border));
+  color: var(--fo-text-2, var(--muted));
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.gr-suggest-popup__attach-btn:hover,
+.gr-suggest-popup__attach-btn:focus-within {
+  border-color: var(--fo-accent);
+  color: var(--fo-accent);
+  background: var(--fo-accent-soft, rgba(45, 106, 79, 0.06));
+}
+
+.gr-suggest-popup__attach-icon {
+  font-size: 1rem;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.gr-suggest-popup__attach-hint {
+  font-size: var(--type-eyebrow);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fo-text-3, var(--tagline-body));
+}
+
+.gr-suggest-popup__attach-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.gr-suggest-popup__attach-list:empty {
+  display: none;
+}
+
+.gr-suggest-popup__attach-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.65rem;
+  border-radius: 8px;
+  background: var(--fo-surface-2, rgba(45, 106, 79, 0.05));
+  border: 1px solid var(--fo-line, var(--card-border));
+}
+
+.gr-suggest-popup__attach-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--type-meta);
+  color: var(--fo-text);
+}
+
+.gr-suggest-popup__attach-size {
+  flex: 0 0 auto;
+  font-size: var(--type-eyebrow);
+  letter-spacing: 0.06em;
+  color: var(--fo-text-3, var(--tagline-body));
+}
+
+.gr-suggest-popup__attach-remove {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  color: var(--fo-text-3, var(--tagline-body));
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gr-suggest-popup__attach-remove:hover {
+  background: var(--fo-surface-3, rgba(45, 106, 79, 0.1));
+  color: var(--fo-plan, #d97757);
+}
+
+.gr-suggest-popup__attach-error {
+  width: 100%;
+  margin: 0;
+  font-size: var(--type-meta);
+  color: var(--fo-plan, #d97757);
+}
+
 .gr-suggest-popup__submit {
   display: inline-flex;
   align-items: center;
@@ -4834,6 +5046,66 @@ button.gr-bid-link {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+}
+
+/* Collapsible "what stripe still needs" — closed by default, hairline
+   border, soft tint so it reads as supplementary info rather than the
+   primary CTA (the onboarding card above takes that role). */
+.po-requirements-collapsible {
+  margin: 0.75rem 0 0;
+  border: 1px solid var(--fo-line, var(--card-border));
+  border-radius: 12px;
+  background: var(--fo-surface-2, transparent);
+  overflow: hidden;
+}
+
+.po-requirements-collapsible[hidden] {
+  display: none;
+}
+
+.po-requirements-collapsible__head {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
+  font-weight: 600;
+  color: var(--fo-text-2);
+}
+
+.po-requirements-collapsible__head::-webkit-details-marker {
+  display: none;
+}
+
+.po-requirements-collapsible__title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.po-requirements-collapsible__chevron {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  color: var(--fo-text-3);
+  transition: transform 0.2s ease;
+}
+
+.po-requirements-collapsible__chevron svg {
+  width: 100%;
+  height: 100%;
+}
+
+.po-requirements-collapsible[open] .po-requirements-collapsible__chevron {
+  transform: rotate(180deg);
+}
+
+.po-requirements-collapsible .po-status__requirements {
+  margin: 0;
+  padding: 0 1rem 0.85rem 1.5rem;
 }
 
 .po-status__requirements li {

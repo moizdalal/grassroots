@@ -83,7 +83,7 @@ async function loadData(client, userId) {
   const { data: bids } = await client
     .from("bids")
     .select(
-      "id, listing_id, consultant_id, amount_cents, message, status, payment_status, paid_at, released_at, counter_offer_cents, counter_offer_message, accepted_at, proposal_due_at, proposal_path, created_at"
+      "id, listing_id, consultant_id, amount_cents, message, status, payment_status, paid_at, released_at, counter_offer_cents, counter_offer_message, counter_expires_at, counter_responded_at, counter_response_message, counter_attempted, accepted_at, proposal_due_at, proposal_path, created_at"
     )
     .eq("consultant_id", userId)
     .order("created_at", { ascending: false });

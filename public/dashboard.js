@@ -302,6 +302,49 @@ function daysOpenLabel(createdAt) {
   return months === 1 ? "1 month open" : `${months} months open`;
 }
 
+// Compact recency for my-listings cards: today, 1d, 6d, 1w, 4w, 1m, 12m.
+// Brackets:
+//   0 days        → "today"
+//   1–6 days      → "Xd"
+//   7–29 days     → "Xw"  (Math.round, so 7 = 1w, 10 = 1w, 11 = 2w)
+//   30+ days      → "Xm"  (Math.round)
+function shortRecency(createdAt) {
+  if (!createdAt) return "";
+  const ms = Date.now() - new Date(createdAt).getTime();
+  const days = Math.floor(ms / 86400000);
+  if (days <= 0) return "today";
+  if (days < 7) return `${days}d`;
+  if (days < 30) return `${Math.round(days / 7)}w`;
+  return `${Math.round(days / 30)}m`;
+}
+
+// State → status dot.
+//
+// Two intentional bypasses of brandkit tokens for legibility — both
+// commented per brandkit's "If you find yourself bypassing tokens for
+// a quick fix — leave a comment" rule:
+//
+//   1) NEUTRAL_GREY_DOT for "live" / "draft" — --fo-text-3 is green-
+//      tinted in both light (#767f78) and dark-forest (#6e8378), so
+//      it washed into the moss --fo-accent dot beside it.
+//   2) CLOSED_RED_DOT for "closed" / "cancelled" — --fo-plan is the
+//      system's destructive token (warm coral) but in the light theme
+//      it resolves to #c46f44, the EXACT same value as --fo-accent-warm.
+//      So the "paused" and "closed" dots became indistinguishable, and
+//      both read as orange instead of one orange + one red. The dot
+//      uses a deeper brick-red hex so the status is unmistakably
+//      "closed" and not "paused".
+const NEUTRAL_GREY_DOT = "#9aa3aa";
+const CLOSED_RED_DOT = "#a83232";
+const STATE_DOT_COLORS = {
+  open: NEUTRAL_GREY_DOT,            // live — neutral, awaiting offers
+  hired: "var(--fo-accent)",         // in progress — work happening
+  paused: "var(--fo-accent-warm)",   // paused — warn-orange
+  closed: CLOSED_RED_DOT,            // closed — deep brick red
+  cancelled: CLOSED_RED_DOT,         // cancelled — same red
+  draft: "var(--fo-draft)",          // draft — soft violet, owner-only
+};
+
 function listingPrimaryAction(l, schedulesByBidId) {
   const bids = l.__bids || [];
   const accepted = bids.find((b) => b.status === "accepted");
@@ -345,17 +388,14 @@ function listingRowHtml(l, schedulesByBidId) {
   const offerCount = l.__bidCount || 0;
   const offerLabel = offerCount === 1 ? "1 offer" : `${offerCount} offers`;
   const openLabel = daysOpenLabel(l.created_at);
-  const category = l.category ? l.category.split(",")[0].trim() : "";
-  const turnaround = Number.isFinite(Number(l.turnaround_days))
-    ? `${l.turnaround_days}d turnaround`
-    : "";
 
+  // Dashboard rows stay slim — state pill, days open, offer count,
+  // budget on the right. Category + turnaround moved to the full
+  // my-listings card view so the home row stays scannable.
   const metaBits = [
     `<span class="bza__row-state-label bza__row-state-label--${state}">${escape(stateLabel)}</span>`,
     openLabel ? `<span class="bza__row-meta-sep">·</span><span>${escape(openLabel)}</span>` : "",
     `<span class="bza__row-meta-sep">·</span><span class="bza__row-meta-strong">${escape(offerLabel)}</span>`,
-    category ? `<span class="bza__row-meta-sep">·</span><span>${escape(category)}</span>` : "",
-    turnaround ? `<span class="bza__row-meta-sep">·</span><span>${escape(turnaround)}</span>` : "",
   ]
     .filter(Boolean)
     .join("");
@@ -363,6 +403,15 @@ function listingRowHtml(l, schedulesByBidId) {
   const action = listingPrimaryAction(l, schedulesByBidId);
   const ctaHtml = action
     ? `<a class="bza__row-cta bza__row-cta--${escape(action.kind)}" href="${escape(action.href)}">${escape(action.label)} →</a>`
+    : state === "draft"
+    ? `<a class="bza__row-cta bza__row-cta--draft" href="/create-listing.html?draft=${escape(l.id)}">finish &amp; publish →</a>`
+    : "";
+
+  // Persistent "needs you" pill on draft rows — sits in the title row
+  // so the prompt to finish the listing reads at the same glance as
+  // the title itself. Stays until the draft is published.
+  const needsYouPill = state === "draft"
+    ? `<span class="bza__row-needs-you" title="this draft hasn't been published yet">needs you</span>`
     : "";
 
   return `
@@ -370,7 +419,7 @@ function listingRowHtml(l, schedulesByBidId) {
       <a class="bza__row-link" href="/listing.html?id=${escape(l.id)}">
         <span class="bza__row-state bza__row-state--${state}"></span>
         <div class="bza__row-main">
-          <h3 class="bza__row-title">${escape(l.title || "untitled")}</h3>
+          <h3 class="bza__row-title">${escape(l.title || "untitled")}${needsYouPill}</h3>
           <div class="bza__row-meta">${metaBits}</div>
         </div>
         <div class="bza__row-budget">${escape(budgetText)}</div>
@@ -379,6 +428,200 @@ function listingRowHtml(l, schedulesByBidId) {
       ${ctaHtml}
     </div>
   `;
+}
+
+/* ============================================================== */
+/*                      MY LISTINGS — CARD VIEW                    */
+/* ============================================================== */
+
+// Marketplace-style card for an owner's own listing. Same .gr-listing-
+// card shell so the visual rhythm matches /marketplace.html; content
+// is swapped for owner-relevant signals (state pill in the eyebrow,
+// offers + days open in the meta column, the primary action as the
+// foot CTA instead of "view →").
+function ownerListingCardHtml(l, schedulesByBidId) {
+  const state = listingState(l);
+  const stateLabel = STATE_LABELS[state] || state;
+  const offerCount = l.__bidCount || 0;
+  const offerLabel = offerCount === 1 ? "1 offer" : `${offerCount} offers`;
+  const recencyLabel = shortRecency(l.created_at);
+  const dotColor = STATE_DOT_COLORS[state] || "var(--fo-text-3)";
+
+  const budgetRange = parseBudgetRangeFromDetails(l.details);
+  const cents = l.budget_cents;
+  const budgetText = budgetRange
+    ? `$${budgetRange.min}–$${budgetRange.max}`
+    : cents != null
+    ? `$${Math.round(cents / 100)}`
+    : "—";
+
+  // `Number(null) === 0` is finite, which would render "nulld turnaround"
+  // — guard against the SQL NULL case explicitly and reject 0.
+  const td = Number(l.turnaround_days);
+  const turnaround = Number.isFinite(td) && td > 0 ? `${td}d turnaround` : "";
+
+  const categories = l.category
+    ? l.category.split(",").map((c) => c.trim()).filter(Boolean)
+    : [];
+  const visibleTags = categories.slice(0, 2);
+  const overflow = categories.length - visibleTags.length;
+  const tagsHtml = categories.length
+    ? `<div class="gr-listing-tags">${
+        visibleTags
+          .map((c) => `<span class="gr-listing-tag">${escape(c)}</span>`)
+          .join("")
+      }${
+        overflow > 0
+          ? `<span class="gr-listing-tag gr-listing-tag--more">+${overflow}</span>`
+          : ""
+      }</div>`
+    : "";
+
+  const action = listingPrimaryAction(l, schedulesByBidId);
+  // Drafts always need the owner's attention: surface the same
+  // "needs you" pill the other action-required cards use, but point
+  // the CTA at the create-listing wizard (?draft=…) instead of the
+  // listing detail page. Stays until the draft flips to 'open'.
+  const isDraft = state === "draft";
+  const ctaText = action ? action.label : isDraft ? "finish & publish" : "open listing";
+  const ctaHref = action ? action.href : isDraft ? `/create-listing.html?draft=${l.id}` : `/listing.html?id=${l.id}`;
+  const needsAction = !!action || isDraft;
+
+  return `
+    <a class="gr-listing-card ml-card ml-card--${escape(state)}${needsAction ? " ml-card--needs-action" : ""}" href="${escape(ctaHref)}">
+      <span class="ml-card__dot" style="background:${dotColor}" aria-label="${escape(stateLabel)}" title="${escape(stateLabel)}"></span>
+      <div class="gr-listing-card-eyebrow">
+        ${needsAction ? `<span class="ml-card__action-tag">needs you</span>` : ""}
+        ${recencyLabel ? `<span class="ml-card__recency">${escape(recencyLabel)}</span>` : ""}
+      </div>
+      <h2 class="gr-listing-title">${escape(l.title || "untitled")}</h2>
+      <div class="gr-listing-card-head ml-card__head">
+        <div class="gr-listing-card-meta ml-card__meta">
+          <p class="gr-listing-biz-name ml-card__offers">${escape(offerLabel)}</p>
+          <p class="gr-listing-budget">${escape(budgetText)}</p>
+          ${turnaround ? `<p class="gr-listing-contract">${escape(turnaround)}</p>` : ""}
+        </div>
+      </div>
+      <div class="gr-listing-foot">
+        ${tagsHtml || '<div></div>'}
+        <span class="gr-listing-cta-link">${escape(ctaText)} →</span>
+      </div>
+    </a>
+  `;
+}
+
+// Mount the my-listings card grid + search/sort toolbar + filterable
+// status legend. Re-renders in place whenever the search query, sort
+// option, or legend filter toggles.
+//
+// Filter pipeline (intersection, applied in order):
+//   1) search query against title
+//   2) state filter from the legend (empty set = show all)
+//   3) sort
+function mountMyListingsView(listings, schedulesByBidId) {
+  const host = $("dash-listings-cards");
+  const empty = $("ml-empty");
+  const countEl = $("ml-result-count");
+  const searchEl = $("ml-search");
+  const sortEl = $("ml-sort");
+  const legendEl = $("ml-legend");
+  if (!host) return;
+
+  // Cards needing the owner's attention always float to the top —
+  // regardless of which sort the owner picked — so opening the view
+  // visually leads them to what's blocked on them. The chosen sort
+  // applies as a secondary ordering within the two groups.
+  const hasPendingAction = (l) => !!listingPrimaryAction(l, schedulesByBidId);
+  const withActionFirst = (inner) => (a, b) => {
+    const ap = hasPendingAction(a) ? 0 : 1;
+    const bp = hasPendingAction(b) ? 0 : 1;
+    if (ap !== bp) return ap - bp;
+    return inner(a, b);
+  };
+
+  const SORTERS = {
+    newest: withActionFirst((a, b) => new Date(b.created_at) - new Date(a.created_at)),
+    oldest: withActionFirst((a, b) => new Date(a.created_at) - new Date(b.created_at)),
+    offers: withActionFirst((a, b) => (b.__bidCount || 0) - (a.__bidCount || 0)),
+    budget: withActionFirst((a, b) => ownerBudgetSortValue(b) - ownerBudgetSortValue(a)),
+  };
+
+  // `closed` chip filters both 'closed' and 'cancelled' states so the
+  // legend label matches what an owner thinks of as "closed."
+  const STATE_GROUPS = { closed: ["closed", "cancelled"] };
+  const groupStatesFor = (s) => STATE_GROUPS[s] || [s];
+
+  const activeStates = new Set();
+
+  const render = () => {
+    const q = (searchEl?.value || "").trim().toLowerCase();
+    const sortKey = sortEl?.value || "newest";
+    const sorter = SORTERS[sortKey] || SORTERS.newest;
+
+    // Expand grouped chips (e.g. "closed" → ["closed", "cancelled"]).
+    const stateMatch = activeStates.size
+      ? new Set([...activeStates].flatMap(groupStatesFor))
+      : null;
+
+    const filtered = listings
+      .filter((l) => !q || String(l.title || "").toLowerCase().includes(q))
+      .filter((l) => !stateMatch || stateMatch.has(listingState(l)))
+      .slice()
+      .sort(sorter);
+
+    if (countEl) {
+      const total = listings.length;
+      countEl.textContent = filtered.length === total
+        ? `${total} listing${total === 1 ? "" : "s"}`
+        : `${filtered.length} of ${total}`;
+    }
+    if (!filtered.length) {
+      host.innerHTML = "";
+      if (empty) empty.hidden = false;
+      return;
+    }
+    if (empty) empty.hidden = true;
+    host.innerHTML = filtered
+      .map((l) => ownerListingCardHtml(l, schedulesByBidId))
+      .join("");
+  };
+
+  // Bind listeners once — re-render on every keystroke / change /
+  // legend toggle. dataset.bound guards against re-binding when
+  // mountMyListingsView is called more than once.
+  if (searchEl && !searchEl.dataset.bound) {
+    searchEl.addEventListener("input", render);
+    searchEl.dataset.bound = "1";
+  }
+  if (sortEl && !sortEl.dataset.bound) {
+    sortEl.addEventListener("change", render);
+    sortEl.dataset.bound = "1";
+  }
+  if (legendEl && !legendEl.dataset.bound) {
+    legendEl.addEventListener("click", (e) => {
+      const chip = e.target.closest(".ml-legend-chip[data-state]");
+      if (!chip) return;
+      const state = chip.dataset.state;
+      if (activeStates.has(state)) activeStates.delete(state);
+      else activeStates.add(state);
+      chip.setAttribute("aria-pressed", activeStates.has(state) ? "true" : "false");
+      chip.classList.toggle("is-active", activeStates.has(state));
+      legendEl.classList.toggle("has-active", activeStates.size > 0);
+      render();
+    });
+    legendEl.dataset.bound = "1";
+  }
+
+  render();
+}
+
+// "Highest budget" sort — uses the range max if a range is present,
+// otherwise the cents value, otherwise sinks the row.
+function ownerBudgetSortValue(l) {
+  const range = parseBudgetRangeFromDetails(l.details);
+  if (range && Number.isFinite(range.max)) return range.max;
+  if (Number.isFinite(Number(l.budget_cents))) return Number(l.budget_cents) / 100;
+  return -1;
 }
 
 function inboxRowHtml(client, t, consultants, listingTitle) {
@@ -558,12 +801,19 @@ function renderDashboard(client, data) {
   }
 
   // sidebar badges
-  const liveCount = listings.filter((l) => listingState(l) === "open").length;
   const inProgressCount = listings.filter((l) => listingState(l) === "hired").length;
+  const draftCount = listings.filter((l) => listingState(l) === "draft").length;
+  // The "my listings" badge reflects actions the owner needs to take —
+  // pending offers to review, kickoffs to schedule, work to mark
+  // complete, AND any unpublished drafts that need finishing.
+  const actionsNeededCount = listings.filter(
+    (l) => listingState(l) === "draft" || !!listingPrimaryAction(l, schedulesByBidId)
+  ).length;
   const listingsBadge = $("dash-listings-badge");
-  if (liveCount > 0) {
-    listingsBadge.textContent = String(liveCount);
+  if (actionsNeededCount > 0) {
+    listingsBadge.textContent = String(actionsNeededCount);
     listingsBadge.hidden = false;
+    listingsBadge.title = `${actionsNeededCount} listing${actionsNeededCount === 1 ? "" : "s"} need${actionsNeededCount === 1 ? "s" : ""} your attention`;
   }
   const inboxBadge = $("dash-inbox-badge");
   if (unreadCount > 0) {
@@ -591,7 +841,10 @@ function renderDashboard(client, data) {
   }
 
   let metaBits = [];
-  if (liveCount) metaBits.push(`${liveCount} live · ${listings.reduce((a, l) => a + (l.__bidCount || 0), 0)} total offers`);
+  // Re-derive live count locally — the badge logic above now tracks
+  // pending actions instead, so liveCount is no longer in scope here.
+  const liveCountForMeta = listings.filter((l) => listingState(l) === "open").length;
+  if (liveCountForMeta) metaBits.push(`${liveCountForMeta} live · ${listings.reduce((a, l) => a + (l.__bidCount || 0), 0)} total offers`);
   if (unreadCount) metaBits.push(`${unreadCount} unread`);
   $("dash-h-meta").textContent = metaBits.join(" · ");
 
@@ -633,18 +886,20 @@ function renderDashboard(client, data) {
 
   // listings rows (dashboard view — show top 5)
   const listingsRows = $("dash-listings-rows");
-  const listingsRowsFull = $("dash-listings-rows-full");
   const listingsEmpty = $("dash-listings-empty");
   const renderRow = (l) => listingRowHtml(l, schedulesByBidId);
   if (!listings.length) {
     listingsEmpty.hidden = false;
     listingsRows.innerHTML = "";
-    listingsRowsFull.innerHTML = "";
   } else {
     listingsEmpty.hidden = true;
     listingsRows.innerHTML = listings.slice(0, 5).map(renderRow).join("");
-    listingsRowsFull.innerHTML = listings.map(renderRow).join("");
   }
+
+  // my-listings card grid + search/sort toolbar. Independent of the
+  // dashboard row list; uses marketplace-style cards so the view
+  // reads as its own surface.
+  mountMyListingsView(listings, schedulesByBidId);
 
   // tab filtering on the dashboard listings panel
   const tabsHost = $("dash-listings-tabs");
@@ -750,10 +1005,6 @@ function renderDashboard(client, data) {
       health.pct >= 67 ? "var(--fo-accent)" : health.pct >= 34 ? "var(--fo-do)" : "var(--fo-plan)";
 
     panel.innerHTML = `
-      <div class="bza__panel-h">
-        <span class="bza__panel-h-title"><strong>profile health</strong></span>
-      </div>
-
       <div class="bza__health-top">
         ${renderHealthBucket(health)}
         <div class="bza__health-summary">
@@ -786,8 +1037,8 @@ function renderDashboard(client, data) {
         return;
       }
       renderAnalyticsPanel(analyticsHost, analytics, {
-        title: "listing performance",
-        subtitle: `across all ${analytics.listingCount} listing${analytics.listingCount === 1 ? "" : "s"} you've posted.`,
+        title: "performance",
+        compact: true,
       });
     });
   }

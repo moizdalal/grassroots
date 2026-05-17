@@ -62,6 +62,19 @@ export function isPremature(bid, listing, _schedule) {
 // Detect what's waiting on the consultant. Used for the pulsing
 // action dot at the plant apex.
 export function detectAction(bid, _listing, schedule) {
+  // Active owner counter awaiting the consultant's response. Takes
+  // priority over kickoff scheduling since the bid hasn't been
+  // accepted yet — there's nothing to schedule.
+  if (
+    bid?.status === "countered" &&
+    bid?.counter_offer_cents != null &&
+    !bid?.counter_responded_at
+  ) {
+    return {
+      title: "respond to the business's counter",
+      href: `/listing.html?id=${bid.listing_id}`,
+    };
+  }
   if (schedule?.status === "awaiting_consultant") {
     return { title: "pick a kickoff time", href: `/engagement.html?bid=${bid.id}` };
   }
@@ -238,6 +251,25 @@ export function mountEngagementJourneyFlowers(container, { client, engagements, 
   const hiddenIds = new Set();
   let savedOrder = loadJourneyOrder(userId);
   let gardenIds = loadGardenForUser(userId); // {bid_id: timestamp}
+
+  // Garden membership lives in localStorage so a hard wipe of the DB
+  // (or any bid being deleted) leaves dangling ids that still bump
+  // the "your garden" count. Reconcile against the current enriched
+  // bid set on load: keep only ids that still exist, persist the
+  // cleaned map back so the next read is stable.
+  {
+    const validIds = new Set(enriched.map((e) => e.id));
+    let changed = false;
+    const cleaned = {};
+    for (const [id, ts] of Object.entries(gardenIds || {})) {
+      if (validIds.has(id)) cleaned[id] = ts;
+      else changed = true;
+    }
+    if (changed) {
+      gardenIds = cleaned;
+      saveGardenForUser(userId, gardenIds);
+    }
+  }
   // Shared drag state so both the shuffle handlers and the garden-tile
   // drop handler can tell what plant (and what lifecycle stage) is
   // being dragged. Updated in dragstart, cleared in dragend.
@@ -341,7 +373,7 @@ export function mountEngagementJourneyFlowers(container, { client, engagements, 
 
 function renderEmpty() {
   return `<div class="cdash__journey-flowers-empty">
-    <p>no engagements yet — submit a bid and your first seed will sprout here.</p>
+    <p>no engagements yet — <a href="/marketplace.html" class="cdash__journey-flowers-empty-link">explore the marketplace</a> and submit a bid, and your first seed will sprout here.</p>
   </div>`;
 }
 

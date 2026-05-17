@@ -12,6 +12,35 @@
   border-radius: 14px;
 }
 
+/* Compact variant — used in the owner home right rail. Drops the
+   histogram (handled in JS), stacks metrics vertically, and shrinks
+   the headline so the whole card fits next to the listings panel in
+   a no-scroll layout. */
+.lv-panel--compact {
+  padding: var(--space-4);
+  gap: var(--space-3);
+}
+
+/* Dashboard "performance" slot sits beside profile-health in the
+   right rail of the owner home. Strip the card chrome so it reads
+   as inline content beneath the eyebrow, not as a competing card
+   next to the bucket panel. */
+#dash-analytics .lv-panel {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+.lv-panel--compact .lv-metrics {
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+}
+.lv-panel--compact .lv-metric {
+  padding: var(--space-3) var(--space-4);
+}
+.lv-panel--compact .lv-metric__value {
+  font-size: var(--type-h1);
+}
+
 .lv-panel__head {
   display: flex;
   flex-direction: column;
@@ -101,13 +130,67 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--fo-text-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 
+/* "?" affordance next to the conversion label — click toggles the
+   "N of M viewers submitted an offer" subtext below. Uppercase
+   letter-spacing on the parent label strips out so the bubble looks
+   centered. */
+.lv-metric__info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--fo-text-3) 50%, transparent);
+  background: transparent;
+  color: var(--fo-text-3);
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.lv-metric__info:hover,
+.lv-metric__info[aria-expanded="true"] {
+  color: var(--fo-accent);
+  border-color: var(--fo-accent);
+  background: color-mix(in srgb, var(--fo-accent) 12%, transparent);
+}
+
+/* Conversion subtext — sits inline to the right of the "?" button
+   when toggled on, so the breakdown reads as a footnote tied to
+   the label instead of a separate block below. Lowercase + non-
+   uppercase since it inherits .lv-metric__label's letter-spacing. */
 .lv-metric__sub {
-  margin: 0.35rem 0 0;
   font-size: var(--type-meta);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
   color: var(--fo-text-2);
-  line-height: 1.4;
+  line-height: 1.3;
+  margin-left: 0.1rem;
+}
+
+.lv-metric__sub[hidden] {
+  display: none;
+}
+
+/* Compact variant — the dashboard home rail is narrow, so allow the
+   label row to wrap. The subtext drops to a new line beneath the
+   button when there's no inline room, while still reading as part
+   of the same group thanks to the shared color + size. */
+.lv-panel--compact .lv-metric__label {
+  flex-wrap: wrap;
 }
 
 /* ── Section heading inside the panel ────────────────────────── */
@@ -140,10 +223,56 @@
 }
 
 /* ── Histogram ───────────────────────────────────────────────── */
+/* Layout: [y-axis | sliding pages]. Each page holds up to 7 day
+   bars + their x-axis labels. Multiple pages stack horizontally
+   inside .lv-hist__pages and slide via translateX(--page-offset)
+   when the dot nav is clicked. A shared tooltip floats inside the
+   pages wrapper and is positioned over the hovered bar. */
 .lv-hist {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.4rem;
+}
+
+.lv-hist__body {
+  display: grid;
+  grid-template-columns: 1.6rem 1fr;
+  gap: 0.45rem;
+  align-items: stretch;
+}
+
+.lv-hist__y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 9.5rem;
+  padding: 0.6rem 0;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-eyebrow);
+  letter-spacing: 0.04em;
+  color: var(--fo-text-3);
+  text-align: right;
+  box-sizing: border-box;
+}
+
+.lv-hist__y-tick {
+  line-height: 1;
+}
+
+.lv-hist__pages {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  --page-offset: 0%;
+}
+
+.lv-hist__page {
+  display: inline-block;
+  width: 100%;
+  vertical-align: top;
+  transform: translateX(var(--page-offset));
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  white-space: normal;
 }
 
 .lv-hist__plot {
@@ -162,47 +291,205 @@
   overflow: visible;
 }
 
-/* Bars: faint accent for zero-count days (so the day still reads as
-   present) and full accent for active days. Hover bumps the tint up. */
-.lv-hist__bar {
-  fill: var(--fo-surface-3);
-  transition: fill 0.15s ease;
+/* Line graph + dots. The polyline is drawn in SVG (stretched to the
+   container width by preserveAspectRatio="none", with non-scaling
+   stroke so weight stays constant). The dots sit in an HTML overlay
+   on top of the SVG so they keep a perfect circular shape regardless
+   of the container's aspect ratio. */
+.lv-hist__plot {
+  position: relative;
 }
 
-.lv-hist__bar--has {
-  fill: var(--fo-accent);
+.lv-hist__plot > svg {
+  position: absolute;
+  inset: 0.6rem;
+  width: calc(100% - 1.2rem);
+  height: calc(100% - 1.2rem);
 }
 
-.lv-hist__plot svg:hover .lv-hist__bar--has {
-  fill: var(--fo-accent);
-  opacity: 0.85;
+.lv-hist__line {
+  fill: none;
+  stroke: var(--fo-text-3);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0.75;
 }
 
-.lv-hist__bar--has:hover,
-.lv-hist__bar:hover {
-  fill: var(--fo-accent);
-  opacity: 1;
+.lv-hist__dots-layer {
+  position: absolute;
+  inset: 0.6rem;
+  pointer-events: none;
 }
 
-/* Axis labels — sit in their own SVG strip so they don't get clipped
-   by the bar plot's bounding box. */
+/* Each dot button is positioned by left% / bottom% over the line.
+   The visible circle is a fixed-px element inside the button — a
+   button-sized hit-target around it expands hover without distorting
+   the visual mark. */
+.lv-hist__dot {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.lv-hist__dot[disabled] {
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Visible mark — absolutely centered inside the larger hit-target so
+   the circle always renders 9×9 (not flex-shrunk by an inline-flex
+   parent). border-radius:50% on a square element guarantees round. */
+.lv-hist__dot-mark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--fo-text-2);
+  border: 1px solid var(--fo-surface-2);
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+/* Days with at least one offer pick up the brand accent. */
+.lv-hist__dot--offer .lv-hist__dot-mark {
+  background: var(--fo-accent);
+}
+
+/* Future / padded days — outline only, low opacity. */
+.lv-hist__dot--ghost .lv-hist__dot-mark {
+  background: var(--fo-bg);
+  border-color: var(--fo-line-strong);
+  opacity: 0.55;
+}
+
+.lv-hist__dot:hover .lv-hist__dot-mark,
+.lv-hist__dot:focus-visible .lv-hist__dot-mark {
+  transform: scale(1.25);
+  border-color: var(--fo-text);
+}
+
+.lv-hist__dot:focus-visible {
+  outline: 2px solid var(--fo-accent);
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+
+/* X-axis labels — HTML spans absolutely positioned by left percentage
+   so each label keeps its natural width (no SVG glyph stretch). */
 .lv-hist__axis {
+  position: relative;
   width: 100%;
   height: 1.1rem;
+  margin-top: 0.25rem;
   padding: 0 0.6rem;
   box-sizing: border-box;
 }
 
-.lv-hist__axis svg {
-  width: 100%;
-  height: 100%;
-  overflow: visible;
+.lv-hist__label {
+  position: absolute;
+  top: 0.1rem;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  color: var(--fo-text-3);
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
+  line-height: 1;
 }
 
-.lv-hist__label {
-  fill: var(--fo-text-3);
+/* First and last labels would otherwise center on the edge dot and
+   overflow the chart. Anchor them so the date stays inside the
+   plot's horizontal bounds. */
+.lv-hist__label--first {
+  transform: none;
+  left: 0 !important;
+  text-align: left;
+}
+.lv-hist__label--last {
+  transform: none;
+  left: auto !important;
+  right: 0;
+  text-align: right;
+}
+
+.lv-hist__label--ghost {
+  opacity: 0.5;
+}
+
+/* Dot navigation — one per page, filled = active. Mirrors the
+   "indicator dots" pattern used elsewhere (engagement journey). */
+.lv-hist__dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+  padding-top: 0.3rem;
+}
+
+.lv-hist__dot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--fo-line-strong);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.lv-hist__dot:hover {
+  border-color: var(--fo-accent);
+  transform: scale(1.15);
+}
+
+.lv-hist__dot.is-active {
+  background: var(--fo-accent);
+  border-color: var(--fo-accent);
+}
+
+/* Floating tooltip over the hovered bar. JS sets `left: X%` to align
+   with the bar center; `transform: translate(-50%, -100%)` puts the
+   bubble just above the bar regardless of its position. */
+.lv-hist__tooltip {
+  position: absolute;
+  top: 0.2rem;
+  transform: translate(-50%, 0);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.45rem 0.65rem;
+  background: var(--fo-surface);
+  border: 1px solid var(--fo-line-strong);
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
   font-family: "Manrope", system-ui, sans-serif;
-  font-size: 2.6px; /* matches viewBox scale; renders ~10–11px on screen */
-  text-anchor: middle;
-  dominant-baseline: hanging;
+  font-size: var(--type-meta);
+  color: var(--fo-text);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 4;
+}
+
+.lv-hist__tooltip[hidden] { display: none; }
+
+.lv-hist__tooltip-date {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.lv-hist__tooltip-views {
+  color: var(--fo-text-2);
+}
+
+.lv-hist__tooltip-offers {
+  color: var(--fo-accent-warm);
+  font-weight: 600;
 }
