@@ -5353,6 +5353,9 @@ button.gr-bid-link {
 
 .gr-toast--success { border-left-color: var(--fo-accent, #2f7a5a); }
 .gr-toast--error   { border-left-color: var(--fo-plan, #d97757); }
+/* Loading toasts use a warm-amber rail so they read as "in progress"
+   — not as a success and not as a destructive error. */
+.gr-toast--loading { border-left-color: #d8a23a; }
 
 .gr-toast__icon {
   display: inline-flex;
@@ -5369,6 +5372,21 @@ button.gr-bid-link {
 
 .gr-toast--success .gr-toast__icon { color: var(--fo-accent, #2f7a5a); }
 .gr-toast--error   .gr-toast__icon { color: var(--fo-plan, #d97757); }
+.gr-toast--loading .gr-toast__icon { color: #d8a23a; }
+
+/* Spinning loader on the loading toast icon — same yellow as the
+   rail. transform-origin centers the rotation on the circle. */
+.gr-toast--loading .gr-toast__icon svg {
+  animation: gr-toast-spin 0.9s linear infinite;
+  transform-origin: 50% 50%;
+}
+@keyframes gr-toast-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gr-toast--loading .gr-toast__icon svg { animation: none; }
+}
 
 .gr-toast__text {
   min-width: 0;

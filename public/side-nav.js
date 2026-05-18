@@ -50,7 +50,7 @@ function buildNavItems(role) {
       { href: "/consultant-dashboard.html", label: "home", icon: ICONS.home, navId: "home" },
       { href: "/engagements.html", label: "engagements", icon: ICONS.engagements, navId: "engagements" },
       { href: "/marketplace.html", label: "marketplace", icon: ICONS.marketplace, navId: "marketplace" },
-      { href: "/consultant-dashboard.html#inbox", label: "inbox", icon: ICONS.inbox, navId: "inbox" },
+      { href: "/inbox.html", label: "inbox", icon: ICONS.inbox, navId: "inbox" },
       { href: "/notifications.html", label: "notifications", icon: ICONS.notifications, navId: "notifications" },
       { href: "/payouts.html", label: "payouts", icon: ICONS.payouts, navId: "payouts" },
     ];
@@ -60,7 +60,7 @@ function buildNavItems(role) {
   return [
     { href: "/dashboard.html", label: "home", icon: ICONS.home, navId: "home" },
     { href: "/dashboard.html#listings", label: "my listings", icon: ICONS.listings, navId: "listings" },
-    { href: "/dashboard.html#inbox", label: "inbox", icon: ICONS.inbox, navId: "inbox" },
+    { href: "/inbox.html", label: "inbox", icon: ICONS.inbox, navId: "inbox" },
     { href: "/notifications.html", label: "notifications", icon: ICONS.notifications, navId: "notifications" },
   ];
 }
@@ -83,6 +83,7 @@ function inferActiveNavId(role) {
   if (path === "/engagements.html") return "engagements";
   if (path === "/payouts.html") return role === "consultant" ? "payouts" : null;
   if (path === "/notifications.html") return "notifications";
+  if (path === "/inbox.html") return "inbox";
   if (path === "/settings.html") return "settings";
   if (path === "/help.html" || path.startsWith("/help/")) return "help";
   return null;

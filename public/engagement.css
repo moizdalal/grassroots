@@ -303,6 +303,21 @@
   background: var(--sky);
 }
 
+/* Dark themes: --tagline-body (=--fo-text-3) drops the label below
+   readable contrast against the dark surface. Lift to --fo-text-2 +
+   raise the select fill/border so the entire "meeting length"
+   control stays legible. */
+:root:not([data-theme="light"]) .eg-duration label,
+:root:not([data-theme="light"]) .eg-duration-readonly__label {
+  color: var(--fo-text-2);
+}
+
+:root:not([data-theme="light"]) .eg-duration select {
+  background: var(--fo-surface-2);
+  border-color: var(--fo-line-strong);
+  color: var(--fo-text);
+}
+
 /* Read-only meeting length — shown to the consultant (who can't edit it)
    and to the owner after they've shared availability. Same eyebrow/value
    rhythm as the dropdown, no input chrome. */

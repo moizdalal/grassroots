@@ -801,8 +801,8 @@ body.gr-body .gr-section-h {
 :where(#listing-grid, #dash-listings-cards) .gr-listing-title {
   font-family: "Fraunces", serif;
   font-weight: 600;
-  font-size: var(--type-h1);
-  line-height: 1.1;
+  font-size: var(--type-h2);
+  line-height: 1.15;
   letter-spacing: -0.015em;
   color: var(--fo-text);
   margin: 0;
@@ -1048,6 +1048,50 @@ body.gr-body .gr-section-h {
 @media (max-width: 900px) {
   .cdash__below {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ── consultant home: no-scroll single-view layout ─────────────────
+   Lock the consultant dashboard view to one viewport-height column so
+   the page itself never scrolls. The welcome heading + engagement
+   journey keep their natural heights; .cdash__below grows to fill the
+   remaining space, and the notifications list inside its right card
+   scrolls internally (overflow-y: auto further below). Mirrors the
+   owner home's .dash-view--home pattern. */
+.dash-view:has(#cdash-welcome) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /* 4rem = .bza__main top + bottom padding (32px each). */
+  height: calc(100vh - 4rem);
+}
+
+.dash-view:has(#cdash-welcome) > .bza__page-h,
+.dash-view:has(#cdash-welcome) > #cdash-journey-panel {
+  flex: 0 0 auto;
+}
+
+.dash-view:has(#cdash-welcome) > .cdash__below {
+  flex: 1 1 0;
+  min-height: 0;
+  /* Force the implicit row to honour the flex height instead of growing
+     to the tallest column's natural content. minmax(0, 1fr) is the
+     standard grid escape hatch for "don't let content set the floor". */
+  grid-template-rows: minmax(0, 1fr);
+}
+
+/* Same escape hatch on the grid items: default `min-height: auto`
+   would let them push the row past the parent's allotted height. */
+.dash-view:has(#cdash-welcome) > .cdash__below > .cdash__health-section,
+.dash-view:has(#cdash-welcome) > .cdash__below > .cdash__notifications-section {
+  min-height: 0;
+}
+
+/* Narrow viewports: drop the height lock so the stacked single-column
+   layout can scroll naturally. */
+@media (max-width: 960px) {
+  .dash-view:has(#cdash-welcome) {
+    height: auto;
   }
 }
 
@@ -4781,7 +4825,36 @@ body.gr-has-side-nav .bza__main {
 }
 
 .bza__row-state--hired {
-  background: var(--fo-accent-warm);
+  background: var(--fo-accent);
+}
+
+/* Pulse modifier — applied by dashboard.js when the row has a primary
+   action waiting on the owner (share availability, mark complete,
+   review offers, finish a draft). Mirrors the engagement-journey
+   action dot pulse so action-pending across the dashboard reads as
+   one motion vocabulary. */
+.bza__row-state--pulse {
+  position: relative;
+  box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 55%, transparent);
+  animation: bza-row-state-pulse 1.8s ease-out infinite;
+  /* Use the dot's own background as the pulse halo color via
+     currentColor — each state's color is set on `color` so the same
+     keyframe works for green (hired), violet (draft), grey (live),
+     etc. without per-state keyframes. */
+}
+
+.bza__row-state--pulse.bza__row-state--hired { color: var(--fo-accent); }
+.bza__row-state--pulse.bza__row-state--live  { color: var(--fo-text-3); }
+.bza__row-state--pulse.bza__row-state--draft { color: var(--fo-draft); }
+
+@keyframes bza-row-state-pulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 55%, transparent); }
+  70%  { box-shadow: 0 0 0 9px color-mix(in srgb, currentColor 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 0%, transparent); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bza__row-state--pulse { animation: none; }
 }
 
 .bza__row-state--completed {
@@ -4862,7 +4935,7 @@ body.gr-has-side-nav .bza__main {
 }
 
 .bza__row-state-label--hired {
-  color: var(--fo-accent-warm);
+  color: var(--fo-accent);
 }
 
 .bza__row-state-label--completed {
@@ -6774,6 +6847,22 @@ body.gr-has-side-nav .bza__main {
   width: 100%;
   height: 100vh;
   min-height: 0;
+}
+
+/* Standalone /inbox.html page: the inbox lives inside the side-nav
+   grid cell rather than as one of several .dash-view siblings, so
+   constrain it to the available viewport height (minus the side
+   nav's top margin) and strip the dashboard chrome. */
+body.inbox-page main.inbox-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+body.inbox-page .inbox {
+  height: calc(100vh - 2rem);
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--fo-line);
 }
 
 @media (max-width: 540px) {

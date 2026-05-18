@@ -368,7 +368,10 @@
   .cdash__journey-flowers-plant-msg { animation: none; }
 }
 
-/* ── per-plant action dot (pulses at the plant's current apex) ── */
+/* ── per-plant action dot (hovers just above the plant's current apex) ──
+   `top` is set inline to the apex y as a % of the canvas; the
+   translate puts the dot's bottom edge ~6px above that point so the
+   plant itself (especially the tiny seed at stage 1) stays visible. */
 .cdash__journey-flowers-action-dot {
   position: absolute;
   left: 50%;
@@ -379,7 +382,7 @@
   border: 2.4px solid var(--fo-surface);
   cursor: pointer;
   padding: 0;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, calc(-100% - 6px));
   z-index: 3;
   box-shadow: 0 0 0 0 color-mix(in srgb, var(--fo-accent-warm) 55%, transparent);
   animation: cdash-journey-action-pulse 1.8s ease-out infinite;

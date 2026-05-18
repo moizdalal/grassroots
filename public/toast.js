@@ -38,10 +38,13 @@ function ensureStack() {
 const ICON_SUCCESS = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="5 12 10 17 19 7"/></svg>`;
 const ICON_ERROR = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="7" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17.01"/></svg>`;
 const ICON_INFO = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="12" y1="7" x2="12" y2="7.01"/></svg>`;
+// CSS rotates this SVG so the loading toast reads as "in progress".
+const ICON_LOADING = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" opacity="0.25"/><path d="M21 12a9 9 0 0 0-9-9"/></svg>`;
 
 function iconFor(kind) {
   if (kind === "success") return ICON_SUCCESS;
   if (kind === "error") return ICON_ERROR;
+  if (kind === "loading") return ICON_LOADING;
   return ICON_INFO;
 }
 
@@ -53,7 +56,11 @@ function iconFor(kind) {
  */
 export function showToast(message, opts = {}) {
   const { kind = "info", action = null } = opts;
-  const duration = opts.duration ?? (kind === "error" ? 4500 : 3200);
+  // Loading toasts persist by default (caller dismisses when the
+  // underlying work resolves). Errors stay a beat longer than info /
+  // success so they're easy to read.
+  const defaultDuration = kind === "loading" ? 0 : kind === "error" ? 4500 : 3200;
+  const duration = opts.duration ?? defaultDuration;
   const stack = ensureStack();
 
   const toast = document.createElement("div");
@@ -134,6 +141,10 @@ export function showSuccess(message, opts = {}) {
 
 export function showError(message, opts = {}) {
   return showToast(message, { ...opts, kind: "error" });
+}
+
+export function showLoading(message, opts = {}) {
+  return showToast(message, { ...opts, kind: "loading" });
 }
 
 export function showInfo(message, opts = {}) {

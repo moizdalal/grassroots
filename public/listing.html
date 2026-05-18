@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>grassroots — listing</title>
+    <link rel="icon" type="image/svg+xml" href="/home/assets/grassroots-icon-syne.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -127,21 +128,26 @@
           <aside class="ld-sidebar" id="ld-sidebar" hidden>
             <section id="ld-owner-actions" class="ld-sidebar__panel ld-owner-actions" hidden>
               <h2 class="ld-owner-actions__heading">listing controls</h2>
-              <p id="ld-owner-actions-copy" class="ld-owner-actions__copy" hidden></p>
+              <p id="ld-owner-actions-copy" class="ld-owner-actions__copy"></p>
 
               <div class="ld-owner-actions__buttons">
                 <button type="button" id="ld-pause-listing-btn" class="gr-btn gr-btn--ghost ld-owner-actions__btn">
                   pause listing
                 </button>
                 <button type="button" id="ld-close-listing-btn" class="gr-btn gr-btn--primary ld-owner-actions__btn">
-                  cancel listing
+                  close listing
                 </button>
               </div>
 
               <form id="ld-status-form" class="ld-status-form hidden">
                 <p id="ld-status-form-title" class="ld-status-form__title"></p>
+                <!-- Action-specific intro copy set by listing.js. For
+                     closing, explains that the listing stays viewable
+                     to consultants who already submitted; only new
+                     offers are blocked. -->
+                <p id="ld-status-form-intro" class="ld-status-form__intro" hidden></p>
                 <div class="ld-status-form__options" role="radiogroup" aria-labelledby="ld-status-form-title">
-                  <label class="ld-status-option">
+                  <label class="ld-status-option" id="ld-status-option-work-completed">
                     <input type="radio" name="listingStatusReason" value="work_completed" />
                     <span>work completed</span>
                   </label>
@@ -158,6 +164,23 @@
                     <span>other</span>
                   </label>
                 </div>
+
+                <!-- Pending-offers disposition. Only shown by listing.js
+                     when closing AND the listing has pending offers.
+                     Default keeps offers around so the owner can decide
+                     later; the "decline all" option fires a bulk update
+                     when the form is submitted. -->
+                <fieldset id="ld-status-offers" class="ld-status-form__offers" hidden>
+                  <legend class="ld-status-form__offers-title">what about offers you've already received?</legend>
+                  <label class="ld-status-option">
+                    <input type="radio" name="listingOffersDisposition" value="keep" checked />
+                    <span>leave them pending — decide later</span>
+                  </label>
+                  <label class="ld-status-option">
+                    <input type="radio" name="listingOffersDisposition" value="decline_all" />
+                    <span>decline all of them now</span>
+                  </label>
+                </fieldset>
 
                 <label id="ld-status-other-wrap" class="gr-label ld-status-form__other hidden">
                   <span>tell us more</span>
@@ -204,6 +227,11 @@
                 manage ongoing work
                 <span class="ld-bid-manage-link__arrow" aria-hidden="true">&rarr;</span>
               </a>
+              <!-- Status notice shown when the bid is accepted but there's
+                   no actionable destination yet — e.g. the consultant is
+                   waiting on the business to share kickoff availability.
+                   Copy is set by listing.js based on the schedule state. -->
+              <p id="ld-bid-awaiting-notice" class="ld-bid-awaiting" hidden></p>
 
               <div id="ld-offer-form-wrap">
                 <!-- Standard / retainer: single amount. Phased: two amounts. -->
@@ -284,7 +312,7 @@
               <div class="ld-chat-drawer__head">
                 <h3 class="ld-chat-drawer__title" id="ld-chat-title">message the business</h3>
                 <div class="ld-chat-drawer__actions">
-                  <a class="ld-chat-drawer__inbox-link" id="ld-chat-inbox-link" href="/dashboard.html#inbox" title="open in inbox">
+                  <a class="ld-chat-drawer__inbox-link" id="ld-chat-inbox-link" href="/inbox.html" title="open in inbox">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></svg>
                     <span>open in inbox</span>
                   </a>

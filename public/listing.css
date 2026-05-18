@@ -518,6 +518,27 @@ body.ld-modal-open { overflow: hidden; }
   justify-content: flex-end;
   gap: 0.5rem;
 }
+
+/* "Decline counter" picks up the destructive hover treatment used by
+   the cancel-listing button — warm coral border + tinted background +
+   matching text — so the user reads it as a path that ends in
+   destruction (either keeping the original or rescinding the bid). */
+.ld-counter-response__decline {
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.ld-counter-response__decline:hover,
+.ld-counter-response__decline:focus-visible {
+  border-color: var(--fo-plan, #c46f44);
+  color: var(--fo-plan, #c46f44);
+  background: rgba(196, 111, 68, 0.08);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.ld-counter-response__decline:active {
+  transform: translateY(0);
+}
 .ld-counter-response__status {
   margin: 0;
   font-size: var(--type-meta);
@@ -625,6 +646,27 @@ body.ld-modal-open { overflow: hidden; }
   padding: 0.25rem 0;
 }
 
+/* bids-owner: drop the card chrome too — each .ld-bid-card inside
+   already carries its own surface, so wrapping them in another card
+   reads as a redundant box. Title + counter-budget hint stay; the
+   panel just stops being a card. */
+#ld-bids-owner.ld-sidebar__panel {
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0.25rem 0;
+  max-height: none;
+  overflow: visible;
+}
+
+/* "your offer" (consultant view) — dark themes drop the card fill
+   per the brandkit card-bg rule. Light theme keeps it so the panel
+   reads as a distinct surface against the cream background. */
+:root:not([data-theme="light"]) #ld-offer-panel.ld-sidebar__panel {
+  background: transparent;
+}
+
 .ld-owner-actions {
   display: grid;
   gap: 0.75rem;
@@ -703,9 +745,37 @@ body.ld-modal-open { overflow: hidden; }
   color: var(--fo-text, var(--green-deep));
 }
 
+/* Plain-language intro shown above the reason radios — lets the owner
+   read what closing/pausing actually does before picking a reason. */
+.ld-status-form__intro {
+  margin: 0;
+  font-size: var(--type-meta);
+  line-height: 1.45;
+  color: var(--fo-text-2, var(--green-mid));
+}
+
 .ld-status-form__options {
   display: grid;
   gap: 0.4rem;
+}
+
+/* Pending-offers disposition fieldset — only rendered when closing a
+   listing that has outstanding offers. Borderless so it sits visually
+   alongside the reason options without looking like a different form. */
+.ld-status-form__offers {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.ld-status-form__offers-title {
+  padding: 0;
+  margin: 0 0 0.15rem;
+  font-size: var(--type-meta);
+  font-weight: 700;
+  color: var(--fo-text, var(--green-deep));
 }
 
 .ld-status-option {
@@ -736,6 +806,18 @@ body.ld-modal-open { overflow: hidden; }
 .ld-status-option input {
   margin: 0;
   accent-color: var(--fo-accent, var(--green-mid));
+}
+
+/* Disabled option — used on the work-completed radio when there's no
+   accepted bid yet. The label still receives click events so listing.js
+   can intercept the click and surface a toast explaining the gate. */
+.ld-status-option.is-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.ld-status-option.is-disabled:hover {
+  border-color: var(--fo-line, rgba(45, 106, 79, 0.12));
+  background: var(--fo-surface, transparent);
 }
 
 .ld-status-form__other textarea {
@@ -786,6 +868,13 @@ body.ld-modal-open { overflow: hidden; }
 /* Standalone "manage ongoing work" CTA sits just below the existing-
    offer card when the bid has been accepted. Same visual weight as
    the payouts-banner CTA so the two read as siblings. */
+/* Explicit override so the `hidden` HTML attribute wins over the
+   `display: inline-flex` below — without this, calling
+   `manageLink.hidden = true` from listing.js still renders the CTA. */
+.ld-bid-manage-link[hidden] {
+  display: none;
+}
+
 .ld-bid-manage-link {
   display: inline-flex;
   align-items: center;
@@ -814,6 +903,19 @@ body.ld-modal-open { overflow: hidden; }
 
 .ld-bid-manage-link:hover .ld-bid-manage-link__arrow {
   transform: translateX(2px);
+}
+
+/* Status notice shown when the bid is accepted but the consultant has
+   nothing to act on yet — e.g. waiting on the business to share
+   kickoff availability. Sits where the manage-link CTA would have
+   gone; italic + muted so it reads as "informational" not "actionable". */
+.ld-bid-awaiting {
+  margin: 0 0 0.9rem;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
+  font-style: italic;
+  color: var(--fo-text-3, rgba(241, 232, 211, 0.6));
+  line-height: 1.4;
 }
 
 /* `:not([hidden])` so the class doesn't out-specificity the `hidden`

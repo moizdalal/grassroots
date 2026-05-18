@@ -414,10 +414,17 @@ function listingRowHtml(l, schedulesByBidId) {
     ? `<span class="bza__row-needs-you" title="this draft hasn't been published yet">needs you</span>`
     : "";
 
+  // Pulse the state dot whenever the owner has something to do here —
+  // any of the listingPrimaryAction CTAs, or the implicit draft
+  // finish-and-publish action. Stays in lockstep with whether a CTA
+  // is rendered, so the dot and the button always agree.
+  const ownerActionPending = !!action || state === "draft";
+  const stateDotClass = `bza__row-state bza__row-state--${state}${ownerActionPending ? " bza__row-state--pulse" : ""}`;
+
   return `
     <div class="bza__row">
       <a class="bza__row-link" href="/listing.html?id=${escape(l.id)}">
-        <span class="bza__row-state bza__row-state--${state}"></span>
+        <span class="${stateDotClass}"></span>
         <div class="bza__row-main">
           <h3 class="bza__row-title">${escape(l.title || "untitled")}${needsYouPill}</h3>
           <div class="bza__row-meta">${metaBits}</div>
@@ -1052,6 +1059,13 @@ function setupViewSwitcher() {
   const views = document.querySelectorAll(".dash-view");
 
   function showView(name) {
+    // Inbox lives at /inbox.html now — legacy `#inbox` hash on the
+    // dashboard redirects there instead of trying to render an
+    // in-page section (which was removed).
+    if (name === "inbox") {
+      window.location.href = "/inbox.html";
+      return;
+    }
     views.forEach((v) => {
       v.hidden = v.dataset.view !== name;
     });
@@ -1062,7 +1076,6 @@ function setupViewSwitcher() {
     if (currentHash !== name) {
       window.history.replaceState(null, "", `#${name}`);
     }
-    if (name === "inbox") lazyInitInbox();
   }
 
   let inboxLoaded = false;

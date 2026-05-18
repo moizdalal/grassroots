@@ -8,7 +8,7 @@ import {
   loadListingAnalytics,
   renderAnalyticsPanel,
 } from "/listing-analytics.js";
-import { showToast, showSuccess, showError } from "/toast.js";
+import { showToast, showSuccess, showError, showLoading } from "/toast.js";
 
 const gate = document.getElementById("listing-gate");
 const detail = document.getElementById("listing-detail");
@@ -26,6 +26,9 @@ const statusOtherInput = document.getElementById("ld-status-other-input");
 const statusSubmitBtn = document.getElementById("ld-status-submit-btn");
 const statusCancelBtn = document.getElementById("ld-status-cancel-btn");
 const ownerActionStatus = document.getElementById("ld-owner-action-status");
+const statusFormIntro = document.getElementById("ld-status-form-intro");
+const statusOffersFieldset = document.getElementById("ld-status-offers");
+const workCompletedOption = document.getElementById("ld-status-option-work-completed");
 
 const STATUS_REASON_LABELS = {
   work_completed: "work completed",
@@ -34,7 +37,15 @@ const STATUS_REASON_LABELS = {
   other: "other",
 };
 
+// Bid statuses that still represent an offer the owner could decline.
+// Accepted bids belong to a live engagement — leaving them alone is the
+// only safe behavior when the listing is being closed.
+const PENDING_BID_STATUSES = new Set(["pending", "submitted", "countered"]);
+
 let pendingListingStatusAction = null;
+// Cached on the owner side once bids load (see loadOwnerBids call site)
+// so the close-form can read pending + accepted counts without a refetch.
+let cachedOwnerBids = [];
 
 /* ================================================================
    Utility helpers
@@ -89,6 +100,52 @@ function getListingId() {
 }
 
 /* ================================================================
+   Manage-link label resolver. After a bid is accepted, the "manage
+   ongoing work" button used to be a vague catch-all that ferried
+   both parties to /engagement.html no matter what state the
+   engagement was actually in. This helper queries the schedule for
+   the bid and returns an explicit label tied to the next step:
+     • no schedule yet     → "share kickoff availability" (owner)
+                             "schedule the kickoff" (consultant)
+     • awaiting_owner       → owner: "share kickoff availability"
+                              consultant: "view kickoff status"
+     • awaiting_consultant  → owner: "view kickoff status"
+                              consultant: "pick your kickoff time"
+     • scheduled            → "view engagement"
+     • completed            → "view engagement"
+   ================================================================ */
+async function resolveManageLinkLabel(client, bidId, viewerRole) {
+  let scheduleStatus = null;
+  try {
+    const { data } = await client
+      .from("engagement_schedules")
+      .select("status")
+      .eq("bid_id", bidId)
+      .maybeSingle();
+    scheduleStatus = data?.status || null;
+  } catch (_) {}
+  // Owner-side defaults vs consultant-side defaults — both follow the
+  // same schedule states but read them from opposite seats. `hide: true`
+  // means the engagement page has nothing actionable for this viewer
+  // yet — the call site drops the CTA entirely so it doesn't look
+  // like it leads somewhere useful.
+  const isOwner = viewerRole === "owner";
+  if (!scheduleStatus || scheduleStatus === "awaiting_owner") {
+    if (isOwner) return { label: "share kickoff availability" };
+    // Consultant: nothing for them to act on until the owner shares
+    // availability. Hide the CTA so it doesn't dead-end, and surface a
+    // notice via `awaiting` so the call site can explain the wait.
+    return { hide: true, awaiting: "owner" };
+  }
+  if (scheduleStatus === "awaiting_consultant") {
+    return isOwner
+      ? { label: "view kickoff status" }
+      : { label: "pick your kickoff time" };
+  }
+  return { label: "view engagement" };
+}
+
+/* ================================================================
    Consultant-side counter response panel. Renders inside the
    `.ld-offer-panel` when the consultant's bid sits in `countered`
    status with an active counter. Three actions:
@@ -132,7 +189,7 @@ function renderConsultantCounterPanel(client, listing, bid) {
       <textarea class="ld-counter-response__textarea" rows="2" maxlength="500" placeholder="add a note for the business…"></textarea>
     </label>
     <div class="ld-counter-response__actions">
-      <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" data-counter-action="decline">decline counter</button>
+      <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm ld-counter-response__decline" data-counter-action="decline">decline counter</button>
       <button type="button" class="gr-btn gr-btn--primary gr-btn--sm" data-counter-action="accept">accept counter</button>
     </div>
     <p class="gr-status ld-counter-response__status" aria-live="polite"></p>
@@ -141,10 +198,35 @@ function renderConsultantCounterPanel(client, listing, bid) {
   const textarea = root.querySelector(".ld-counter-response__textarea");
 
   async function respond(action) {
+    // Decline has two paths: "keep" the original offer on the table
+    // (the safe / common case), or "rescind" the bid entirely so the
+    // business can't accept anything. Confirm modal makes the choice
+    // explicit before anything writes.
+    if (action === "decline") {
+      const choice = await openConfirmModal({
+        title: "decline this counter?",
+        body: [
+          "you have two options for what happens to your original offer.",
+        ],
+        actions: [
+          { label: "cancel", kind: "ghost", value: "cancel" },
+          { label: "rescind offer", kind: "danger", value: "rescind" },
+          { label: `keep at ${formatUsd(bid.amount_cents)}`, kind: "primary", value: "keep" },
+        ],
+      });
+      if (choice === "cancel" || !choice || choice === "confirm") return;
+      action = choice; // "keep" or "rescind"
+    }
+
     const buttons = root.querySelectorAll("button[data-counter-action]");
     buttons.forEach((b) => (b.disabled = true));
     const responseMsg = textarea.value.trim() || null;
     const now = new Date().toISOString();
+    const loadingCopy =
+      action === "accept" ? "accepting counter…" :
+      action === "rescind" ? "rescinding offer…" :
+      "declining counter…";
+    const loader = showLoading(loadingCopy);
     try {
       if (action === "accept") {
         // The counter becomes the new agreed-upon price. amount_cents
@@ -174,7 +256,35 @@ function renderConsultantCounterPanel(client, listing, bid) {
         });
         statusEl.textContent = "accepted. the business can now finalize.";
         statusEl.className = "gr-status ld-counter-response__status success";
+      } else if (action === "rescind") {
+        // Consultant withdraws their bid entirely. Status flips to
+        // 'declined' (same end state as an owner-decline — bid is
+        // out of the negotiation) with declined_at + counter response
+        // captured so the owner can see what happened.
+        const { error } = await client
+          .from("bids")
+          .update({
+            status: "declined",
+            declined_at: now,
+            counter_offer_cents: null,
+            counter_offer_message: null,
+            counter_expires_at: null,
+            counter_responded_at: now,
+            counter_response_message: responseMsg,
+          })
+          .eq("id", bid.id);
+        if (error) throw error;
+        await client.from("notifications").insert({
+          user_id: listing.owner_id,
+          type: "bid_withdrawn",
+          title: "consultant rescinded their offer",
+          body: `the consultant withdrew their offer on "${listing.title}" after your counter.`,
+          link: `/listing.html?id=${listing.id}`,
+        });
+        statusEl.textContent = "offer rescinded.";
+        statusEl.className = "gr-status ld-counter-response__status success";
       } else {
+        // "keep" — drop the counter, keep the original offer on the table.
         const { error } = await client
           .from("bids")
           .update({
@@ -197,8 +307,46 @@ function renderConsultantCounterPanel(client, listing, bid) {
         statusEl.textContent = "counter declined. your original offer is back on the table.";
         statusEl.className = "gr-status ld-counter-response__status success";
       }
-      setTimeout(() => window.location.reload(), 900);
+      // Replace the persistent yellow loader with a green confirmation
+      // toast and update the offer card in place (no full reload, so
+      // the page-loader overlay never reappears).
+      loader.dismiss();
+      const successCopy =
+        action === "accept" ? "counter accepted — the business can finalize now." :
+        action === "rescind" ? "offer rescinded." :
+        "counter declined. your original offer is back on the table.";
+      showSuccess(successCopy);
+      // Re-render the panel based on the new bid state. The simplest
+      // path is to hide the counter response and update the existing-
+      // offer copy + state badge. Reload as a last-resort fallback if
+      // the DOM nodes are gone.
+      try {
+        root.hidden = true;
+        const existingEl = document.getElementById("ld-bid-existing");
+        if (existingEl) {
+          if (action === "rescind") {
+            // Bid is now declined — the offer-submitted card no longer
+            // applies. Drop the right-rail offer panel entirely.
+            const offerPanel = document.getElementById("ld-offer-panel");
+            if (offerPanel) offerPanel.hidden = true;
+          } else {
+            const newAmount = action === "accept" ? counter : bid.amount_cents;
+            existingEl.innerHTML = `
+              <span class="ld-bid-existing__header">
+                <span class="ld-bid-existing__amount">offer submitted: <strong>${formatUsd(newAmount)}</strong></span>
+              </span>
+              ${bid.message ? `<span class="ld-bid-existing__message">${escapeHtml(bid.message)}</span>` : ""}
+            `;
+          }
+        }
+      } catch (_) {
+        // Fall back to a reload if in-place mutation throws — the
+        // toast will be lost, but the data state still reflects truth.
+        setTimeout(() => window.location.reload(), 900);
+      }
     } catch (err) {
+      loader.dismiss();
+      showError(err?.message || "could not send response.");
       statusEl.textContent = err?.message || "could not send response.";
       statusEl.className = "gr-status ld-counter-response__status error";
       buttons.forEach((b) => (b.disabled = false));
@@ -827,8 +975,62 @@ function openOwnerStatusForm(action) {
   ownerActionStatus.textContent = "";
   ownerActionStatus.className = "gr-status";
   statusFormTitle.textContent =
-    action === "paused" ? "Why are you pausing this listing?" : "Why are you cancelling this listing?";
-  statusSubmitBtn.textContent = action === "paused" ? "pause listing" : "cancel listing";
+    action === "paused" ? "Why are you pausing this listing?" : "Why are you closing this listing?";
+  statusSubmitBtn.textContent = action === "paused" ? "pause listing" : "close listing";
+
+  // Action-specific intro — explains the consequence in plain language
+  // so the owner knows what closing vs pausing actually does.
+  if (statusFormIntro) {
+    if (action === "closed") {
+      statusFormIntro.textContent =
+        "closing stops new offers, but consultants who already submitted can still see this listing. you can decide what happens to their offers below.";
+      statusFormIntro.hidden = false;
+    } else if (action === "paused") {
+      statusFormIntro.textContent =
+        "pausing hides this listing from marketplace browsing. existing offers stay in place and you can resume any time.";
+      statusFormIntro.hidden = false;
+    } else {
+      statusFormIntro.hidden = true;
+      statusFormIntro.textContent = "";
+    }
+  }
+
+  // Work-completed reason only makes sense when an offer has been
+  // accepted and the engagement is in flight. Mark the radio disabled
+  // (visually + functionally) when no accepted bid exists; a click on
+  // the label still fires and surfaces a toast explaining the gate.
+  const hasAccepted = cachedOwnerBids.some((b) => b.status === "accepted");
+  if (workCompletedOption) {
+    const input = workCompletedOption.querySelector('input[type="radio"]');
+    if (!hasAccepted) {
+      workCompletedOption.classList.add("is-disabled");
+      workCompletedOption.setAttribute("aria-disabled", "true");
+      if (input) {
+        input.disabled = true;
+        input.checked = false;
+      }
+    } else {
+      workCompletedOption.classList.remove("is-disabled");
+      workCompletedOption.removeAttribute("aria-disabled");
+      if (input) input.disabled = false;
+    }
+  }
+
+  // Pending-offers disposition only applies when closing AND there are
+  // outstanding offers to disposition. Default radio (`keep`) stays
+  // checked so submitting without changing anything matches today's
+  // behavior — leaves offers pending.
+  const pendingCount = cachedOwnerBids.filter((b) => PENDING_BID_STATUSES.has(b.status)).length;
+  if (statusOffersFieldset) {
+    if (action === "closed" && pendingCount > 0) {
+      statusOffersFieldset.hidden = false;
+      const keepRadio = statusOffersFieldset.querySelector('input[value="keep"]');
+      if (keepRadio) keepRadio.checked = true;
+    } else {
+      statusOffersFieldset.hidden = true;
+    }
+  }
+
   statusForm.classList.remove("hidden");
   syncOwnerStatusOtherField();
 }
@@ -838,33 +1040,42 @@ function renderOwnerActionSummary(listing) {
   const status = getListingStatusLabel(listing?.status);
   const reasonText = getListingReasonText(listing);
 
+  // The intro copy element starts present-but-empty; make sure it's
+  // visible whenever we set text on it. (Earlier HTML carried `hidden`
+  // which kept the closed-state explanation from ever rendering.)
+  const showCopy = (text) => {
+    ownerActionsCopy.textContent = text;
+    ownerActionsCopy.hidden = false;
+  };
+
   if (status === "paused") {
-    ownerActionsCopy.textContent = reasonText
-      ? `This listing is paused because of "${reasonText}". Resume it any time or cancel it permanently.`
-      : "This listing is paused. Existing proposals stay in place while it stays out of marketplace browsing.";
+    showCopy(reasonText
+      ? `this listing is paused because of "${reasonText}". resume it any time or close it permanently.`
+      : "this listing is paused. existing proposals stay in place while it stays out of marketplace browsing.");
     pauseListingBtn.textContent = "resume listing";
     pauseListingBtn.disabled = false;
-    closeListingBtn.textContent = "cancel listing";
+    closeListingBtn.textContent = "close listing";
     closeListingBtn.disabled = false;
     return;
   }
 
   if (status === "closed") {
-    ownerActionsCopy.textContent = reasonText
-      ? `This listing is closed because of "${reasonText}". Existing participants can still refer back to it here.`
-      : "This listing is closed. Existing participants can still refer back to it here.";
+    // Explain why both buttons are disabled — the listing is already in
+    // the terminal closed state and no further action is available here.
+    showCopy(reasonText
+      ? `this listing is already closed (reason: "${reasonText}"). the controls are turned off — existing participants can still refer back to it here.`
+      : "this listing is already closed. the controls are turned off — existing participants can still refer back to it here.");
     pauseListingBtn.textContent = "pause listing";
-    closeListingBtn.textContent = "cancel listing";
+    closeListingBtn.textContent = "close listing";
     pauseListingBtn.disabled = true;
     closeListingBtn.disabled = true;
     resetOwnerStatusForm();
     return;
   }
 
-  ownerActionsCopy.textContent =
-    "Pause this listing to hide it from marketplace browsing while keeping current proposals in place, or cancel it when you're done.";
+  showCopy("pause this listing to hide it from marketplace browsing while keeping current proposals in place, or close it when you're done.");
   pauseListingBtn.textContent = "pause listing";
-  closeListingBtn.textContent = "cancel listing";
+  closeListingBtn.textContent = "close listing";
   pauseListingBtn.disabled = false;
   closeListingBtn.disabled = false;
 }
@@ -936,6 +1147,21 @@ function setupOwnerListingActions(client, listing) {
       openOwnerStatusForm("closed");
     });
 
+    // Work-completed reason is gated on an accepted bid existing. Clicks
+    // on the label fire even when the wrapped <input disabled> rejects
+    // them, so this is the right place to surface the "why not" toast.
+    if (workCompletedOption) {
+      workCompletedOption.addEventListener("click", (event) => {
+        if (workCompletedOption.classList.contains("is-disabled")) {
+          event.preventDefault();
+          showToast(
+            "this reason applies once you've accepted a consultant's offer. close the engagement from the engagement page instead.",
+            { kind: "info", duration: 5000 }
+          );
+        }
+      });
+    }
+
     statusCancelBtn.addEventListener("click", () => {
       resetOwnerStatusForm();
       ownerActionStatus.textContent = "";
@@ -965,18 +1191,51 @@ function setupOwnerListingActions(client, listing) {
         return;
       }
 
+      // Pending-offers disposition only applies when closing. The
+      // fieldset stays hidden in the paused flow so the radio value is
+      // ignored there even if it somehow got selected.
+      const offersDisposition =
+        action === "closed"
+          ? document.querySelector('input[name="listingOffersDisposition"]:checked')?.value || "keep"
+          : "keep";
+
       statusSubmitBtn.disabled = true;
       ownerActionStatus.textContent = "";
       ownerActionStatus.className = "gr-status";
 
       try {
+        // Bulk-decline FIRST so we don't leave a half-closed listing
+        // with pending bids if the listing update succeeds and the
+        // bulk-decline then errors. A successful decline followed by
+        // a failed status update still leaves the bids in a sensible
+        // declined state and the listing technically still open.
+        let declinedCount = 0;
+        if (action === "closed" && offersDisposition === "decline_all") {
+          const targets = cachedOwnerBids.filter((b) => PENDING_BID_STATUSES.has(b.status));
+          if (targets.length > 0) {
+            const { error: declineErr } = await client
+              .from("bids")
+              .update({ status: "declined", declined_at: new Date().toISOString() })
+              .in("id", targets.map((b) => b.id));
+            if (declineErr) throw declineErr;
+            targets.forEach((b) => {
+              b.status = "declined";
+              b.declined_at = new Date().toISOString();
+            });
+            declinedCount = targets.length;
+          }
+        }
+
         await persistListingStatus(client, listing, action, reason, otherReason || null);
         renderOwnerActionSummary(listing);
         resetOwnerStatusForm();
+        const closedCopy = declinedCount > 0
+          ? `listing closed. ${declinedCount} outstanding offer${declinedCount === 1 ? " was" : "s were"} declined.`
+          : "listing closed. existing offers remain on file. consultants who already submitted can still see this listing.";
         showOwnerActionFeedback(
           action === "paused"
             ? "listing paused. it is now hidden from marketplace browsing, but current proposals remain in place."
-            : "listing cancelled. it is out of marketplace browsing and marked closed for existing participants."
+            : closedCopy
         );
       } catch (error) {
         showOwnerActionFeedback(error.message || "could not update listing status.", "error");
@@ -1013,7 +1272,7 @@ function renderMsgThread(container, messages, myId) {
    Consultant view: offer panel (sidebar) + chat drawer
    ================================================================ */
 
-function showConsultantView(client, session, listing, existingBid) {
+async function showConsultantView(client, session, listing, existingBid) {
   const panel = document.getElementById("ld-offer-panel");
   setOfferRailVisible(true);
   panel.hidden = false;
@@ -1249,12 +1508,48 @@ function showConsultantView(client, session, listing, existingBid) {
   });
 
   /* --- Accepted: badge sits inline in the "your offer" element; the
-         standalone manage-link sits below it as the CTA. --- */
+         standalone manage-link sits below it as the CTA. The label
+         resolves against the current schedule state so the consultant
+         knows exactly what they're being sent to (kickoff scheduling,
+         vs viewing kickoff status, vs the general engagement page). --- */
   if (existingBid?.status === "accepted") {
     const manageLink = document.getElementById("ld-bid-manage-link");
+    const awaitingNotice = document.getElementById("ld-bid-awaiting-notice");
     if (manageLink) {
-      manageLink.href = engagementLink(existingBid.id);
-      manageLink.hidden = false;
+      try {
+        const { label, hide, awaiting } = await resolveManageLinkLabel(client, existingBid.id, "consultant");
+        if (hide) {
+          // No actionable destination yet — keep the link hidden so
+          // the consultant doesn't tap into a dead-end page. When the
+          // wait is on the owner (awaiting kickoff availability), show
+          // a small notice so the consultant knows what's next instead
+          // of a silent gap below the offer card.
+          manageLink.hidden = true;
+          if (awaitingNotice) {
+            if (awaiting === "owner") {
+              awaitingNotice.textContent = "waiting on the business to share kickoff availability.";
+              awaitingNotice.hidden = false;
+            } else {
+              awaitingNotice.hidden = true;
+              awaitingNotice.textContent = "";
+            }
+          }
+        } else {
+          manageLink.href = engagementLink(existingBid.id);
+          manageLink.hidden = false;
+          manageLink.innerHTML = `${escapeHtml(label)}<span class="ld-bid-manage-link__arrow" aria-hidden="true">→</span>`;
+          if (awaitingNotice) {
+            awaitingNotice.hidden = true;
+            awaitingNotice.textContent = "";
+          }
+        }
+      } catch (_) {
+        manageLink.hidden = true;
+        if (awaitingNotice) {
+          awaitingNotice.hidden = true;
+          awaitingNotice.textContent = "";
+        }
+      }
     }
     formWrap.hidden = true;
   }
@@ -1416,7 +1711,7 @@ async function setupChatDrawer(client, listing, myId, ownerId) {
     inboxLink = document.getElementById("ld-chat-inbox-link");
 
     if (inboxLink && listing?.id && ownerId && myId && ownerId !== myId) {
-      inboxLink.href = `/dashboard.html#inbox?thread=${encodeURIComponent(listing.id)}:${encodeURIComponent(ownerId)}`;
+      inboxLink.href = `/inbox.html#thread=${encodeURIComponent(listing.id)}:${encodeURIComponent(ownerId)}`;
     }
 
     closeBtn.addEventListener("click", closeDrawer);
@@ -2187,7 +2482,16 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
       const manageLink = document.createElement("a");
       manageLink.className = "gr-btn gr-btn--ghost gr-btn--sm";
       manageLink.href = engagementLink(b.id);
-      manageLink.textContent = "manage ongoing work";
+      // Placeholder while the schedule lookup resolves. If the
+      // resolver returns `hide: true`, pull the CTA from the DOM so
+      // it doesn't lead to a dead-end page.
+      manageLink.textContent = "manage engagement";
+      resolveManageLinkLabel(client, b.id, "owner")
+        .then(({ label, hide }) => {
+          if (hide) manageLink.remove();
+          else manageLink.textContent = label;
+        })
+        .catch(() => {});
       actionsEl.appendChild(manageLink);
     }
 
@@ -2368,6 +2672,7 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
     }
     sendBtn.disabled = true;
 
+    const loader = showLoading("sending counter…");
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const { error } = await client.from("bids").update({
       status: "countered",
@@ -2378,6 +2683,7 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
     }).eq("id", bid.id);
 
     if (error) {
+      loader.dismiss();
       showError(error.message);
       sendBtn.disabled = false;
       return;
@@ -2391,8 +2697,21 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
       link: `/listing.html?id=${listing.id}`,
     });
 
+    loader.dismiss();
     showSuccess("counter offer sent. the consultant has 24 hours to respond.");
-    window.location.reload();
+    // Refresh the bid list in place so the card reflects the new
+    // 'countered' status, the counter button hides, and the counter
+    // pill renders — all without bouncing through the page loader.
+    try {
+      const { bids: refreshed } = await loadOwnerBids(client, listing.id);
+      await sweepExpiredCounters(client, refreshed, listing);
+      const ownerSession = (await client.auth.getSession()).data?.session;
+      showOwnerBids(client, ownerSession, listing, refreshed);
+    } catch (_) {
+      // Fall back to a full reload only if the in-place refresh
+      // throws (e.g. network blip). Doesn't auto-fire otherwise.
+      window.location.reload();
+    }
   });
 }
 
@@ -2518,6 +2837,10 @@ async function init() {
       setupOwnerListingActions(client, listing);
       const { bids, available } = await loadOwnerBids(client, listingId);
       if (available) {
+        // Cache for the owner close-form: lets it decide whether the
+        // pending-offers disposition question shows and whether the
+        // work-completed radio should be enabled.
+        cachedOwnerBids = bids;
         // Auto-revert any counters that hit their 24h expiry without
         // a consultant response. Mutates bids[] in place so the next
         // render sees the new state.

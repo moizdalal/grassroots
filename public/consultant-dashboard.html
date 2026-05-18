@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>grassroots — your dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="/home/assets/grassroots-icon-syne.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -61,7 +62,7 @@
             </span>
             <span class="bza__nav-label">marketplace</span>
           </a>
-          <a href="/consultant-dashboard.html#inbox" class="bza__nav-item" data-view="inbox" title="inbox">
+          <a href="/inbox.html" class="bza__nav-item" title="inbox">
             <span class="bza__nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M22 12h-6l-2 3h-4l-2-3H2"/>
@@ -180,60 +181,6 @@
             </div>
           </section>
 
-          <!-- ── inbox view (shared inbox.js) ── -->
-          <section class="dash-view dash-view--inbox" data-view="inbox" hidden>
-            <div class="inbox" id="inbox-shell">
-              <aside class="inbox__list" aria-label="conversations">
-                <div class="inbox__list-head">
-                  <div class="inbox__title-row">
-                    <h1 class="inbox__title">inbox</h1>
-                    <button type="button" class="inbox__mark-all" id="inbox-mark-all" hidden>mark all read</button>
-                  </div>
-                  <div class="inbox__filters">
-                    <button type="button" class="inbox__filter active" data-filter="all">all</button>
-                    <button type="button" class="inbox__filter" data-filter="unread">unread <span class="inbox__filter-count" id="inbox-unread-pill" hidden>0</span></button>
-                  </div>
-                  <input class="inbox__search" type="search" id="inbox-search" placeholder="search messages…" />
-                </div>
-                <div class="inbox__threads" id="inbox-threads" role="list"></div>
-                <p class="inbox__empty" id="inbox-list-empty" hidden>no conversations yet.</p>
-              </aside>
-
-              <section class="inbox__pane" id="inbox-pane" aria-live="polite">
-                <div class="inbox__placeholder" id="inbox-placeholder">
-                  <div class="inbox__placeholder-glyph" aria-hidden="true"></div>
-                  <p class="inbox__placeholder-title">select a conversation</p>
-                  <p class="inbox__placeholder-sub">your active threads, grouped by listing, show here.</p>
-                </div>
-
-                <div class="inbox__conversation" id="inbox-conversation" hidden>
-                  <header class="inbox__conv-head">
-                    <div class="inbox__conv-id">
-                      <div class="inbox__conv-avatar" id="inbox-conv-avatar"></div>
-                      <div class="inbox__conv-meta">
-                        <span class="inbox__conv-name" id="inbox-conv-name"></span>
-                        <a class="inbox__conv-listing" id="inbox-conv-listing" href="#"></a>
-                      </div>
-                    </div>
-                    <span class="inbox__conv-matches" id="inbox-conv-matches" aria-live="polite" hidden></span>
-                    <button type="button" class="inbox__conv-close" id="inbox-conv-close" aria-label="close conversation">×</button>
-                  </header>
-                  <div class="inbox__conv-body" id="inbox-conv-body" role="log"></div>
-                  <form class="inbox__composer" id="inbox-composer" autocomplete="off">
-                    <textarea
-                      class="inbox__composer-input"
-                      id="inbox-composer-input"
-                      placeholder="write a message…"
-                      rows="1"
-                      maxlength="4000"
-                      required
-                    ></textarea>
-                    <button type="submit" class="inbox__composer-send" id="inbox-composer-send">send</button>
-                  </form>
-                </div>
-              </section>
-            </div>
-          </section>
         </main>
       </div>
     </main>

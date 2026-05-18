@@ -371,7 +371,7 @@ function renderInboxPreview(client, threads, unreadCount) {
       const url = publicAvatarUrl(client, t.otherAvatar);
       const av = url ? `<img src="${escape(url)}" alt=""/>` : escape(getInitials(t.otherName));
       return `
-        <a class="bza__inbox-row" href="/consultant-dashboard.html#inbox?thread=${escape(t.listingId)}:${escape(t.otherId)}" style="text-decoration:none">
+        <a class="bza__inbox-row" href="/inbox.html#thread=${escape(t.listingId)}:${escape(t.otherId)}" style="text-decoration:none">
           <span class="bza__inbox-avatar">${av}</span>
           <div style="flex:1;min-width:0">
             ${t.listingTitle ? `<div class="bza__inbox-listing">re: ${escape(t.listingTitle)}</div>` : ""}
@@ -558,7 +558,7 @@ function renderDashboard(client, data) {
       engagements,
       userId,
       unreadByBid,
-      threadLinkBase: "/consultant-dashboard.html#inbox",
+      threadLinkBase: "/inbox.html#",
     });
   }
 
@@ -648,13 +648,18 @@ function setupShell() {
     }
   }
   function showView(name) {
+    // Inbox is its own page now — keep the legacy hash working by
+    // redirecting before any view-toggling runs.
+    if (name === "inbox") {
+      window.location.href = "/inbox.html";
+      return;
+    }
     document.querySelectorAll(".dash-view").forEach((v) => {
       v.hidden = v.dataset.view !== name;
     });
     sidebar.querySelectorAll("[data-view]").forEach((b) => {
       b.classList.toggle("active", b.dataset.view === name);
     });
-    if (name === "inbox") lazyInitInbox();
   }
   document.querySelectorAll("[data-view]").forEach((el) => {
     el.addEventListener("click", (e) => {

@@ -1285,11 +1285,12 @@ function renderByState() {
     panelTitleEl.textContent = "meeting confirmed";
     panelCopyEl.textContent =
       "your kickoff is locked in and the calendar invite is ready for both sides.";
-    renderCalendar("scheduled");
+    // Calendar grid stays collapsed once the meeting is on the books —
+    // the meeting summary below (date + time) is all that's needed.
+    // Owner can still see the meeting length via the read-only label.
+    calendarEl.parentElement.classList.add("hidden");
+    showDurationReadonly();
     renderMeetingSummary();
-    if (schedule.owner_availability?.slots?.length) {
-      calendarEl.parentElement.classList.remove("hidden");
-    }
     return;
   }
 
