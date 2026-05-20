@@ -8,6 +8,8 @@ import { hydrateRatings } from "/rating.js";
 import { mountDashboardNotifications } from "/dashboard-notifications.js";
 import { getInitials } from "/initials.js";
 import { loadOwnerAnalytics, renderAnalyticsPanel } from "/listing-analytics.js";
+import { mountGardenStem } from "/garden-stem.js";
+import { loadCompletedEngagements } from "/garden-data.js";
 import { renderHealthBucket } from "/health-bucket.js";
 
 const $ = (id) => document.getElementById(id);
@@ -360,7 +362,17 @@ function listingPrimaryAction(l, schedulesByBidId) {
       return { label: "mark complete", kind: "complete", href: `/engagement.html?bid=${accepted.id}` };
     }
     if (status === "awaiting_consultant") {
-      return null; // ball is in the consultant's court
+      // Owner shared availability — ball's in the consultant's court.
+      // Drop the prompt and surface a quiet "manage" link so the row
+      // still has a way into the engagement page without reading as
+      // an action item. `quiet: true` keeps `needsAction` false so
+      // the listing isn't sorted to the top or tagged "needs you".
+      return {
+        label: "manage",
+        kind: "manage",
+        quiet: true,
+        href: `/engagement.html?bid=${accepted.id}`,
+      };
     }
   }
 
@@ -416,9 +428,10 @@ function listingRowHtml(l, schedulesByBidId) {
 
   // Pulse the state dot whenever the owner has something to do here —
   // any of the listingPrimaryAction CTAs, or the implicit draft
-  // finish-and-publish action. Stays in lockstep with whether a CTA
-  // is rendered, so the dot and the button always agree.
-  const ownerActionPending = !!action || state === "draft";
+  // finish-and-publish action. Quiet actions (e.g. "manage" while
+  // waiting on the consultant) don't pulse — the dot should read as
+  // calm when nothing is actually pending.
+  const ownerActionPending = (!!action && !action.quiet) || state === "draft";
   const stateDotClass = `bza__row-state bza__row-state--${state}${ownerActionPending ? " bza__row-state--pulse" : ""}`;
 
   return `
@@ -489,10 +502,13 @@ function ownerListingCardHtml(l, schedulesByBidId) {
   // "needs you" pill the other action-required cards use, but point
   // the CTA at the create-listing wizard (?draft=…) instead of the
   // listing detail page. Stays until the draft flips to 'open'.
+  // Quiet actions (e.g. "manage" once the owner has shared
+  // availability) render a link but don't count as action-needing —
+  // they shouldn't pull focus or tag the card "needs you".
   const isDraft = state === "draft";
   const ctaText = action ? action.label : isDraft ? "finish & publish" : "open listing";
   const ctaHref = action ? action.href : isDraft ? `/create-listing.html?draft=${l.id}` : `/listing.html?id=${l.id}`;
-  const needsAction = !!action || isDraft;
+  const needsAction = (!!action && !action.quiet) || isDraft;
 
   return `
     <a class="gr-listing-card ml-card ml-card--${escape(state)}${needsAction ? " ml-card--needs-action" : ""}" href="${escape(ctaHref)}">
@@ -538,7 +554,10 @@ function mountMyListingsView(listings, schedulesByBidId) {
   // regardless of which sort the owner picked — so opening the view
   // visually leads them to what's blocked on them. The chosen sort
   // applies as a secondary ordering within the two groups.
-  const hasPendingAction = (l) => !!listingPrimaryAction(l, schedulesByBidId);
+  const hasPendingAction = (l) => {
+    const a = listingPrimaryAction(l, schedulesByBidId);
+    return !!a && !a.quiet;
+  };
   const withActionFirst = (inner) => (a, b) => {
     const ap = hasPendingAction(a) ? 0 : 1;
     const bp = hasPendingAction(b) ? 0 : 1;
@@ -812,10 +831,14 @@ function renderDashboard(client, data) {
   const draftCount = listings.filter((l) => listingState(l) === "draft").length;
   // The "my listings" badge reflects actions the owner needs to take —
   // pending offers to review, kickoffs to schedule, work to mark
-  // complete, AND any unpublished drafts that need finishing.
-  const actionsNeededCount = listings.filter(
-    (l) => listingState(l) === "draft" || !!listingPrimaryAction(l, schedulesByBidId)
-  ).length;
+  // complete, AND any unpublished drafts that need finishing. Quiet
+  // actions (e.g. "manage" while waiting on the consultant) are not
+  // owner-action-needed and don't count toward the badge.
+  const actionsNeededCount = listings.filter((l) => {
+    if (listingState(l) === "draft") return true;
+    const a = listingPrimaryAction(l, schedulesByBidId);
+    return !!a && !a.quiet;
+  }).length;
   const listingsBadge = $("dash-listings-badge");
   if (actionsNeededCount > 0) {
     listingsBadge.textContent = String(actionsNeededCount);
@@ -1049,7 +1072,72 @@ function renderDashboard(client, data) {
       });
     });
   }
+
+  // Garden visual — one root node per completed engagement (released
+  // funds + submitted consultant review). Loads in parallel with the
+  // rest of the dashboard render; renders with the empty-state copy
+  // until the fetch resolves, then re-renders with real nodes.
+  const gardenHost = $("dash-garden");
+  if (gardenHost) {
+    // ─── TEMP: fake roots via `?fakeroots=N` ─────────────────────
+    // Lets the owner preview the roots layout without needing real
+    // completed engagements in the DB. Drop this whole block (down
+    // to the matching `// ─── end TEMP` line) once real engagements
+    // exist or once the design is signed off.
+    const fakeRootCount = Number(
+      new URL(window.location.href).searchParams.get("fakeroots") || 0,
+    );
+    if (Number.isFinite(fakeRootCount) && fakeRootCount > 0) {
+      mountGardenStem(gardenHost, { roots: FAKE_ROOTS.slice(0, fakeRootCount) });
+      return; // skip the real data fetch — we're previewing.
+    }
+    // ─── end TEMP ────────────────────────────────────────────────
+
+    mountGardenStem(gardenHost, { roots: [] });
+    loadCompletedEngagements(client, data.session?.user?.id)
+      .then((roots) => {
+        if (roots.length) mountGardenStem(gardenHost, { roots });
+      })
+      .catch((err) => console.warn("[garden] load completed engagements failed:", err));
+  }
 }
+
+/* TEMP fake-root seed data — paired with the `?fakeroots=N` query
+   param above. Delete with that block. */
+const FAKE_ROOTS = [
+  { bidId: "fake-1", listingId: "fake-listing-1",
+    listingTitle: "weekend bakery sales push",
+    consultantName: "jordan kim", amountCents: 32000,
+    releasedAt: "2026-04-12T15:30:00Z" },
+  { bidId: "fake-2", listingId: "fake-listing-2",
+    listingTitle: "instagram content refresh",
+    consultantName: "sam chen", amountCents: 18000,
+    releasedAt: "2026-03-22T10:00:00Z" },
+  { bidId: "fake-3", listingId: "fake-listing-3",
+    listingTitle: "logo + brand mark redesign",
+    consultantName: "morgan vasquez", amountCents: 55000,
+    releasedAt: "2026-02-14T18:00:00Z" },
+  { bidId: "fake-4", listingId: "fake-listing-4",
+    listingTitle: "square POS migration help",
+    consultantName: "alex park", amountCents: 22000,
+    releasedAt: "2026-01-30T09:15:00Z" },
+  { bidId: "fake-5", listingId: "fake-listing-5",
+    listingTitle: "press release for grand reopening",
+    consultantName: "priya rao", amountCents: 12500,
+    releasedAt: "2025-12-20T13:45:00Z" },
+  { bidId: "fake-6", listingId: "fake-listing-6",
+    listingTitle: "monthly bookkeeping setup in quickbooks",
+    consultantName: "casey navarro", amountCents: 28000,
+    releasedAt: "2025-11-08T16:00:00Z" },
+  { bidId: "fake-7", listingId: "fake-listing-7",
+    listingTitle: "google business profile + seo cleanup",
+    consultantName: "riley alves", amountCents: 16000,
+    releasedAt: "2025-10-15T11:20:00Z" },
+  { bidId: "fake-8", listingId: "fake-listing-8",
+    listingTitle: "saturday market booth signage",
+    consultantName: "taylor brooks", amountCents: 9500,
+    releasedAt: "2025-09-04T14:45:00Z" },
+];
 
 /* ============================================================== */
 

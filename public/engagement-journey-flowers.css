@@ -369,33 +369,39 @@
 }
 
 /* ── per-plant action dot (hovers just above the plant's current apex) ──
-   `top` is set inline to the apex y as a % of the canvas; the
-   translate puts the dot's bottom edge ~6px above that point so the
-   plant itself (especially the tiny seed at stage 1) stays visible. */
+   `top` is set inline to the apex y as a % of the canvas; the translate
+   puts the dot above that point with enough clearance that the 14px
+   pulse halo at peak never grazes the leaves. `--dot-color` defaults to
+   white for the dark themes; the [data-theme="light"] override below
+   swaps it to the brand moss green. */
 .cdash__journey-flowers-action-dot {
+  --dot-color: #fff;
   position: absolute;
   left: 50%;
   width: 17px;
   height: 17px;
   border-radius: 50%;
-  background: var(--fo-accent-warm);
+  background: var(--dot-color);
   border: 2.4px solid var(--fo-surface);
   cursor: pointer;
   padding: 0;
-  transform: translate(-50%, calc(-100% - 6px));
+  transform: translate(-50%, calc(-100% - 22px));
   z-index: 3;
-  box-shadow: 0 0 0 0 color-mix(in srgb, var(--fo-accent-warm) 55%, transparent);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--dot-color) 55%, transparent);
   animation: cdash-journey-action-pulse 1.8s ease-out infinite;
+}
+[data-theme="light"] .cdash__journey-flowers-action-dot {
+  --dot-color: var(--fo-accent);
 }
 .cdash__journey-flowers-action-dot:hover,
 .cdash__journey-flowers-action-dot:focus-visible {
-  outline: 2px solid var(--fo-accent-warm);
+  outline: 2px solid var(--dot-color);
   outline-offset: 2px;
 }
 @keyframes cdash-journey-action-pulse {
-  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--fo-accent-warm) 55%, transparent); }
-  70%  { box-shadow: 0 0 0 14px color-mix(in srgb, var(--fo-accent-warm) 0%, transparent); }
-  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--fo-accent-warm) 0%, transparent); }
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--dot-color) 55%, transparent); }
+  70%  { box-shadow: 0 0 0 14px color-mix(in srgb, var(--dot-color) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--dot-color) 0%, transparent); }
 }
 
 /* ── per-plant meta (avatar + biz + title) ───────────────────── */

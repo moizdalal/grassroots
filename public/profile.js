@@ -2,6 +2,7 @@ import { getSupabaseClient } from "/supabase-loader.js";
 import { formatBudgetRange, parseBudgetRange } from "/sim-budget.js";
 import { getInitials } from "/initials.js";
 import { renderRatingMarkup } from "/rating.js";
+import { showSuccess, showError, showLoading } from "/toast.js";
 
 const form = document.getElementById("profile-form");
 const gateEl = document.getElementById("profile-gate");
@@ -13,10 +14,34 @@ const avatarStatusEl = document.getElementById("avatar-status");
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 const AVATAR_ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
+// Avatar upload/remove feedback now routes through the app-wide toast
+// stack instead of an inline `.pf-avatar-status` line. The inline
+// element still exists in the DOM (collapsed via `:empty { display:
+// none }`) so this function clears its content on every call to keep
+// it out of the layout. A pending "uploading…" loading toast is held
+// in `activeAvatarLoadingToast` so the next setAvatarStatus call can
+// dismiss it before showing the resolved success/error toast.
+let activeAvatarLoadingToast = null;
 function setAvatarStatus(text, kind) {
-  if (!avatarStatusEl) return;
-  avatarStatusEl.textContent = text || "";
-  avatarStatusEl.className = `gr-status pf-avatar-status${kind ? ` ${kind}` : ""}`;
+  if (avatarStatusEl) {
+    avatarStatusEl.textContent = "";
+    avatarStatusEl.className = "gr-status pf-avatar-status";
+  }
+  if (activeAvatarLoadingToast) {
+    activeAvatarLoadingToast.dismiss();
+    activeAvatarLoadingToast = null;
+  }
+  if (!text) return;
+  if (kind === "success") {
+    showSuccess(text);
+  } else if (kind === "error") {
+    showError(text);
+  } else {
+    // No kind passed → in-flight loading state (e.g. "uploading photo…").
+    // Persistent toast; dismissed automatically when the next
+    // setAvatarStatus call resolves.
+    activeAvatarLoadingToast = showLoading(text);
+  }
 }
 
 function validateAvatarFile(file) {

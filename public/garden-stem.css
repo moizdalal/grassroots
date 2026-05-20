@@ -1,0 +1,400 @@
+/* garden-stem.css — owner-dashboard "your garden" visual.
+   See garden-stem.js for the layout outline. The panel stretches to
+   fill the right column of the dashboard home view; inside it, the
+   sprout sits compact at the top, the soil line divides the sky
+   from the earth, and the earth canvas takes whatever vertical space
+   the panel has — that's where root nodes will live in future
+   iterations. */
+
+.gs {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 0.6rem;
+}
+
+.gs__header {
+  flex: 0 0 auto;
+  text-align: center;
+}
+
+.gs__eyebrow {
+  margin: 0;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-eyebrow);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--fo-text-3);
+}
+
+.gs__title {
+  margin: 0.2rem 0 0;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: var(--type-h2);
+  font-weight: 600;
+  color: var(--fo-text);
+  letter-spacing: -0.01em;
+}
+
+/* The "plot" — the visible terrain. Vertical stack: sky → soil line
+   → earth. The earth flexes to fill, so the seedling stays planted
+   at the top regardless of how tall the panel is. */
+.gs__plot {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* Sky — fixed-ish height area where the sprout lives. The sprout
+   itself sits at the bottom of this band so its stem base meets
+   the soil line cleanly. overflow visible so the per-leaf physics
+   can swing leaves past the natural sprout bbox without clipping. */
+.gs__sky {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  /* Extra padding-top shifts the whole sprout + horizon + roots stack
+     downward in the panel so empty space above and below the scene
+     is more balanced (was 0.6rem — felt top-heavy). */
+  padding: 2rem 0 0;
+  min-height: 0;
+  overflow: visible;
+}
+
+.gs__sprout-svg {
+  /* Compact sizing — at this scale the leaves visually attach to
+     the stem cleanly (same scale story as the loading-screen sprout).
+     display: block kills the inline descender so the stem base hugs
+     the soil line exactly. */
+  display: block;
+  width: clamp(72px, 7vw, 100px);
+  height: auto;
+  aspect-ratio: 163 / 275;
+  /* Whole-sprout color + drop shadow. Each path inherits `fill:
+     currentColor` via the rules below. */
+  color: var(--fo-accent);
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.2));
+  /* Whole-sprout sway is driven by the JS spring loop in
+     garden-stem.js (wireSproutPhysics). transform-origin anchors
+     the rotation at the stem base where the plant is "rooted" in
+     the soil. */
+  transform-origin: 50% 100%;
+  /* Allow leaves to swing past the viewBox during the physics
+     animation. Paired with overflow="visible" on the SVG element
+     itself so the rendered content isn't clipped to its bbox. */
+  overflow: visible;
+  /* Honour reduced-motion via the @media block below — JS skips the
+     physics loop in that case, leaving the sprout at neutral. */
+}
+
+.gs__sprout-stem,
+.gs__sprout-leaf path {
+  fill: currentColor;
+}
+
+/* Per-leaf rocking is driven by the JS spring physics in
+   garden-stem.js. The earlier CSS-based attempt used
+   `transform-box: fill-box`, which computed a bounding box that
+   included the leaf paths' off-shape control points and the origin
+   landed away from the attachment corner. The JS path applies an
+   SVG `rotate(angle cx cy)` transform whose pivot is in local
+   coordinates we control directly, so the leaves rotate around
+   their real attachment to the stem. */
+
+/* Soil line — uneven horizon between the sprout and the roots. A flat
+   1.5px rule reads as architectural; the wavy SVG path here (see
+   garden-stem.js → soilLineSvg) gives the line gentle, irregular
+   bumps so it reads as a natural soil surface rather than a ruled
+   divider. The horizontal mask still feathers the ends so the line
+   doesn't slam into the panel walls. */
+.gs__soil-line {
+  flex: 0 0 auto;
+  display: block;
+  width: 100%;
+  height: 6px;
+  margin: 0;
+  overflow: visible;
+  opacity: 0.85;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 8%,
+    #000 92%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 8%,
+    #000 92%,
+    transparent 100%
+  );
+}
+
+.gs__soil-horizon {
+  fill: none;
+  /* Earthy brown — reuses the existing soil-dot color so the horizon
+     reads as the same material as the soil grains below. */
+  stroke: var(--gs-soil-dot-color, var(--fo-text-3));
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* Stroke stays a constant ~1.4px after the path stretches non-
+     uniformly to fill the panel width. */
+  vector-effect: non-scaling-stroke;
+}
+
+/* Earth — the roots canvas. Flexes to fill all remaining panel
+   height so root nodes have generous room to spread in iteration 2.
+   Currently shows a taproot stub + dirt specks; preserveAspectRatio
+   slice on the SVG keeps the taproot pinned to the soil line as the
+   canvas grows taller. */
+.gs__earth {
+  flex: 1 1 0;
+  min-height: 120px;
+  position: relative;
+  overflow: hidden;
+}
+
+.gs__roots-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.gs__soil-dot {
+  fill: var(--gs-soil-dot-color, var(--fo-text-3));
+  opacity: 0.42;
+}
+
+/* Earth-brown colors for the roots system. The brandkit palette has
+   no brown token — these hardcoded values are intentionally off-token
+   because the roots need to read as actual root/wood, not accent
+   green. Same bypass pattern as the brandkit's "guaranteed-contrast
+   exception" for primary-button hovers. */
+.gs__plot {
+  --gs-root: #7a5a3e;
+  --gs-root-edge: #14201a;
+  --gs-soil-dot-color: #5a4530;
+}
+
+[data-theme="light"] .gs__plot {
+  --gs-root: #6b4a30;
+  --gs-root-edge: #ffffff;
+  --gs-soil-dot-color: #8a7058;
+}
+
+/* Root system — every completed engagement gets one independent root
+   suspended from the seedling base, with a clickable+draggable node
+   at its tip. Branches stroke in on mount, then JS owns their `d`
+   attribute (curves emerge from node motion). The CSS here covers
+   color + the draw-in reveal + the halo emerge ring + drag cursor
+   + hover lift. The actual position physics lives in garden-stem.js
+   (wireRootPhysics). */
+.gs__root {
+  cursor: pointer;
+}
+
+.gs__root-branch {
+  stroke: var(--gs-root);
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* pathLength="1" + dash trick → draw-in reveal even as JS rewrites
+     the `d` attribute every frame for motion-driven curves. */
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0.85;
+  animation: gs-root-draw 1.1s cubic-bezier(0.4, 0.05, 0.55, 0.95) forwards;
+  transition: opacity 0.18s ease;
+}
+
+.gs__root-node {
+  /* White seed with an outline matching its own root color (set per-
+     root inline as --gs-root). Each node visually pairs with its
+     branch + halo via the shared --gs-root token. */
+  fill: #ffffff;
+  stroke: var(--gs-root);
+  stroke-width: 1.4;
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: gs-node-emerge 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.55s both;
+  transition: transform 0.16s ease, filter 0.16s ease;
+  cursor: grab;
+}
+
+.gs__root.is-dragging .gs__root-node {
+  cursor: grabbing;
+  transform: scale(1.25);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--gs-root) 75%, transparent));
+}
+
+/* Halo ring — a brief expanding circle on first paint that draws
+   the eye to each new node. Outline-only so it doesn't compete with
+   the solid node circle. */
+.gs__root-halo {
+  fill: none;
+  stroke: var(--gs-root);
+  stroke-width: 1.6;
+  opacity: 0;
+  transform-origin: center;
+  transform-box: fill-box;
+  pointer-events: none;
+  animation: gs-halo-burst 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.5s forwards;
+}
+
+/* Hover/focus lift — subtle so the breathing drift carries the
+   character, not the cursor response. */
+.gs__root:hover .gs__root-node,
+.gs__root:focus-visible .gs__root-node {
+  transform: scale(1.18);
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--gs-root) 60%, transparent));
+}
+
+.gs__root:hover .gs__root-branch {
+  opacity: 1;
+}
+
+@keyframes gs-root-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Two-stage emerge: pop in with a slight overshoot, then settle. */
+@keyframes gs-node-emerge {
+  0%   { transform: scale(0);    opacity: 0; }
+  55%  { transform: scale(1.35); opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+
+/* Halo: a ring expanding outward from the node, fading to nothing. */
+@keyframes gs-halo-burst {
+  0%   { transform: scale(0.2); opacity: 0; stroke-width: 2.2; }
+  25%  { transform: scale(1);   opacity: 0.7; }
+  100% { transform: scale(2.6); opacity: 0;   stroke-width: 0.4; }
+}
+
+/* Hover-card overlay — appears next to the node on hover/focus.
+   Positioned absolutely within .gs__plot (which is position:
+   relative below). Pointer-events: none so the card itself doesn't
+   intercept hover-out events on the underlying node. */
+.gs__plot {
+  position: relative;
+}
+
+.gs__hover {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  min-width: 180px;
+  max-width: 240px;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  background: var(--fo-surface, #15201b);
+  border: 1px solid var(--fo-line-strong);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.32);
+  font-family: "Manrope", system-ui, sans-serif;
+  /* Smooth appear — start invisible + slightly nudged, fade in with
+     a soft ease. visibility toggle is via .is-visible (not the
+     `hidden` attribute) so the transition runs each appearance. */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px) scale(0.96);
+  transition:
+    opacity 0.18s ease,
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s linear 0.18s;
+}
+
+.gs__hover.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  transition:
+    opacity 0.18s ease,
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s linear 0s;
+}
+
+.gs__hover-title {
+  margin: 0 0 0.4rem;
+  font-size: var(--type-meta);
+  font-weight: 700;
+  color: var(--fo-text);
+  line-height: 1.3;
+  /* Long listing titles wrap rather than overflow the card. */
+  overflow-wrap: break-word;
+}
+
+.gs__hover-meta {
+  margin: 0;
+  display: grid;
+  gap: 0.18rem;
+}
+
+.gs__hover-row {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: var(--type-eyebrow);
+}
+
+.gs__hover-row dt {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fo-text-3);
+}
+
+.gs__hover-row dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--fo-text-2);
+  text-align: right;
+}
+
+/* Footer copy — empty-state prompt or root count. */
+.gs__copy {
+  flex: 0 0 auto;
+  text-align: center;
+  padding: 0.45rem 0.85rem 0.2rem;
+}
+
+.gs__empty {
+  margin: 0;
+  font-size: var(--type-meta);
+  color: var(--fo-text-3);
+  font-style: italic;
+  line-height: 1.45;
+}
+
+.gs__count {
+  margin: 0;
+  font-size: var(--type-meta);
+  font-weight: 600;
+  color: var(--fo-text-2);
+}
+
+/* Respect reduced-motion — kill all the float + emerge effects. */
+@media (prefers-reduced-motion: reduce) {
+  .gs__sprout-svg {
+    animation: none;
+    transform: none;
+  }
+  .gs__root-branch,
+  .gs__root-node {
+    animation: none;
+    stroke-dashoffset: 0;
+    transform: none;
+    opacity: 1;
+  }
+  .gs__root-halo {
+    display: none;
+  }
+}

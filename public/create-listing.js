@@ -41,11 +41,10 @@ const pvAttachments = document.getElementById("pv-attachments");
 const pvQuals = document.getElementById("pv-quals");
 const pvQualsSection = document.getElementById("pv-quals-section");
 const pvBudget = document.getElementById("pv-budget");
-const pvBudgetSection = document.getElementById("pv-budget-section");
 const pvTurnaround = document.getElementById("pv-turnaround");
-const pvTurnaroundSection = document.getElementById("pv-turnaround-section");
 const pvBizOwner = document.getElementById("pv-biz-owner");
 const pvBizName = document.getElementById("pv-biz-name");
+const pvBizNameInline = document.getElementById("pv-biz-name-inline");
 const pvBizWebsite = document.getElementById("pv-biz-website");
 const pvBizSocials = document.getElementById("pv-biz-socials");
 const pvBizAbout = document.getElementById("pv-biz-about");
@@ -251,19 +250,24 @@ function renderAttachmentPreview() {
   if (!pvAttachments) return;
   if (!selectedAttachments.length) {
     pvAttachments.innerHTML = "";
-    pvAttachments.classList.add("hidden");
+    pvAttachments.hidden = true;
     return;
   }
 
   pvAttachments.innerHTML = selectedAttachments
-    .map((file) => `
-      <div class="cl-preview-attachment">
-        <span class="cl-preview-attachment__name">${escapeHtml(file.name)}</span>
-        <span class="cl-preview-attachment__detail">${escapeHtml(attachmentKindLabel(file))} · ${escapeHtml(formatFileSize(file.size))}</span>
-      </div>
-    `)
+    .map((file) => {
+      const ext = (file.name.split(".").pop() || "F").trim().slice(0, 1).toUpperCase() || "F";
+      return `
+        <article class="ld-attachment-card">
+          <div class="ld-attachment-card__icon" aria-hidden="true">${escapeHtml(ext)}</div>
+          <div class="ld-attachment-card__body">
+            <p class="ld-attachment-card__name">${escapeHtml(file.name)}</p>
+            <p class="ld-attachment-card__detail">${escapeHtml(attachmentKindLabel(file))} · ${escapeHtml(formatFileSize(file.size))}</p>
+          </div>
+        </article>`;
+    })
     .join("");
-  pvAttachments.classList.remove("hidden");
+  pvAttachments.hidden = false;
 }
 
 function getAttachmentMetadataFromFile(file, listingId) {
@@ -404,6 +408,9 @@ function updateWizardUI() {
   submitBtn.classList.toggle("hidden", currentSlide !== slides.length - 1);
   const publishNote = document.getElementById("publish-note");
   if (publishNote) publishNote.classList.toggle("hidden", currentSlide !== slides.length - 1);
+
+  // Notify the tutorial so it can re-render the matching walkthrough step.
+  window.dispatchEvent(new CustomEvent("cl:slide-changed", { detail: { slide: currentSlide } }));
 }
 
 function validateSlide(index) {
@@ -506,6 +513,9 @@ async function boot() {
     if (draftIdParam) {
       await hydrateDraft(draftIdParam);
     }
+    // `?example=1` is no longer wired to a one-shot prefill. The
+    // tutorial fills fields one at a time as each tooltip arrives —
+    // see `cl:fill-example-field` listener below.
 
     updatePreview();
 
@@ -526,6 +536,10 @@ function populatePreviewBiz() {
   if (bizProfile.business_name) {
     pvBizName.textContent = bizProfile.business_name;
     pvBizName.hidden = false;
+    // Mirror listing.html — the collapsed-state inline name lives in
+    // .ld-bio__meta. The preview renders the expanded layout, but
+    // setting it keeps the markup honest if the toggle is ever wired.
+    if (pvBizNameInline) pvBizNameInline.textContent = bizProfile.business_name;
   }
 
   if (bizProfile.website_url) {
@@ -603,10 +617,10 @@ function updatePreview() {
   pvTitle.textContent = title || "your opportunity title";
   pvTitle.classList.toggle("cl-preview__placeholder", !title);
 
-  // tags: categories
+  // tags: categories — match listing.html's .ld-tag chips.
   let chipsHtml = "";
   [...selectedCategories].forEach((c) => {
-    chipsHtml += `<span class="cl-preview__chip">${escapeHtml(c)}</span>`;
+    chipsHtml += `<span class="ld-tag">${escapeHtml(c)}</span>`;
   });
   pvChips.innerHTML = chipsHtml;
 
@@ -669,17 +683,18 @@ function updatePreview() {
     pvQualsSection.hidden = true;
   }
 
-  // budget
+  // budget — now sits inline under the title (matches listing.html's
+  // .ld-budget). Toggle the element itself rather than a section.
   const bMin = form.elements.budget_min?.value;
   const bMax = form.elements.budget_max?.value;
   if (bMin && bMax) {
     pvBudget.textContent = formatBudgetRange({ min: Number(bMin), max: Number(bMax) });
-    pvBudgetSection.hidden = false;
+    pvBudget.hidden = false;
   } else if (bMin || bMax) {
     pvBudget.textContent = bMin ? `from $${Number(bMin).toLocaleString()}` : `up to $${Number(bMax).toLocaleString()}`;
-    pvBudgetSection.hidden = false;
+    pvBudget.hidden = false;
   } else {
-    pvBudgetSection.hidden = true;
+    pvBudget.hidden = true;
   }
 }
 
@@ -1158,6 +1173,11 @@ form.addEventListener("submit", async (event) => {
     statusEl.textContent = editingDraftId ? "opportunity published." : "opportunity created.";
     statusEl.className = "gr-status success";
 
+    // Let the tutorial (if active) jump to the "you're all set" step
+    // before we navigate away. Synchronous — state is persisted before
+    // the redirect fires.
+    window.dispatchEvent(new CustomEvent("cl:listing-published", { detail: { listingId } }));
+
     setTimeout(() => {
       window.location.href = `/listing.html?id=${listingId}`;
     }, 800);
@@ -1170,6 +1190,69 @@ form.addEventListener("submit", async (event) => {
 });
 
 boot();
+
+// Per-field example filler. The "show me an example" tutorial path
+// fires `cl:fill-example-field` from each tooltip step that targets
+// a field — so the form fills in incrementally as the user advances
+// through the walkthrough. Each handler is idempotent (skips fields
+// that already carry a value) so re-firing the same event is safe.
+window.addEventListener("cl:fill-example-field", (e) => {
+  applyExampleFieldSpec(e.detail);
+});
+
+function applyExampleFieldSpec(spec) {
+  if (!spec || typeof spec !== "object") return;
+  switch (spec.type) {
+    case "value": {
+      const el = form.elements[spec.field];
+      if (el && !el.value) {
+        el.value = spec.value;
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      break;
+    }
+    case "value-multi": {
+      Object.entries(spec.fields || {}).forEach(([name, value]) => {
+        const el = form.elements[name];
+        if (el && !el.value) {
+          el.value = value;
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      });
+      break;
+    }
+    case "categories": {
+      let added = false;
+      (spec.values || []).forEach((c) => {
+        if (!selectedCategories.has(c)) {
+          selectedCategories.add(c);
+          added = true;
+        }
+      });
+      if (added) {
+        renderCategoryTags();
+        updatePreview();
+      }
+      break;
+    }
+    case "quals": {
+      const values = spec.values || [];
+      // Mirror hydrateDraft — click "add another" until we have one
+      // row per qualification, then fill empty rows in order.
+      while (qualList.querySelectorAll("input").length < values.length) {
+        addQualBtn.click();
+      }
+      const inputs = qualList.querySelectorAll("input");
+      values.forEach((v, i) => {
+        if (inputs[i] && !inputs[i].value) {
+          inputs[i].value = v;
+          inputs[i].dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      });
+      break;
+    }
+  }
+}
 
 function svgIcon(paths) {
   return `

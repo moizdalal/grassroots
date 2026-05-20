@@ -13,8 +13,14 @@
     />
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
+    <!-- The preview pane reuses listing.css's ld-* display primitives
+         (bio, header tags, sections, attachment cards) so it stays in
+         sync with what consultants see on /listing.html. -->
+    <link rel="stylesheet" href="/listing.css" />
+    <link rel="stylesheet" href="/onboarding.css" />
     <script src="/theme.js"></script>
     <script src="/loading-overlay.js"></script>
+    <script type="module" src="/onboarding.js"></script>
     <link rel="stylesheet" href="/create-listing.css" />
   </head>
   <body class="gr-body"><main class="gr-shell gr-shell--wide cl-layout-shell">
@@ -356,60 +362,70 @@
         <div class="cl-preview" id="cl-preview">
           <p class="cl-preview__label">listing preview</p>
 
-          <!-- Business bio (mirrors ld-bio) -->
-          <div class="cl-preview__bio" id="pv-bio">
-            <div class="cl-preview__bio-inner">
-              <div class="cl-preview__bio-avatar" id="pv-biz-avatar-wrap" hidden>
-                <img id="pv-biz-avatar" width="64" height="64" alt="" />
+          <!-- Mirrors listing.html's main content column so the preview
+               stays current with what consultants will actually see. -->
+          <section class="ld-bio cl-preview__bio" id="pv-bio">
+            <div class="ld-bio__left">
+              <span class="ld-bio__avatar-wrap" id="pv-biz-avatar-wrap" hidden>
+                <img id="pv-biz-avatar" class="ld-bio__avatar" alt="" />
+              </span>
+              <div class="ld-bio__socials" id="pv-biz-socials" hidden></div>
+            </div>
+            <div class="ld-bio__column">
+              <!-- Non-interactive toggle stand-in. Carries
+                   aria-expanded="true" so listing.css's :has() selectors
+                   render the bio in its expanded layout (big avatar,
+                   visible socials, body shown). -->
+              <span class="ld-bio__toggle" aria-expanded="true" role="presentation">
+                <span class="ld-bio__meta">
+                  <span class="ld-bio__eyebrow">about the business</span>
+                  <span class="ld-bio__name-inline" id="pv-biz-name-inline"></span>
+                </span>
+              </span>
+              <div class="ld-bio__body">
+                <h2 id="pv-biz-name" class="ld-bio__name" hidden></h2>
+                <p id="pv-biz-owner" class="ld-bio__owner"></p>
+                <p id="pv-biz-about" class="ld-bio__about" hidden></p>
+                <a id="pv-biz-website" class="ld-bio__link" target="_blank" rel="noopener noreferrer" hidden>website</a>
               </div>
-              <div class="cl-preview__bio-info">
-                <p class="cl-preview__bio-name" id="pv-biz-name" hidden></p>
-                <p class="cl-preview__bio-owner" id="pv-biz-owner"></p>
-                <p class="cl-preview__bio-about" id="pv-biz-about" hidden></p>
-                <a class="cl-preview__bio-link" id="pv-biz-website" target="_blank" rel="noopener noreferrer" hidden>website</a>
-                <div class="cl-preview__bio-socials" id="pv-biz-socials" hidden></div>
-              </div>
+            </div>
+          </section>
+
+          <div class="ld-header">
+            <h1 id="pv-title" class="ld-title">your opportunity title</h1>
+            <p id="pv-budget" class="ld-budget" hidden></p>
+            <div id="pv-chips" class="ld-header__tags"></div>
+            <div class="ld-header__meta">
+              <span id="pv-meta" class="ld-date">posted today</span>
+              <span id="pv-turnaround" class="ld-turnaround" hidden></span>
             </div>
           </div>
 
-          <!-- Opportunity header -->
-          <div class="cl-preview__header">
-            <h2 class="ld-title" id="pv-title">your opportunity title</h2>
-            <div class="cl-preview__chips" id="pv-chips"></div>
-            <div class="cl-preview__meta">
-              <span class="ld-date" id="pv-meta">posted today</span>
-              <span class="ld-turnaround" id="pv-turnaround" hidden></span>
-            </div>
-          </div>
+          <details id="pv-context-section" class="ld-section" open hidden>
+            <summary class="ld-section-h">context</summary>
+            <p id="pv-context" class="ld-body"></p>
+          </details>
 
-          <!-- Content sections -->
-          <div class="cl-preview__main">
-            <div class="cl-preview__section" id="pv-context-section" hidden>
-              <h3 class="ld-section-h">context</h3>
-              <p class="ld-body" id="pv-context"></p>
-            </div>
-            <div class="cl-preview__section" id="pv-problem-section" hidden>
-              <h3 class="ld-section-h">business problem</h3>
-              <p class="ld-body" id="pv-problem"></p>
-            </div>
-            <div class="cl-preview__section" id="pv-output-section" hidden>
-              <h3 class="ld-section-h">standards of work</h3>
-              <p class="ld-body" id="pv-output"></p>
-            </div>
-            <div class="cl-preview__section" id="pv-details-section" hidden>
-              <h3 class="ld-section-h">additional details</h3>
-              <p class="ld-body" id="pv-details"></p>
-              <div class="cl-preview__attachments hidden" id="pv-attachments"></div>
-            </div>
-            <div class="cl-preview__section" id="pv-quals-section" hidden>
-              <h3 class="ld-section-h">qualifications</h3>
-              <ul class="ld-body cl-preview__quals" id="pv-quals"></ul>
-            </div>
-            <div class="cl-preview__section" id="pv-budget-section" hidden>
-              <h3 class="ld-section-h">budget</h3>
-              <p class="ld-body" id="pv-budget"></p>
-            </div>
-          </div>
+          <details id="pv-problem-section" class="ld-section" open hidden>
+            <summary class="ld-section-h">business problem</summary>
+            <p id="pv-problem" class="ld-body"></p>
+          </details>
+
+          <details id="pv-output-section" class="ld-section" open hidden>
+            <summary class="ld-section-h">standards of work</summary>
+            <p id="pv-output" class="ld-body"></p>
+          </details>
+
+          <details id="pv-details-section" class="ld-section" open hidden>
+            <summary class="ld-section-h">additional details</summary>
+            <p id="pv-details" class="ld-body"></p>
+            <div id="pv-attachments" class="ld-attachments" hidden></div>
+          </details>
+
+          <details id="pv-quals-section" class="ld-section" open hidden>
+            <summary class="ld-section-h">qualifications</summary>
+            <ul id="pv-quals" class="ld-quals-list"></ul>
+          </details>
         </div>
       </aside>
       </div>

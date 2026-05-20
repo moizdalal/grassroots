@@ -45,178 +45,134 @@
   border-bottom: 1px solid var(--card-border);
 }
 
-/* --- Preview: business bio --- */
-.cl-preview__bio {
-  border-bottom: 1px solid var(--card-border);
-  padding-bottom: 0.85rem;
-  margin-bottom: 1rem;
-}
+/* --- Preview: layer on top of ld-* listing styles -----------------
+   The preview pane mirrors listing.html's main content column so what
+   the user sees here matches what consultants will see on the live
+   listing. These rules only adjust for the narrower preview width:
+   smaller display type, a smaller bio avatar, and tighter section
+   spacing. Anything theme-related (card chrome, colors, focus) flows
+   through from listing.css unchanged. ---------------------------- */
 
-.cl-preview__bio-inner {
-  display: flex;
+.cl-preview .ld-bio {
+  margin-bottom: 1rem;
+  padding: 0.85rem 0.95rem 1rem;
   gap: 0.85rem;
 }
 
-.cl-preview__bio-avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: 10px;
-  overflow: hidden;
-  border: 2px solid rgba(45, 106, 79, 0.1);
-  flex-shrink: 0;
+/* Smaller avatar than the live listing's 104px — the preview pane is
+   roughly half the width so the full-size avatar dominates. */
+.cl-preview .ld-bio:has([aria-expanded="true"]) .ld-bio__avatar-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 14px;
 }
 
-.cl-preview__bio-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+.cl-preview .ld-bio__socials {
+  width: 72px;
 }
 
-.cl-preview__bio-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  min-width: 0;
-  justify-content: flex-end;
+.cl-preview .ld-bio__name {
+  font-size: var(--type-h2);
 }
 
-.cl-preview__bio-name {
-  font-family: Fraunces, Georgia, serif;
+.cl-preview .ld-bio__owner {
   font-size: var(--type-body);
-  font-weight: 700;
-  color: var(--green-deep);
-  margin: 0;
 }
 
-.cl-preview__bio-owner {
-  margin: 0;
+.cl-preview .ld-bio__about {
   font-size: var(--type-meta);
-  font-weight: 500;
-  color: var(--muted);
+  line-height: 1.5;
 }
 
-.cl-preview__bio-about {
-  margin: 0;
+.cl-preview .ld-bio__link {
   font-size: var(--type-meta);
-  line-height: 1.4;
-  color: var(--tagline-body);
 }
 
-.cl-preview__bio-link {
-  font-size: var(--type-meta);
-  font-weight: 600;
-  color: var(--green-mid);
-  text-decoration: none;
+/* --- Header — title, budget, tags, meta --- */
+.cl-preview .ld-header {
+  margin-bottom: 1.1rem;
 }
 
-.cl-preview__bio-link:hover {
-  text-decoration: underline;
-}
-
-.cl-preview__bio-socials {
-  display: flex;
-  gap: 0.35rem;
-  margin-top: 0.15rem;
-}
-
-.cl-preview__bio-socials a {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.3rem;
-  height: 1.3rem;
-  border-radius: 6px;
-  background: rgba(45, 106, 79, 0.06);
-  color: var(--green-mid);
-}
-
-.cl-preview__bio-socials a svg {
-  width: 0.75rem;
-  height: 0.75rem;
-}
-
-/* --- Preview: opportunity header --- */
-.cl-preview__header {
-  margin-bottom: 1rem;
-}
-
-.cl-preview__header .ld-title {
-  font-size: var(--type-h3);
+.cl-preview .ld-title {
+  font-size: var(--type-h2);
   margin: 0;
   transition: color 0.2s ease;
 }
 
-.cl-preview__chips {
-  display: flex;
-  flex-wrap: wrap;
+.cl-preview .ld-budget {
+  margin: 0.25rem 0 0;
+  font-size: var(--type-h3);
+}
+
+.cl-preview .ld-header__tags {
   gap: 0.3rem;
-  margin-top: 0.4rem;
+  margin-top: 0.45rem;
 }
 
-.cl-preview__chips:empty {
-  display: none;
-}
-
-.cl-preview__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
+.cl-preview .ld-tag {
   font-size: var(--type-eyebrow);
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: lowercase;
-  padding: 0.18rem 0.5rem;
-  border-radius: 999px;
-  background: rgba(45, 106, 79, 0.08);
-  color: var(--green-mid);
+  padding: 0.18rem 0.55rem;
 }
 
-.cl-preview__chip--type {
-  background: rgba(45, 106, 79, 0.12);
-  color: var(--green-deep);
-}
-
-.cl-preview__chip svg {
-  width: 0.7rem;
-  height: 0.7rem;
-}
-
-.cl-preview__meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+.cl-preview .ld-header__meta {
+  margin-top: 0.4rem;
   gap: 0.4rem 0.75rem;
-  margin-top: 0.35rem;
 }
 
-.cl-preview__meta .ld-turnaround {
+.cl-preview .ld-header__meta .ld-date,
+.cl-preview .ld-header__meta .ld-turnaround {
   font-size: var(--type-meta);
-  padding: 0.15rem 0.5rem;
 }
 
-/* --- Preview: content sections --- */
-.cl-preview__main {
-  min-width: 0;
+/* --- Sections — tighter than the live page, but still using <details>
+       so the open/closed disclosure UX matches the listing. --- */
+.cl-preview .ld-section {
+  margin-bottom: 0.95rem;
 }
 
-.cl-preview__section {
-  margin-bottom: 0.85rem;
-}
-
-.cl-preview__section:last-child {
+.cl-preview .ld-section:last-of-type {
   margin-bottom: 0;
 }
 
-.cl-preview__section .ld-section-h {
-  font-size: var(--type-meta);
-  margin-bottom: 0.25rem;
+.cl-preview .ld-section-h {
+  font-size: var(--type-h3);
+  margin-bottom: 0.35rem;
 }
 
-.cl-preview__section .ld-body {
+.cl-preview .ld-body {
   font-size: var(--type-meta);
-  line-height: 1.5;
-  white-space: pre-wrap;
+  line-height: 1.55;
+}
+
+.cl-preview .ld-quals-list {
+  font-size: var(--type-meta);
+  line-height: 1.55;
+}
+
+.cl-preview .ld-attachments {
+  gap: 0.55rem;
+  margin-top: 0.7rem;
+}
+
+.cl-preview .ld-attachment-card {
+  padding: 0.7rem;
+  gap: 0.65rem;
+}
+
+.cl-preview .ld-attachment-card__thumb,
+.cl-preview .ld-attachment-card__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  font-size: var(--type-h3);
+}
+
+.cl-preview .ld-attachment-card__name {
+  font-size: var(--type-meta);
+}
+
+.cl-preview .ld-attachment-card__detail {
+  font-size: var(--type-eyebrow);
 }
 
 .cl-field-label {
@@ -264,16 +220,14 @@
   min-width: 0;
 }
 
-.cl-file-chip__name,
-.cl-preview-attachment__name {
+.cl-file-chip__name {
   font-size: var(--type-meta);
   font-weight: 700;
   color: var(--green-deep);
   overflow-wrap: anywhere;
 }
 
-.cl-file-chip__detail,
-.cl-preview-attachment__detail {
+.cl-file-chip__detail {
   font-size: var(--type-meta);
   color: var(--tagline-body);
 }
@@ -296,39 +250,6 @@
 .cl-file-chip__remove:hover {
   background: rgba(200, 50, 50, 0.1);
   color: #c33;
-}
-
-.cl-preview__attachments {
-  display: grid;
-  gap: 0.45rem;
-  margin-top: 0.6rem;
-}
-
-.cl-preview-attachment {
-  display: grid;
-  gap: 0.08rem;
-  padding: 0.6rem 0.7rem;
-  border-radius: 10px;
-  background: rgba(45, 106, 79, 0.05);
-  border: 1px solid rgba(45, 106, 79, 0.1);
-}
-
-.cl-preview__quals {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.cl-preview__quals li {
-  font-size: var(--type-meta);
-}
-
-.cl-preview__quals li::before {
-  content: "\2022\00a0";
-  color: var(--green-mid);
 }
 
 .ct-help-hint {

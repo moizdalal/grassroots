@@ -138,9 +138,14 @@ async function resolveManageLinkLabel(client, bidId, viewerRole) {
     return { hide: true, awaiting: "owner" };
   }
   if (scheduleStatus === "awaiting_consultant") {
-    return isOwner
-      ? { label: "view kickoff status" }
-      : { label: "pick your kickoff time" };
+    if (isOwner) {
+      // Owner already shared availability — the ball is in the
+      // consultant's court. Drop the primary-CTA pressure and surface
+      // a quieter "manage" link instead. `quiet: true` tells the
+      // caller to render the link as a ghost button (no fill).
+      return { label: "manage", quiet: true, awaiting: "consultant" };
+    }
+    return { label: "pick your kickoff time" };
   }
   return { label: "view engagement" };
 }
@@ -2480,16 +2485,24 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
 
     if (b.status === "accepted") {
       const manageLink = document.createElement("a");
-      manageLink.className = "gr-btn gr-btn--ghost gr-btn--sm";
+      // Starts as a primary CTA (the share-kickoff prompt). After the
+      // schedule lookup resolves, switches to a quieter ghost variant
+      // when the owner has already done their part — no need to keep
+      // pulling their attention to a page that has nothing for them.
+      // `hide: true` removes the link entirely if there's no actionable
+      // destination.
+      manageLink.className = "gr-btn gr-btn--primary gr-btn--sm";
       manageLink.href = engagementLink(b.id);
-      // Placeholder while the schedule lookup resolves. If the
-      // resolver returns `hide: true`, pull the CTA from the DOM so
-      // it doesn't lead to a dead-end page.
       manageLink.textContent = "manage engagement";
       resolveManageLinkLabel(client, b.id, "owner")
-        .then(({ label, hide }) => {
-          if (hide) manageLink.remove();
-          else manageLink.textContent = label;
+        .then(({ label, hide, quiet }) => {
+          if (hide) { manageLink.remove(); return; }
+          if (label) manageLink.textContent = label;
+          if (quiet) {
+            manageLink.className = "gr-btn gr-btn--ghost gr-btn--sm";
+          } else {
+            manageLink.className = "gr-btn gr-btn--primary gr-btn--sm";
+          }
         })
         .catch(() => {});
       actionsEl.appendChild(manageLink);

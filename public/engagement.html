@@ -33,7 +33,6 @@
         <section class="gr-card eg-summary">
           <div class="eg-summary__top">
             <div>
-              <p class="eg-kicker">engagement</p>
               <h2 class="eg-title" id="eg-title"></h2>
             </div>
             <span class="eg-status-pill" id="eg-status-pill">awaiting setup</span>
@@ -63,7 +62,6 @@
           <section class="gr-card eg-panel" id="eg-meeting-panel">
             <div class="eg-panel__head">
               <div>
-                <p class="eg-kicker">meeting coordination</p>
                 <h2 class="eg-panel__title" id="eg-panel-title">set meeting availability</h2>
               </div>
               <!-- Owner sets meeting length when sharing availability;
@@ -269,8 +267,7 @@
           <section class="gr-card eg-panel hidden" id="eg-owner-actions-panel">
             <div class="eg-panel__head">
               <div>
-                <p class="eg-kicker">owner actions</p>
-                <h2 class="eg-panel__title">manage ongoing work</h2>
+                <h2 class="eg-panel__title">owner actions</h2>
               </div>
             </div>
 
@@ -278,7 +275,11 @@
               <a class="gr-btn gr-btn--ghost gr-btn--sm" id="eg-review-offers-link">review other offers</a>
               <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="eg-close-listing-btn">close opportunity</button>
               <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm hidden" id="eg-refund-btn">request refund</button>
-              <button type="button" class="gr-btn gr-btn--primary gr-btn--sm" id="eg-work-completed-btn" disabled>work completed</button>
+              <!-- Uses aria-disabled (not the disabled attribute) so a
+                   click still fires and the panel-level listener can
+                   toast the reason. setBtnUnavailable() in
+                   engagement.js owns toggling the attribute. -->
+              <button type="button" class="gr-btn gr-btn--primary gr-btn--sm" id="eg-work-completed-btn" aria-disabled="true">work completed</button>
             </div>
 
             <p class="eg-helper">you can keep the listing open while work is underway, or close it once you are ready.</p>

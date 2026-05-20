@@ -14,8 +14,10 @@
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <link rel="stylesheet" href="/profile-seedling.css" />
+    <link rel="stylesheet" href="/onboarding.css" />
     <script src="/theme.js"></script>
     <script src="/loading-overlay.js"></script>
+    <script type="module" src="/onboarding.js"></script>
   </head>
   <body class="gr-body">
     <!-- Welcome popup (account-tab only; profile.js controls when to show it) -->
@@ -108,6 +110,22 @@
                     <span class="theme-card-check" aria-hidden="true">✓</span>
                   </button>
                 </div>
+              </div>
+            </section>
+
+            <!-- Onboarding replay — calls into the onboarding module
+                 to restart the tooltip tutorial from step 1. Same
+                 entry as the post-register flow; the JS clears the
+                 onboarded_at stamp so a fresh run is logged. -->
+            <section class="settings-section">
+              <div class="settings-section-h">
+                <h3>onboarding</h3>
+                <p>haven't found everything yet? replay the new-user tour any time.</p>
+              </div>
+              <div class="settings-section__body">
+                <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="settings-replay-onboarding">
+                  replay onboarding tutorial
+                </button>
               </div>
             </section>
 
@@ -774,6 +792,22 @@
 
         const initial = (window.location.hash || '#general').slice(1);
         activate(initial, { updateHash: false });
+
+        // Replay onboarding button — hand off to the onboarding module
+        // (loaded as <script type="module">). If the module hasn't
+        // finished initializing for some reason, fall back to the
+        // ?tutorial=1 query param flow which re-triggers via the
+        // auto-start path on the next page load.
+        const replayBtn = document.getElementById('settings-replay-onboarding');
+        if (replayBtn) {
+          replayBtn.addEventListener('click', () => {
+            if (window.grassrootsOnboarding?.replay) {
+              window.grassrootsOnboarding.replay();
+            } else {
+              window.location.href = '/profile.html?tutorial=1';
+            }
+          });
+        }
       })();
     </script>
 
@@ -898,9 +932,27 @@
 
           const { data: profile, error } = await client
             .from("profiles")
-            .select("stripe_account_id, stripe_account_status")
+            .select("role, stripe_account_id, stripe_account_status")
             .eq("id", session.user.id)
             .single();
+
+          // Business owners don't collect payouts — hide the tab + panel
+          // entirely and bounce off #payout if that's where they landed
+          // (also catches subsequent hash edits in the URL bar).
+          if (profile?.role === "business_owner") {
+            const payoutTabBtn = document.querySelector('.settings-tab[data-tab="payout"]');
+            const payoutPanel = document.querySelector('.settings-panel[data-tab="payout"]');
+            if (payoutTabBtn) payoutTabBtn.classList.add("hidden");
+            if (payoutPanel) payoutPanel.remove();
+            const bouncePayoutHash = () => {
+              if (window.location.hash === "#payout") {
+                window.location.hash = "#general";
+              }
+            };
+            bouncePayoutHash();
+            window.addEventListener("hashchange", bouncePayoutHash);
+            return;
+          }
 
           setLoading(false);
 

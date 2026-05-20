@@ -1,6 +1,6 @@
 import { getSupabaseClient } from "/supabase-loader.js";
 import { renderRatingMarkup, fetchRatingFor } from "/rating.js";
-import { showSuccess, showError } from "/toast.js";
+import { showSuccess, showError, showInfo } from "/toast.js";
 import { payAndStartService } from "/payment-modal.js";
 
 const gate = document.getElementById("eg-gate");
@@ -32,6 +32,22 @@ const reviewOffersLink = document.getElementById("eg-review-offers-link");
 const closeListingBtn = document.getElementById("eg-close-listing-btn");
 const workCompletedBtn = document.getElementById("eg-work-completed-btn");
 const refundBtn = document.getElementById("eg-refund-btn");
+
+// Owner-action buttons that are "unavailable for a reason" use
+// aria-disabled instead of the native disabled attribute — disabled
+// swallows clicks, but we want the click to land so we can toast why
+// the action isn't available. The delegated listener at the bottom
+// of this file picks the data-disabled-reason off the clicked button.
+function setBtnUnavailable(btn, unavailable, reason = "") {
+  if (!btn) return;
+  if (unavailable) {
+    btn.setAttribute("aria-disabled", "true");
+    if (reason) btn.dataset.disabledReason = reason;
+  } else {
+    btn.removeAttribute("aria-disabled");
+    delete btn.dataset.disabledReason;
+  }
+}
 const refundHelper = document.getElementById("eg-refund-helper");
 const ownerActionStatusEl = document.getElementById("eg-owner-action-status");
 const proposalDecisionPanel = document.getElementById("eg-proposal-decision-panel");
@@ -1235,13 +1251,25 @@ function renderOwnerActions() {
   }
   ownerActionsPanel.classList.remove("hidden");
   const engagementOngoing = scheduleState?.status === "scheduled" || scheduleState?.status === "completed";
-  workCompletedBtn.disabled = !engagementOngoing;
-  closeListingBtn.disabled = currentListing.status === "closed";
+  setBtnUnavailable(
+    workCompletedBtn,
+    !engagementOngoing,
+    "you'll be able to mark work completed once a kickoff time is locked in.",
+  );
+  setBtnUnavailable(
+    closeListingBtn,
+    currentListing.status === "closed",
+    "this listing is already closed.",
+  );
   renderRefundCta();
 
   if (reviewState) {
     workCompletedBtn.textContent = "review submitted";
-    workCompletedBtn.disabled = true;
+    setBtnUnavailable(
+      workCompletedBtn,
+      true,
+      "you've already submitted a review for this engagement.",
+    );
     reviewPanel.classList.remove("hidden");
     reviewForm.classList.add("hidden");
     reviewStatusEl.textContent = "thank you from grassroots. your review has been saved.";
@@ -1445,7 +1473,7 @@ async function closeListing() {
   }
   currentListing.status = "closed";
   listingStatusEl.textContent = "closed";
-  closeListingBtn.disabled = true;
+  setBtnUnavailable(closeListingBtn, true, "this listing is already closed.");
   showSuccess("opportunity closed. you can still manage this engagement here.");
 }
 
@@ -2133,6 +2161,24 @@ confirmTimeBtn.addEventListener("click", async () => {
 closeListingBtn.addEventListener("click", async () => {
   await closeListing();
 });
+
+// Capture-phase delegate that intercepts clicks on any owner-action
+// button currently flagged aria-disabled. Surfaces the
+// data-disabled-reason as an info toast and stops propagation so the
+// button's own click handler doesn't run.
+ownerActionsPanel?.addEventListener(
+  "click",
+  (e) => {
+    const btn = e.target.closest('.gr-btn[aria-disabled="true"]');
+    if (!btn || !ownerActionsPanel.contains(btn)) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    e.stopPropagation();
+    const reason = btn.dataset.disabledReason || "this action isn't available right now.";
+    showInfo(reason, { duration: 4500 });
+  },
+  true,
+);
 
 bindCalendarInteractions();
 bindReviewInteractions();

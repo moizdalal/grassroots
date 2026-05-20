@@ -4116,18 +4116,20 @@ body.gr-has-side-nav .bza__main {
    .dash-home-grid below. The owner home is a single 2-column flex
    layout: primary listings panel left, stacked summary rail right.) */
 
-/* ── owner home: no-scroll two-column layout ──────────────────────
-   The whole .dash-view--home is a flex column sized to the viewport
-   minus the .bza__main padding, so the page itself never scrolls;
-   instead, the listings rows scroll inside their own panel. The
-   right rail also scrolls internally if its three panels (analytics,
-   profile health, notifications) overflow on a short viewport. */
+/* ── owner home: viewport-locked 2-col layout ─────────────────────
+   Whole view is sized to the viewport so the page never scrolls.
+   Left column (main): listings panel on top (flexes to fill), then
+     performance + profile-health side-by-side on the bottom.
+   Right column (garden): a tall panel that stretches the full
+     column height — most of it is the roots area for the seedling
+     visual, with the sprout itself sitting compact up top.
+*/
 .dash-view--home:not([hidden]) {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  /* 4rem = the .bza__main top + bottom padding (32px each). Matching
-     it exactly keeps the page from scrolling by even a single pixel. */
+  /* 4rem = .bza__main top + bottom padding. Matching it exactly
+     keeps the page from scrolling by even a single pixel. */
   height: calc(100vh - 4rem);
 }
 
@@ -4141,18 +4143,55 @@ body.gr-has-side-nav .bza__main {
   display: grid;
   grid-template-columns: minmax(0, 1.85fr) minmax(280px, 1fr);
   gap: 1.25rem;
+  align-items: stretch;
 }
 
-.dash-home-grid > .bza__panel,
-.dash-home-grid > .dash-home-rail > .bza__panel {
+.dash-home-grid > .dash-home-col > .bza__panel,
+.dash-home-grid > .dash-home-col > [id] > .bza__panel {
   margin-bottom: 0;
 }
 
-/* Listings panel — header sticks at the top, rows wrap scrolls. */
+.dash-home-col {
+  min-width: 0;
+  min-height: 0;
+}
+
+.dash-home-col--main {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Performance + profile-health sit side-by-side below the listings
+   panel. Fixed to content height so listings claims the rest. */
+.dash-home-stats {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: start;
+  min-width: 0;
+}
+
+.dash-home-stats > * {
+  min-width: 0;
+}
+
+@media (max-width: 1100px) {
+  .dash-home-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Listings panel — header sticks at the top, rows wrap scrolls.
+   Flexes to take whatever vertical space remains in the column
+   after the stats row claims its content height. The min-height
+   floor keeps the panel readable on shorter viewports. */
 .dash-listings-panel {
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  flex: 1 1 0;
+  min-height: 240px;
 }
 
 .dash-listings-panel > .bza__panel-h {
@@ -4178,12 +4217,22 @@ body.gr-has-side-nav .bza__main {
   flex: 0 0 auto;
 }
 
-.dash-home-rail {
+/* Right column — fills the full viewport-locked column height; the
+   garden panel inside stretches to match. The roots area inside
+   takes whatever vertical room is available, so on tall screens the
+   ground gets bigger and the seedling has more room to grow. */
+.dash-home-col--garden {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
   min-height: 0;
-  overflow-y: auto;
+}
+
+#dash-garden {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* On narrow viewports the two columns stack and the page can scroll
@@ -4195,10 +4244,12 @@ body.gr-has-side-nav .bza__main {
   .dash-home-grid {
     grid-template-columns: 1fr;
   }
-  .dash-listings-rows-wrap,
-  .dash-home-rail {
-    overflow: visible;
-    max-height: none;
+  .dash-listings-panel {
+    flex: 0 0 auto;
+    min-height: 320px;
+  }
+  #dash-garden {
+    min-height: 420px;
   }
 }
 
@@ -4800,6 +4851,24 @@ body.gr-has-side-nav .bza__main {
 .bza__row-cta--complete:hover {
   background: var(--fo-accent-warm);
   color: var(--fo-accent-on);
+}
+
+/* Quiet manage variant — no accent fill, just a muted outline. Used
+   when the owner has already done their part on an engagement and is
+   waiting on the consultant; the link still works but should read as
+   passive, not as an action item. */
+.bza__row-cta--manage {
+  background: transparent;
+  color: var(--fo-text-3);
+  border: 1px solid var(--fo-line-strong);
+  font-weight: 600;
+}
+
+.bza__row-cta--manage:hover {
+  background: var(--fo-surface-2);
+  color: var(--fo-text);
+  border-color: var(--fo-line-strong);
+  transform: none;
 }
 
 .bza__row-meta-sep {
