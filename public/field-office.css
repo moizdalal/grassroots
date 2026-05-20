@@ -1676,17 +1676,17 @@ body.gr-body .gr-section-h {
 }
 
 .ld-section::details-content {
-  height: 0;
+  block-size: 0;
   opacity: 0;
-  overflow: hidden;
-  transition:
-    height 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.22s ease,
-    content-visibility 0.32s allow-discrete;
+  overflow: clip;
+  transition-property: block-size, opacity, content-visibility;
+  transition-duration: 0.45s, 0.32s, 0.45s;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1), ease, cubic-bezier(0.4, 0, 0.2, 1);
+  transition-behavior: allow-discrete;
 }
 
 .ld-section[open]::details-content {
-  height: auto;
+  block-size: auto;
   opacity: 1;
 }
 
@@ -1719,7 +1719,7 @@ body.gr-body .gr-section-h {
   border-bottom: 1.5px solid currentColor;
   transform: rotate(45deg);
   transform-origin: center;
-  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), margin 0.32s ease;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), margin 0.45s ease;
   opacity: 0.55;
   margin-bottom: 2px;
 }
