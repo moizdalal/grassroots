@@ -6359,7 +6359,6 @@ body.gr-has-side-nav .bza__main {
   gap: var(--space-3);
   align-items: stretch;
   padding: var(--space-5) 0;
-  margin: 0;
 }
 
 .settings-section + .settings-section {
@@ -6368,6 +6367,10 @@ body.gr-has-side-nav .bza__main {
 
 .settings-section:first-of-type {
   padding-top: var(--space-4);
+}
+
+.settings-panel > .settings-section:first-of-type {
+  padding-top: 0;
 }
 
 .settings-section-h {

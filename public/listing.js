@@ -1562,7 +1562,7 @@ async function showConsultantView(client, session, listing, existingBid) {
   if (!listingAcceptingOffers) {
     formWrap.hidden = true;
     statusEl.textContent = existingBid
-      ? `this listing is ${listingStatus}. your existing offer stays visible here, but new edits are turned off for now.`
+      ? `this listing is ${listingStatus}. your existing offer stays visible here.`
       : `this listing is ${listingStatus} and is not accepting new offers right now.`;
     statusEl.className = "gr-status";
   }
