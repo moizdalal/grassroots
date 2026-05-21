@@ -19,6 +19,7 @@
 
 import { getSupabaseClient } from "/supabase-loader.js";
 import { showToast } from "/toast.js";
+import { convertListingToDraft, ListingOperationError } from "/listing-operations.js";
 
 const STORAGE_KEY = "grassroots_onboarding";
 const TOOLTIP_ID = "gr-onboarding-tooltip";
@@ -86,6 +87,14 @@ const STEPS = [
     // First selector covers the no-avatar state (upload label visible).
     // Second covers the has-avatar state (change/remove buttons visible).
     targetSelector: ["#pf-avatar-upload-label:not(.hidden)", "#pf-avatar-change-btn"],
+    // The has-avatar "change photo" button delegates to a synthetic click
+    // on the hidden file input that lives inside #pf-avatar-upload-label
+    // (which has .hidden in that state). Whitelisting the whole controls
+    // wrapper keeps every avatar interaction — upload label, hidden input,
+    // change/remove buttons — in scope regardless of state. The cropper
+    // modal mounts at body level after the user picks a file, so its own
+    // selector is allow-listed too.
+    allowedInteractive: [".pf-avatar-controls", ".gr-photo-crop"],
     placement: "right",
     advanceOn: "next",
     title: "show your face.",
@@ -134,12 +143,15 @@ const STEPS = [
     targetSelector: "#business-section",
     // Save sits outside the highlighted section but is the natural
     // close to the step — list it as an allowed interaction so the
-    // guardrail doesn't pop while the user saves their form.
-    allowedInteractive: "#save-btn",
+    // guardrail doesn't pop while the user saves their form. The
+    // social-profiles section is a sibling of the highlighted business
+    // section; whitelisting it lets owners link instagram/facebook/etc
+    // in the same pass without tripping the guardrail.
+    allowedInteractive: ["#save-btn", "#business-social-section"],
     placement: "right",
     advanceOn: "next",
     title: "the big one.",
-    body: "tell consultants about your business, save below, then tap next.",
+    body: "tell consultants about your business, add your socials, then save.",
   },
   {
     id: "listing-choice",
@@ -149,8 +161,12 @@ const STEPS = [
     placement: "center",
     kind: "choice",
     advanceOn: "next",
-    title: "now post your first listing.",
-    body: "you can bring your own idea or follow an example. we'll walk you through it either way.",
+    // Sets expectations up front: bringing your own idea posts a real
+    // listing (with a final confirm); following the example parks a
+    // draft you'll delete at the end. Either way the user can stop at
+    // a draft mid-flow. Encourages the "own" path by leading with it.
+    title: "have something in mind?",
+    body: "bring your own idea and we'll walk you through posting it (save as draft any time you want). or follow our example to see how it works — you'll park it as a draft and delete it from your dashboard at the end.",
     choices: [
       { id: "own", label: "i've got an idea", primary: true, href: "/create-listing.html" },
       { id: "example", label: "show me an example", href: "/create-listing.html?example=1" },
@@ -184,6 +200,27 @@ const STEPS = [
       type: "value",
       field: "title",
       value: "weekend farmers market sales push",
+    },
+  },
+  {
+    // Sits between the title field and the rest of the walkthrough so
+    // the user has just typed something the preview can echo back —
+    // makes the "this is live, it updates as you type" point land
+    // with a concrete change they just caused.
+    id: "lw-preview",
+    label: "preview",
+    path: "/create-listing.html",
+    slide: 0,
+    targetSelector: "#cl-preview",
+    placement: "left",
+    advanceOn: "next",
+    allowedInteractive: [
+      "#next-btn", "#back-btn", "#save-draft-btn",
+    ],
+    title: "your live preview.",
+    body: {
+      own: "the right rail mirrors what consultants see in the marketplace. it updates as you type, so use it as a sanity check.",
+      example: "the right rail mirrors what consultants see — your title already showed up. it updates as you fill in the rest.",
     },
   },
   {
@@ -421,32 +458,180 @@ const STEPS = [
     label: "publish",
     path: "/create-listing.html",
     slide: 2,
-    targetSelector: "#submit-btn",
+    // Per-variant target: the vine points at the button the user is
+    // actually supposed to click. Own users post for real; example
+    // users park a draft so they can delete it later.
+    targetSelector: {
+      own: "#submit-btn",
+      example: "#save-draft-btn",
+    },
     placement: "left",
     advanceOn: "next",
     allowedInteractive: ["#submit-btn", "#back-btn", "#save-draft-btn"],
-    title: "publish — go live.",
+    title: {
+      own: "publish — go live.",
+      example: "park it as a draft.",
+    },
     body: {
-      own: "review the right-rail preview. tap create opportunity to publish. you can edit or unpublish anytime.",
-      example: "give the right-rail preview a final read. when it looks right, tap create opportunity to publish this sample.",
+      own: "review the right-rail preview. ready? tap post listing — we'll ask for a final confirmation. not ready? tap save as a draft below; you can finish it later.",
+      example: "give the right-rail preview a final read, then tap save as a draft. live listings stay on the record, so we'll park this sample as a draft and you'll delete it from your dashboard next.",
     },
   },
-  // Listing management — placeholder chapter. Once a listing is live,
-  // the business owner manages it from the dashboard: review bids,
-  // counter-offer, fund escrow, kick off the engagement, release
-  // funds, leave reviews. None of that walkthrough is built yet, so
-  // this step is a single "coming soon" landing pad — its real value
-  // is keeping a chapter chip in the nav so the user knows there's
-  // more after publish.
+  // Example-only coda — appears on /listing.html after the example
+  // listing publishes. The user just walked through posting a sample
+  // listing they don't actually want sitting live in the marketplace.
+  // Live listings can't be deleted (paper trail), but drafts can — so
+  // we send the example back to draft state, redirect to the
+  // dashboard, and tell the user where to delete it from there.
+  // Skipped on the "own" path; the listing-published handler routes
+  // owners who brought their own idea straight to `complete`.
   {
-    id: "lm-placeholder",
-    label: "soon",
+    id: "example-cleanup",
+    label: "wrap up",
     path: null,
     targetSelector: null,
     placement: "center",
+    kind: "choice",
     advanceOn: "next",
-    title: "listing management — coming soon.",
-    body: "we're building the next stretch of this tutorial — reviewing bids, funding escrow, kicking off engagements, and releasing payment. for now this chapter is a placeholder.",
+    title: "tidy up the example.",
+    body: "live listings stay on the record once posted — only drafts can be deleted. tap below to send this back to draft state, then delete it from your dashboard.",
+    choices: [
+      { id: "save-draft", label: "save as a draft", primary: true, action: "exampleSaveDraft" },
+    ],
+  },
+  // Example coda — appears on the dashboard once the example listing
+  // has been parked as a draft (either directly via the save-draft
+  // button at lw-publish, or via the example-cleanup conversion
+  // action above when the user posted instead). Points the user at
+  // the dashboard delete affordance so they finish the clean-up.
+  {
+    id: "example-saved-draft",
+    label: "delete",
+    path: null,
+    targetSelector: null,
+    placement: "center",
+    // Skip the full-viewport dim — the user needs to see and click
+    // a draft delete affordance on the page underneath this bubble.
+    noDim: true,
+    advanceOn: "next",
+    // Both paths (deleting the draft via the dashboard, or just
+    // clicking "next" past this bubble) lead into the dashboard
+    // walkthrough — useful regardless of whether the user actually
+    // performs the delete.
+    nextStepId: "dash-home-intro",
+    // The bubble has no spotlight target (placement: center), so by
+    // default any click outside trips the off-scope guardrail. Allow
+    // the dashboard's draft-delete affordances + the shared confirm
+    // modal so the user can actually act on the "delete the draft"
+    // instruction without being asked if they want to exit.
+    allowedInteractive: [
+      ".bza__row-draft-delete",
+      ".ml-card__delete",
+      ".gr-confirm-modal",
+      ".bza__row",
+      ".ml-card-wrap",
+    ],
+    title: "now delete the draft.",
+    body: "your example listing is parked as a draft below. tap delete on it to clean up — drafts are the only thing you can remove from the record.",
+  },
+  // Dashboard walkthrough — the "manage" chapter. Lands the user on
+  // /dashboard.html after the example coda and walks them through
+  // each home panel + the my-listings management surface. Targets
+  // real DOM ids so the spotlight follows the panels exactly.
+  {
+    id: "dash-home-intro",
+    label: "home",
+    path: "/dashboard.html",
+    hash: "#dashboard",
+    targetSelector: null,
+    placement: "center",
+    advanceOn: "next",
+    title: "welcome to your dashboard.",
+    body: "this is the first thing you'll see every time you log in. let's walk through the panels so you know where everything lives.",
+  },
+  {
+    id: "dash-listings-panel",
+    label: "listings",
+    path: "/dashboard.html",
+    hash: "#dashboard",
+    targetSelector: ".dash-listings-panel",
+    placement: "right",
+    advanceOn: "next",
+    title: "your listings at a glance.",
+    body: "every listing you've posted shows up here, grouped by state — drafts, live, in progress, paused, closed. the tabs above filter the rows.",
+  },
+  {
+    // Vine points directly at the pulsing state dot so the visual
+    // signal lines up with the body copy. Falls back to the whole
+    // panel when nothing is pulsing (e.g. fresh account with no
+    // pending actions) so the bubble still has somewhere to anchor.
+    id: "dash-listings-cta",
+    label: "action",
+    path: "/dashboard.html",
+    hash: "#dashboard",
+    targetSelector: [".bza__row-state--pulse", ".dash-listings-panel"],
+    placement: "right",
+    advanceOn: "next",
+    title: "pulsing means you're up.",
+    body: "a row with a pulsing dot is waiting on you — an offer to review, a kickoff to confirm, work to mark complete. the action button on the row's right edge takes you straight to the next step, so most of the time you never have to dig.",
+  },
+  {
+    id: "dash-analytics",
+    label: "stats",
+    path: "/dashboard.html",
+    hash: "#dashboard",
+    targetSelector: "#dash-analytics",
+    placement: "top",
+    advanceOn: "next",
+    title: "performance summary.",
+    body: "unique viewers and offer rate across every listing. the bar chart shows daily views — handy for spotting which days bring traffic.",
+  },
+  {
+    id: "dash-profile-health",
+    label: "health",
+    path: "/dashboard.html",
+    hash: "#dashboard",
+    targetSelector: "#dash-profile-health",
+    placement: "top",
+    advanceOn: "next",
+    title: "profile health.",
+    body: "a quick checklist of what's missing on your profile. a complete profile reads more credible to consultants — chip away as you have time.",
+  },
+  {
+    id: "dash-garden",
+    label: "garden",
+    path: "/dashboard.html",
+    hash: "#dashboard",
+    targetSelector: "#dash-garden",
+    placement: "left",
+    advanceOn: "next",
+    title: "your garden.",
+    body: "every time an engagement fully completes, a new root stems from the seedling — a small metaphor for your business getting stronger with each one. tap and tug the seedling or its roots if you feel like it; they're meant to be played with.",
+  },
+  {
+    // Clicking this nav item flips the view to my-listings (handled
+    // by dashboard.js view-switcher). advanceOn:"target" so the user's
+    // click both switches the view and advances the tutorial.
+    id: "dash-open-listings",
+    label: "open",
+    path: "/dashboard.html",
+    hash: "#dashboard",
+    targetSelector: '.bza__nav-item[data-view="listings"]',
+    placement: "right",
+    advanceOn: "target",
+    title: "open my listings.",
+    body: "the side nav jumps between sections. tap here to open the full management view — every listing as a card with search, sort, and state filters.",
+  },
+  {
+    id: "dash-my-listings-view",
+    label: "manage",
+    path: "/dashboard.html",
+    hash: "#listings",
+    targetSelector: "#dash-listings-cards",
+    placement: "top",
+    advanceOn: "next",
+    title: "manage your listings.",
+    body: "every listing as a card. search by title, sort, or filter by state. drafts get a delete button on hover; live listings have pause and close controls on the listing page itself.",
   },
   {
     id: "complete",
@@ -480,14 +665,14 @@ const CHAPTERS = [
       "themes",
       "nav-professional",
       "business-info",
-      "listing-choice",
     ],
   },
   {
     id: "create-listing",
     label: "create listing",
     stepIds: [
-      "lw-title", "lw-contract",
+      "listing-choice",
+      "lw-title", "lw-preview", "lw-contract",
       "lw-context", "lw-problem", "lw-output", "lw-details", "lw-attachments",
       "lw-categories", "lw-budget", "lw-turnaround", "lw-quals",
       "lw-publish",
@@ -498,7 +683,16 @@ const CHAPTERS = [
     // Short label so the chip fits next to "profile setup" and
     // "create listing" without overflowing the bubble.
     label: "manage",
-    stepIds: ["lm-placeholder"],
+    stepIds: [
+      "dash-home-intro",
+      "dash-listings-panel",
+      "dash-listings-cta",
+      "dash-analytics",
+      "dash-profile-health",
+      "dash-garden",
+      "dash-open-listings",
+      "dash-my-listings-view",
+    ],
   },
 ];
 
@@ -611,11 +805,25 @@ function stepIndexById(id) {
 // can read differently depending on which path the user picked at
 // the listing-choice step (persisted in state.choice). Falls through
 // to whichever variant exists if the chosen one isn't defined.
-function resolveStepBody(step) {
-  const body = step?.body;
-  if (typeof body === "string" || body == null) return body || "";
+// Pick the right variant for a step field that can carry either a
+// plain value or an { own, example } object keyed by listing-choice.
+// Falls through to whichever variant is defined if the picked one
+// isn't — so steps can declare partial variants safely.
+function resolveStepVariant(value) {
+  if (value == null) return null;
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value;
+  if (typeof value !== "object") return value;
   const choice = readState()?.choice;
-  return body[choice] || body.own || body.example || "";
+  return value[choice] || value.own || value.example || null;
+}
+
+function resolveStepBody(step) {
+  return resolveStepVariant(step?.body) || "";
+}
+
+function resolveStepTitle(step) {
+  return resolveStepVariant(step?.title) || "";
 }
 
 // When the user picked "show me an example" at the listing-choice
@@ -635,9 +843,13 @@ function maybeApplyStepExample(step) {
 
 function resolveTarget(step) {
   if (!step?.targetSelector) return null;
-  const selectors = Array.isArray(step.targetSelector)
-    ? step.targetSelector
-    : [step.targetSelector];
+  // Step can declare a per-variant targetSelector via { own, example }
+  // — same pattern as body/title — so the lw-publish step can point
+  // at #submit-btn for own users and #save-draft-btn for example
+  // users. resolveStepVariant returns a string or an array.
+  const resolved = resolveStepVariant(step.targetSelector);
+  if (!resolved) return null;
+  const selectors = Array.isArray(resolved) ? resolved : [resolved];
   for (const sel of selectors) {
     const el = document.querySelector(sel);
     if (el && el.offsetParent !== null) return el;
@@ -1136,6 +1348,15 @@ function renderStep(stepId) {
   renderedStepId = stepId;
   document.body.classList.add("gr-onboarding-active");
 
+  // Ask the create-listing wizard to align to this step's slide. Safe
+  // on every page — only the wizard listens, and the wizard no-ops if
+  // the slide is already correct. Covers both transitionTo and the
+  // post-navigation resume path so a dot-jump from any starting page
+  // lands the wizard on the right slide.
+  if (step.slide !== undefined && window.location.pathname === "/create-listing.html") {
+    window.dispatchEvent(new CustomEvent("cl:request-slide", { detail: { slide: step.slide } }));
+  }
+
   const target = resolveTarget(step);
 
   // Overlay — sits below the bubble, masks everything except a hole
@@ -1179,6 +1400,24 @@ function renderStep(stepId) {
   // skips the transition (handled inside position() via holeMounted).
   position(step, target);
   setupAdvanceClick(step, target);
+
+  // If the spotlight target sits outside the current scroll viewport
+  // (e.g. user dot-jumped to a panel further down the dashboard),
+  // bring it into view. Skip for center-placement steps since they
+  // don't have a meaningful target. nearest-block keeps the page
+  // from jerking when the target is already partly visible.
+  if (target && step.placement !== "center") {
+    const r = target.getBoundingClientRect();
+    const offTop = r.bottom < 0;
+    const offBottom = r.top > window.innerHeight;
+    if (offTop || offBottom) {
+      try {
+        target.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+      } catch (_) {
+        target.scrollIntoView();
+      }
+    }
+  }
 
   // The page may still be laying out (settings panels swap, image
   // loads, fonts settle). Re-run position a few times over the next
@@ -1384,11 +1623,16 @@ function position(step, target /*, options */) {
   const vh = window.innerHeight;
 
   if (!target || step.placement === "center") {
-    // No-target step (choice / complete) — full-viewport solid dim so
-    // the centered bubble has focus. The overlay element is a single
-    // fixed-inset div with a transparent → dim toggle, which is
-    // robust across zoom modes (no positioning math involved).
-    overlay.classList.add("gr-onb-overlay--solid");
+    // No-target step (choice / complete) — by default the overlay
+    // goes solid so the centered bubble has focus. Steps that need
+    // the page to stay interactive (e.g. example-saved-draft, where
+    // the user has to click a delete affordance on the dashboard)
+    // can opt out via step.noDim.
+    if (step.noDim) {
+      overlay.classList.remove("gr-onb-overlay--solid");
+    } else {
+      overlay.classList.add("gr-onb-overlay--solid");
+    }
     if (!userDraggedBubble) {
       tooltip.style.left = `50%`;
       tooltip.style.top = `50%`;
@@ -1466,7 +1710,8 @@ function buildTooltipMarkup(step) {
                   class='gr-onb-choice${c.primary ? " gr-onb-choice--primary" : ""}'
                   data-onb-action='choice'
                   data-choice-id='${escapeHtml(c.id)}'
-                  data-choice-href='${escapeHtml(c.href || "")}'>
+                  data-choice-href='${escapeHtml(c.href || "")}'
+                  data-choice-action='${escapeHtml(c.action || "")}'>
             ${escapeHtml(c.label)}
           </button>
         `).join("")}
@@ -1486,7 +1731,7 @@ function buildTooltipMarkup(step) {
   return `
     <button type='button' class='gr-onb-close' data-onb-action='close' aria-label='close tutorial'>×</button>
     <nav class='gr-onb-dotnav' aria-label='tutorial steps'>${dots}</nav>
-    <h2 class='gr-onb-title'>${escapeHtml(step.title)}</h2>
+    <h2 class='gr-onb-title'>${escapeHtml(resolveStepTitle(step))}</h2>
     <p class='gr-onb-body'>${escapeHtml(resolveStepBody(step))}</p>
     ${choicesHtml}
     <div class='gr-onb-actions'>
@@ -1584,18 +1829,53 @@ function attachTooltipHandlers(tooltip) {
   });
 }
 
-// User picked an option on a "choice" step. The choice carries an
-// optional href so we can persist any flag (e.g. ?example=1) into
-// the next page's URL. Advance writes state then transitions to the
-// next step normally — if the choice has an href the destination
-// page resolves to the same step but with the URL param set.
-function handleChoice(btn) {
+// User picked an option on a "choice" step. The choice can carry:
+//   • href   — navigate to that URL (legacy listing-choice flow).
+//   • action — call a registered async handler (cleanup coda flow).
+//   • neither — pure transition to the next step.
+// All three paths persist the chosen variant so downstream tutorial
+// steps can read it from state (e.g. the listing walkthrough reads
+// state.choice to pick own/example body copy).
+async function handleChoice(btn) {
   const choiceId = btn.dataset.choiceId || "";
   const href = btn.dataset.choiceHref || "";
+  const actionName = btn.dataset.choiceAction || "";
   const state = readState() || { active: true, stepId: STEPS[0].id };
   const idx = stepIndexById(state.stepId);
   const nextIdx = Math.min(STEPS.length - 1, idx + 1);
   const next = STEPS[nextIdx];
+
+  if (actionName && CHOICE_ACTIONS[actionName]) {
+    // Lock the bubble while the action runs so a double-click can't
+    // queue the destroy twice. Restore on failure so the user can
+    // retry; success cases redirect or transition past this bubble.
+    btn.disabled = true;
+    const previousLabel = btn.textContent;
+    btn.textContent = "working…";
+    try {
+      const result = await CHOICE_ACTIONS[actionName](state);
+      // Action handler can override the natural "next step in array"
+      // jump. Cleanup coda actions point to `complete` so the example
+      // path matches the own path (both skip lm-placeholder).
+      const targetStepId = result?.nextStepId || next.id;
+      const targetStep = STEPS.find((s) => s.id === targetStepId) || next;
+      writeState({ ...state, stepId: targetStep.id, choice: state.choice || choiceId });
+      if (result?.redirectTo) {
+        window.location.href = result.redirectTo;
+        return;
+      }
+      transitionTo(targetStep);
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = previousLabel;
+      const msg = err instanceof ListingOperationError
+        ? err.message
+        : err?.message || "something went wrong.";
+      showToast(msg, { kind: "error", duration: 5000 });
+    }
+    return;
+  }
+
   // Stash the chosen variant so downstream tutorial steps + the
   // create-listing page can read it (e.g. to pre-fill an example).
   writeState({ active: true, stepId: next.id, choice: choiceId });
@@ -1605,6 +1885,46 @@ function handleChoice(btn) {
   }
   transitionTo(next);
 }
+
+// Look up the listing this coda is operating on. Preferred source is
+// the tutorial state (set when `cl:listing-published` fires), but
+// state can be stale if the bubble was reached via the dot-nav or
+// after a refresh. As a fallback read `?id=` from the URL — the
+// example-cleanup bubble lands on /listing.html?id=X, so the id is
+// right there in the address bar.
+function resolveCodaListingId(state) {
+  if (state?.lastListingId) return state.lastListingId;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const idFromUrl = params.get("id");
+    if (idFromUrl) return idFromUrl;
+  } catch (_) {}
+  return null;
+}
+
+// Registry of async actions a choice button can invoke. Each returns
+// either undefined (normal transition) or { redirectTo, nextStepId }
+// so the caller knows where to send the user after the action runs.
+// The cleanup action lands the user on the dashboard pinned to
+// `example-saved-draft` so the next bubble explicitly points at the
+// dashboard delete affordance.
+const CHOICE_ACTIONS = {
+  async exampleSaveDraft(state) {
+    const listingId = resolveCodaListingId(state);
+    if (!listingId) throw new ListingOperationError("we couldn't find that listing to save.");
+    const client = await getSupabaseClient();
+    await convertListingToDraft(client, listingId);
+    showToast("saved as a draft. now delete it from your dashboard.", {
+      kind: "success",
+      duration: 5000,
+    });
+    // Land on the my-listings view so the "now delete the draft" bubble
+    // points at the same surface the wizard's own save-draft path
+    // redirects to (/dashboard.html#listings). The draft will be visible
+    // as a card with the hover-revealed delete affordance.
+    return { redirectTo: "/dashboard.html#listings", nextStepId: "example-saved-draft" };
+  },
+};
 
 function escapeHtml(s) {
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -1672,7 +1992,15 @@ function advance() {
   const state = readState() || { active: true, stepId: STEPS[0].id };
   const idx = stepIndexById(state.stepId);
   const currentStep = STEPS[idx];
-  const nextStep = STEPS[idx + 1];
+
+  // Optional explicit jump — a step can declare `nextStepId` to break
+  // out of the array-order flow. Used by coda steps that should leap
+  // past an unfinished chapter (e.g. example-saved-draft → complete,
+  // skipping lm-placeholder).
+  const overrideStep = currentStep?.nextStepId
+    ? STEPS.find((s) => s.id === currentStep.nextStepId)
+    : null;
+  const nextStep = overrideStep || STEPS[idx + 1];
 
   // Cross-slide jump — drive the wizard's "continue" so the form
   // moves with the tutorial. The cl:slide-changed listener below
@@ -1690,6 +2018,10 @@ function advance() {
     }
   }
 
+  if (overrideStep) {
+    transitionTo(overrideStep);
+    return;
+  }
   const nextIdx = Math.min(STEPS.length - 1, idx + 1);
   transitionTo(STEPS[nextIdx]);
 }
@@ -1807,6 +2139,16 @@ function resume() {
     // to that page picks it up. Avoids surprising redirects.
     return false;
   }
+  // Align hash if the step expects a specific view/tab and the URL is
+  // somewhere else (e.g. the dashboard landed at #listings after the
+  // save-draft redirect but the resuming step lives on the home view).
+  // The settings + dashboard pages both react to hashchange, so this
+  // is enough to swap the visible panel before we render.
+  if (step.hash && step.hash !== window.location.hash) {
+    window.location.hash = step.hash;
+    setTimeout(() => waitForTargetThenRender(step), 60);
+    return true;
+  }
   setTimeout(() => waitForTargetThenRender(step), 0);
   return true;
 }
@@ -1888,13 +2230,61 @@ window.addEventListener("cl:slide-changed", (e) => {
   transitionTo(next);
 });
 
-// Successful publish — jump straight to the "you're all set" step so
-// the bubble lands on the listing detail page after redirect.
-window.addEventListener("cl:listing-published", () => {
+// Successful publish — where we route depends on which path the user
+// picked at listing-choice:
+//   • "example" → the example-cleanup coda. The bubble lands on
+//     /listing.html and offers save-as-draft / delete actions on the
+//     just-published example so it doesn't sit in the marketplace.
+//   • "own" (or unset) → straight to "complete" since the listing
+//     was the user's actual intent.
+// The listingId rides along on state so the cleanup choice handlers
+// can act on it without re-querying.
+window.addEventListener("cl:listing-published", (event) => {
   const state = readState();
   if (!state?.active) return;
-  const completeStep = STEPS.find((s) => s.id === "complete");
-  if (completeStep) writeState({ ...state, stepId: completeStep.id });
+  const listingId = event?.detail?.listingId || null;
+  const isExample = state.choice === "example";
+  const nextStepId = isExample ? "example-cleanup" : "complete";
+  const nextStep = STEPS.find((s) => s.id === nextStepId);
+  if (!nextStep) return;
+  writeState({ ...state, stepId: nextStep.id, lastListingId: listingId });
+});
+
+// Save-as-draft always rolls the tutorial into the manage section so
+// the user lands on a useful bubble after the redirect to the
+// dashboard — without this the persisted state still points at a
+// /create-listing.html step and resume() bails on /dashboard.html,
+// which looks like "the tutorial ended" from the user's seat.
+//   • example path → example-saved-draft, which says "now delete the
+//     draft" before flowing into dash-home-intro
+//   • own / unset → straight to dash-home-intro; the draft is the
+//     user's actual in-progress work so we don't tell them to delete it
+window.addEventListener("cl:listing-saved-as-draft", (event) => {
+  const state = readState();
+  if (!state?.active) return;
+  const nextStepId = state.choice === "example" ? "example-saved-draft" : "dash-home-intro";
+  const nextStep = STEPS.find((s) => s.id === nextStepId);
+  if (!nextStep) return;
+  writeState({
+    ...state,
+    stepId: nextStep.id,
+    lastListingId: event?.detail?.listingId || state.lastListingId || null,
+  });
+});
+
+// Dashboard fires this after a draft is deleted. If the tutorial is
+// pinned to the "now delete the draft" coda, advance into the
+// dashboard walkthrough (the "manage" chapter) so the user keeps
+// rolling instead of being told to delete the same draft again. The
+// state write happens BEFORE the dashboard's full-page reload reads
+// it back.
+window.addEventListener("gr:draft-deleted", () => {
+  const state = readState();
+  if (!state?.active) return;
+  if (state.stepId !== "example-saved-draft") return;
+  const nextStep = STEPS.find((s) => s.id === "dash-home-intro");
+  if (!nextStep) return;
+  writeState({ ...state, stepId: nextStep.id });
 });
 
 document.addEventListener("DOMContentLoaded", () => {

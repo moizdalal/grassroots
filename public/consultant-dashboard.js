@@ -6,7 +6,7 @@
 import { getSupabaseClient } from "/supabase-loader.js";
 import { fetchRatingFor, renderRatingMarkup } from "/rating.js";
 import { getInitials } from "/initials.js";
-import { renderHealthBucket } from "/health-bucket.js";
+import { renderHealthBucket, kickHealthBucketAnimation } from "/health-bucket.js";
 import { mountEngagementJourneyFlowers } from "/engagement-journey-flowers.js";
 import { mountDashboardNotifications } from "/dashboard-notifications.js";
 
@@ -505,6 +505,9 @@ function renderHealth(panel, health, consultantId) {
       <span class="bza__health-cta-arrow" aria-hidden="true">→</span>
     </a>
   `;
+  // Guarantee the fill animation runs — innerHTML during the busy
+  // initial dashboard mount sometimes drops the first frame.
+  kickHealthBucketAnimation(panel);
 }
 
 /* ============================================================== */
