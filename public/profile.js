@@ -1526,9 +1526,9 @@ form.addEventListener("submit", async (e) => {
         if (avatarPath !== currentAvatarPath) {
           await supabase.storage.from("avatars").remove([avatarPath]);
         }
-        statusEl.textContent =
-          "saved your details. to store a profile photo, add column profiles.avatar_path in Supabase (run supabase/profile_avatar.sql), then upload again.";
-        statusEl.className = "gr-status error";
+        showError(
+          "saved your details. to store a profile photo, add column profiles.avatar_path in supabase (run supabase/profile_avatar.sql), then upload again.",
+        );
       }
     }
     if (pErr) throw pErr;
@@ -1665,18 +1665,17 @@ form.addEventListener("submit", async (e) => {
 
     if (!profileAvatarMigrationWarning) {
       if (resumePublicMissingWarning) {
-        statusEl.textContent =
-          "saved. resume visibility settings need the latest Supabase migration before they can be stored.";
-        statusEl.className = "gr-status";
+        showSuccess(
+          "saved. resume visibility settings need the latest supabase migration before they can be stored.",
+        );
       } else if (businessAddressMissingWarning) {
-        statusEl.textContent =
-          "saved, but business address could not be stored yet. run `supabase/migrations/add_business_address.sql` in Supabase, then save again.";
-        statusEl.className = "gr-status";
+        showSuccess(
+          "saved, but business address could not be stored yet. run supabase/migrations/add_business_address.sql, then save again.",
+        );
       } else {
-        statusEl.textContent = instagramAvatarApplied
-          ? "saved. profile photo updated from instagram."
-          : "saved.";
-        statusEl.className = "gr-status success";
+        showSuccess(
+          instagramAvatarApplied ? "saved. profile photo updated from instagram." : "saved.",
+        );
       }
     }
 
@@ -1724,8 +1723,7 @@ form.addEventListener("submit", async (e) => {
       await renderOwnerListingSidebar();
     }
   } catch (err) {
-    statusEl.textContent = err.message || "save failed.";
-    statusEl.className = "gr-status error";
+    showError(err.message || "save failed.");
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = "save changes";

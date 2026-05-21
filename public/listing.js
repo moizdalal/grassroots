@@ -767,6 +767,94 @@ function renderListingAttachments(listing) {
   attachmentsWrap.hidden = false;
 }
 
+// Drive open/close of <details class="ld-section"> via the Web
+// Animations API. Native [open]-removal can flip content-visibility
+// to hidden before the CSS height/opacity transitions get a chance
+// to play — the open direction transitioned reliably but the close
+// direction snapped in practice. Doing it in JS guarantees a real
+// fade in *and* fade out, with full control over both directions.
+function attachLdSectionAnimation(details) {
+  const summary = details.querySelector(":scope > summary");
+  if (!summary) return;
+  if (details.dataset.animatedToggle === "true") return;
+  details.dataset.animatedToggle = "true";
+
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const DURATION = reducedMotion ? 0 : 380;
+  const EASING = "ease-in-out";
+  let current = null;
+
+  summary.addEventListener("click", (event) => {
+    event.preventDefault();
+    if (current) {
+      current.cancel();
+      current = null;
+    }
+
+    const opening = !details.open;
+    const body = Array.from(details.children).filter((el) => el !== summary);
+    const summaryHeight = summary.offsetHeight;
+
+    if (opening) {
+      // Set [open] first so the pseudo-content lays out; measure full
+      // height, then collapse inline to summary height before painting
+      // so the animation has a real start frame.
+      details.open = true;
+      const fullHeight = details.scrollHeight;
+      details.style.overflow = "hidden";
+      details.style.height = summaryHeight + "px";
+      // Force reflow so the animation runs from the constrained height.
+      void details.offsetHeight;
+
+      const heightAnim = details.animate(
+        [{ height: summaryHeight + "px" }, { height: fullHeight + "px" }],
+        { duration: DURATION, easing: EASING, fill: "forwards" },
+      );
+      const opacityAnims = body.map((el) =>
+        el.animate(
+          [{ opacity: 0 }, { opacity: 1 }],
+          { duration: DURATION, easing: EASING, fill: "forwards" },
+        ),
+      );
+
+      current = heightAnim;
+      heightAnim.onfinish = () => {
+        heightAnim.cancel();
+        opacityAnims.forEach((a) => a.cancel());
+        details.style.height = "";
+        details.style.overflow = "";
+        current = null;
+      };
+    } else {
+      const startHeight = details.offsetHeight;
+      details.style.overflow = "hidden";
+      details.style.height = startHeight + "px";
+      void details.offsetHeight;
+
+      const heightAnim = details.animate(
+        [{ height: startHeight + "px" }, { height: summaryHeight + "px" }],
+        { duration: DURATION, easing: EASING, fill: "forwards" },
+      );
+      const opacityAnims = body.map((el) =>
+        el.animate(
+          [{ opacity: 1 }, { opacity: 0 }],
+          { duration: DURATION, easing: EASING, fill: "forwards" },
+        ),
+      );
+
+      current = heightAnim;
+      heightAnim.onfinish = () => {
+        details.open = false;
+        heightAnim.cancel();
+        opacityAnims.forEach((a) => a.cancel());
+        details.style.height = "";
+        details.style.overflow = "";
+        current = null;
+      };
+    }
+  });
+}
+
 function populateListing(listing) {
   const profile = listing.profiles;
   const biz = listing._business || null;
@@ -792,11 +880,12 @@ function populateListing(listing) {
   const websiteUrl = biz?.website_url || listing.listing_website_url;
   if (websiteUrl) { const el = document.getElementById("ld-biz-website"); el.href = websiteUrl; el.textContent = new URL(websiteUrl).hostname.replace("www.", ""); el.hidden = false; }
 
-  /* Social icons */
+  /* Social icons — business bio shows the *business's* socials only.
+     Owner's personal linkedin (profile.linkedin_url) belongs on their
+     consultant/owner profile, not on the listing's business card. */
   const fromExplicit = [biz?.instagram_url, biz?.facebook_url, biz?.company_linkedin_url].filter(
     (u) => u && String(u).trim()
   );
-  if (profile?.linkedin_url) fromExplicit.push(profile.linkedin_url);
   const fromLegacy = biz?.social_links || listing.listing_social_links || [];
   const merged = [...fromExplicit, ...(Array.isArray(fromLegacy) ? fromLegacy : [])];
   const socialLinks = [...new Set(merged.map((u) => String(u).trim()))].filter(Boolean);
@@ -819,6 +908,11 @@ function populateListing(listing) {
     bioToggle.setAttribute("aria-expanded", String(!isExpanded));
     bioBody.classList.toggle("is-collapsed", isExpanded);
   });
+
+  // JS-driven open/close for every <details class="ld-section"> on the
+  // page so both directions get a real fade. See attachLdSectionAnimation
+  // for the why.
+  document.querySelectorAll(".ld-section").forEach(attachLdSectionAnimation);
 
   /* --- Opportunity header --- */
   document.getElementById("ld-title").textContent = listing.title;

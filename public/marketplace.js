@@ -56,10 +56,18 @@ function parseDetails(row) {
   return { budgetRange };
 }
 
+function redirectGuestsToSignin() {
+  window.location.replace(
+    "/signin.html?next=" + encodeURIComponent("/marketplace.html"),
+  );
+}
+
 function renderSession(client, session) {
+  // Marketplace is signed-in only. init() guards against guests on
+  // first load; this branch catches the user signing out mid-session
+  // via the auth-state-change listener.
   if (!session?.user) {
-    sessionSlot.innerHTML =
-      'browsing as guest · <a href="/signin.html">sign in</a> · <a href="/register.html">register</a>';
+    redirectGuestsToSignin();
     return;
   }
 
@@ -527,6 +535,14 @@ async function init() {
       data: { session },
     } = await client.auth.getSession();
 
+    // Authoritative guest gate (the inline pre-check in marketplace.html
+    // catches definite guests pre-paint; this catches expired-token
+    // cases where getSession() couldn't refresh).
+    if (!session?.user) {
+      redirectGuestsToSignin();
+      return;
+    }
+
     renderSession(client, session);
     initNotifBell(client);
 
@@ -535,6 +551,10 @@ async function init() {
     consultantCity = await loadConsultantCity(client, session);
 
     client.auth.onAuthStateChange(async (_event, nextSession) => {
+      if (!nextSession?.user) {
+        redirectGuestsToSignin();
+        return;
+      }
       renderSession(client, nextSession);
       consultantCity = await loadConsultantCity(client, nextSession);
     });

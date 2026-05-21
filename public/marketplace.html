@@ -13,6 +13,30 @@
     />
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
+    <script>
+      // Marketplace is signed-in only. Synchronous pre-check: if no
+      // Supabase auth token sits in localStorage, redirect to signin
+      // before the page shell renders so guests never see a flash of
+      // the marketplace. The async session check in marketplace.js
+      // remains the authoritative gate (catches expired tokens this
+      // pre-check can't validate).
+      (function () {
+        try {
+          for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (k && k.indexOf("sb-") === 0 && k.indexOf("-auth-token") !== -1) {
+              var v = localStorage.getItem(k);
+              if (v && v !== "null" && v !== "{}") return;
+            }
+          }
+          window.location.replace(
+            "/signin.html?next=" + encodeURIComponent("/marketplace.html"),
+          );
+        } catch (_) {
+          /* localStorage unavailable — let the JS layer handle it. */
+        }
+      })();
+    </script>
     <script src="/theme.js"></script>
   </head>
   <body class="gr-body"><main class="gr-shell gr-shell--wide marketplace-shell">
