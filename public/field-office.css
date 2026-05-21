@@ -1680,18 +1680,21 @@ body.gr-body .gr-section-h {
 }
 
 .ld-section::details-content {
-  height: 0;
+  block-size: 0;
   opacity: 0;
   overflow: hidden;
   /* Animation is driven by listing.js via the Web Animations API.
      The native [open]-removal flips content-visibility to hidden
      before the CSS transition gets a chance to fire (allow-discrete
      defers the visibility change in the open direction but not
-     reliably in close), so JS controls both directions for parity. */
+     reliably in close), so JS controls both directions for parity.
+     A parallel CSS transition was tried in moizdalal/availability-tile-hover
+     but compounds with the WAAPI animation on the same elements, so
+     this branch drops it in favor of the JS path alone. */
 }
 
 .ld-section[open]::details-content {
-  height: auto;
+  block-size: auto;
   opacity: 1;
 }
 
@@ -1724,7 +1727,7 @@ body.gr-body .gr-section-h {
   border-bottom: 1.5px solid currentColor;
   transform: rotate(45deg);
   transform-origin: center;
-  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), margin 0.32s ease;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), margin 0.45s ease;
   opacity: 0.55;
   margin-bottom: 2px;
 }
@@ -6364,7 +6367,6 @@ body.gr-has-side-nav .bza__main {
   gap: var(--space-3);
   align-items: stretch;
   padding: var(--space-5) 0;
-  margin: 0;
 }
 
 .settings-section + .settings-section {
@@ -6373,6 +6375,10 @@ body.gr-has-side-nav .bza__main {
 
 .settings-section:first-of-type {
   padding-top: var(--space-4);
+}
+
+.settings-panel > .settings-section:first-of-type {
+  padding-top: 0;
 }
 
 .settings-section-h {

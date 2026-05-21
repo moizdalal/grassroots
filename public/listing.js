@@ -1138,6 +1138,7 @@ function renderOwnerActionSummary(listing) {
   if (!ownerActionsCopy || !pauseListingBtn || !closeListingBtn) return;
   const status = getListingStatusLabel(listing?.status);
   const reasonText = getListingReasonText(listing);
+  const buttonsWrap = pauseListingBtn.closest(".ld-owner-actions__buttons");
 
   // The intro copy element starts present-but-empty; make sure it's
   // visible whenever we set text on it. (Earlier HTML carried `hidden`
@@ -1151,6 +1152,7 @@ function renderOwnerActionSummary(listing) {
     showCopy(reasonText
       ? `this listing is paused because of "${reasonText}". resume it any time or close it permanently.`
       : "this listing is paused. existing proposals stay in place while it stays out of marketplace browsing.");
+    if (buttonsWrap) buttonsWrap.hidden = false;
     pauseListingBtn.textContent = "resume listing";
     pauseListingBtn.disabled = false;
     closeListingBtn.textContent = "close listing";
@@ -1159,20 +1161,18 @@ function renderOwnerActionSummary(listing) {
   }
 
   if (status === "closed") {
-    // Explain why both buttons are disabled — the listing is already in
-    // the terminal closed state and no further action is available here.
+    // Closed is terminal — drop the action buttons entirely so the panel
+    // reads as a status note rather than a disabled control surface.
     showCopy(reasonText
-      ? `this listing is already closed (reason: "${reasonText}"). the controls are turned off — existing participants can still refer back to it here.`
-      : "this listing is already closed. the controls are turned off — existing participants can still refer back to it here.");
-    pauseListingBtn.textContent = "pause listing";
-    closeListingBtn.textContent = "close listing";
-    pauseListingBtn.disabled = true;
-    closeListingBtn.disabled = true;
+      ? `this listing is already closed (reason: "${reasonText}"). existing participants can still refer back to it here.`
+      : "this listing is already closed. existing participants can still refer back to it here.");
+    if (buttonsWrap) buttonsWrap.hidden = true;
     resetOwnerStatusForm();
     return;
   }
 
   showCopy("pause this listing to hide it from marketplace browsing while keeping current proposals in place, or close it when you're done.");
+  if (buttonsWrap) buttonsWrap.hidden = false;
   pauseListingBtn.textContent = "pause listing";
   closeListingBtn.textContent = "close listing";
   pauseListingBtn.disabled = false;
@@ -1656,7 +1656,7 @@ async function showConsultantView(client, session, listing, existingBid) {
   if (!listingAcceptingOffers) {
     formWrap.hidden = true;
     statusEl.textContent = existingBid
-      ? `this listing is ${listingStatus}. your existing offer stays visible here, but new edits are turned off for now.`
+      ? `this listing is ${listingStatus}. your existing offer stays visible here.`
       : `this listing is ${listingStatus} and is not accepting new offers right now.`;
     statusEl.className = "gr-status";
   }

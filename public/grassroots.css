@@ -2386,6 +2386,10 @@ summary:focus-visible,
   line-height: 1.5;
 }
 
+.gr-status:empty {
+  display: none;
+}
+
 .gr-status.success {
   color: var(--success);
 }
