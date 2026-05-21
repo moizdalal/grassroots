@@ -675,6 +675,147 @@ function setupShell() {
   showView(initialHash || "dashboard");
 }
 
+// ───────────────── tutorial garden fixture ─────────────────
+// The consultant onboarding tutorial ends on a simulated garden: the
+// journey panel rendered with hand-crafted engagements that cover all
+// five lifecycle stages, plus a populated garden tile so the user can
+// see the drag-to-garden affordance in action. Nothing here writes to
+// the database; the fixture lives in localStorage scoped to this user.
+function isTutorialGarden() {
+  return new URLSearchParams(window.location.search).get("tutorial") === "garden";
+}
+
+function buildTutorialGardenFixture(userId) {
+  // Stable bid ids — used both as fixture engagement keys and as
+  // garden ids (so the garden tile shows a populated count on first
+  // paint).
+  const now = Date.now();
+  const days = (n) => new Date(now - n * 86400000).toISOString();
+  const baseListing = (id, title) => ({
+    id,
+    title,
+    status: "open",
+    contract_type: "standard",
+    owner_id: `tut-owner-${id}`,
+  });
+  const baseOwner = (id, name) => ({
+    id: `tut-owner-${id}`,
+    full_name: name,
+    avatar_path: null,
+  });
+  const eng = (id, opts) => ({
+    bid: {
+      id,
+      consultant_id: userId,
+      listing_id: `tut-listing-${id}`,
+      status: opts.status,
+      payment_status: opts.payment_status || null,
+      counter_offer_cents: null,
+      counter_responded_at: null,
+      amount_cents: opts.amount || 80000,
+      created_at: opts.created_at,
+      accepted_at: opts.accepted_at || null,
+    },
+    listing: baseListing(`tut-listing-${id}`, opts.title),
+    owner: baseOwner(id, opts.owner),
+    schedule: opts.schedule || null,
+  });
+
+  const engagements = [
+    eng("tut-1", {
+      status: "submitted",
+      title: "instagram content sprint",
+      owner: "leah park",
+      created_at: days(1),
+    }),
+    eng("tut-2", {
+      status: "accepted",
+      title: "menu redesign",
+      owner: "amelia chen",
+      created_at: days(7),
+      accepted_at: days(2),
+      schedule: { status: "awaiting_owner" },
+    }),
+    eng("tut-3", {
+      status: "accepted",
+      title: "spring sale launch plan",
+      owner: "jordan ngo",
+      created_at: days(12),
+      accepted_at: days(8),
+      schedule: { status: "scheduled" },
+    }),
+    eng("tut-4", {
+      status: "accepted",
+      title: "loyalty program audit",
+      owner: "rae morales",
+      created_at: days(20),
+      accepted_at: days(16),
+      schedule: { status: "completed" },
+    }),
+    eng("tut-5", {
+      status: "accepted",
+      payment_status: "released",
+      title: "summer pop-up debrief",
+      owner: "marcus liu",
+      created_at: days(30),
+      accepted_at: days(26),
+      schedule: { status: "completed" },
+    }),
+    eng("tut-6", {
+      status: "accepted",
+      payment_status: "released",
+      title: "weekend market push",
+      owner: "anika das",
+      created_at: days(45),
+      accepted_at: days(41),
+      schedule: { status: "completed" },
+    }),
+    eng("tut-7", {
+      status: "accepted",
+      payment_status: "released",
+      title: "brand voice cleanup",
+      owner: "noor abadi",
+      created_at: days(60),
+      accepted_at: days(56),
+      schedule: { status: "completed" },
+    }),
+  ];
+
+  // Pre-seed two bloomed engagements into the garden so the tile shows
+  // a populated count + view link on first paint. The third bloomed
+  // plant stays in the row so the user can practice dragging it over.
+  const gardenSeed = {
+    "tut-6": now - 3 * 86400000,
+    "tut-7": now - 14 * 86400000,
+  };
+  try {
+    localStorage.setItem(`grassroots_garden_${userId}`, JSON.stringify(gardenSeed));
+  } catch (_) {}
+
+  return engagements;
+}
+
+async function runTutorialGarden(client, session) {
+  const userId = session.user.id;
+  const engagements = buildTutorialGardenFixture(userId);
+  const journeyPanel = $("cdash-journey-panel");
+  if (journeyPanel) {
+    mountEngagementJourneyFlowers(journeyPanel, {
+      client,
+      engagements,
+      userId,
+      unreadByBid: new Map(),
+      threadLinkBase: "/inbox.html#",
+    });
+  }
+  // Welcome heading + sidebar still wire up normally — keep the
+  // dashboard chrome intact so the bubble's spotlight has familiar
+  // anchors. Profile completion + notifications are skipped because
+  // they'd surface real data underneath the simulated garden.
+  const welcome = $("cdash-welcome");
+  if (welcome) welcome.textContent = "your garden — a preview.";
+}
+
 async function init() {
   const gate = $("cdash-gate");
   const shell = $("cdash-shell");
@@ -685,15 +826,21 @@ async function init() {
       window.location.replace("/signin.html?next=/consultant-dashboard.html");
       return;
     }
+    gate.hidden = true;
+    shell.hidden = false;
+    setupShell();
+
+    if (isTutorialGarden()) {
+      await runTutorialGarden(client, session);
+      return;
+    }
+
     const data = await loadData(client, session.user.id);
     data.session = session;
     if (data.profile?.role === "business_owner") {
       window.location.replace("/dashboard.html");
       return;
     }
-    gate.hidden = true;
-    shell.hidden = false;
-    setupShell();
     renderDashboard(client, data);
   } catch (err) {
     console.error(err);
