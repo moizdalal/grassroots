@@ -1622,10 +1622,6 @@ body.gr-body .gr-section-h {
   color: #a3c79b;
 }
 
-.ld-bio__avatar-wrap {
-  border-color: var(--fo-line-strong);
-}
-
 .ld-bio__social-link {
   background: var(--fo-surface-3);
   color: var(--fo-text-2);
