@@ -4435,6 +4435,59 @@ body.gr-has-side-nav .bza__main {
   50%      { box-shadow: 0 0 0 4px color-mix(in srgb, var(--fo-draft) 35%, transparent); }
 }
 
+/* Wrapper around every owner-listing card. Required so the draft
+   delete button can live as a sibling of the anchor without nesting
+   interactives. The wrapper inherits the grid cell sizing; the card
+   inside still owns its own visual presence. */
+.ml-card-wrap {
+  position: relative;
+  display: block;
+}
+
+/* Quiet overlay delete button on draft cards. Lives at the bottom-
+   left so it doesn't collide with the status dot at top-right or the
+   CTA at the bottom-right. Tiny accent-warm pill, only visible on
+   hover/focus so it doesn't compete with the card content. */
+.ml-card__delete {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 2;
+  padding: 0.25rem 0.6rem;
+  background: var(--fo-surface, transparent);
+  border: 1px solid var(--fo-line, rgba(241, 232, 211, 0.18));
+  border-radius: 999px;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--fo-text-3, rgba(241, 232, 211, 0.55));
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+.ml-card-wrap:hover .ml-card__delete,
+.ml-card-wrap:focus-within .ml-card__delete,
+.ml-card__delete:focus-visible {
+  opacity: 1;
+}
+.ml-card__delete:hover,
+.ml-card__delete:focus-visible {
+  color: var(--fo-accent-warm, #d97757);
+  border-color: var(--fo-accent-warm, #d97757);
+}
+.ml-card__delete:focus-visible {
+  outline: 2px solid var(--fo-accent-warm, #d97757);
+  outline-offset: 2px;
+}
+@media (hover: none) {
+  /* On touch devices there's no hover to reveal the badge, so keep it
+     persistently visible (lower opacity) so it can still be tapped. */
+  .ml-card__delete {
+    opacity: 0.7;
+  }
+}
+
 /* Row-view "needs you" pill — same shape and motion as the card
    pill, but sized to sit inline beside the listing title in the
    slim row layout. Only renders for drafts. */
@@ -4877,6 +4930,40 @@ body.gr-has-side-nav .bza__main {
   color: var(--fo-text);
   border-color: var(--fo-line-strong);
   transform: none;
+}
+
+/* Draft row gets a paired CTA + delete affordance. The wrapper keeps
+   them aligned at the row's right edge; the delete text-link sits
+   quietly underneath so the primary "finish & publish" stays the
+   loudest thing. */
+.bza__row-cta-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 0 0 auto;
+}
+
+.bza__row-draft-delete {
+  background: transparent;
+  border: 0;
+  padding: 0.2rem 0;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);
+  font-weight: 600;
+  color: var(--fo-text-3);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  transition: color 0.15s ease;
+}
+.bza__row-draft-delete:hover {
+  color: var(--fo-accent-warm);
+}
+.bza__row-draft-delete:focus-visible {
+  outline: 2px solid var(--fo-accent-warm);
+  outline-offset: 2px;
+  border-radius: 3px;
 }
 
 .bza__row-meta-sep {
@@ -6526,12 +6613,17 @@ body.gr-has-side-nav .bza__main {
   width: 88px;
   height: 88px;
   margin: 0;
+  /* The preview mirrors the cropper viewport — both render as a
+     soft-square at the same 12px radius so the user reads "what i
+     framed is what shows up here". Overrides the base 50% radius. */
+  border-radius: 12px;
 }
 
 .settings-section__body--avatar .gr-profile-avatar-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 12px;
 }
 
 .settings-section__body--avatar .pf-file-label {
@@ -8125,5 +8217,88 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
   }
   .pp-reviews-dim__rating {
     grid-column: 1 / -1;
+  }
+}
+
+/* ── confirm modal ─────────────────────────────────────────────
+   Shared body-level dialog mounted by confirm-modal.js. Used for
+   destructive confirmations (draft delete) and important commits
+   (publishing a listing). Stays above the onboarding tooltip
+   (z 9200/9400) so it's reachable mid-tutorial. */
+.gr-confirm-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Manrope", system-ui, sans-serif;
+  animation: gr-confirm-modal-in 0.2s ease-out both;
+}
+
+.gr-confirm-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 14, 11, 0.6);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  cursor: pointer;
+}
+
+.gr-confirm-modal__card {
+  position: relative;
+  width: min(380px, calc(100vw - 32px));
+  padding: 1.4rem 1.5rem 1.2rem;
+  background: var(--fo-surface, #15201b);
+  color: var(--fo-text, #f1e8d3);
+  border: 1px solid var(--fo-line-strong, rgba(241, 232, 211, 0.18));
+  border-radius: 18px;
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.5),
+    0 6px 14px rgba(0, 0, 0, 0.32);
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  animation: gr-confirm-modal-card-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.gr-confirm-modal__title {
+  margin: 0;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.gr-confirm-modal__body {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--fo-text-2, rgba(241, 232, 211, 0.8));
+}
+
+.gr-confirm-modal__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.35rem;
+  flex-wrap: wrap;
+}
+
+@keyframes gr-confirm-modal-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes gr-confirm-modal-card-in {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gr-confirm-modal,
+  .gr-confirm-modal__card {
+    animation: none;
   }
 }

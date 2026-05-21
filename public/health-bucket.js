@@ -51,6 +51,24 @@ function buildWavePath({ baseY, amplitude, wavelength, startUp = true }) {
 const WAVE_BACK = buildWavePath({ baseY: SURFACE_Y, amplitude: 3.5, wavelength: 56, startUp: true });
 const WAVE_FRONT = buildWavePath({ baseY: SURFACE_Y + 2.5, amplitude: 3, wavelength: 42, startUp: false });
 
+// Forces the bucket's fill animation to restart from empty even when
+// the browser dropped the initial frame during a busy mount. Call
+// this on whatever element wraps the bucket markup right after the
+// innerHTML is in place — the animation property is unset, a reflow
+// is forced, then the property is restored, which the browser treats
+// as a fresh animation start.
+export function kickHealthBucketAnimation(root) {
+  const water = root?.querySelector?.(".bza__health-bucket-water");
+  if (!water) return;
+  requestAnimationFrame(() => {
+    water.style.animation = "none";
+    // Reading offsetHeight forces a synchronous reflow so the browser
+    // commits the "no animation" state before we re-enable it.
+    void water.offsetHeight;
+    water.style.animation = "";
+  });
+}
+
 export function renderHealthBucket(health) {
   const pct = Math.max(0, Math.min(100, Math.round(Number(health?.pct) || 0)));
   // translateY(0) = water surface at viewport y=24 (full bucket).

@@ -10,7 +10,10 @@ import { getInitials } from "/initials.js";
 import { loadOwnerAnalytics, renderAnalyticsPanel } from "/listing-analytics.js";
 import { mountGardenStem } from "/garden-stem.js";
 import { loadCompletedEngagements } from "/garden-data.js";
-import { renderHealthBucket } from "/health-bucket.js";
+import { renderHealthBucket, kickHealthBucketAnimation } from "/health-bucket.js";
+import { deleteListing, ListingOperationError } from "/listing-operations.js";
+import { confirmDialog } from "/confirm-modal.js";
+import { showToast } from "/toast.js";
 
 const $ = (id) => document.getElementById(id);
 const escape = (s) =>
@@ -413,10 +416,16 @@ function listingRowHtml(l, schedulesByBidId) {
     .join("");
 
   const action = listingPrimaryAction(l, schedulesByBidId);
+  // Draft rows get a paired CTA: "finish & publish" links to the
+  // wizard, and a quiet "delete" affordance lets the owner clear out
+  // stale or example drafts without leaving the dashboard.
   const ctaHtml = action
     ? `<a class="bza__row-cta bza__row-cta--${escape(action.kind)}" href="${escape(action.href)}">${escape(action.label)} →</a>`
     : state === "draft"
-    ? `<a class="bza__row-cta bza__row-cta--draft" href="/create-listing.html?draft=${escape(l.id)}">finish &amp; publish →</a>`
+    ? `<div class="bza__row-cta-group">
+         <a class="bza__row-cta bza__row-cta--draft" href="/create-listing.html?draft=${escape(l.id)}">finish &amp; publish →</a>
+         <button type="button" class="bza__row-draft-delete" data-draft-delete-id="${escape(l.id)}" data-draft-title="${escape(l.title || "untitled")}" aria-label="delete draft">delete</button>
+       </div>`
     : "";
 
   // Persistent "needs you" pill on draft rows — sits in the title row
@@ -510,26 +519,38 @@ function ownerListingCardHtml(l, schedulesByBidId) {
   const ctaHref = action ? action.href : isDraft ? `/create-listing.html?draft=${l.id}` : `/listing.html?id=${l.id}`;
   const needsAction = (!!action && !action.quiet) || isDraft;
 
+  // Drafts get a small overlay delete button so the owner can clear
+  // them out from the card grid. Other states don't offer delete —
+  // close/pause from the listing page is the path once a listing is
+  // live. Wrapping in a container lets the button live as a sibling
+  // of the anchor (nested interactives aren't valid HTML).
+  const deleteBadge = isDraft
+    ? `<button type="button" class="ml-card__delete" data-draft-delete-id="${escape(l.id)}" data-draft-title="${escape(l.title || "untitled")}" aria-label="delete draft">delete</button>`
+    : "";
+
   return `
-    <a class="gr-listing-card ml-card ml-card--${escape(state)}${needsAction ? " ml-card--needs-action" : ""}" href="${escape(ctaHref)}">
-      <span class="ml-card__dot" style="background:${dotColor}" aria-label="${escape(stateLabel)}" title="${escape(stateLabel)}"></span>
-      <div class="gr-listing-card-eyebrow">
-        ${needsAction ? `<span class="ml-card__action-tag">needs you</span>` : ""}
-        ${recencyLabel ? `<span class="ml-card__recency">${escape(recencyLabel)}</span>` : ""}
-      </div>
-      <h2 class="gr-listing-title">${escape(l.title || "untitled")}</h2>
-      <div class="gr-listing-card-head ml-card__head">
-        <div class="gr-listing-card-meta ml-card__meta">
-          <p class="gr-listing-biz-name ml-card__offers">${escape(offerLabel)}</p>
-          <p class="gr-listing-budget">${escape(budgetText)}</p>
-          ${turnaround ? `<p class="gr-listing-contract">${escape(turnaround)}</p>` : ""}
+    <div class="ml-card-wrap ml-card-wrap--${escape(state)}">
+      <a class="gr-listing-card ml-card ml-card--${escape(state)}${needsAction ? " ml-card--needs-action" : ""}" href="${escape(ctaHref)}">
+        <span class="ml-card__dot" style="background:${dotColor}" aria-label="${escape(stateLabel)}" title="${escape(stateLabel)}"></span>
+        <div class="gr-listing-card-eyebrow">
+          ${needsAction ? `<span class="ml-card__action-tag">needs you</span>` : ""}
+          ${recencyLabel ? `<span class="ml-card__recency">${escape(recencyLabel)}</span>` : ""}
         </div>
-      </div>
-      <div class="gr-listing-foot">
-        ${tagsHtml || '<div></div>'}
-        <span class="gr-listing-cta-link">${escape(ctaText)} →</span>
-      </div>
-    </a>
+        <h2 class="gr-listing-title">${escape(l.title || "untitled")}</h2>
+        <div class="gr-listing-card-head ml-card__head">
+          <div class="gr-listing-card-meta ml-card__meta">
+            <p class="gr-listing-biz-name ml-card__offers">${escape(offerLabel)}</p>
+            <p class="gr-listing-budget">${escape(budgetText)}</p>
+            ${turnaround ? `<p class="gr-listing-contract">${escape(turnaround)}</p>` : ""}
+          </div>
+        </div>
+        <div class="gr-listing-foot">
+          ${tagsHtml || '<div></div>'}
+          <span class="gr-listing-cta-link">${escape(ctaText)} →</span>
+        </div>
+      </a>
+      ${deleteBadge}
+    </div>
   `;
 }
 
@@ -1052,6 +1073,10 @@ function renderDashboard(client, data) {
         <span class="bza__health-cta-arrow" aria-hidden="true">→</span>
       </a>
     `;
+    // Guarantee the fill animation runs — innerHTML during the busy
+    // initial dashboard mount sometimes drops the first frame and
+    // leaves the bucket stuck at empty even when pct > 0.
+    kickHealthBucketAnimation(panel);
   }
 
   // Cumulative analytics across all the owner's listings — loads
@@ -1249,6 +1274,18 @@ function setupViewSwitcher() {
   const rawHash = window.location.hash.replace("#", "");
   const initial = rawHash.split("?")[0] || "dashboard";
   showView(initial);
+
+  // External hash changes (e.g. the onboarding tutorial dot-nav
+  // jumping to a step on a different view) should also switch the
+  // visible panel. The sidebar click path already updates the hash
+  // via history.replaceState — skip if the new hash matches the
+  // already-visible view to avoid an unnecessary render.
+  window.addEventListener("hashchange", () => {
+    const name = window.location.hash.replace("#", "").split("?")[0] || "dashboard";
+    const visible = document.querySelector(".dash-view:not([hidden])");
+    if (visible && visible.dataset.view === name) return;
+    showView(name);
+  });
 }
 
 /* ============================================================== */
@@ -1289,3 +1326,50 @@ async function init() {
 }
 
 init();
+
+// Delegated handler for the draft-delete affordances rendered into
+// the activity feed rows and the my-listings cards. Re-rendering on
+// success would mean stitching together every counter and tab on the
+// page; a full reload is heavy but reliably honest. Sourcing the
+// listing id from the button's dataset keeps the row markup small.
+document.addEventListener("click", async (event) => {
+  const btn = event.target instanceof HTMLElement
+    ? event.target.closest("[data-draft-delete-id]")
+    : null;
+  if (!btn) return;
+  event.preventDefault();
+  event.stopPropagation();
+
+  const listingId = btn.getAttribute("data-draft-delete-id");
+  const title = btn.getAttribute("data-draft-title") || "this draft";
+  if (!listingId) return;
+
+  const ok = await confirmDialog({
+    title: "delete this draft?",
+    body: `"${title}" hasn't been published — deleting it can't be undone. you'll need to start over if you want to recreate it.`,
+    confirmLabel: "delete draft",
+    cancelLabel: "keep it",
+    kind: "danger",
+  });
+  if (!ok) return;
+
+  btn.disabled = true;
+  const originalLabel = btn.textContent;
+  btn.textContent = "deleting…";
+  try {
+    const client = await getSupabaseClient();
+    await deleteListing(client, listingId);
+    showToast("draft deleted.", { kind: "success", duration: 3500 });
+    // Sync dispatch so the onboarding listener can advance tutorial
+    // state (writes to localStorage) BEFORE the reload reads it back.
+    window.dispatchEvent(new CustomEvent("gr:draft-deleted", { detail: { listingId } }));
+    window.location.reload();
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+    const msg = err instanceof ListingOperationError
+      ? err.message
+      : err?.message || "could not delete the draft.";
+    showToast(msg, { kind: "error", duration: 5000 });
+  }
+});

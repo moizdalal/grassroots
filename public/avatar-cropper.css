@@ -1,0 +1,183 @@
+/* avatar-cropper.css — square-crop modal for avatar uploads.
+   Mounted at body level by avatar-cropper.js. Sits above the
+   onboarding tutorial (z 9200/9400) so the cropper is reachable
+   even while the tutorial is active on the upload-photo step. */
+
+.gr-photo-crop {
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Manrope", system-ui, sans-serif;
+  animation: gr-photo-crop-in 0.22s ease-out both;
+}
+
+.gr-photo-crop__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 14, 11, 0.62);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  cursor: pointer;
+}
+
+.gr-photo-crop__card {
+  position: relative;
+  width: min(380px, calc(100vw - 32px));
+  padding: 1.4rem 1.5rem 1.2rem;
+  background: var(--fo-surface, #15201b);
+  color: var(--fo-text, #f1e8d3);
+  border: 1px solid var(--fo-line-strong, rgba(241, 232, 211, 0.18));
+  border-radius: 18px;
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.5),
+    0 6px 14px rgba(0, 0, 0, 0.32);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  animation: gr-photo-crop-card-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.gr-photo-crop__title {
+  margin: 0;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.gr-photo-crop__hint {
+  margin: -0.45rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--fo-text-2, rgba(241, 232, 211, 0.7));
+}
+
+.gr-photo-crop__viewport {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  max-width: 100%;
+  aspect-ratio: 1 / 1;
+  align-self: center;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--fo-surface-2, #1a261c);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.gr-photo-crop__viewport:active {
+  cursor: grabbing;
+}
+
+.gr-photo-crop__img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: none;
+  max-height: none;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-drag: none;
+  /* transform set inline by avatar-cropper.js */
+}
+
+/* Inset accent ring so the user reads the viewport as the active
+   crop area. Pointer-events off so it never blocks the drag. */
+.gr-photo-crop__frame {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 2px var(--fo-accent, #8fb886),
+    inset 0 0 0 4px rgba(255, 255, 255, 0.06);
+}
+
+.gr-photo-crop__zoom {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.gr-photo-crop__zoom-icon {
+  width: 1.2rem;
+  text-align: center;
+  font-size: 1.05rem;
+  color: var(--fo-text-3, rgba(241, 232, 211, 0.55));
+}
+
+.gr-photo-crop__zoom-slider {
+  flex: 1;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  height: 18px;
+  cursor: pointer;
+}
+
+.gr-photo-crop__zoom-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--fo-line, rgba(241, 232, 211, 0.22));
+}
+.gr-photo-crop__zoom-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--fo-line, rgba(241, 232, 211, 0.22));
+}
+
+.gr-photo-crop__zoom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--fo-accent, #8fb886);
+  border: 0;
+  margin-top: -6px;
+  cursor: pointer;
+}
+.gr-photo-crop__zoom-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--fo-accent, #8fb886);
+  border: 0;
+  cursor: pointer;
+}
+
+.gr-photo-crop__zoom-slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--fo-accent, #8fb886) 35%, transparent);
+}
+.gr-photo-crop__zoom-slider:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--fo-accent, #8fb886) 35%, transparent);
+}
+
+.gr-photo-crop__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.25rem;
+}
+
+@keyframes gr-photo-crop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes gr-photo-crop-card-in {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gr-photo-crop,
+  .gr-photo-crop__card {
+    animation: none;
+  }
+}

@@ -3,6 +3,7 @@ import { formatBudgetRange, parseBudgetRange } from "/sim-budget.js";
 import { getInitials } from "/initials.js";
 import { renderRatingMarkup } from "/rating.js";
 import { showSuccess, showError, showLoading } from "/toast.js";
+import { cropToSquare } from "/avatar-cropper.js";
 
 const form = document.getElementById("profile-form");
 const gateEl = document.getElementById("profile-gate");
@@ -777,15 +778,13 @@ async function removeResume() {
     currentResumePath = null;
     if (resumeInput) resumeInput.value = "";
     await renderResumeCurrentLabel();
-    statusEl.textContent = "resume removed.";
-    statusEl.className = "gr-status success";
+    showSuccess("resume removed.");
 
     if (role === "consultant" && isPreviewOpen()) {
       await renderBusinessPreview();
     }
   } catch (err) {
-    statusEl.textContent = err.message || "could not remove resume.";
-    statusEl.className = "gr-status error";
+    showError(err.message || "could not remove resume.");
     if (removeBtn instanceof HTMLButtonElement) removeBtn.disabled = false;
   }
 }
@@ -857,8 +856,7 @@ function renderPortfolioList() {
         portfolioItems = portfolioItems.filter((i) => i.id !== item.id);
         renderPortfolioList();
       } catch (err) {
-        statusEl.textContent = err.message || "could not delete item.";
-        statusEl.className = "gr-status error";
+        showError(err.message || "could not delete item.");
       }
     });
   });
@@ -880,20 +878,16 @@ async function getPortfolioSignedUrl(filePath) {
 async function handlePortfolioUpload() {
   const file = portfolioInput?.files?.[0];
   if (!file) {
-    statusEl.textContent = "please choose a file first.";
-    statusEl.className = "gr-status error";
+    showError("please choose a file first.");
     return;
   }
   if (file.size > 25 * 1024 * 1024) {
-    statusEl.textContent = "file must be 25 mb or smaller.";
-    statusEl.className = "gr-status error";
+    showError("file must be 25 mb or smaller.");
     return;
   }
 
   portfolioUploadBtn.disabled = true;
   portfolioUploadBtn.textContent = "uploading…";
-  statusEl.textContent = "";
-  statusEl.className = "gr-status";
 
   try {
     const safe = sanitizeFileName(file.name);
@@ -925,11 +919,9 @@ async function handlePortfolioUpload() {
     portfolioInput.value = "";
     portfolioDesc.value = "";
     if (portfolioPublicToggle) portfolioPublicToggle.checked = false;
-    statusEl.textContent = "work sample uploaded.";
-    statusEl.className = "gr-status success";
+    showSuccess("work sample uploaded.");
   } catch (err) {
-    statusEl.textContent = err.message || "upload failed.";
-    statusEl.className = "gr-status error";
+    showError(err.message || "upload failed.");
   } finally {
     portfolioUploadBtn.disabled = false;
     portfolioUploadBtn.textContent = "upload";
@@ -1168,10 +1160,9 @@ async function persistResumeVisibilityPreference(nextValue) {
     if (profileRow) {
       profileRow.resume_public = nextValue;
     }
-    statusEl.textContent = nextValue
+    showSuccess(nextValue
       ? "resume is now visible to businesses."
-      : "resume is now hidden from businesses.";
-    statusEl.className = "gr-status success";
+      : "resume is now hidden from businesses.");
 
     if (isPreviewOpen()) {
       await renderBusinessPreview();
@@ -1180,8 +1171,7 @@ async function persistResumeVisibilityPreference(nextValue) {
   } catch (err) {
     const t = getResumePublicToggle();
     if (t) t.checked = previousValue;
-    statusEl.textContent = err.message || "could not update resume visibility.";
-    statusEl.className = "gr-status error";
+    showError(err.message || "could not update resume visibility.");
     return false;
   } finally {
     const t = getResumePublicToggle();
@@ -1269,12 +1259,28 @@ avatarInput.addEventListener("change", async () => {
     return;
   }
 
-  // Optimistic preview using the local blob URL, then auto-upload.
-  setAvatarPreview(URL.createObjectURL(file));
+  // Square-crop step. Resolves to null if the user cancels; in that
+  // case we silently bail without touching the existing avatar so the
+  // photo they have stays put.
+  let toUpload;
+  try {
+    toUpload = await cropToSquare(file);
+  } catch (err) {
+    avatarInput.value = "";
+    setAvatarStatus(err?.message || "could not open photo editor.", "error");
+    return;
+  }
+  if (!toUpload) {
+    avatarInput.value = "";
+    return;
+  }
+
+  // Optimistic preview using the cropped blob, then auto-upload.
+  setAvatarPreview(URL.createObjectURL(toUpload));
   setAvatarStatus("uploading photo…");
 
   try {
-    await uploadAvatarFile(file);
+    await uploadAvatarFile(toUpload);
     setAvatarStatus("profile photo updated.", "success");
     if (role === "consultant" && isPreviewOpen()) {
       await renderBusinessPreview();
@@ -1800,20 +1806,19 @@ if (resumeInput) {
     if (!file) return;
     if (!currentResumePath) return;
 
-    statusEl.textContent = "uploading resume…";
-    statusEl.className = "gr-status";
+    const loadingToast = showLoading("uploading resume…");
     try {
       await uploadResumeFile(file);
       await renderResumeCurrentLabel("current resume on file —");
-      statusEl.textContent = "resume replaced.";
-      statusEl.className = "gr-status success";
+      loadingToast?.dismiss();
+      showSuccess("resume replaced.");
       if (role === "consultant" && isPreviewOpen()) {
         await renderBusinessPreview();
       }
     } catch (err) {
       resumeInput.value = "";
-      statusEl.textContent = err.message || "could not upload resume.";
-      statusEl.className = "gr-status error";
+      loadingToast?.dismiss();
+      showError(err.message || "could not upload resume.");
     }
   });
 }
@@ -1857,8 +1862,7 @@ document.addEventListener("click", async (event) => {
     if (!item) return;
     const url = await getPortfolioSignedUrl(item.file_path);
     if (!url) {
-      statusEl.textContent = "could not load this work sample.";
-      statusEl.className = "gr-status error";
+      showError("could not load this work sample.");
       return;
     }
     if (action === "download") {

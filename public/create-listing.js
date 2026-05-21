@@ -1,5 +1,7 @@
 import { getSupabaseClient } from "/supabase-loader.js";
 import { formatBudgetRange } from "/sim-budget.js";
+import { confirmDialog } from "/confirm-modal.js";
+import { showError, showSuccess } from "/toast.js";
 
 const form = document.getElementById("listing-form");
 const gate = document.getElementById("gate");
@@ -61,7 +63,7 @@ let selectedAttachments = [];
 // by the signed-in user with status='draft', boot() loads it and sets
 // this id. The save / publish handlers then UPDATE that row instead
 // of inserting a new one, and "save as draft" keeps status='draft'
-// while "create opportunity" promotes it to status='open'.
+// while "post listing" promotes it to status='open'.
 let editingDraftId = null;
 const saveDraftBtn = document.getElementById("save-draft-btn");
 
@@ -717,8 +719,7 @@ if (attachmentInput) {
       selectedAttachments = [];
       renderAttachmentSelection();
       updatePreview();
-      statusEl.textContent = error.message || "could not add those attachments.";
-      statusEl.className = "gr-status error";
+      showError(error.message || "could not add those attachments.");
     }
   });
 }
@@ -729,8 +730,7 @@ nextBtn.addEventListener("click", () => {
     currentSlide = Math.min(currentSlide + 1, slides.length - 1);
     updateWizardUI();
   } catch (err) {
-    statusEl.textContent = err.message;
-    statusEl.className = "gr-status error";
+    showError(err.message || "fill in the required fields before continuing.");
   }
 });
 
@@ -739,6 +739,26 @@ backBtn.addEventListener("click", () => {
   statusEl.className = "gr-status";
   currentSlide = Math.max(currentSlide - 1, 0);
   updateWizardUI();
+});
+
+// Tutorial dot-nav can request a slide jump. Backward jumps run
+// unconditionally; forward jumps run validateSlide for every slide
+// we'd cross and bail if one fails. This means dot-clicking ahead
+// only succeeds once the user has filled in the in-between fields,
+// which matches the wizard's own next-button behavior.
+window.addEventListener("cl:request-slide", (event) => {
+  const target = Number(event?.detail?.slide);
+  if (!Number.isFinite(target)) return;
+  const clamped = Math.max(0, Math.min(slides.length - 1, target));
+  while (clamped > currentSlide) {
+    try { validateSlide(currentSlide); } catch (_) { return; }
+    currentSlide += 1;
+    updateWizardUI();
+  }
+  while (clamped < currentSlide) {
+    currentSlide -= 1;
+    updateWizardUI();
+  }
 });
 
 /* ── Contract type / chain builder ──────────────────────── */
@@ -972,7 +992,7 @@ async function hydrateDraft(draftId) {
   applyFormSnapshot(data.draft_form || {});
   // Swap the primary CTA copy so the wizard reads as "edit & publish"
   // rather than "create a new listing".
-  if (submitBtn) submitBtn.textContent = "publish opportunity";
+  if (submitBtn) submitBtn.textContent = "publish listing";
 }
 
 // "Save as draft" — no validation, just snapshot and persist. Stores
@@ -1014,14 +1034,19 @@ saveDraftBtn?.addEventListener("click", async () => {
       id = data.id;
       editingDraftId = id;
     }
-    statusEl.textContent = "saved as draft.";
-    statusEl.className = "gr-status success";
+    showSuccess("saved as draft.");
+
+    // Mirror of cl:listing-published so the tutorial can react to
+    // the save-draft path the same way — example users are now
+    // explicitly told to save as a draft at lw-publish, and the
+    // bubble needs to advance to the "now delete" coda when they do.
+    window.dispatchEvent(new CustomEvent("cl:listing-saved-as-draft", { detail: { listingId: id } }));
+
     setTimeout(() => {
       window.location.href = "/dashboard.html#listings";
     }, 600);
   } catch (err) {
-    statusEl.textContent = err?.message || "could not save draft.";
-    statusEl.className = "gr-status error";
+    showError(err?.message || "could not save draft.");
     saveDraftBtn.disabled = false;
     saveDraftBtn.textContent = originalLabel;
   }
@@ -1032,12 +1057,35 @@ form.addEventListener("submit", async (event) => {
   statusEl.textContent = "";
   statusEl.className = "gr-status";
 
+  // Validate before showing the confirm modal so the user doesn't sit
+  // through a confirmation just to land back on the form with an
+  // error. Validation issues fly out as a toast like every other
+  // wizard-step error.
   try {
     validateSlide(0);
     validateSlide(1);
     validateSlide(2);
     validateAttachmentSelection(selectedAttachments);
+  } catch (err) {
+    showError(err.message || "fix the highlighted fields first.");
+    return;
+  }
 
+  // Last chance to back out. Publishing flips status to 'open' and the
+  // listing becomes visible to every consultant immediately, so we
+  // explicitly say so. Same modal for fresh listings and draft
+  // publishes — the verbs differ but the consequence is the same.
+  const isEdit = !!editingDraftId;
+  const ok = await confirmDialog({
+    title: isEdit ? "publish this listing?" : "post this listing?",
+    body: "once you confirm, this listing goes live in the marketplace. consultants can view it and start submitting offers right away.",
+    confirmLabel: isEdit ? "publish listing" : "post listing",
+    cancelLabel: "not yet",
+    kind: "primary",
+  });
+  if (!ok) return;
+
+  try {
     const fd = new FormData(form);
     // Radios emit one of 'standard' | 'phased' | 'retainer'. (The legacy
     // 'advanced' branch below is a no-op; left in so the details summary
@@ -1049,7 +1097,7 @@ form.addEventListener("submit", async (event) => {
     const budgetMax = Number(fd.get("budget_max"));
 
     submitBtn.disabled = true;
-    submitBtn.textContent = "creating…";
+    submitBtn.textContent = "posting…";
 
     const issueContext = String(fd.get("issue_context") || "").trim();
     const businessProblem = String(fd.get("business_problem") || "").trim();
@@ -1105,9 +1153,12 @@ form.addEventListener("submit", async (event) => {
       }
     }
 
-    // When editing a draft, update the existing row + clear the
-    // draft_form snapshot. Otherwise insert a fresh row.
-    payload.draft_form = null;
+    // Keep a draft_form snapshot on the published row so the listing
+    // can be round-tripped back into the wizard later via
+    // convertListingToDraft (the listing columns alone don't round-
+    // trip because `details` is a structured blob that fuses several
+    // form fields together).
+    payload.draft_form = collectFormSnapshot();
     let listingId;
     if (editingDraftId) {
       const { data, error } = await supabase
@@ -1170,8 +1221,7 @@ form.addEventListener("submit", async (event) => {
       } catch (_) { /* non-fatal */ }
     })();
 
-    statusEl.textContent = editingDraftId ? "opportunity published." : "opportunity created.";
-    statusEl.className = "gr-status success";
+    showSuccess(editingDraftId ? "listing published." : "listing posted.");
 
     // Let the tutorial (if active) jump to the "you're all set" step
     // before we navigate away. Synchronous — state is persisted before
@@ -1182,10 +1232,9 @@ form.addEventListener("submit", async (event) => {
       window.location.href = `/listing.html?id=${listingId}`;
     }, 800);
   } catch (err) {
-    statusEl.textContent = err.message || "could not create opportunity.";
-    statusEl.className = "gr-status error";
+    showError(err.message || "could not post listing.");
     submitBtn.disabled = false;
-    submitBtn.textContent = "create opportunity";
+    submitBtn.textContent = editingDraftId ? "publish listing" : "post listing";
   }
 });
 
