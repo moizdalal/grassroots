@@ -4,8 +4,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>grassroots beta</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <title>grassroots — student consultant marketplace for small businesses</title>
+  <meta name="description" content="grassroots connects small businesses with vetted student consultants for marketing, strategy, and operations help. post a project, review real proposals, and pay safely through stripe escrow." />
+  <link rel="canonical" href="https://www.grassroots-marketplace.com/" />
+  <meta name="theme-color" content="#6DBF8A" />
+  <meta name="robots" content="index,follow" />
+
+  <!-- Open Graph (LinkedIn, Slack, iMessage, Facebook previews) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="grassroots" />
+  <meta property="og:title" content="grassroots — student consultant marketplace for small businesses" />
+  <meta property="og:description" content="hire vetted student consultants for marketing, strategy, and operations work. post your project, review proposals, pay through stripe escrow." />
+  <meta property="og:url" content="https://www.grassroots-marketplace.com/" />
+  <meta property="og:image" content="https://www.grassroots-marketplace.com/favicon.svg" />
+  <meta property="og:image:alt" content="grassroots — small green plant icon" />
+
+  <!-- Twitter / X cards -->
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="grassroots — student consultant marketplace" />
+  <meta name="twitter:description" content="hire vetted student consultants for marketing, strategy, and operations. real proposals, stripe-escrow payments." />
+  <meta name="twitter:image" content="https://www.grassroots-marketplace.com/favicon.svg" />
+
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -13,6 +33,33 @@
     rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="./index.css" />
+
+  <!-- Structured data — Organization + WebSite. Gives Google a clean
+       Knowledge Graph entry and enables sitelinks-search-box-ready
+       results once enough domain authority accrues. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://www.grassroots-marketplace.com/#organization",
+        "name": "grassroots",
+        "url": "https://www.grassroots-marketplace.com/",
+        "logo": "https://www.grassroots-marketplace.com/favicon.svg",
+        "description": "two-sided marketplace connecting small businesses with vetted student consultants for marketing, strategy, and operations work."
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://www.grassroots-marketplace.com/#website",
+        "url": "https://www.grassroots-marketplace.com/",
+        "name": "grassroots",
+        "publisher": { "@id": "https://www.grassroots-marketplace.com/#organization" },
+        "inLanguage": "en"
+      }
+    ]
+  }
+  </script>
 </head>
 
 <body class="beta-page is-loading" data-audience="business">
