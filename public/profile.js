@@ -1533,7 +1533,7 @@ form.addEventListener("submit", async (e) => {
           await supabase.storage.from("avatars").remove([avatarPath]);
         }
         showError(
-          "saved your details. to store a profile photo, add column profiles.avatar_path in Supabase (run supabase/profile_avatar.sql), then upload again."
+          "saved your details. to store a profile photo, add column profiles.avatar_path in supabase (run supabase/profile_avatar.sql), then upload again.",
         );
       }
     }
@@ -1672,16 +1672,16 @@ form.addEventListener("submit", async (e) => {
     if (!profileAvatarMigrationWarning) {
       if (resumePublicMissingWarning) {
         showSuccess(
-          "saved. resume visibility settings need the latest Supabase migration before they can be stored."
+          "saved. resume visibility settings need the latest supabase migration before they can be stored.",
         );
       } else if (businessAddressMissingWarning) {
         showSuccess(
-          "saved, but business address could not be stored yet. run `supabase/migrations/add_business_address.sql` in Supabase, then save again."
+          "saved, but business address could not be stored yet. run supabase/migrations/add_business_address.sql, then save again.",
         );
       } else {
-        showSuccess(instagramAvatarApplied
-          ? "saved. profile photo updated from instagram."
-          : "saved.");
+        showSuccess(
+          instagramAvatarApplied ? "saved. profile photo updated from instagram." : "saved.",
+        );
       }
     }
 

@@ -2386,6 +2386,10 @@ summary:focus-visible,
   line-height: 1.5;
 }
 
+.gr-status:empty {
+  display: none;
+}
+
 .gr-status.success {
   color: var(--success);
 }
@@ -5059,6 +5063,76 @@ button.gr-bid-link {
   font-family: "Fraunces", serif;
   font-size: 1.25rem;
   color: var(--fo-text);
+}
+
+/* Itemized checkout: offer + Stripe fee (strikethrough, absorbed by
+   consultant) + platform fee (strikethrough, waived during launch) +
+   final total. Same visual frame as .pay-modal__amount. */
+.pay-modal__breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 0.85rem;
+  background: var(--fo-accent-soft, rgba(45, 106, 79, 0.08));
+  border: 1px solid var(--fo-accent);
+  border-radius: 10px;
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+}
+
+.pay-modal__line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.85rem;
+}
+
+.pay-modal__line-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.pay-modal__line-hint {
+  font-size: 0.75rem;
+  color: var(--fo-text-3);
+  font-weight: 400;
+}
+
+.pay-modal__line-value {
+  font-variant-numeric: tabular-nums;
+  color: var(--fo-text);
+  font-weight: 600;
+}
+
+.pay-modal__line-value--strike {
+  color: var(--fo-text-3);
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  font-weight: 500;
+}
+
+.pay-modal__line--passthrough .pay-modal__line-label {
+  color: var(--fo-text-3);
+}
+
+.pay-modal__line--total {
+  margin-top: 0.25rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--fo-line);
+  font-size: var(--type-body);
+}
+
+.pay-modal__line--total .pay-modal__line-label {
+  color: var(--fo-text);
+  font-weight: 600;
+}
+
+.pay-modal__line--total .pay-modal__line-value {
+  font-family: "Fraunces", serif;
+  font-size: 1.25rem;
+  font-weight: 600;
 }
 
 .pay-modal__element {

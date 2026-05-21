@@ -87,14 +87,26 @@ const STEPS = [
     // First selector covers the no-avatar state (upload label visible).
     // Second covers the has-avatar state (change/remove buttons visible).
     targetSelector: ["#pf-avatar-upload-label:not(.hidden)", "#pf-avatar-change-btn"],
-    // The has-avatar "change photo" button delegates to a synthetic click
-    // on the hidden file input that lives inside #pf-avatar-upload-label
-    // (which has .hidden in that state). Whitelisting the whole controls
-    // wrapper keeps every avatar interaction — upload label, hidden input,
-    // change/remove buttons — in scope regardless of state. The cropper
-    // modal mounts at body level after the user picks a file, so its own
-    // selector is allow-listed too.
-    allowedInteractive: [".pf-avatar-controls", ".gr-photo-crop"],
+    // Anything tied to the photo section needs to pass the guardrail:
+    //   • .settings-section__body--avatar — users instinctively click the
+    //     avatar image / ring itself; whitelisting the whole photo body
+    //     keeps stray clicks from popping the heading-off modal.
+    //   • .pf-avatar-controls — wrapper around the file picker label,
+    //     hidden file input, and change/remove buttons. The has-avatar
+    //     "change photo" button programmatically clicks the hidden input
+    //     (a sibling of the spotlighted button), so without this the
+    //     synthetic click trips the off-scope modal.
+    //   • #avatar-input / #pf-avatar-remove-btn — explicit IDs in case
+    //     the wrapper class changes; cheap redundancy.
+    //   • .gr-photo-crop — the cropper modal mounts at body level after
+    //     a file is picked; it sits outside the spotlight entirely.
+    allowedInteractive: [
+      ".settings-section__body--avatar",
+      ".pf-avatar-controls",
+      "#avatar-input",
+      "#pf-avatar-remove-btn",
+      ".gr-photo-crop",
+    ],
     placement: "right",
     advanceOn: "next",
     title: "show your face.",

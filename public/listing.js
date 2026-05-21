@@ -2,6 +2,7 @@ import { getSupabaseClient } from "/supabase-loader.js";
 import { formatBudgetRange, parseBudgetRange } from "/sim-budget.js";
 import { renderRatingMarkup, hydrateRatings } from "/rating.js";
 import { payAndAcceptBid, payAndAcceptProposals } from "/payment-modal.js";
+import { computeFees, formatUsd } from "/fees.js";
 import { getInitials } from "/initials.js";
 import {
   trackListingView,
@@ -55,12 +56,6 @@ function escapeHtml(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 function escapeAttr(s) { return String(s).replace(/"/g, "&quot;"); }
-
-function formatUsd(cents) {
-  const n = Number(cents);
-  if (!Number.isFinite(n)) return "—";
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(n / 100);
-}
 
 function formatFileSize(bytes) {
   const value = Number(bytes);
@@ -767,6 +762,94 @@ function renderListingAttachments(listing) {
   attachmentsWrap.hidden = false;
 }
 
+// Drive open/close of <details class="ld-section"> via the Web
+// Animations API. Native [open]-removal can flip content-visibility
+// to hidden before the CSS height/opacity transitions get a chance
+// to play — the open direction transitioned reliably but the close
+// direction snapped in practice. Doing it in JS guarantees a real
+// fade in *and* fade out, with full control over both directions.
+function attachLdSectionAnimation(details) {
+  const summary = details.querySelector(":scope > summary");
+  if (!summary) return;
+  if (details.dataset.animatedToggle === "true") return;
+  details.dataset.animatedToggle = "true";
+
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const DURATION = reducedMotion ? 0 : 380;
+  const EASING = "ease-in-out";
+  let current = null;
+
+  summary.addEventListener("click", (event) => {
+    event.preventDefault();
+    if (current) {
+      current.cancel();
+      current = null;
+    }
+
+    const opening = !details.open;
+    const body = Array.from(details.children).filter((el) => el !== summary);
+    const summaryHeight = summary.offsetHeight;
+
+    if (opening) {
+      // Set [open] first so the pseudo-content lays out; measure full
+      // height, then collapse inline to summary height before painting
+      // so the animation has a real start frame.
+      details.open = true;
+      const fullHeight = details.scrollHeight;
+      details.style.overflow = "hidden";
+      details.style.height = summaryHeight + "px";
+      // Force reflow so the animation runs from the constrained height.
+      void details.offsetHeight;
+
+      const heightAnim = details.animate(
+        [{ height: summaryHeight + "px" }, { height: fullHeight + "px" }],
+        { duration: DURATION, easing: EASING, fill: "forwards" },
+      );
+      const opacityAnims = body.map((el) =>
+        el.animate(
+          [{ opacity: 0 }, { opacity: 1 }],
+          { duration: DURATION, easing: EASING, fill: "forwards" },
+        ),
+      );
+
+      current = heightAnim;
+      heightAnim.onfinish = () => {
+        heightAnim.cancel();
+        opacityAnims.forEach((a) => a.cancel());
+        details.style.height = "";
+        details.style.overflow = "";
+        current = null;
+      };
+    } else {
+      const startHeight = details.offsetHeight;
+      details.style.overflow = "hidden";
+      details.style.height = startHeight + "px";
+      void details.offsetHeight;
+
+      const heightAnim = details.animate(
+        [{ height: startHeight + "px" }, { height: summaryHeight + "px" }],
+        { duration: DURATION, easing: EASING, fill: "forwards" },
+      );
+      const opacityAnims = body.map((el) =>
+        el.animate(
+          [{ opacity: 1 }, { opacity: 0 }],
+          { duration: DURATION, easing: EASING, fill: "forwards" },
+        ),
+      );
+
+      current = heightAnim;
+      heightAnim.onfinish = () => {
+        details.open = false;
+        heightAnim.cancel();
+        opacityAnims.forEach((a) => a.cancel());
+        details.style.height = "";
+        details.style.overflow = "";
+        current = null;
+      };
+    }
+  });
+}
+
 function populateListing(listing) {
   const profile = listing.profiles;
   const biz = listing._business || null;
@@ -792,11 +875,12 @@ function populateListing(listing) {
   const websiteUrl = biz?.website_url || listing.listing_website_url;
   if (websiteUrl) { const el = document.getElementById("ld-biz-website"); el.href = websiteUrl; el.textContent = new URL(websiteUrl).hostname.replace("www.", ""); el.hidden = false; }
 
-  /* Social icons */
+  /* Social icons — business bio shows the *business's* socials only.
+     Owner's personal linkedin (profile.linkedin_url) belongs on their
+     consultant/owner profile, not on the listing's business card. */
   const fromExplicit = [biz?.instagram_url, biz?.facebook_url, biz?.company_linkedin_url].filter(
     (u) => u && String(u).trim()
   );
-  if (profile?.linkedin_url) fromExplicit.push(profile.linkedin_url);
   const fromLegacy = biz?.social_links || listing.listing_social_links || [];
   const merged = [...fromExplicit, ...(Array.isArray(fromLegacy) ? fromLegacy : [])];
   const socialLinks = [...new Set(merged.map((u) => String(u).trim()))].filter(Boolean);
@@ -819,6 +903,11 @@ function populateListing(listing) {
     bioToggle.setAttribute("aria-expanded", String(!isExpanded));
     bioBody.classList.toggle("is-collapsed", isExpanded);
   });
+
+  // JS-driven open/close for every <details class="ld-section"> on the
+  // page so both directions get a real fade. See attachLdSectionAnimation
+  // for the why.
+  document.querySelectorAll(".ld-section").forEach(attachLdSectionAnimation);
 
   /* --- Opportunity header --- */
   document.getElementById("ld-title").textContent = listing.title;
@@ -1044,6 +1133,7 @@ function renderOwnerActionSummary(listing) {
   if (!ownerActionsCopy || !pauseListingBtn || !closeListingBtn) return;
   const status = getListingStatusLabel(listing?.status);
   const reasonText = getListingReasonText(listing);
+  const buttonsWrap = pauseListingBtn.closest(".ld-owner-actions__buttons");
 
   // The intro copy element starts present-but-empty; make sure it's
   // visible whenever we set text on it. (Earlier HTML carried `hidden`
@@ -1057,6 +1147,7 @@ function renderOwnerActionSummary(listing) {
     showCopy(reasonText
       ? `this listing is paused because of "${reasonText}". resume it any time or close it permanently.`
       : "this listing is paused. existing proposals stay in place while it stays out of marketplace browsing.");
+    if (buttonsWrap) buttonsWrap.hidden = false;
     pauseListingBtn.textContent = "resume listing";
     pauseListingBtn.disabled = false;
     closeListingBtn.textContent = "close listing";
@@ -1065,20 +1156,23 @@ function renderOwnerActionSummary(listing) {
   }
 
   if (status === "closed") {
-    // Explain why both buttons are disabled — the listing is already in
-    // the terminal closed state and no further action is available here.
+    // Closed is terminal — drop the action buttons entirely so the panel
+    // reads as a status note rather than a disabled control surface.
     showCopy(reasonText
-      ? `this listing is already closed (reason: "${reasonText}"). the controls are turned off — existing participants can still refer back to it here.`
-      : "this listing is already closed. the controls are turned off — existing participants can still refer back to it here.");
-    pauseListingBtn.textContent = "pause listing";
-    closeListingBtn.textContent = "close listing";
-    pauseListingBtn.disabled = true;
-    closeListingBtn.disabled = true;
+      ? `this listing is already closed (reason: "${reasonText}"). existing participants can still refer back to it here.`
+      : "this listing is already closed. existing participants can still refer back to it here.");
+    if (buttonsWrap) buttonsWrap.hidden = true;
     resetOwnerStatusForm();
     return;
   }
 
-  showCopy("pause this listing to hide it from marketplace browsing while keeping current proposals in place, or close it when you're done.");
+  // Default ("open" / actionable) state: the explainer copy lives in the
+  // `?` tooltip next to the heading now, so suppress the inline paragraph
+  // and let the buttons speak for themselves. paused / closed branches
+  // still set status copy above (those describe current state).
+  ownerActionsCopy.textContent = "";
+  ownerActionsCopy.hidden = true;
+  if (buttonsWrap) buttonsWrap.hidden = false;
   pauseListingBtn.textContent = "pause listing";
   closeListingBtn.textContent = "close listing";
   pauseListingBtn.disabled = false;
@@ -1285,6 +1379,80 @@ async function showConsultantView(client, session, listing, existingBid) {
   const amountInput = document.getElementById("ld-bid-amount");
   const proposalFeeInput = document.getElementById("ld-bid-proposal-fee");
   const serviceFeeInput = document.getElementById("ld-bid-service-fee");
+
+  // Live breakdown beneath each offer-amount input — same shape for
+  // standard, retainer (per period), phased proposal, and phased service
+  // inputs. Shows both what the business is charged (offer + platform
+  // fee, strikethrough today) AND what the consultant takes home after
+  // the Stripe processing fee they absorb. Hidden on empty / zero input
+  // so the form doesn't render a bogus "$0.30 in fees" on a blank field.
+  function renderBreakdownInto(container, dollars, opts = {}) {
+    if (!container) return;
+    if (!Number.isFinite(dollars) || dollars <= 0) {
+      container.hidden = true;
+      container.innerHTML = "";
+      return;
+    }
+    const f = computeFees(Math.round(dollars * 100));
+    const platformValueClass = f.platformFeeWaived
+      ? "ld-offer-breakdown__value ld-offer-breakdown__value--strike"
+      : "ld-offer-breakdown__value";
+    const offerLabel = opts.offerLabel || "offer";
+    const bizLabel = opts.bizLabel || "business pays";
+    const takeHomeLabel = opts.takeHomeLabel || "you take home";
+    container.innerHTML = `
+      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
+        <span>${offerLabel}</span>
+        <span class="ld-offer-breakdown__value">${formatUsd(f.amountCents)}</span>
+      </div>
+      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
+        <span>
+          platform fee (10%)
+          ${f.platformFeeWaived ? `<span class="ld-offer-breakdown__hint">waived during launch</span>` : ""}
+        </span>
+        <span class="${platformValueClass}">${formatUsd(f.platformFeeFullCents)}</span>
+      </div>
+      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--biz">
+        <span>${bizLabel}</span>
+        <span class="ld-offer-breakdown__value">${formatUsd(f.businessTotalCents)}</span>
+      </div>
+      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
+        <span>
+          stripe processing fee
+          <span class="ld-offer-breakdown__hint">your cost to receive payment</span>
+        </span>
+        <span class="ld-offer-breakdown__value">−${formatUsd(f.stripeFeeCents)}</span>
+      </div>
+      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--total">
+        <span>${takeHomeLabel}</span>
+        <span class="ld-offer-breakdown__value">${formatUsd(f.consultantPayoutCents)}</span>
+      </div>
+    `;
+    container.hidden = false;
+  }
+
+  function wireBreakdown(input, containerId, opts) {
+    const container = document.getElementById(containerId);
+    if (!input || !container) return;
+    const sync = () => renderBreakdownInto(container, parseFloat(input.value), opts);
+    input.addEventListener("input", sync);
+    sync();
+  }
+
+  const isRetainerListing = listing?.contract_type === "retainer";
+  wireBreakdown(amountInput, "ld-offer-breakdown", isRetainerListing
+    ? { offerLabel: "fee per period", bizLabel: "business pays per period", takeHomeLabel: "you take home per period" }
+    : undefined);
+  wireBreakdown(proposalFeeInput, "ld-offer-proposal-breakdown", {
+    offerLabel: "proposal fee",
+    bizLabel: "business pays for proposal",
+    takeHomeLabel: "you take home (proposal)",
+  });
+  wireBreakdown(serviceFeeInput, "ld-offer-service-breakdown", {
+    offerLabel: "service fee",
+    bizLabel: "business pays for service",
+    takeHomeLabel: "you take home (service)",
+  });
 
   // The "?" tooltip bubble is portaled to document.body and rendered
   // `position: fixed`. Two reasons it can't live next to the button:
@@ -1562,7 +1730,7 @@ async function showConsultantView(client, session, listing, existingBid) {
   if (!listingAcceptingOffers) {
     formWrap.hidden = true;
     statusEl.textContent = existingBid
-      ? `this listing is ${listingStatus}. your existing offer stays visible here, but new edits are turned off for now.`
+      ? `this listing is ${listingStatus}. your existing offer stays visible here.`
       : `this listing is ${listingStatus} and is not accepting new offers right now.`;
     statusEl.className = "gr-status";
   }

@@ -509,7 +509,7 @@
             <!-- Password -->
             <section class="settings-section">
               <div class="settings-section-h">
-                <h3>password</h3>
+                <h3>change password</h3>
                 <p>use a long passphrase you don't reuse elsewhere.</p>
               </div>
               <div class="settings-section__body">
@@ -634,58 +634,30 @@
               </div>
             </section>
 
-            <!-- Active state: account exists. -->
+            <!-- Active state: account exists. Slim view — headline
+                 balance + a link out to /payouts.html where the full
+                 schedule, history, and bank/tax management lives. -->
             <div class="payout-active hidden" id="payout-active">
               <section class="settings-section">
                 <div class="settings-section-h">
-                  <h3>balance</h3>
-                  <p>what's been earned and what's still in escrow until delivery.</p>
+                  <h3>available balance</h3>
+                  <p>ready to be paid out to your bank.</p>
                 </div>
                 <div class="settings-section__body">
-                  <div class="payout-balance-grid">
-                    <div class="payout-balance">
-                      <p class="payout-balance__label">available</p>
-                      <p class="payout-balance__value" id="payout-balance-available">—</p>
-                      <p class="payout-balance__sub">ready to be paid out</p>
-                    </div>
-                    <div class="payout-balance payout-balance--pending">
-                      <p class="payout-balance__label">pending</p>
-                      <p class="payout-balance__value" id="payout-balance-pending">—</p>
-                      <p class="payout-balance__sub">in escrow until delivery</p>
-                    </div>
+                  <div class="payout-balance">
+                    <p class="payout-balance__value" id="payout-balance-available">—</p>
                   </div>
                 </div>
               </section>
 
               <section class="settings-section">
                 <div class="settings-section-h">
-                  <h3>payout schedule</h3>
-                  <p>your bank receives funds on this cadence.</p>
-                </div>
-                <div class="settings-section__body">
-                  <p class="payout-schedule" id="payout-schedule">—</p>
-                </div>
-              </section>
-
-              <section class="settings-section">
-                <div class="settings-section-h">
-                  <h3>recent payouts</h3>
-                  <p>last 10 transfers from your stripe balance to your bank.</p>
-                </div>
-                <div class="settings-section__body">
-                  <ul class="payout-list" id="payout-list" aria-live="polite"></ul>
-                  <p class="gr-empty-state hidden" id="payout-list-empty">no payouts yet. earnings settle here once jobs complete.</p>
-                </div>
-              </section>
-
-              <section class="settings-section">
-                <div class="settings-section-h">
                   <h3>manage account</h3>
-                  <p>update your bank, identity documents, or tax info via stripe.</p>
+                  <p>view your full payout history, schedule, and update bank or tax info on the dedicated payouts page.</p>
                 </div>
                 <div class="settings-section__body">
-                  <button type="button" class="gr-btn gr-btn--secondary" id="payout-manage-btn">
-                    open stripe dashboard
+                  <button type="button" class="gr-btn gr-btn--primary" id="payout-manage-btn">
+                    go to payouts page →
                   </button>
                   <p class="gr-status" id="payout-manage-status" aria-live="polite"></p>
                 </div>

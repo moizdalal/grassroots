@@ -1,0 +1,701 @@
+// admin.js — controller for the admin page. Tabs across overview /
+// users / engagements / calendar. Today every renderX() reads from
+// fixtures.js (seeded fake data); when the page gets wired to live
+// data, each export it imports gets swapped for a supabase query
+// that returns the same shape.
+//
+// Access control: page is signed-in-only AND the user's email must
+// be in ADMIN_EMAILS below. For production, replace the allow-list
+// with an `is_admin` flag on the profiles table and check it via a
+// server-side endpoint instead of in the browser.
+
+import { getSupabaseClient } from "/supabase-loader.js";
+
+import {
+  data,
+  totalUsers, totalListings, totalEngagements, activeEngagements,
+  totalBids, openListings,
+  totalVolumeCents, bidAcceptanceRate, avgEngagementValueCents, kickoffsThisWeek,
+  moneyMovedSeries, funnelData, engagementStatusBreakdown, offersByCategory,
+  topConsultants, recentActivity, upcomingKickoffs, allKickoffs, userStats,
+  userGrowthByWeek,
+} from "./fixtures.js";
+
+import {
+  renderLineChart, renderBarChart, renderDonut, renderFunnel, renderGroupedBars,
+} from "./charts.js";
+
+import { mountCalendar } from "./calendar.js";
+
+/* ============================================================== */
+/*                          ADMIN AUTH GATE                        */
+/* ============================================================== */
+
+// Emails allowed to view the admin page. Add/remove entries here to
+// grant or revoke access. Matching is case-insensitive.
+const ADMIN_EMAILS = new Set([
+  "moizdalal@ufl.edu",
+]);
+
+async function gateAdminAccess() {
+  const gate = document.getElementById("adm-gate");
+  try {
+    const client = await getSupabaseClient();
+    const { data: { session } } = await client.auth.getSession();
+    if (!session?.user) {
+      window.location.replace("/signin.html?next=" + encodeURIComponent("/admin/"));
+      return false;
+    }
+    const email = (session.user.email || "").toLowerCase();
+    if (!ADMIN_EMAILS.has(email)) {
+      if (gate) {
+        gate.className = "adm-gate adm-gate--error";
+        gate.textContent = "your account doesn't have admin access.";
+      }
+      // Hold the message a beat, then route home so the user isn't stranded.
+      setTimeout(() => window.location.replace("/"), 1400);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    if (gate) {
+      gate.className = "adm-gate adm-gate--error";
+      gate.textContent = "could not verify admin access: " + (err.message || "config error");
+    }
+    return false;
+  }
+}
+
+// Top-level await halts module evaluation on failure. The throw stops
+// the rest of this file (DOM queries, listener wiring, initial render)
+// from running before window.location.replace navigates away.
+if (!(await gateAdminAccess())) {
+  throw new Error("admin: access denied");
+}
+
+document.getElementById("adm-gate").hidden = true;
+document.getElementById("adm-shell").hidden = false;
+
+/* ============================================================== */
+/*                            UTILITIES                            */
+/* ============================================================== */
+
+function esc(s) {
+  return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function fmtMoney(cents) {
+  if (cents == null) return "—";
+  return "$" + Math.round(cents / 100).toLocaleString();
+}
+
+function fmtMoneyShort(cents) {
+  const d = cents / 100;
+  if (d >= 1_000_000) return "$" + (d / 1_000_000).toFixed(1) + "m";
+  if (d >= 1_000) return "$" + (d / 1_000).toFixed(1) + "k";
+  return "$" + Math.round(d);
+}
+
+function fmtPct(n) {
+  return Math.round(n * 100) + "%";
+}
+
+function fmtDate(d) {
+  if (!d) return "—";
+  return new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function fmtDateTime(d) {
+  if (!d) return "—";
+  return new Date(d).toLocaleString(undefined, {
+    month: "short", day: "numeric",
+    hour: "numeric", minute: "2-digit",
+  }).toLowerCase();
+}
+
+function fmtRel(d) {
+  if (!d) return "—";
+  const ms = data.now - d;
+  const min = Math.floor(ms / 60000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 30) return `${day}d ago`;
+  const mo = Math.floor(day / 30);
+  return `${mo}mo ago`;
+}
+
+function initials(name) {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0][0]?.toLowerCase() || "?";
+  return (parts[0][0] + parts[parts.length - 1][0]).toLowerCase();
+}
+
+function avatarMarkup(user, size = "sm") {
+  const hue = user?.hue ?? 200;
+  return `
+    <span class="adm-avatar adm-avatar--${size}" style="background: hsl(${hue} 30% 38%); color: hsl(${hue} 30% 95%);">
+      ${esc(initials(user?.name || ""))}
+    </span>
+  `;
+}
+
+function statusPill(stage) {
+  const map = {
+    1: { label: "offer submitted", mod: "pending" },
+    2: { label: "offer accepted", mod: "accepted" },
+    3: { label: "kickoff scheduled", mod: "accepted" },
+    4: { label: "work delivered", mod: "muted" },
+    5: { label: "payout released", mod: "accepted" },
+  };
+  const m = map[stage] || { label: "—", mod: "muted" };
+  return `<span class="adm-pill adm-pill--${m.mod}">${esc(m.label)}</span>`;
+}
+
+function rolePill(role) {
+  const label = role === "consultant" ? "consultant" : "business owner";
+  return `<span class="adm-pill adm-pill--${role === "consultant" ? "accepted" : "warn"} adm-pill--soft">${label}</span>`;
+}
+
+/* ============================================================== */
+/*                              TABS                               */
+/* ============================================================== */
+
+const tabs = document.querySelectorAll(".adm-nav__item");
+const sections = document.querySelectorAll(".adm-section");
+
+function activateTab(name) {
+  tabs.forEach((t) => t.classList.toggle("is-active", t.dataset.tab === name));
+  sections.forEach((s) => { s.hidden = s.dataset.section !== name; });
+  const url = new URL(location.href);
+  url.searchParams.set("tab", name);
+  history.replaceState({}, "", url);
+
+  // Lazy render the section on first activation.
+  switch (name) {
+    case "overview": renderOverview(); break;
+    case "users": renderUsersTable(); break;
+    case "engagements": renderEngagementsTable(); break;
+    case "calendar": renderCalendar(); break;
+  }
+}
+
+tabs.forEach((t) => t.addEventListener("click", () => activateTab(t.dataset.tab)));
+
+const initialTab = new URL(location.href).searchParams.get("tab") || "overview";
+activateTab(initialTab);
+
+/* ============================================================== */
+/*                            OVERVIEW                             */
+/* ============================================================== */
+
+let moneyRange = "month";
+let overviewRendered = false;
+
+function renderOverview() {
+  renderKpis();
+  renderMoneyChart();
+  renderFunnelChart();
+  renderStatusDonut();
+  renderCategoryChart();
+  renderGrowthChart();
+  renderTopList();
+  renderActivityFeed();
+  renderUpcomingTile();
+
+  if (overviewRendered) return;
+  overviewRendered = true;
+
+  document.querySelectorAll(".adm-range__btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      moneyRange = btn.dataset.range;
+      document.querySelectorAll(".adm-range__btn").forEach((b) =>
+        b.classList.toggle("is-active", b.dataset.range === moneyRange));
+      renderMoneyChart();
+    });
+  });
+}
+
+function renderKpis() {
+  const host = document.getElementById("adm-kpis");
+  const rangeDays = moneyRange === "day" ? 1
+                  : moneyRange === "week" ? 7
+                  : moneyRange === "month" ? 30
+                  : null; // ytd
+  const vol = totalVolumeCents(rangeDays);
+  const tiles = [
+    { label: "users", value: totalUsers(), sub: `${data.consultants.length} consultants · ${data.owners.length} owners` },
+    { label: "active engagements", value: activeEngagements(), sub: `${totalEngagements()} total to date` },
+    { label: `volume (${moneyRange === "ytd" ? "ytd" : moneyRange})`, value: fmtMoneyShort(vol), sub: "released payouts" },
+    { label: "offer acceptance rate", value: fmtPct(bidAcceptanceRate()), sub: `${totalBids()} offers submitted` },
+    { label: "avg engagement value", value: fmtMoneyShort(avgEngagementValueCents()), sub: `${openListings()} listings open now` },
+    { label: "kickoffs this week", value: kickoffsThisWeek().length, sub: `${upcomingKickoffs().length} upcoming overall` },
+  ];
+  host.innerHTML = tiles.map((t) => `
+    <div class="adm-kpi">
+      <div class="adm-kpi__label">${esc(t.label)}</div>
+      <div class="adm-kpi__value">${esc(String(t.value))}</div>
+      <div class="adm-kpi__sub">${esc(t.sub)}</div>
+    </div>
+  `).join("");
+}
+
+function renderMoneyChart() {
+  const host = document.getElementById("adm-money-chart");
+  renderLineChart(host, moneyMovedSeries(moneyRange), { ariaLabel: "money moved over time" });
+  // KPI tiles depend on the active range too.
+  renderKpis();
+}
+
+function renderFunnelChart() {
+  const host = document.getElementById("adm-funnel");
+  renderFunnel(host, funnelData());
+}
+
+function renderStatusDonut() {
+  const host = document.getElementById("adm-status-donut");
+  const segments = engagementStatusBreakdown();
+  renderDonut(host, segments, {
+    ariaLabel: "engagements by stage",
+    centerLabel: segments.reduce((s, r) => s + r.value, 0),
+    centerSub: "engagements",
+  });
+}
+
+function renderCategoryChart() {
+  const host = document.getElementById("adm-category-chart");
+  const rows = offersByCategory().sort((a, b) => b.avg_per_listing - a.avg_per_listing);
+  renderBarChart(host, rows.map((r) => ({ label: r.category, value: r.avg_per_listing })), {
+    ariaLabel: "average offers per listing by category",
+    tickFmt: (v) => v.toFixed(1),
+    valFmt: (v) => v.toFixed(1),
+  });
+}
+
+function renderGrowthChart() {
+  const host = document.getElementById("adm-growth-chart");
+  renderGroupedBars(host, userGrowthByWeek(10));
+}
+
+function renderTopList() {
+  const host = document.getElementById("adm-top-list");
+  const rows = topConsultants(7);
+  if (!rows.length) {
+    host.innerHTML = `<p class="adm-muted">no released payouts yet.</p>`;
+    return;
+  }
+  host.innerHTML = rows.map((row, i) => `
+    <li class="adm-top-row">
+      <span class="adm-top-rank">${i + 1}</span>
+      ${avatarMarkup(row.user)}
+      <div class="adm-top-meta">
+        <span class="adm-top-name">${esc(row.user.name)}</span>
+        <span class="adm-top-sub">${esc(row.user.school || row.user.business_type || "")}</span>
+      </div>
+      <span class="adm-top-value">${fmtMoneyShort(row.cents)}</span>
+    </li>
+  `).join("");
+}
+
+function renderActivityFeed() {
+  const host = document.getElementById("adm-activity-feed");
+  const items = recentActivity(10);
+  host.innerHTML = items.map((it) => `
+    <li class="adm-activity-row">
+      <span class="adm-activity-icon adm-activity-icon--${it.icon}" aria-hidden="true">${activityIcon(it.icon)}</span>
+      <span class="adm-activity-label">${esc(it.label)}</span>
+      <span class="adm-activity-time">${esc(fmtRel(it.at))}</span>
+    </li>
+  `).join("");
+}
+
+function activityIcon(kind) {
+  if (kind === "listing") return svgIcon("clipboard");
+  if (kind === "bid") return svgIcon("hand");
+  if (kind === "payout") return svgIcon("dollar");
+  if (kind === "kickoff") return svgIcon("calendar");
+  return svgIcon("dot");
+}
+
+function svgIcon(name) {
+  const map = {
+    clipboard: '<rect x="6" y="4" width="12" height="16" rx="2"/><path d="M9 3h6v3H9z"/>',
+    hand: '<path d="M7 11V6a2 2 0 0 1 4 0v5"/><path d="M11 11V4a2 2 0 0 1 4 0v7"/><path d="M15 11V6a2 2 0 0 1 4 0v8a6 6 0 0 1-6 6h-2a4 4 0 0 1-4-4v-3l-3-3"/>',
+    dollar: '<line x1="12" y1="2" x2="12" y2="22"/><path d="M17 7H9a3 3 0 0 0 0 6h6a3 3 0 0 1 0 6H7"/>',
+    calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/>',
+    dot: '<circle cx="12" cy="12" r="4"/>',
+  };
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${map[name] || map.dot}</svg>`;
+}
+
+function renderUpcomingTile() {
+  const host = document.getElementById("adm-upcoming-list");
+  const items = upcomingKickoffs().slice(0, 6);
+  if (!items.length) {
+    host.innerHTML = `<p class="adm-muted">no upcoming kickoffs scheduled.</p>`;
+    return;
+  }
+  host.innerHTML = items.map((e) => `
+    <li class="adm-up-row" data-engagement-id="${esc(e.id)}">
+      <div class="adm-up-date">
+        <span class="adm-up-mo">${new Date(e.kickoff_at).toLocaleDateString(undefined, { month: "short" }).toLowerCase()}</span>
+        <span class="adm-up-day">${new Date(e.kickoff_at).getDate()}</span>
+      </div>
+      <div class="adm-up-meta">
+        <span class="adm-up-title">${esc(e.listing_title)}</span>
+        <span class="adm-up-sub">${esc(e.consultant_name)} × ${esc(e.owner_name)} · ${esc(fmtDateTime(e.kickoff_at))}</span>
+      </div>
+      <span class="adm-up-value">${fmtMoneyShort(e.amount_cents)}</span>
+    </li>
+  `).join("");
+  host.querySelectorAll(".adm-up-row").forEach((row) => {
+    row.addEventListener("click", () => openEngagementDrawer(row.dataset.engagementId));
+  });
+}
+
+/* ============================================================== */
+/*                              USERS                              */
+/* ============================================================== */
+
+let userFilter = "all";
+let userQuery = "";
+
+function renderUsersTable() {
+  const host = document.getElementById("adm-users-tbody");
+  let rows = data.users.slice();
+  if (userFilter !== "all") rows = rows.filter((u) => u.role === userFilter);
+  if (userQuery) {
+    const q = userQuery.toLowerCase();
+    rows = rows.filter((u) =>
+      u.name.toLowerCase().includes(q) ||
+      (u.business_name || "").toLowerCase().includes(q) ||
+      (u.school || "").toLowerCase().includes(q) ||
+      (u.city || "").toLowerCase().includes(q),
+    );
+  }
+  rows.sort((a, b) => b.joined_at - a.joined_at);
+
+  document.getElementById("adm-users-count").textContent = `${rows.length} ${rows.length === 1 ? "person" : "people"}`;
+
+  if (!rows.length) {
+    host.innerHTML = `<tr><td colspan="6" class="adm-table-empty">no matches.</td></tr>`;
+    return;
+  }
+  host.innerHTML = rows.map((u) => {
+    const s = userStats(u.id);
+    return `
+      <tr class="adm-tr" data-user-id="${esc(u.id)}">
+        <td>
+          <div class="adm-cell-user">
+            ${avatarMarkup(u)}
+            <div>
+              <div class="adm-cell-name">${esc(u.name)}</div>
+              <div class="adm-cell-sub">${esc(u.business_name || u.school || "")}</div>
+            </div>
+          </div>
+        </td>
+        <td>${rolePill(u.role)}</td>
+        <td>${esc(u.city || "—")}</td>
+        <td>${esc(fmtDate(u.joined_at))}</td>
+        <td>${s.count}</td>
+        <td class="adm-cell-money">${fmtMoneyShort(s.total_cents)}</td>
+      </tr>
+    `;
+  }).join("");
+  host.querySelectorAll(".adm-tr").forEach((tr) => {
+    tr.addEventListener("click", () => openUserDrawer(tr.dataset.userId));
+  });
+}
+
+document.getElementById("adm-users-search")?.addEventListener("input", (e) => {
+  userQuery = e.target.value.trim();
+  renderUsersTable();
+});
+
+document.querySelectorAll('[data-role-filter]')?.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    userFilter = btn.dataset.roleFilter;
+    document.querySelectorAll('[data-role-filter]').forEach((b) =>
+      b.classList.toggle("is-active", b.dataset.roleFilter === userFilter));
+    renderUsersTable();
+  });
+});
+
+/* ============================================================== */
+/*                          ENGAGEMENTS                            */
+/* ============================================================== */
+
+let engStageFilter = "all";
+let engQuery = "";
+
+function renderEngagementsTable() {
+  const host = document.getElementById("adm-eng-tbody");
+  let rows = data.engagements.slice();
+  if (engStageFilter !== "all") {
+    rows = rows.filter((e) => String(e.stage) === engStageFilter);
+  }
+  if (engQuery) {
+    const q = engQuery.toLowerCase();
+    rows = rows.filter((e) =>
+      e.listing_title.toLowerCase().includes(q) ||
+      e.consultant_name.toLowerCase().includes(q) ||
+      e.owner_name.toLowerCase().includes(q) ||
+      e.listing_category.toLowerCase().includes(q),
+    );
+  }
+  rows.sort((a, b) => b.created_at - a.created_at);
+
+  document.getElementById("adm-eng-count").textContent = `${rows.length} engagement${rows.length === 1 ? "" : "s"}`;
+
+  if (!rows.length) {
+    host.innerHTML = `<tr><td colspan="6" class="adm-table-empty">no matches.</td></tr>`;
+    return;
+  }
+  host.innerHTML = rows.map((e) => `
+    <tr class="adm-tr" data-engagement-id="${esc(e.id)}">
+      <td>
+        <div class="adm-cell-listing">
+          <div class="adm-cell-name">${esc(e.listing_title)}</div>
+          <div class="adm-cell-sub">${esc(e.listing_category)} · ${esc(e.contract_type)}</div>
+        </div>
+      </td>
+      <td>${esc(e.owner_name)}</td>
+      <td>${esc(e.consultant_name)}</td>
+      <td>${statusPill(e.stage)}</td>
+      <td>${esc(fmtDate(e.kickoff_at))}</td>
+      <td class="adm-cell-money">${fmtMoneyShort(e.amount_cents)}</td>
+    </tr>
+  `).join("");
+  host.querySelectorAll(".adm-tr").forEach((tr) => {
+    tr.addEventListener("click", () => openEngagementDrawer(tr.dataset.engagementId));
+  });
+}
+
+document.getElementById("adm-eng-search")?.addEventListener("input", (e) => {
+  engQuery = e.target.value.trim();
+  renderEngagementsTable();
+});
+
+document.querySelectorAll('[data-stage-filter]')?.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    engStageFilter = btn.dataset.stageFilter;
+    document.querySelectorAll('[data-stage-filter]').forEach((b) =>
+      b.classList.toggle("is-active", b.dataset.stageFilter === engStageFilter));
+    renderEngagementsTable();
+  });
+});
+
+/* ============================================================== */
+/*                            CALENDAR                             */
+/* ============================================================== */
+
+function renderCalendar() {
+  const host = document.getElementById("adm-cal-host");
+  const events = allKickoffs().map((e) => ({
+    date: e.kickoff_at,
+    title: e.listing_title,
+    sub: `${e.consultant_name} × ${e.owner_name}`,
+    color: e.stage >= 4 ? "var(--fo-text-3)" : e.stage >= 3 ? "var(--fo-accent)" : "var(--fo-accent-warm)",
+    payload: e,
+  }));
+  mountCalendar(host, {
+    events,
+    today: data.now,
+    onSelect: (day, dayEvents) => renderCalSidePanel(day, dayEvents),
+  });
+  // Default: show today's events on first render.
+  renderCalSidePanel(data.now, events.filter((e) =>
+    e.date.toDateString() === data.now.toDateString()));
+}
+
+function renderCalSidePanel(day, dayEvents) {
+  const host = document.getElementById("adm-cal-side");
+  const dayLabel = day.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }).toLowerCase();
+  if (!dayEvents.length) {
+    host.innerHTML = `
+      <h3 class="adm-cal-side__title">${esc(dayLabel)}</h3>
+      <p class="adm-muted">no kickoffs on this day.</p>
+    `;
+    return;
+  }
+  host.innerHTML = `
+    <h3 class="adm-cal-side__title">${esc(dayLabel)}</h3>
+    <p class="adm-cal-side__count">${dayEvents.length} kickoff${dayEvents.length === 1 ? "" : "s"}</p>
+    <ul class="adm-cal-list">
+      ${dayEvents.map((ev) => `
+        <li class="adm-cal-event" data-engagement-id="${esc(ev.payload.id)}">
+          <span class="adm-cal-event__dot" style="background:${ev.color}"></span>
+          <div class="adm-cal-event__meta">
+            <span class="adm-cal-event__title">${esc(ev.title)}</span>
+            <span class="adm-cal-event__sub">${esc(ev.sub)}</span>
+            <span class="adm-cal-event__time">${esc(ev.date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }).toLowerCase())}</span>
+          </div>
+        </li>
+      `).join("")}
+    </ul>
+  `;
+  host.querySelectorAll(".adm-cal-event").forEach((row) => {
+    row.addEventListener("click", () => openEngagementDrawer(row.dataset.engagementId));
+  });
+}
+
+/* ============================================================== */
+/*                            DRAWER                               */
+/* ============================================================== */
+
+const drawer = document.getElementById("adm-drawer");
+const drawerBody = document.getElementById("adm-drawer-body");
+const drawerTitle = document.getElementById("adm-drawer-title");
+
+function openDrawer(title, html) {
+  drawerTitle.textContent = title;
+  drawerBody.innerHTML = html;
+  drawer.classList.add("is-open");
+  drawer.setAttribute("aria-hidden", "false");
+}
+
+function closeDrawer() {
+  drawer.classList.remove("is-open");
+  drawer.setAttribute("aria-hidden", "true");
+}
+
+document.getElementById("adm-drawer-close").addEventListener("click", closeDrawer);
+document.getElementById("adm-drawer-backdrop").addEventListener("click", closeDrawer);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && drawer.classList.contains("is-open")) closeDrawer();
+});
+
+function openUserDrawer(userId) {
+  const user = data.users.find((u) => u.id === userId);
+  if (!user) return;
+  const stats = userStats(userId);
+  const userEngagements = data.engagements
+    .filter((e) => e.consultant_id === userId || e.owner_id === userId)
+    .sort((a, b) => b.created_at - a.created_at);
+  const userListings = data.listings.filter((l) => l.owner_id === userId);
+  const userBids = data.bids.filter((b) => b.consultant_id === userId);
+
+  const html = `
+    <div class="adm-drawer-head">
+      ${avatarMarkup(user, "lg")}
+      <div>
+        <div class="adm-drawer-name">${esc(user.name)}</div>
+        <div class="adm-drawer-sub">${rolePill(user.role)} · joined ${esc(fmtDate(user.joined_at))}</div>
+      </div>
+    </div>
+    <dl class="adm-defs">
+      ${user.business_name ? `<div><dt>business</dt><dd>${esc(user.business_name)}</dd></div>` : ""}
+      ${user.business_type ? `<div><dt>type</dt><dd>${esc(user.business_type)}</dd></div>` : ""}
+      ${user.school ? `<div><dt>school</dt><dd>${esc(user.school)}</dd></div>` : ""}
+      ${user.major ? `<div><dt>major</dt><dd>${esc(user.major)}</dd></div>` : ""}
+      ${user.city ? `<div><dt>city</dt><dd>${esc(user.city)}</dd></div>` : ""}
+      ${user.rating ? `<div><dt>rating</dt><dd>${user.rating.toFixed(1)} / 5</dd></div>` : ""}
+      <div><dt>engagements</dt><dd>${stats.count}</dd></div>
+      <div><dt>total released</dt><dd>${fmtMoneyShort(stats.total_cents)}</dd></div>
+      ${userListings.length ? `<div><dt>listings posted</dt><dd>${userListings.length}</dd></div>` : ""}
+      ${userBids.length ? `<div><dt>offers submitted</dt><dd>${userBids.length}</dd></div>` : ""}
+    </dl>
+    ${userEngagements.length ? `
+      <h4 class="adm-drawer-sec">engagements</h4>
+      <ul class="adm-drawer-list">
+        ${userEngagements.slice(0, 12).map((e) => `
+          <li class="adm-drawer-row" data-engagement-id="${esc(e.id)}">
+            <div>
+              <div class="adm-drawer-row__title">${esc(e.listing_title)}</div>
+              <div class="adm-drawer-row__sub">${esc(e.consultant_name)} × ${esc(e.owner_name)} · ${esc(e.stage_label)}</div>
+            </div>
+            <span class="adm-drawer-row__money">${fmtMoneyShort(e.amount_cents)}</span>
+          </li>
+        `).join("")}
+      </ul>
+    ` : ""}
+  `;
+  openDrawer(user.name, html);
+  drawerBody.querySelectorAll(".adm-drawer-row").forEach((row) => {
+    row.addEventListener("click", () => openEngagementDrawer(row.dataset.engagementId));
+  });
+}
+
+function openEngagementDrawer(engId) {
+  const e = data.engagements.find((x) => x.id === engId);
+  if (!e) return;
+  const listing = data.listings.find((l) => l.id === e.listing_id);
+  const consultant = data.users.find((u) => u.id === e.consultant_id);
+  const owner = data.users.find((u) => u.id === e.owner_id);
+  const competingBids = data.bids.filter((b) => b.listing_id === e.listing_id);
+
+  const html = `
+    <div class="adm-drawer-head adm-drawer-head--engagement">
+      <div>
+        <div class="adm-drawer-name">${esc(e.listing_title)}</div>
+        <div class="adm-drawer-sub">${statusPill(e.stage)} · ${esc(e.listing_category)} · ${esc(e.contract_type)}</div>
+      </div>
+      <div class="adm-drawer-amount">${fmtMoney(e.amount_cents)}</div>
+    </div>
+    <div class="adm-pair">
+      <div class="adm-pair-col">
+        <div class="adm-pair-head">consultant</div>
+        <div class="adm-pair-body" data-user-id="${esc(consultant?.id || "")}">
+          ${avatarMarkup(consultant, "md")}
+          <div>
+            <div class="adm-pair-name">${esc(consultant?.name || "—")}</div>
+            <div class="adm-pair-sub">${esc(consultant?.school || "")}${consultant?.major ? " · " + esc(consultant.major) : ""}</div>
+          </div>
+        </div>
+      </div>
+      <div class="adm-pair-col">
+        <div class="adm-pair-head">business</div>
+        <div class="adm-pair-body" data-user-id="${esc(owner?.id || "")}">
+          ${avatarMarkup(owner, "md")}
+          <div>
+            <div class="adm-pair-name">${esc(owner?.business_name || owner?.name || "—")}</div>
+            <div class="adm-pair-sub">${esc(owner?.city || "")}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <dl class="adm-defs">
+      <div><dt>created</dt><dd>${esc(fmtDate(e.created_at))}</dd></div>
+      <div><dt>kickoff</dt><dd>${esc(fmtDateTime(e.kickoff_at))}</dd></div>
+      <div><dt>delivered</dt><dd>${esc(fmtDate(e.completed_at))}</dd></div>
+      <div><dt>payout released</dt><dd>${esc(fmtDate(e.released_at))}</dd></div>
+      <div><dt>payment</dt><dd>${esc(e.payment_status)}</dd></div>
+    </dl>
+    <h4 class="adm-drawer-sec">listing</h4>
+    <dl class="adm-defs">
+      <div><dt>posted</dt><dd>${esc(fmtDate(listing?.created_at))}</dd></div>
+      <div><dt>budget range</dt><dd>${fmtMoneyShort(listing?.budget_min_cents)} – ${fmtMoneyShort(listing?.budget_max_cents)}</dd></div>
+      <div><dt>turnaround</dt><dd>${listing?.turnaround_days} days</dd></div>
+      <div><dt>listing status</dt><dd>${esc(listing?.status)}</dd></div>
+    </dl>
+    <h4 class="adm-drawer-sec">offers on this listing (${competingBids.length})</h4>
+    <ul class="adm-drawer-list">
+      ${competingBids.map((b) => `
+        <li class="adm-drawer-row">
+          <div>
+            <div class="adm-drawer-row__title">${esc(b.consultant_name)}</div>
+            <div class="adm-drawer-row__sub">${esc(b.status)} · ${esc(fmtRel(b.submitted_at))}</div>
+          </div>
+          <span class="adm-drawer-row__money">${fmtMoneyShort(b.amount_cents)}</span>
+        </li>
+      `).join("")}
+    </ul>
+  `;
+  openDrawer("engagement", html);
+  // Wire the consultant/business pair cards to open user drawers.
+  drawerBody.querySelectorAll(".adm-pair-body").forEach((card) => {
+    if (!card.dataset.userId) return;
+    card.style.cursor = "pointer";
+    card.addEventListener("click", () => openUserDrawer(card.dataset.userId));
+  });
+}
+
+/* ============================================================== */
+/*                         HEADER STAMP                            */
+/* ============================================================== */
+
+document.getElementById("adm-now-stamp").textContent =
+  data.now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }).toLowerCase();
