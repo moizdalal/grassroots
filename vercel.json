@@ -21,7 +21,7 @@
     },
     {
       "source": "/",
-      "destination": "/marketplace.html"
+      "destination": "/home/index.html"
     }
   ]
 }
