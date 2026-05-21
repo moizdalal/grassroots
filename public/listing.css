@@ -69,7 +69,9 @@
   padding: 0;
 }
 
-/* Avatar — small when collapsed, grows when expanded. */
+/* Avatar — small when collapsed, grows when expanded. The accent
+   background reads as the logo placeholder when no image is set, and
+   stays consistent across both states. */
 .ld-bio__avatar-wrap {
   display: inline-flex;
   align-items: center;
@@ -78,19 +80,17 @@
   height: 36px;
   border-radius: 10px;
   overflow: hidden;
-  background: var(--fo-surface-3, rgba(45, 106, 79, 0.08));
+  background: var(--fo-accent, var(--green-mid));
   border: 0;
   transition: width 0.32s cubic-bezier(0.22, 1, 0.36, 1),
               height 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-              border-radius 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-              background 0.32s ease;
+              border-radius 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .ld-bio:has([aria-expanded="true"]) .ld-bio__avatar-wrap {
   width: 104px;
   height: 104px;
   border-radius: 20px;
-  background: var(--fo-accent, var(--green-mid));
 }
 
 /* Hide socials when bio is collapsed; show them when expanded. */

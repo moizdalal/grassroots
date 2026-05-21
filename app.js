@@ -1,12 +1,32 @@
 const express = require("express");
 const path = require("path");
 const multer = require("multer");
+const compression = require("compression");
+const helmet = require("helmet");
 const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const fees = require("./lib/fees");
 
 const app = express();
+
+// Security headers. CSP is left off for now because tightening it
+// requires an allowlist for every external host the pages load
+// (js.stripe.com, connect-js.stripe.com, esm.sh, fonts.googleapis,
+// cdn.jsdelivr, unpkg/leaflet) — a follow-up. The other defaults
+// (HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy,
+// cross-origin policies) are pure wins.
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    // Browsers can still honor explicit <link rel="preconnect"> tags
+    // either way, but flipping this to "on" matches the perf intent
+    // of those hints on every page.
+    dnsPrefetchControl: { allow: true },
+  })
+);
+
+app.use(compression());
 
 function envTrim(name, fallback = "") {
   const v = process.env[name];
@@ -719,6 +739,22 @@ app.post("/api/oauth-complete", express.json(), async (req, res) => {
 
   if (!["business_owner", "consultant"].includes(role)) {
     return res.status(400).json({ error: "Invalid role selection." });
+  }
+
+  // Verify the caller is the user they claim to be. Without this an
+  // attacker who knows a victim's UUID (e.g. from a public consultant
+  // profile URL) could pre-create a profile for them before they finish
+  // OAuth, locking in attacker-chosen role/name/phone.
+  const token = getBearerToken(req);
+  if (!token) {
+    return res.status(401).json({ error: "Missing access token." });
+  }
+  const { data: authData, error: authErr } = await supabase.auth.getUser(token);
+  if (authErr || !authData?.user?.id) {
+    return res.status(401).json({ error: "Invalid access token." });
+  }
+  if (authData.user.id !== userId) {
+    return res.status(403).json({ error: "Token does not match userId." });
   }
 
   try {
@@ -3035,6 +3071,47 @@ app.get("/", (_req, res) => {
   res.sendFile("index.html", { root: path.join(__dirname, "public", "home") });
 });
 
-app.use(express.static(path.join(__dirname, "public")));
+app.use(
+  express.static(path.join(__dirname, "public"), {
+    etag: true,
+    lastModified: true,
+    setHeaders: (res, filePath) => {
+      const ext = path.extname(filePath).toLowerCase();
+      // HTML: revalidate on every request so deploys are picked up immediately.
+      if (ext === ".html") {
+        res.setHeader("Cache-Control", "no-cache");
+        return;
+      }
+      // CSS / JS: 1 hour cache + must-revalidate. Unhashed filenames so we
+      // can't go further without risking stale assets across deploys.
+      if (ext === ".css" || ext === ".js" || ext === ".mjs") {
+        res.setHeader("Cache-Control", "public, max-age=3600, must-revalidate");
+        return;
+      }
+      // Fonts / images / svgs / icons / videos — content-addressable enough
+      // that a long cache is safe; if they change we'll typically rename.
+      if (
+        ext === ".svg" ||
+        ext === ".png" ||
+        ext === ".jpg" ||
+        ext === ".jpeg" ||
+        ext === ".gif" ||
+        ext === ".webp" ||
+        ext === ".avif" ||
+        ext === ".ico" ||
+        ext === ".woff" ||
+        ext === ".woff2" ||
+        ext === ".ttf" ||
+        ext === ".mp4" ||
+        ext === ".webm"
+      ) {
+        res.setHeader("Cache-Control", "public, max-age=604800, immutable");
+        return;
+      }
+      // Anything else: brief cache + revalidate.
+      res.setHeader("Cache-Control", "public, max-age=300, must-revalidate");
+    },
+  })
+);
 
 module.exports = app;
