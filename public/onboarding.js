@@ -86,6 +86,21 @@ const STEPS = [
     // First selector covers the no-avatar state (upload label visible).
     // Second covers the has-avatar state (change/remove buttons visible).
     targetSelector: ["#pf-avatar-upload-label:not(.hidden)", "#pf-avatar-change-btn"],
+    // Anything inside the photo section block needs to pass the guardrail:
+    //   • #avatar-input — "change photo" handler programmatically clicks
+    //     this hidden input; the synthetic click is a sibling of the
+    //     spotlighted change button, so without an explicit pass it trips
+    //     the off-scope modal instead of opening the file picker.
+    //   • .settings-section__body--avatar — users instinctively click the
+    //     avatar image itself; that image sits next to the controls, not
+    //     inside the spotlight, so we whitelist the whole photo body so a
+    //     stray click on the image / ring / status row doesn't pop the
+    //     heading-off modal.
+    allowedInteractive: [
+      "#avatar-input",
+      "#pf-avatar-remove-btn",
+      ".settings-section__body--avatar",
+    ],
     placement: "right",
     advanceOn: "next",
     title: "show your face.",

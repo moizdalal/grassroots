@@ -1218,11 +1218,15 @@ body.gr-body .gr-section-h {
 
 /* Notifications feed inside the right card: the panel header stays
    pinned; the list takes the rest of the card height and scrolls if
-   it has more rows than fit. */
+   it has more rows than fit. The 4px top padding gives the first
+   card room to absorb its translateY(-2px) hover lift without the
+   scroll container clipping the card's top border into the divider
+   line above. */
 .cdash__notifications-section .dash-notifications-list {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  padding-top: 4px;
 }
 
 .cdash__caught-up {
@@ -1678,11 +1682,15 @@ body.gr-body .gr-section-h {
 .ld-section::details-content {
   block-size: 0;
   opacity: 0;
-  overflow: clip;
-  transition-property: block-size, opacity, content-visibility;
-  transition-duration: 0.45s, 0.32s, 0.45s;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1), ease, cubic-bezier(0.4, 0, 0.2, 1);
-  transition-behavior: allow-discrete;
+  overflow: hidden;
+  /* Animation is driven by listing.js via the Web Animations API.
+     The native [open]-removal flips content-visibility to hidden
+     before the CSS transition gets a chance to fire (allow-discrete
+     defers the visibility change in the open direction but not
+     reliably in close), so JS controls both directions for parity.
+     A parallel CSS transition was tried in moizdalal/availability-tile-hover
+     but compounds with the WAAPI animation on the same elements, so
+     this branch drops it in favor of the JS path alone. */
 }
 
 .ld-section[open]::details-content {
