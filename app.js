@@ -4,6 +4,8 @@ const multer = require("multer");
 const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
+const fees = require("./lib/fees");
+
 const app = express();
 
 function envTrim(name, fallback = "") {
@@ -169,7 +171,7 @@ async function transferRetainerPeriodFunds({ bidId, periodIndex }) {
 
   const { data: phase } = await supabase
     .from("bid_phase_payments")
-    .select("id, bid_id, charge_id, amount_cents, status, transfer_id")
+    .select("id, bid_id, charge_id, amount_cents, status, transfer_id, consultant_payout_cents")
     .eq("bid_id", bidId)
     .eq("phase", "retainer_period")
     .eq("period_index", periodIndex)
@@ -197,8 +199,11 @@ async function transferRetainerPeriodFunds({ bidId, periodIndex }) {
   const account = await stripe.accounts.retrieve(consultant.stripe_account_id);
   if (!account.payouts_enabled) return { ok: false, error: "consultant payouts not enabled" };
 
+  // Prefer the stored consultant payout (offer - estimated Stripe fee);
+  // legacy rows with NULL grandfather to a full-amount transfer.
+  const payoutAmount = phase.consultant_payout_cents ?? phase.amount_cents;
   const transfer = await stripe.transfers.create({
-    amount: phase.amount_cents,
+    amount: payoutAmount,
     currency: "usd",
     destination: consultant.stripe_account_id,
     source_transaction: phase.charge_id,
@@ -226,7 +231,7 @@ async function onRetainerInvoicePaid(invoice) {
 
   const { data: subRow, error: subErr } = await supabase
     .from("retainer_subscriptions")
-    .select("id, bid_id, periods_billed, status, auto_release")
+    .select("id, bid_id, periods_billed, status, auto_release, fee_cents")
     .eq("stripe_subscription_id", subscriptionId)
     .maybeSingle();
 
@@ -245,17 +250,29 @@ async function onRetainerInvoicePaid(invoice) {
   const periodIndex = subRow.periods_billed; // 0-based; first period is 0.
   const { chargeId, paymentIntentId } = await resolveInvoiceCharge(invoice);
 
+  // Per-period fee breakdown: the offer is fee_cents (what the consultant
+  // sees as "their" amount), Stripe processing comes out of their payout,
+  // and the platform fee — currently waived — would otherwise be the
+  // delta between invoice.amount_paid and fee_cents. We use the OFFER as
+  // amount_cents to keep parity with phased rows (where amount_cents
+  // stores the offer side, not the gross).
+  const offerCents = Number(subRow.fee_cents) || invoice.amount_paid;
+  const breakdown = fees.computeFees(offerCents);
+
   // Idempotency: invoice.paid can re-fire (Stripe retries on non-200). If a
   // row already exists for this (bid, phase, period) just update.
   const phaseRow = {
     bid_id: subRow.bid_id,
     phase: "retainer_period",
     period_index: periodIndex,
-    amount_cents: invoice.amount_paid,
+    amount_cents: offerCents,
     payment_intent_id: paymentIntentId,
     charge_id: chargeId,
     status: "held",
     paid_at: new Date().toISOString(),
+    stripe_fee_cents: breakdown.stripeFeeCents,
+    platform_fee_cents: breakdown.platformFeeCents,
+    consultant_payout_cents: breakdown.consultantPayoutCents,
   };
 
   const { data: existing } = await supabase
@@ -1245,10 +1262,16 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
       return res.status(409).json({ error: "this bid is already paid." });
     }
 
-    const amount = Number(bid.counter_offer_cents || bid.amount_cents);
-    if (!Number.isFinite(amount) || amount < 50) {
+    const offerAmount = Number(bid.counter_offer_cents || bid.amount_cents);
+    if (!Number.isFinite(offerAmount) || offerAmount < 50) {
       return res.status(400).json({ error: "bid amount is invalid for payment." });
     }
+
+    // What the business is actually charged = offer + platform fee. The
+    // platform fee is $0 while waived during launch, so today this still
+    // equals the offer. When the waiver lifts the charge bumps by 10%.
+    const feeBreakdown = fees.computeFees(offerAmount);
+    const amount = feeBreakdown.businessTotalCents;
 
     // Gate acceptance on the consultant being fully onboarded at Stripe.
     // Funds don't move to them until release, but if they never finish
@@ -1287,6 +1310,11 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
         if (["succeeded", "canceled"].includes(intent.status)) intent = null;
       } catch (_) { intent = null; }
     }
+    // Fee breakdown was computed above off the offer amount and used to
+    // derive what we charge the business. release-funds re-uses the
+    // stored consultant payout figure (offer - stripe fee) as the
+    // authoritative number to transfer.
+
     if (!intent) {
       // Escrow: no `transfer_data.destination` and no `on_behalf_of`, so the
       // charge captures into the platform's connect balance. Funds stay there
@@ -1315,6 +1343,9 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
           payment_intent_id: intent.id,
           payment_status: "authorizing",
           payment_amount_cents: amount,
+          stripe_fee_cents: feeBreakdown.stripeFeeCents,
+          platform_fee_cents: feeBreakdown.platformFeeCents,
+          consultant_payout_cents: feeBreakdown.consultantPayoutCents,
         })
         .eq("id", bidId);
     }
@@ -1324,6 +1355,7 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
       amount,
       currency: "usd",
       title: bid.listings?.title || "engagement",
+      fee_breakdown: feeBreakdown,
     });
   } catch (err) {
     return res.status(500).json({ error: err.message || "could not start payment." });
@@ -1413,7 +1445,7 @@ app.post("/api/stripe/release-funds", async (req, res) => {
   try {
     const { data: bid, error: bidErr } = await supabase
       .from("bids")
-      .select("id, listing_id, consultant_id, payment_amount_cents, payment_status, payment_intent_id, transfer_id")
+      .select("id, listing_id, consultant_id, payment_amount_cents, payment_status, payment_intent_id, transfer_id, stripe_fee_cents, platform_fee_cents, consultant_payout_cents")
       .eq("id", bidId)
       .maybeSingle();
     if (bidErr || !bid) return res.status(404).json({ error: "bid not found." });
@@ -1436,6 +1468,7 @@ app.post("/api/stripe/release-funds", async (req, res) => {
 
     let transferId = null;
     let fundsRouted = "no-payment-intent";
+    let payoutAmount = bid.payment_amount_cents;
 
     if (bid.payment_intent_id) {
       const intent = await stripe.paymentIntents.retrieve(bid.payment_intent_id);
@@ -1460,8 +1493,20 @@ app.post("/api/stripe/release-funds", async (req, res) => {
           return res.status(400).json({ error: "consultant's payout setup is incomplete — they need to finish onboarding first." });
         }
 
+        // Grandfathering: bids paid before the fee-split rollout have
+        // consultant_payout_cents NULL. Keep transferring the full
+        // payment amount for those — consultants accepted under the old
+        // "you get 100%" promise. New bids transfer the pre-computed
+        // payout (offer - estimated Stripe fee) so the consultant takes
+        // home exactly the number we showed them in the UI; the platform
+        // absorbs any difference between estimated and actual Stripe fee.
+        const hasFeeBreakdown = bid.consultant_payout_cents != null;
+        if (hasFeeBreakdown) {
+          payoutAmount = bid.consultant_payout_cents;
+        }
+
         const transfer = await stripe.transfers.create({
-          amount: bid.payment_amount_cents,
+          amount: payoutAmount,
           currency: "usd",
           destination: consultant.stripe_account_id,
           // `source_transaction` pins this transfer to the specific charge so
@@ -1471,7 +1516,7 @@ app.post("/api/stripe/release-funds", async (req, res) => {
           metadata: { bid_id: bidId },
         });
         transferId = transfer.id;
-        fundsRouted = "on-release";
+        fundsRouted = hasFeeBreakdown ? "on-release (fee-split)" : "on-release (grandfathered)";
       }
     }
 
@@ -1484,7 +1529,12 @@ app.post("/api/stripe/release-funds", async (req, res) => {
       })
       .eq("id", bidId);
 
-    return res.json({ ok: true, transfer_id: transferId, fundsRouted });
+    return res.json({
+      ok: true,
+      transfer_id: transferId,
+      fundsRouted,
+      payout_cents: payoutAmount,
+    });
   } catch (err) {
     return res.status(500).json({ error: err.message || "could not release funds." });
   }
@@ -1651,14 +1701,20 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
       }
     }
 
-    // Validate fees + sum.
+    // Validate fees + compute the per-bid breakdown so each row stores
+    // its own (offer, stripe fee estimate, platform fee, consultant
+    // payout). The batch charge is the sum of business totals (offer +
+    // platform fee per bid).
     let totalCents = 0;
+    const bidBreakdowns = new Map();
     for (const b of bids) {
       const fee = Number(b.proposal_fee_cents);
       if (!Number.isFinite(fee) || fee < 50) {
         return res.status(400).json({ error: "one of the bids has an invalid proposal fee." });
       }
-      totalCents += fee;
+      const breakdown = fees.computeFees(fee);
+      bidBreakdowns.set(b.id, breakdown);
+      totalCents += breakdown.businessTotalCents;
     }
 
     // Re-verify each consultant is fully onboarded — same gate as standard.
@@ -1708,16 +1764,25 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
     });
 
     // Pre-create the per-bid phase payment rows so the confirm step has
-    // something to flip to 'held'. If the owner abandons mid-flow, the rows
-    // stay 'authorizing' — a future cleanup webhook on `payment_intent.canceled`
-    // can drop them, but for now manual review is fine.
-    const phaseRows = bids.map((b) => ({
-      bid_id: b.id,
-      phase: "proposal",
-      amount_cents: b.proposal_fee_cents,
-      payment_intent_id: intent.id,
-      status: "authorizing",
-    }));
+    // something to flip to 'held'. amount_cents stays the offer (proposal
+    // fee); the fee columns record the breakdown so release-time can
+    // transfer just the consultant payout. If the owner abandons mid-flow,
+    // the rows stay 'authorizing' — a future cleanup webhook on
+    // `payment_intent.canceled` can drop them, but for now manual review
+    // is fine.
+    const phaseRows = bids.map((b) => {
+      const f = bidBreakdowns.get(b.id);
+      return {
+        bid_id: b.id,
+        phase: "proposal",
+        amount_cents: b.proposal_fee_cents,
+        payment_intent_id: intent.id,
+        status: "authorizing",
+        stripe_fee_cents: f.stripeFeeCents,
+        platform_fee_cents: f.platformFeeCents,
+        consultant_payout_cents: f.consultantPayoutCents,
+      };
+    });
     const { error: insertErr } = await supabase
       .from("bid_phase_payments")
       .insert(phaseRows);
@@ -1727,12 +1792,36 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
       return res.status(500).json({ error: insertErr.message });
     }
 
+    // Aggregate fee figures across the batch so the frontend can render
+    // a single combined breakdown (sum of offers, sum of platform fees).
+    let aggOffer = 0;
+    let aggPlatform = 0;
+    let aggPlatformFull = 0;
+    let aggStripe = 0;
+    let aggPayout = 0;
+    for (const f of bidBreakdowns.values()) {
+      aggOffer += f.amountCents;
+      aggPlatform += f.platformFeeCents;
+      aggPlatformFull += f.platformFeeFullCents;
+      aggStripe += f.stripeFeeCents;
+      aggPayout += f.consultantPayoutCents;
+    }
+
     return res.json({
       client_secret: intent.client_secret,
       amount: totalCents,
       currency: "usd",
       payment_intent_id: intent.id,
       bid_ids: bidIds,
+      fee_breakdown: {
+        amountCents: aggOffer,
+        businessTotalCents: totalCents,
+        stripeFeeCents: aggStripe,
+        platformFeeCents: aggPlatform,
+        platformFeeFullCents: aggPlatformFull,
+        platformFeeWaived: fees.PLATFORM_FEE_WAIVED,
+        consultantPayoutCents: aggPayout,
+      },
     });
   } catch (err) {
     return res.status(500).json({ error: err.message || "could not start proposal payment." });
@@ -1854,7 +1943,9 @@ app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
     const cancelAtUnix = terminatesAtDate ? Math.floor(terminatesAtDate.getTime() / 1000) : null;
 
     // Create a Product + recurring Price tagged to this engagement so the
-    // subscription has a clear lineage in the Stripe dashboard.
+    // subscription has a clear lineage in the Stripe dashboard. Each
+    // period bills the offer + platform fee (= offer today while waived).
+    const perPeriodBreakdown = fees.computeFees(feeCents);
     const product = await stripe.products.create({
       name: `retainer · ${listing.title}`,
       metadata: { bid_id: bidId, listing_id: listing.id },
@@ -1862,9 +1953,9 @@ app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
     const price = await stripe.prices.create({
       product: product.id,
       currency: "usd",
-      unit_amount: feeCents,
+      unit_amount: perPeriodBreakdown.businessTotalCents,
       recurring: CADENCE_INTERVAL[cadence],
-      metadata: { bid_id: bidId },
+      metadata: { bid_id: bidId, offer_cents: String(feeCents) },
     });
 
     // No `transfer_data` — invoices capture into the platform balance,
@@ -2091,6 +2182,8 @@ app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
       return res.status(409).json({ error: "finish payout setup before accepting a retainer." });
     }
 
+    // Each invoice bills offer + platform fee (= offer today while waived).
+    const perPeriodBreakdown = fees.computeFees(offerRow.fee_cents);
     const product = await stripe.products.create({
       name: `retainer · ${listing.title}`,
       metadata: { bid_id: bidId, listing_id: listing.id, source: "offer" },
@@ -2098,9 +2191,9 @@ app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
     const price = await stripe.prices.create({
       product: product.id,
       currency: "usd",
-      unit_amount: offerRow.fee_cents,
+      unit_amount: perPeriodBreakdown.businessTotalCents,
       recurring: CADENCE_INTERVAL[offerRow.cadence],
-      metadata: { bid_id: bidId },
+      metadata: { bid_id: bidId, offer_cents: String(offerRow.fee_cents) },
     });
 
     const subscription = await stripe.subscriptions.create({
@@ -2424,7 +2517,7 @@ app.post("/api/stripe/retainer/release-period", async (req, res) => {
 
     const { data: phaseRow, error: phaseErr } = await supabase
       .from("bid_phase_payments")
-      .select("id, status, amount_cents, charge_id")
+      .select("id, status, amount_cents, charge_id, consultant_payout_cents")
       .eq("bid_id", bidId)
       .eq("phase", "retainer_period")
       .eq("period_index", periodIndex)
@@ -2452,8 +2545,11 @@ app.post("/api/stripe/retainer/release-period", async (req, res) => {
       return res.status(400).json({ error: "consultant's payout setup is incomplete." });
     }
 
+    // Stored consultant payout (offer - estimated Stripe fee); legacy
+    // rows with NULL grandfather to a full-amount transfer.
+    const payoutAmount = phaseRow.consultant_payout_cents ?? phaseRow.amount_cents;
     const transfer = await stripe.transfers.create({
-      amount: phaseRow.amount_cents,
+      amount: payoutAmount,
       currency: "usd",
       destination: consultant.stripe_account_id,
       source_transaction: phaseRow.charge_id,
@@ -2516,6 +2612,7 @@ app.post("/api/stripe/phased/start-service", async (req, res) => {
     if (!Number.isFinite(fee) || fee < 50) {
       return res.status(400).json({ error: "service fee is missing or too small." });
     }
+    const feeBreakdown = fees.computeFees(fee);
 
     const { data: existing } = await supabase
       .from("bid_phase_payments")
@@ -2554,7 +2651,7 @@ app.post("/api/stripe/phased/start-service", async (req, res) => {
     const owner = await ensureOwnerStripeCustomer(viewer.id);
 
     const intent = await stripe.paymentIntents.create({
-      amount: fee,
+      amount: feeBreakdown.businessTotalCents,
       currency: "usd",
       customer: owner.stripe_customer_id,
       automatic_payment_methods: { enabled: true, allow_redirects: "never" },
@@ -2568,12 +2665,17 @@ app.post("/api/stripe/phased/start-service", async (req, res) => {
     });
 
     // Upsert the phase row so a previously-failed attempt can be retried.
+    // amount_cents stays the offer (service fee); the fee columns record
+    // the breakdown so release-time transfers just the consultant payout.
     const phaseRow = {
       bid_id: bidId,
       phase: "service",
       amount_cents: fee,
       payment_intent_id: intent.id,
       status: "authorizing",
+      stripe_fee_cents: feeBreakdown.stripeFeeCents,
+      platform_fee_cents: feeBreakdown.platformFeeCents,
+      consultant_payout_cents: feeBreakdown.consultantPayoutCents,
     };
     let writeErr;
     if (existing?.id) {
@@ -2595,10 +2697,11 @@ app.post("/api/stripe/phased/start-service", async (req, res) => {
 
     return res.json({
       client_secret: intent.client_secret,
-      amount: fee,
+      amount: feeBreakdown.businessTotalCents,
       currency: "usd",
       payment_intent_id: intent.id,
       bid_id: bidId,
+      fee_breakdown: feeBreakdown,
     });
   } catch (err) {
     return res.status(500).json({ error: err.message || "could not start service payment." });
@@ -2674,7 +2777,7 @@ app.post("/api/stripe/phased/release-service", async (req, res) => {
 
     const { data: phaseRow, error: phaseErr } = await supabase
       .from("bid_phase_payments")
-      .select("id, status, amount_cents, charge_id, transfer_id")
+      .select("id, status, amount_cents, charge_id, transfer_id, consultant_payout_cents")
       .eq("bid_id", bidId)
       .eq("phase", "service")
       .maybeSingle();
@@ -2710,8 +2813,12 @@ app.post("/api/stripe/phased/release-service", async (req, res) => {
       return res.status(400).json({ error: "consultant's payout setup is incomplete." });
     }
 
+    // Same fee-split-or-grandfather pattern as proposal release: prefer
+    // the stored consultant payout; fall back to the gross amount for
+    // legacy rows where the column is NULL.
+    const payoutAmount = phaseRow.consultant_payout_cents ?? phaseRow.amount_cents;
     const transfer = await stripe.transfers.create({
-      amount: phaseRow.amount_cents,
+      amount: payoutAmount,
       currency: "usd",
       destination: consultant.stripe_account_id,
       source_transaction: phaseRow.charge_id,
@@ -2785,7 +2892,7 @@ app.post("/api/stripe/phased/proposal-decision", async (req, res) => {
 
     const { data: phaseRow, error: phaseErr } = await supabase
       .from("bid_phase_payments")
-      .select("id, amount_cents, status, charge_id, payment_intent_id")
+      .select("id, amount_cents, status, charge_id, payment_intent_id, consultant_payout_cents")
       .eq("bid_id", bidId)
       .eq("phase", "proposal")
       .maybeSingle();
@@ -2827,8 +2934,13 @@ app.post("/api/stripe/phased/proposal-decision", async (req, res) => {
       return res.status(502).json({ error: "could not verify consultant's payout account: " + (err.message || "stripe error") });
     }
 
+    // Transfer the stored consultant payout (offer - estimated Stripe
+    // fee) so the take-home matches what the consultant was shown. Bids
+    // paid before the fee-split rollout have NULL consultant_payout_cents
+    // — those grandfather to the full-amount transfer.
+    const payoutAmount = phaseRow.consultant_payout_cents ?? phaseRow.amount_cents;
     const transfer = await stripe.transfers.create({
-      amount: phaseRow.amount_cents,
+      amount: payoutAmount,
       currency: "usd",
       destination: consultant.stripe_account_id,
       source_transaction: phaseRow.charge_id,
