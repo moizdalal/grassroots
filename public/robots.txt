@@ -1,0 +1,15 @@
+# grassroots — robots policy
+# Allow general indexing; gated surfaces (dashboard, settings, listings,
+# profile, etc.) carry their own `<meta name="robots" content="noindex">`
+# so we don't have to enumerate them here.
+
+User-agent: *
+Allow: /
+
+# Block any internal-only routes that aren't auth-gated by the page itself.
+Disallow: /api/
+Disallow: /admin/
+Disallow: /auth-callback.html
+
+# Honor the sitemap we maintain alongside this file.
+Sitemap: https://www.grassroots-marketplace.com/sitemap.xml
