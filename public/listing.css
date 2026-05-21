@@ -670,15 +670,90 @@ body.ld-modal-open { overflow: hidden; }
 .ld-owner-actions {
   display: grid;
   gap: 0.75rem;
+  overflow: visible;
 }
 
 .ld-owner-actions__heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   margin: 0;
   font-size: var(--type-eyebrow);
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--tagline-body);
+  overflow: visible;
+}
+
+/* "?" tooltip — hovering reveals the inline help text. Same pattern can
+   be reused on other small "what does this do?" affordances; styled to
+   reset the parent heading's uppercase + tracking. */
+.ld-info-tip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 50%;
+  border: 1px solid var(--fo-line-strong, rgba(45, 106, 79, 0.28));
+  background: transparent;
+  color: var(--fo-text-3, var(--tagline-body));
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: "Manrope", system-ui, sans-serif;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: help;
+  outline: none;
+  overflow: visible;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.ld-info-tip:hover,
+.ld-info-tip:focus-visible {
+  color: var(--fo-text);
+  border-color: var(--fo-text-3);
+}
+
+.ld-info-tip__bubble {
+  position: absolute;
+  top: calc(100% + 8px);
+  /* Anchor the bubble's right edge to the "?" icon and let it extend
+     leftward + downward. The "?" sits at the right edge of the heading
+     in a narrow sidebar; right-anchoring keeps the bubble from being
+     pushed off the viewport. The ancestors carry overflow: visible so
+     the bubble can spill past the sidebar into the main content gutter
+     if it's wide. */
+  right: 0;
+  left: auto;
+  width: max-content;
+  max-width: 240px;
+  padding: 0.6rem 0.75rem;
+  background: var(--fo-surface, #fff);
+  border: 1px solid var(--fo-line-strong, rgba(20, 32, 26, 0.16));
+  border-radius: 8px;
+  color: var(--fo-text);
+  font-size: var(--type-meta);
+  line-height: 1.5;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  text-align: left;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 1000;
+  box-shadow: 0 8px 24px rgba(20, 32, 26, 0.18);
+}
+
+.ld-info-tip:hover .ld-info-tip__bubble,
+.ld-info-tip:focus-visible .ld-info-tip__bubble,
+.ld-info-tip:focus-within .ld-info-tip__bubble {
+  opacity: 1;
+  visibility: visible;
 }
 
 .ld-owner-actions__buttons,
@@ -1085,6 +1160,91 @@ body.ld-modal-open { overflow: hidden; }
   background: transparent;
   width: 100%;
   min-width: 0;
+}
+
+/* --- Live offer breakdown ----------------------------------------
+   Sits directly under the offer-amount input on the consultant side
+   so they see business-pays + take-home as they type. Style matches
+   the existing offer-form chrome (soft surface, hairline border). */
+.ld-offer-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  background: var(--fo-surface-2, rgba(45, 106, 79, 0.04));
+  border: 1px solid var(--fo-line, rgba(45, 106, 79, 0.12));
+  border-radius: 10px;
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+}
+
+.ld-offer-breakdown[hidden] {
+  display: none;
+}
+
+.ld-offer-breakdown__line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.ld-offer-breakdown__line--sub {
+  color: var(--fo-text-3);
+  font-size: 0.82rem;
+}
+
+.ld-offer-breakdown__hint {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--fo-text-3);
+  font-weight: 400;
+}
+
+.ld-offer-breakdown__value {
+  font-variant-numeric: tabular-nums;
+  color: var(--fo-text);
+  font-weight: 600;
+}
+
+.ld-offer-breakdown__value--strike {
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  color: var(--fo-text-3);
+  font-weight: 500;
+}
+
+.ld-offer-breakdown__line--biz {
+  margin-top: 0.25rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--fo-line);
+  font-size: var(--type-body);
+  color: var(--fo-text);
+  font-weight: 600;
+}
+
+.ld-offer-breakdown__line--biz .ld-offer-breakdown__value {
+  font-family: "Fraunces", serif;
+  font-size: 1.05rem;
+  color: var(--fo-accent, var(--green-mid));
+}
+
+.ld-offer-breakdown__line--total {
+  margin-top: 0.2rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid var(--fo-line);
+}
+
+.ld-offer-breakdown__line--total span:first-child {
+  color: var(--fo-text);
+  font-weight: 600;
+}
+
+.ld-offer-breakdown__line--total .ld-offer-breakdown__value {
+  font-family: "Fraunces", serif;
+  font-size: 1.1rem;
+  color: var(--fo-accent, var(--green-mid));
 }
 
 /* --- Offer message toggle (mirrors .cl-add-btn) --- */

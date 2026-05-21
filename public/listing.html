@@ -127,8 +127,14 @@
           <!-- RIGHT SIDEBAR (sticky) -->
           <aside class="ld-sidebar" id="ld-sidebar" hidden>
             <section id="ld-owner-actions" class="ld-sidebar__panel ld-owner-actions" hidden>
-              <h2 class="ld-owner-actions__heading">listing controls</h2>
-              <p id="ld-owner-actions-copy" class="ld-owner-actions__copy"></p>
+              <h2 class="ld-owner-actions__heading">
+                listing controls
+                <span class="ld-info-tip" tabindex="0" role="button" aria-label="about listing controls">
+                  ?
+                  <span class="ld-info-tip__bubble" role="tooltip">pause this listing to hide it from marketplace browsing while keeping current proposals in place, or close it when you're done.</span>
+                </span>
+              </h2>
+              <p id="ld-owner-actions-copy" class="ld-owner-actions__copy" hidden></p>
 
               <div class="ld-owner-actions__buttons">
                 <button type="button" id="ld-pause-listing-btn" class="gr-btn gr-btn--ghost ld-owner-actions__btn">
@@ -241,6 +247,9 @@
                     <span class="ld-offer-dollar" aria-hidden="true">$</span>
                     <input id="ld-bid-amount" type="number" min="0.01" step="0.01" placeholder="0.00" />
                   </div>
+                  <!-- Live breakdown: appears once a non-zero amount is typed.
+                       Same fee math the server runs at PI creation. -->
+                  <div class="ld-offer-breakdown" id="ld-offer-breakdown" hidden></div>
                 </div>
 
                 <div class="ld-offer-phased" id="ld-offer-phased-row" hidden>
@@ -259,6 +268,7 @@
                       <span class="ld-offer-dollar" aria-hidden="true">$</span>
                       <input id="ld-bid-proposal-fee" type="number" min="0" step="0.01" placeholder="0.00" />
                     </div>
+                    <div class="ld-offer-breakdown" id="ld-offer-proposal-breakdown" hidden></div>
                   </div>
                   <div class="ld-offer-amount-row">
                     <label class="ld-offer-amount-label" for="ld-bid-service-fee">
@@ -269,6 +279,7 @@
                       <span class="ld-offer-dollar" aria-hidden="true">$</span>
                       <input id="ld-bid-service-fee" type="number" min="0.01" step="0.01" placeholder="0.00" />
                     </div>
+                    <div class="ld-offer-breakdown" id="ld-offer-service-breakdown" hidden></div>
                   </div>
                 </div>
 

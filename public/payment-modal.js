@@ -6,6 +6,8 @@
    Sandbox/test-mode only.
    ================================================================ */
 
+import { computeFees, formatUsd } from "/fees.js";
+
 let stripePromise;
 
 function escapeHtml(s) {
@@ -16,10 +18,34 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
-function formatUsd(cents) {
-  const n = Number(cents);
-  if (!Number.isFinite(n)) return "—";
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n / 100);
+function renderFeeBreakdown(fees) {
+  // What the business sees: offer + platform fee (strikethrough today,
+  // becomes real when waiver lifts) = total. Stripe processing fee
+  // never shows up here — it's the consultant's cost to receive money
+  // and never lands on the business's bill.
+  const platformValueStr = formatUsd(fees.platformFeeFullCents);
+  const platformLineClass = fees.platformFeeWaived
+    ? "pay-modal__line-value pay-modal__line-value--strike"
+    : "pay-modal__line-value";
+  return `
+    <div class="pay-modal__breakdown" role="group" aria-label="payment breakdown">
+      <div class="pay-modal__line">
+        <span class="pay-modal__line-label">offer amount</span>
+        <span class="pay-modal__line-value">${escapeHtml(formatUsd(fees.amountCents))}</span>
+      </div>
+      <div class="pay-modal__line">
+        <span class="pay-modal__line-label">
+          platform fee (10%)
+          ${fees.platformFeeWaived ? `<span class="pay-modal__line-hint">waived during launch</span>` : ""}
+        </span>
+        <span class="${platformLineClass}">${escapeHtml(platformValueStr)}</span>
+      </div>
+      <div class="pay-modal__line pay-modal__line--total">
+        <span class="pay-modal__line-label">you'll be charged</span>
+        <span class="pay-modal__line-value">${escapeHtml(formatUsd(fees.businessTotalCents))}</span>
+      </div>
+    </div>
+  `;
 }
 
 async function loadStripe() {
@@ -38,9 +64,21 @@ async function loadStripe() {
   return stripePromise;
 }
 
-function buildModal({ amount, title }) {
+function buildModal({ amount, title, feeBreakdown }) {
   const overlay = document.createElement("div");
   overlay.className = "pay-overlay is-open";
+  // Standard escrow flow passes a fee breakdown so the business sees
+  // exactly what the consultant absorbs. Phased / retainer callers
+  // currently pass just `amount` and fall back to the bare summary
+  // until pass 2/3 wires their endpoints through the fee math.
+  const amountBlock = feeBreakdown
+    ? renderFeeBreakdown(feeBreakdown)
+    : `
+        <div class="pay-modal__amount">
+          <span>amount</span>
+          <strong>${escapeHtml(formatUsd(amount))}</strong>
+        </div>
+      `;
   overlay.innerHTML = `
     <div class="pay-overlay__backdrop" data-pay-close></div>
     <div class="pay-modal" role="dialog" aria-modal="true" aria-labelledby="pay-title">
@@ -54,10 +92,7 @@ function buildModal({ amount, title }) {
       <p class="pay-modal__intro">
         funds are <strong>held in escrow by grassroots</strong> until you mark the work complete and submit your review. test card: <code>4242 4242 4242 4242</code>, any future date, any cvc.
       </p>
-      <div class="pay-modal__amount">
-        <span>amount</span>
-        <strong>${escapeHtml(formatUsd(amount))}</strong>
-      </div>
+      ${amountBlock}
       <div id="pay-element" class="pay-modal__element"></div>
       <p id="pay-status" class="gr-status" aria-live="polite"></p>
       <div class="pay-modal__actions">
@@ -89,7 +124,8 @@ function closeModal(overlay) {
  */
 export async function payAndAcceptBid({ client, bid, listing }) {
   const amount = bid.counter_offer_cents != null ? bid.counter_offer_cents : bid.amount_cents;
-  const overlay = buildModal({ amount, title: listing?.title });
+  const feeBreakdown = computeFees(amount);
+  const overlay = buildModal({ amount, title: listing?.title, feeBreakdown });
   const submitBtn = overlay.querySelector("#pay-submit");
   const statusEl = overlay.querySelector("#pay-status");
   const elementHost = overlay.querySelector("#pay-element");
@@ -271,7 +307,10 @@ export async function payAndAcceptProposals({ client, bids, listing }) {
   const titleLabel = bids.length === 1
     ? `proposal fee · ${listing?.title || "engagement"}`
     : `${bids.length} proposal fees · ${listing?.title || "engagement"}`;
-  const overlay = buildModal({ amount: totalAmount, title: titleLabel });
+  // Show the aggregate breakdown (sum of all proposal offers + their
+  // platform fees) so the business sees the total markup as one row.
+  const feeBreakdown = computeFees(totalAmount);
+  const overlay = buildModal({ amount: totalAmount, title: titleLabel, feeBreakdown });
   const submitBtn = overlay.querySelector("#pay-submit");
   const statusEl = overlay.querySelector("#pay-status");
   const elementHost = overlay.querySelector("#pay-element");
@@ -399,9 +438,11 @@ export async function payAndAcceptProposals({ client, bids, listing }) {
  */
 export async function payAndStartService({ client, bid, listing }) {
   const amount = Number(bid.service_fee_cents);
+  const feeBreakdown = computeFees(amount);
   const overlay = buildModal({
     amount,
     title: `service fee · ${listing?.title || "engagement"}`,
+    feeBreakdown,
   });
   const submitBtn = overlay.querySelector("#pay-submit");
   const statusEl = overlay.querySelector("#pay-status");

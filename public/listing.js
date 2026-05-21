@@ -2,6 +2,7 @@ import { getSupabaseClient } from "/supabase-loader.js";
 import { formatBudgetRange, parseBudgetRange } from "/sim-budget.js";
 import { renderRatingMarkup, hydrateRatings } from "/rating.js";
 import { payAndAcceptBid, payAndAcceptProposals } from "/payment-modal.js";
+import { computeFees, formatUsd } from "/fees.js";
 import { getInitials } from "/initials.js";
 import {
   trackListingView,
@@ -55,12 +56,6 @@ function escapeHtml(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 function escapeAttr(s) { return String(s).replace(/"/g, "&quot;"); }
-
-function formatUsd(cents) {
-  const n = Number(cents);
-  if (!Number.isFinite(n)) return "—";
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(n / 100);
-}
 
 function formatFileSize(bytes) {
   const value = Number(bytes);
@@ -1077,7 +1072,12 @@ function renderOwnerActionSummary(listing) {
     return;
   }
 
-  showCopy("pause this listing to hide it from marketplace browsing while keeping current proposals in place, or close it when you're done.");
+  // Default ("open" / actionable) state: the explainer copy lives in the
+  // `?` tooltip next to the heading now, so suppress the inline paragraph
+  // and let the buttons speak for themselves. paused / closed branches
+  // still set status copy above (those describe current state).
+  ownerActionsCopy.textContent = "";
+  ownerActionsCopy.hidden = true;
   if (buttonsWrap) buttonsWrap.hidden = false;
   pauseListingBtn.textContent = "pause listing";
   closeListingBtn.textContent = "close listing";
@@ -1285,6 +1285,80 @@ async function showConsultantView(client, session, listing, existingBid) {
   const amountInput = document.getElementById("ld-bid-amount");
   const proposalFeeInput = document.getElementById("ld-bid-proposal-fee");
   const serviceFeeInput = document.getElementById("ld-bid-service-fee");
+
+  // Live breakdown beneath each offer-amount input — same shape for
+  // standard, retainer (per period), phased proposal, and phased service
+  // inputs. Shows both what the business is charged (offer + platform
+  // fee, strikethrough today) AND what the consultant takes home after
+  // the Stripe processing fee they absorb. Hidden on empty / zero input
+  // so the form doesn't render a bogus "$0.30 in fees" on a blank field.
+  function renderBreakdownInto(container, dollars, opts = {}) {
+    if (!container) return;
+    if (!Number.isFinite(dollars) || dollars <= 0) {
+      container.hidden = true;
+      container.innerHTML = "";
+      return;
+    }
+    const f = computeFees(Math.round(dollars * 100));
+    const platformValueClass = f.platformFeeWaived
+      ? "ld-offer-breakdown__value ld-offer-breakdown__value--strike"
+      : "ld-offer-breakdown__value";
+    const offerLabel = opts.offerLabel || "offer";
+    const bizLabel = opts.bizLabel || "business pays";
+    const takeHomeLabel = opts.takeHomeLabel || "you take home";
+    container.innerHTML = `
+      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
+        <span>${offerLabel}</span>
+        <span class="ld-offer-breakdown__value">${formatUsd(f.amountCents)}</span>
+      </div>
+      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
+        <span>
+          platform fee (10%)
+          ${f.platformFeeWaived ? `<span class="ld-offer-breakdown__hint">waived during launch</span>` : ""}
+        </span>
+        <span class="${platformValueClass}">${formatUsd(f.platformFeeFullCents)}</span>
+      </div>
+      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--biz">
+        <span>${bizLabel}</span>
+        <span class="ld-offer-breakdown__value">${formatUsd(f.businessTotalCents)}</span>
+      </div>
+      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
+        <span>
+          stripe processing fee
+          <span class="ld-offer-breakdown__hint">your cost to receive payment</span>
+        </span>
+        <span class="ld-offer-breakdown__value">−${formatUsd(f.stripeFeeCents)}</span>
+      </div>
+      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--total">
+        <span>${takeHomeLabel}</span>
+        <span class="ld-offer-breakdown__value">${formatUsd(f.consultantPayoutCents)}</span>
+      </div>
+    `;
+    container.hidden = false;
+  }
+
+  function wireBreakdown(input, containerId, opts) {
+    const container = document.getElementById(containerId);
+    if (!input || !container) return;
+    const sync = () => renderBreakdownInto(container, parseFloat(input.value), opts);
+    input.addEventListener("input", sync);
+    sync();
+  }
+
+  const isRetainerListing = listing?.contract_type === "retainer";
+  wireBreakdown(amountInput, "ld-offer-breakdown", isRetainerListing
+    ? { offerLabel: "fee per period", bizLabel: "business pays per period", takeHomeLabel: "you take home per period" }
+    : undefined);
+  wireBreakdown(proposalFeeInput, "ld-offer-proposal-breakdown", {
+    offerLabel: "proposal fee",
+    bizLabel: "business pays for proposal",
+    takeHomeLabel: "you take home (proposal)",
+  });
+  wireBreakdown(serviceFeeInput, "ld-offer-service-breakdown", {
+    offerLabel: "service fee",
+    bizLabel: "business pays for service",
+    takeHomeLabel: "you take home (service)",
+  });
 
   // The "?" tooltip bubble is portaled to document.body and rendered
   // `position: fixed`. Two reasons it can't live next to the button:
