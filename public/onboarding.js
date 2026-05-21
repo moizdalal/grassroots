@@ -68,7 +68,18 @@ const CONFIRM_ID = "gr-onboarding-confirm";
 //
 // `kind: "choice"` renders decision buttons inside the bubble itself
 // instead of pointing at a page element.
-const STEPS = [
+//
+// Two flows live in this file:
+//   • BUSINESS_STEPS — the original owner walkthrough (profile setup →
+//     create listing → review bids).
+//   • CONSULTANT_STEPS — the consultant walkthrough (profile setup
+//     incl. preview-as-business → stripe payouts → dashboard journey
+//     → mock listing + offer → simulated garden).
+// `STEPS` / `CHAPTERS` are `let`-bound and swapped to whichever flow
+// matches the current user's role before the tutorial mounts. Storing
+// `role` in localStorage state lets resume() restore the right flow
+// without a network round-trip.
+const BUSINESS_STEPS = [
   {
     id: "edit-profile",
     label: "profile",
@@ -658,6 +669,315 @@ const STEPS = [
 ];
 
 /* ============================================================== */
+/*                  CONSULTANT FLOW — STEPS                         */
+/* ============================================================== */
+
+// Mirrors the business walkthrough's structure, but tailored to the
+// consultant lifecycle: profile setup (with preview-as-business),
+// stripe payouts, dashboard journey, then a tutorial-only mock listing
+// where they make a fake offer, and finally a simulated garden showing
+// the drag-to-garden interaction. The mock-listing and garden steps
+// hit /listing.html?tutorial=1 and /consultant-dashboard.html?tutorial=garden;
+// those URLs put the host pages in a fixture-only mode that never
+// writes to the database.
+const CONSULTANT_STEPS = [
+  // ── chapter 1: profile setup ──
+  {
+    id: "c-edit-profile",
+    label: "profile",
+    path: "/profile.html",
+    targetSelector: '.pp-header__actions a[href*="settings"]',
+    placement: "left",
+    advanceOn: "target",
+    title: "let's set you up.",
+    body: "tap edit profile. consultants live or die by their profile — businesses read every word.",
+  },
+  {
+    id: "c-upload-photo",
+    label: "photo",
+    path: "/settings.html",
+    hash: "#personal",
+    targetSelector: ["#pf-avatar-upload-label:not(.hidden)", "#pf-avatar-change-btn"],
+    placement: "right",
+    advanceOn: "next",
+    title: "show your face.",
+    body: "a real photo earns trust. a clean headshot beats a logo every time.",
+  },
+  {
+    id: "c-nav-general",
+    label: "general",
+    path: "/settings.html",
+    targetSelector: '.settings-tab[data-tab="general"]',
+    placement: "bottom",
+    advanceOn: "target",
+    title: "next stop — themes.",
+    body: "open the general tab to pick how grassroots looks for you.",
+  },
+  {
+    id: "c-themes",
+    label: "themes",
+    path: "/settings.html",
+    hash: "#general",
+    targetSelector: "#theme-grid",
+    allowedInteractive: "#theme-grid .theme-card",
+    placement: "bottom",
+    advanceOn: "next",
+    title: "pick a vibe.",
+    body: "try the themes — tap one to apply it. hit next when you've settled.",
+  },
+  {
+    id: "c-nav-professional",
+    label: "professional",
+    path: "/settings.html",
+    targetSelector: '.settings-tab[data-tab="professional"]',
+    placement: "bottom",
+    advanceOn: "target",
+    title: "now the important one.",
+    body: "click the professional tab — this is where your consultant story lives.",
+  },
+  {
+    id: "c-education",
+    label: "education",
+    path: "/settings.html",
+    hash: "#professional",
+    targetSelector: "#consultant-education-section",
+    allowedInteractive: ["#save-btn", "#consultant-education-section input", "#consultant-education-section textarea"],
+    placement: "right",
+    advanceOn: "next",
+    title: "education.",
+    body: "tell businesses where you study. major and school carry the most weight.",
+  },
+  {
+    id: "c-resume",
+    label: "resume",
+    path: "/settings.html",
+    hash: "#professional",
+    targetSelector: "#consultant-section",
+    allowedInteractive: ["#save-btn", "#resume-input", "#pf-resume-upload-label", "#resume-current"],
+    placement: "right",
+    advanceOn: "next",
+    title: "drop in a resume.",
+    body: "pdf only. you can toggle it public or private any time — start hidden if it's still rough.",
+  },
+  {
+    id: "c-portfolio",
+    label: "work",
+    path: "/settings.html",
+    hash: "#professional",
+    targetSelector: "#consultant-portfolio-section",
+    allowedInteractive: ["#save-btn", "#portfolio-input", "#portfolio-desc", "#portfolio-list"],
+    placement: "right",
+    advanceOn: "next",
+    title: "past work.",
+    body: "add a few samples — decks, docs, images, video. real artifacts build trust faster than copy.",
+  },
+  {
+    id: "c-preview-as-business",
+    label: "preview",
+    path: "/settings.html",
+    hash: "#professional",
+    targetSelector: "#pf-preview-bar",
+    allowedInteractive: ["#pf-preview-trigger", "#pf-preview-modal", "[data-pf-preview-close]"],
+    placement: "right",
+    advanceOn: "next",
+    title: "see yourself like a business does.",
+    body: "tap preview to open the same view businesses see when reading your proposals. iterate until it looks sharp.",
+  },
+
+  // ── chapter 2: stripe payouts ──
+  {
+    id: "c-payouts-intro",
+    label: "payouts",
+    path: "/settings.html",
+    targetSelector: null,
+    placement: "center",
+    advanceOn: "next",
+    title: "set up payouts — about 5 minutes.",
+    body: "we'll head to stripe next. you need this to make offers and get paid — no payout setup, no money in. it's fast: a few identity questions and a bank account.",
+  },
+  {
+    id: "c-nav-payouts",
+    label: "stripe",
+    path: "/payouts.html",
+    targetSelector: "#po-onboarding-section, #po-status-card",
+    allowedInteractive: ["#po-onboarding", "#po-onboarding *", "#po-onboarding-section"],
+    placement: "right",
+    advanceOn: "next",
+    title: "connect with stripe.",
+    body: "stripe runs identity + bank info for us. follow the prompts in the embedded form — when it says active, you're good. tap next here once you're done (or come back later).",
+  },
+
+  // ── chapter 3: dashboard journey ──
+  {
+    id: "c-dashboard-intro",
+    label: "home",
+    path: "/consultant-dashboard.html",
+    targetSelector: "#cdash-welcome",
+    placement: "bottom",
+    advanceOn: "next",
+    title: "welcome to your home.",
+    body: "your dashboard tracks every active opportunity at a glance. let's walk through it.",
+  },
+  {
+    id: "c-journey-panel",
+    label: "journey",
+    path: "/consultant-dashboard.html",
+    targetSelector: "#cdash-journey-panel",
+    placement: "bottom",
+    advanceOn: "next",
+    title: "the engagement journey.",
+    body: "every offer you submit shows up here as a plant. it grows across five stages — offer sent, accepted, kickoff scheduled, work delivered, payout received — and blooms when you're paid.",
+  },
+  {
+    id: "c-journey-signals",
+    label: "signals",
+    path: "/consultant-dashboard.html",
+    targetSelector: "#cdash-journey-panel",
+    placement: "bottom",
+    advanceOn: "next",
+    title: "reading the signals.",
+    body: "stage tells you where the work stands. a leaf turning amber means a deadline is near. a pulsing badge on a plant means the business sent you a message. click any plant to jump to that engagement.",
+  },
+  {
+    id: "c-health",
+    label: "health",
+    path: "/consultant-dashboard.html",
+    targetSelector: "#cdash-health",
+    placement: "right",
+    advanceOn: "next",
+    title: "keep your profile sharp.",
+    body: "this card flags anything missing from your profile. businesses skip incomplete profiles, so keep this in the green.",
+  },
+
+  // ── chapter 4: mock listing + offer ──
+  {
+    id: "c-mock-intro",
+    label: "marketplace",
+    path: "/consultant-dashboard.html",
+    targetSelector: null,
+    placement: "center",
+    advanceOn: "next",
+    title: "let's read a listing together.",
+    body: "we'll open a sample opportunity next. the engagement is fake — nothing you do here charges money or notifies a real business.",
+  },
+  {
+    id: "c-listing-bio",
+    label: "business",
+    path: "/listing.html",
+    query: "tutorial=1",
+    targetSelector: "#ld-bio",
+    placement: "right",
+    advanceOn: "next",
+    title: "who you'd work with.",
+    body: "the about-the-business panel shows who's posting. read this first — fit matters as much as fee.",
+  },
+  {
+    id: "c-listing-context",
+    label: "context",
+    path: "/listing.html",
+    query: "tutorial=1",
+    targetSelector: "#ld-context-section",
+    placement: "right",
+    advanceOn: "next",
+    title: "context — the back-story.",
+    body: "what's going on at the business. helps you read between the lines of the problem statement.",
+  },
+  {
+    id: "c-listing-problem",
+    label: "problem",
+    path: "/listing.html",
+    query: "tutorial=1",
+    targetSelector: 'details[open] > #ld-summary, #ld-summary',
+    placement: "right",
+    advanceOn: "next",
+    title: "business problem — the goal.",
+    body: "the outcome the business wants. your offer should speak directly to this.",
+  },
+  {
+    id: "c-listing-output",
+    label: "output",
+    path: "/listing.html",
+    query: "tutorial=1",
+    targetSelector: "#ld-output-section",
+    placement: "right",
+    advanceOn: "next",
+    title: "standards of work.",
+    body: "what good output looks like — format, rigor, how it'll be used. quote your fee against this bar.",
+  },
+  {
+    id: "c-listing-question",
+    label: "question",
+    path: "/listing.html",
+    query: "tutorial=1",
+    targetSelector: "#ld-question-btn",
+    allowedInteractive: ["#ld-question-btn"],
+    placement: "right",
+    advanceOn: "next",
+    title: "have a question?",
+    body: "use this to message the business before committing to a number. fewer surprises later.",
+  },
+  {
+    id: "c-make-offer",
+    label: "offer",
+    path: "/listing.html",
+    query: "tutorial=1",
+    targetSelector: "#ld-offer-panel",
+    allowedInteractive: ["#ld-bid-amount", "#ld-offer-msg-toggle", "#ld-offer-msg-wrap", "#ld-bid-message", "#ld-offer-breakdown"],
+    placement: "left",
+    advanceOn: "next",
+    title: "make an offer.",
+    body: "type an amount. the breakdown beneath shows what the business pays and what you take home — the platform fee sits on the business, stripe processing comes out of your payout.",
+  },
+  {
+    id: "c-submit-offer",
+    label: "submit",
+    path: "/listing.html",
+    query: "tutorial=1",
+    targetSelector: "#ld-bid-submit",
+    allowedInteractive: ["#ld-bid-submit", "#ld-bid-amount", "#ld-bid-message"],
+    placement: "left",
+    advanceOn: "target",
+    title: "submit when you're ready.",
+    body: "this one's a dry run — go ahead and submit. nothing leaves the tutorial.",
+  },
+
+  // ── chapter 5: simulated garden ──
+  {
+    id: "c-garden-intro",
+    label: "garden",
+    path: "/consultant-dashboard.html",
+    query: "tutorial=garden",
+    targetSelector: "#cdash-journey-panel",
+    placement: "bottom",
+    advanceOn: "next",
+    title: "your future garden.",
+    body: "every engagement you finish becomes a flower. we filled in a sample garden so you can see what a healthy quarter looks like.",
+  },
+  {
+    id: "c-garden-drop",
+    label: "drag",
+    path: "/consultant-dashboard.html",
+    query: "tutorial=garden",
+    targetSelector: ".ejf-garden-tile, [data-garden-tile], .ejf__garden",
+    placement: "left",
+    advanceOn: "next",
+    title: "drag to garden.",
+    body: "when an engagement blooms — stage five, payment received — drag the plant into your garden tile. it preserves the work as part of your portfolio.",
+  },
+
+  {
+    id: "c-complete",
+    label: "done",
+    path: null,
+    targetSelector: null,
+    placement: "center",
+    advanceOn: "next",
+    title: "you're set.",
+    body: "your tutorial replay lives in settings → general. now go win some work.",
+  },
+];
+
+/* ============================================================== */
 /*                        CHAPTERS                                  */
 /* ============================================================== */
 
@@ -666,7 +986,7 @@ const STEPS = [
 // into a single chip the user can click to jump in. `complete` is
 // intentionally outside any chapter — it's the celebratory tail, not
 // part of any teaching arc, so the nav doesn't show a dot for it.
-const CHAPTERS = [
+const BUSINESS_CHAPTERS = [
   {
     id: "profile-setup",
     label: "profile setup",
@@ -707,6 +1027,83 @@ const CHAPTERS = [
     ],
   },
 ];
+
+const CONSULTANT_CHAPTERS = [
+  {
+    id: "c-profile-setup",
+    label: "profile setup",
+    stepIds: [
+      "c-edit-profile",
+      "c-upload-photo",
+      "c-nav-general",
+      "c-themes",
+      "c-nav-professional",
+      "c-education",
+      "c-resume",
+      "c-portfolio",
+      "c-preview-as-business",
+    ],
+  },
+  {
+    id: "c-payouts",
+    label: "payouts",
+    stepIds: ["c-payouts-intro", "c-nav-payouts"],
+  },
+  {
+    id: "c-dashboard",
+    label: "dashboard",
+    stepIds: ["c-dashboard-intro", "c-journey-panel", "c-journey-signals", "c-health"],
+  },
+  {
+    id: "c-first-offer",
+    label: "first offer",
+    stepIds: [
+      "c-mock-intro",
+      "c-listing-bio",
+      "c-listing-context",
+      "c-listing-problem",
+      "c-listing-output",
+      "c-listing-question",
+      "c-make-offer",
+      "c-submit-offer",
+    ],
+  },
+  {
+    id: "c-garden",
+    label: "garden",
+    stepIds: ["c-garden-intro", "c-garden-drop"],
+  },
+];
+
+// Active flow — swapped by setFlowByRole() before the tutorial renders.
+// Default to the business arc so resume() on legacy state keeps working.
+let STEPS = BUSINESS_STEPS;
+let CHAPTERS = BUSINESS_CHAPTERS;
+
+function setFlowByRole(role) {
+  const consultant = role === "consultant";
+  STEPS = consultant ? CONSULTANT_STEPS : BUSINESS_STEPS;
+  CHAPTERS = consultant ? CONSULTANT_CHAPTERS : BUSINESS_CHAPTERS;
+}
+
+// Fetch current user's role from supabase. Defaults to "owner" on
+// failure — the business flow is the safer fallback since the legacy
+// surface assumes an owner.
+async function fetchCurrentUserRole() {
+  try {
+    const client = await getSupabaseClient();
+    const { data: { user } } = await client.auth.getUser();
+    if (!user) return "owner";
+    const { data } = await client
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+    return data?.role === "consultant" ? "consultant" : "owner";
+  } catch (_) {
+    return "owner";
+  }
+}
 
 function chapterOfStep(stepId) {
   return CHAPTERS.find((c) => c.stepIds.includes(stepId)) || null;
@@ -1974,6 +2371,30 @@ function setupAdvanceClick(step, target) {
 /*                       STATE TRANSITIONS                         */
 /* ============================================================== */
 
+// Build a full URL for a step, including the optional ?query string
+// (used by consultant tutorial steps that boot the host page in
+// fixture-only mode, e.g. listing.html?tutorial=1).
+function stepUrl(step) {
+  const q = step.query ? (step.query.startsWith("?") ? step.query : `?${step.query}`) : "";
+  return (step.path || "") + q + (step.hash || "");
+}
+
+// True when the destination URL would actually require navigation
+// (path mismatch OR query-string mismatch — same path with a new
+// `?tutorial=1` still needs to reload so the host page picks up
+// fixture mode).
+function needsCrossPageNav(step) {
+  if (step.path && step.path !== window.location.pathname) return true;
+  if (step.query) {
+    const want = new URLSearchParams(step.query.startsWith("?") ? step.query.slice(1) : step.query);
+    const have = new URLSearchParams(window.location.search);
+    for (const [k, v] of want) {
+      if (have.get(k) !== v) return true;
+    }
+  }
+  return false;
+}
+
 // Shared transition helper. Writes state, then either does a full
 // navigation (cross-page), a hash swap (tab switch on settings.html),
 // or an in-place re-render — whichever matches the next step's path
@@ -1985,8 +2406,8 @@ function transitionTo(step) {
   writeState({ ...prev, active: true, stepId: step.id });
   // Cross-page: full navigation. The destination page's onboarding.js
   // will pick up the persisted state and resume.
-  if (step.path && step.path !== window.location.pathname) {
-    window.location.href = step.path + (step.hash || "");
+  if (needsCrossPageNav(step)) {
+    window.location.href = stepUrl(step);
     return;
   }
   // Same page, different hash → trigger the settings tab switch and
@@ -2092,11 +2513,14 @@ function complete() {
 /*                      AUTO START / RESUME                        */
 /* ============================================================== */
 
-function start() {
-  writeState({ active: true, stepId: STEPS[0].id });
+// Internal: kick off a tutorial flow with a specific role already
+// resolved. The public `start` wraps this with role detection.
+function startForRole(role) {
+  setFlowByRole(role);
+  writeState({ active: true, stepId: STEPS[0].id, role });
   const first = STEPS[0];
-  if (first.path && first.path !== window.location.pathname) {
-    window.location.href = first.path + (first.hash || "");
+  if (needsCrossPageNav(first)) {
+    window.location.href = stepUrl(first);
     return;
   }
   // Defer one tick so the host page has time to paint its initial DOM
@@ -2105,6 +2529,14 @@ function start() {
   // even when the tab is backgrounded — rAF gets throttled to 1Hz or
   // worse outside the foreground, which silently breaks auto-start.
   setTimeout(() => waitForTargetThenRender(first), 0);
+}
+
+// Public start — used by the settings replay button. Detects the
+// current user's role before kicking off so consultants get the
+// consultant arc and owners get the owner arc.
+async function start() {
+  const role = await fetchCurrentUserRole();
+  startForRole(role);
 }
 
 function waitForTargetThenRender(step, attempt = 0) {
@@ -2143,6 +2575,11 @@ function waitForTargetThenRender(step, attempt = 0) {
 function resume() {
   const state = readState();
   if (!state?.active) return false;
+  // Restore the flow that was active when this state was written. Lets
+  // a consultant who landed mid-tutorial on a different page (e.g.
+  // settings.html navigation, then back to dashboard) pick up the
+  // consultant arc rather than defaulting to the business arc.
+  if (state.role) setFlowByRole(state.role);
   const step = STEPS[stepIndexById(state.stepId)];
   if (!step) return false;
   if (step.path && step.path !== window.location.pathname) {
@@ -2171,7 +2608,8 @@ async function maybeAutoStart() {
     // Hard restart — clear any state and run from the top.
     writeState(null);
     await clearOnboardedInDb();
-    start();
+    const role = await fetchCurrentUserRole();
+    startForRole(role);
     return;
   }
   if (params.get("welcome") === "1") {
@@ -2182,20 +2620,22 @@ async function maybeAutoStart() {
       const client = await getSupabaseClient();
       const { data: { user } } = await client.auth.getUser();
       if (!user) {
-        start();
+        const role = await fetchCurrentUserRole();
+        startForRole(role);
         return;
       }
       const { data } = await client
         .from("profiles")
-        .select("onboarded_at")
+        .select("onboarded_at, role")
         .eq("id", user.id)
         .maybeSingle();
       if (!data?.onboarded_at) {
-        start();
+        startForRole(data?.role === "consultant" ? "consultant" : "owner");
         return;
       }
     } catch (_) {
-      start();
+      const role = await fetchCurrentUserRole();
+      startForRole(role);
       return;
     }
   }

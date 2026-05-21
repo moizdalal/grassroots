@@ -263,120 +263,209 @@ function chunkPages(daily, pageSize = PAGE_SIZE) {
   return pages;
 }
 
+// Three ticks: 0, midpoint, max. Midpoint is omitted if max ≤ 2.
+// Shared by the y-axis labels and the SVG gridlines so both stay in
+// lockstep with whatever the chart's niceMax resolves to.
+function ticksForMax(niceMax) {
+  return niceMax <= 2 ? [0, niceMax] : [0, Math.round(niceMax / 2), niceMax];
+}
+
 function buildYAxis(niceMax) {
-  // Three ticks: 0, midpoint, max. Midpoint is omitted if max ≤ 2.
-  const ticks = niceMax <= 2 ? [0, niceMax] : [0, Math.round(niceMax / 2), niceMax];
-  return ticks
-    .slice()
-    .reverse()
-    .map(
-      (n, i) =>
-        `<span class="lv-hist__y-tick"${i === 0 ? ' data-top="1"' : ""}>${n}</span>`
-    )
+  const usableYPct = 100 - PLOT_PAD_TOP_PCT - PLOT_PAD_BOTTOM_PCT;
+  return ticksForMax(niceMax)
+    .map((tick) => {
+      const ratio = niceMax > 0 ? tick / niceMax : 0;
+      // Project the tick's SVG-relative y position into the y-axis
+      // box, which spans the full plot height (including the plot's
+      // 0.6rem top/bottom padding). The 100% - 1.2rem term resolves
+      // to the SVG content height; padding the result by 0.6rem puts
+      // the tick at the same screen-y as a node with the same ratio.
+      const yFromTopPct = PLOT_PAD_TOP_PCT + (1 - ratio) * usableYPct;
+      const topStyle = `calc(0.6rem + ${yFromTopPct.toFixed(2)} * (100% - 1.2rem) / 100)`;
+      return `<span class="lv-hist__y-tick" style="top:${topStyle}">${tick}</span>`;
+    })
     .join("");
 }
 
-function buildLine(pageDaily, niceMax) {
-  // SVG viewBox is (100×38) and uses preserveAspectRatio="none" so
-  // the polyline stretches to fill the container width — same x
-  // mapping the bar version used. `vector-effect="non-scaling-stroke"`
-  // keeps the line weight visually constant under that distortion.
-  // The dots are rendered separately as HTML circles (see below),
-  // so they stay perfectly round regardless of SVG aspect.
-  const w = 100;
-  const h = 38;
-  const padX = 4;             // breathing room so endpoint dots don't clip
-  const padTop = 6;
-  const padBottom = 4;
-  const usableW = w - padX * 2;
-  const usableH = h - padTop - padBottom;
-  const step = pageDaily.length > 1 ? usableW / (pageDaily.length - 1) : 0;
+// Plot geometry — percentages mirror the original viewBox 100×38 math
+// (padX=4, padTop=6, padBottom=4) so HTML node positions and the SVG
+// curve share the same reference grid.
+const PLOT_PAD_X_PCT = 4;
+const PLOT_PAD_TOP_PCT = (6 / 38) * 100;
+const PLOT_PAD_BOTTOM_PCT = (4 / 38) * 100;
+const PLOT_INSET_PX = 9.6; // matches .lv-hist__plot padding (0.6rem @ 16px)
 
-  const points = pageDaily.map((d, i) => {
-    const x = padX + step * i;
-    const ratio = niceMax > 0 ? d.count / niceMax : 0;
-    const y = padTop + (1 - ratio) * usableH;
-    const leftPct = (x / w) * 100;
-    const bottomPct = ((h - y) / h) * 100;
-    return { d, i, x, y, leftPct, bottomPct };
-  });
+function buildCurve(pageDaily, niceMax) {
+  // The SVG path is drawn after layout (see drawCurves) so it can use
+  // measured screen pixels matched to the container. This function
+  // emits the HTML node + label markup plus serialized day data the
+  // post-render hook reads off the plot element.
+  const stepPct = pageDaily.length > 1
+    ? (100 - PLOT_PAD_X_PCT * 2) / (pageDaily.length - 1)
+    : 0;
+  const usableYPct = 100 - PLOT_PAD_TOP_PCT - PLOT_PAD_BOTTOM_PCT;
 
-  // Line — one polyline per contiguous run of real (non-ghost) days
-  // so the trend doesn't drape into future placeholders.
-  const runs = [];
-  let cur = [];
-  for (const p of points) {
-    if (p.d.ghost) {
-      if (cur.length) runs.push(cur);
-      cur = [];
-    } else {
-      cur.push(p);
-    }
-  }
-  if (cur.length) runs.push(cur);
-  const lineSvg = runs
-    .filter((r) => r.length >= 2)
-    .map(
-      (r) =>
-        `<polyline class="lv-hist__line" vector-effect="non-scaling-stroke" points="${r
-          .map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`)
-          .join(" ")}"></polyline>`
-    )
-    .join("");
+  const nodes = pageDaily
+    .map((d, i) => {
+      const leftPct = pageDaily.length > 1
+        ? PLOT_PAD_X_PCT + stepPct * i
+        : 50;
+      const ratio = niceMax > 0 ? d.count / niceMax : 0;
+      const bottomPct = PLOT_PAD_BOTTOM_PCT + ratio * usableYPct;
 
-  // Dots as HTML buttons: a fixed-pixel circle inside a larger
-  // transparent hit area. The wrapper is positioned by percentage
-  // so it stays aligned with the SVG line underneath, while the
-  // visible mark stays perfectly round at any container width.
-  const dots = points
-    .map(({ d, leftPct, bottomPct }) => {
-      const baseCls = ["lv-hist__dot"];
-      if (d.ghost) baseCls.push("lv-hist__dot--ghost");
-      else if (d.offers > 0) baseCls.push("lv-hist__dot--offer");
-      const tabAttr = d.ghost ? 'tabindex="-1" disabled' : 'tabindex="0"';
+      const baseCls = ["lv-hist__node"];
+      if (d.ghost) baseCls.push("lv-hist__node--ghost");
+      else if (d.offers > 0) baseCls.push("lv-hist__node--offer");
+      // Plain divs — nodes are visual-only data markers, no click
+      // affordance. Tooltip still fires on hover via mouseover.
       return `
-        <button type="button" class="${baseCls.join(" ")}" ${tabAttr}
+        <div class="${baseCls.join(" ")}" role="img"
           style="left:${leftPct.toFixed(2)}%;bottom:${bottomPct.toFixed(2)}%"
           data-count="${d.count}" data-offers="${d.offers || 0}"
           data-date="${d.date}" data-ghost="${d.ghost ? 1 : 0}"
           aria-label="${formatLabel(d.date)}: ${d.count} view${d.count === 1 ? "" : "s"}">
-          <span class="lv-hist__dot-mark" aria-hidden="true"></span>
-        </button>
+          <span class="lv-hist__node-mark" aria-hidden="true"></span>
+        </div>
       `;
     })
     .join("");
 
-  // X-axis labels — anchor the first label to the left edge and the
-  // last to the right edge so they don't overflow the chart. Middle
-  // labels stay centered under their dot.
-  const lastIdx = pageDaily.length - 1;
+  const todayKey = toLocalDayKey(new Date().toISOString());
   const labels = pageDaily
     .map((d, i) => {
-      const leftPct = ((padX + step * i) / w) * 100;
-      let style = `left:${leftPct.toFixed(2)}%`;
-      let extra = "";
-      if (i === 0) extra = " lv-hist__label--first";
-      else if (i === lastIdx) extra = " lv-hist__label--last";
-      return `<span class="lv-hist__label${d.ghost ? " lv-hist__label--ghost" : ""}${extra}" style="${style}">${formatLabel(d.date)}</span>`;
+      const leftPct = pageDaily.length > 1
+        ? PLOT_PAD_X_PCT + stepPct * i
+        : 50;
+      // Mirror the nodes-layer's coordinate space: nodes-layer is inset
+      // 0.6rem inside the plot, so a node at X% sits at
+      //   0.6rem + X% * (plot_width - 1.2rem)
+      // from the plot's left edge. The axis container has no matching
+      // inset, so we project the same screen-x via calc() instead of
+      // letting a bare `left: X%` resolve against the wider axis box.
+      const labelLeft = `calc(0.6rem + ${leftPct.toFixed(2)} * (100% - 1.2rem) / 100)`;
+      const cls = [
+        "lv-hist__label",
+        d.ghost ? "lv-hist__label--ghost" : null,
+        d.date === todayKey ? "lv-hist__label--today" : null,
+      ]
+        .filter(Boolean)
+        .join(" ");
+      return `<span class="${cls}" style="left:${labelLeft}">${formatLabel(d.date)}</span>`;
     })
     .join("");
 
-  return { svgInner: lineSvg, dots, labels, w, h };
+  // Compact, attribute-safe payload for drawCurves.
+  const daysJson = JSON.stringify(
+    pageDaily.map((d) => ({ c: d.count, g: d.ghost ? 1 : 0 }))
+  ).replace(/"/g, "&quot;");
+
+  return { nodes, labels, daysJson, niceMax };
 }
 
 function buildPageContent(pageDaily, niceMax, pageIndex) {
-  const { svgInner, dots, labels, w, h } = buildLine(pageDaily, niceMax);
+  const { nodes, labels, daysJson, niceMax: nm } = buildCurve(
+    pageDaily,
+    niceMax
+  );
   return `
     <div class="lv-hist__page" data-page="${pageIndex}">
-      <div class="lv-hist__plot">
-        <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
-          ${svgInner}
-        </svg>
-        <div class="lv-hist__dots-layer">${dots}</div>
+      <div class="lv-hist__plot" data-days="${daysJson}" data-nice-max="${nm}">
+        <svg class="lv-hist__svg" aria-hidden="true"></svg>
+        <div class="lv-hist__nodes-layer">${nodes}</div>
       </div>
       <div class="lv-hist__axis">${labels}</div>
     </div>
   `;
+}
+
+// Draw the smooth curve in screen-pixel coordinates so it stays
+// aligned with the HTML node centers. One continuous Catmull-Rom path
+// per contiguous run of real (non-ghost) days. Called after the panel
+// is in the DOM so we can measure plot dimensions.
+function drawCurves(container) {
+  const plots = container.querySelectorAll(".lv-hist__plot[data-days]");
+  plots.forEach((plot) => {
+    const svg = plot.querySelector(".lv-hist__svg");
+    if (!svg) return;
+    let days;
+    try {
+      days = JSON.parse(plot.dataset.days || "[]");
+    } catch {
+      return;
+    }
+    if (!days.length) return;
+    const niceMax = parseFloat(plot.dataset.niceMax || "1") || 1;
+    const rect = plot.getBoundingClientRect();
+    const W = Math.max(1, rect.width - PLOT_INSET_PX * 2);
+    const H = Math.max(1, rect.height - PLOT_INSET_PX * 2);
+
+    const padX = (PLOT_PAD_X_PCT / 100) * W;
+    const padTop = (PLOT_PAD_TOP_PCT / 100) * H;
+    const padBottom = (PLOT_PAD_BOTTOM_PCT / 100) * H;
+    const usableW = W - padX * 2;
+    const usableH = H - padTop - padBottom;
+    const step = days.length > 1 ? usableW / (days.length - 1) : 0;
+
+    const points = days.map((d, i) => {
+      const x = days.length > 1 ? padX + step * i : W / 2;
+      const ratio = niceMax > 0 ? d.c / niceMax : 0;
+      const y = padTop + (1 - ratio) * usableH;
+      return { x, y, ghost: !!d.g };
+    });
+
+    // Contiguous runs of real (non-ghost) days so the curve doesn't
+    // drape into placeholder future days.
+    const runs = [];
+    let cur = [];
+    for (const p of points) {
+      if (p.ghost) {
+        if (cur.length) runs.push(cur);
+        cur = [];
+      } else {
+        cur.push(p);
+      }
+    }
+    if (cur.length) runs.push(cur);
+
+    // One continuous Catmull-Rom path per run, passing directly through
+    // every node center. Control-point y is clamped to each segment's
+    // own band so the curve can't overshoot above/below its endpoints
+    // — that's what keeps a {high, low, low, high} sequence from
+    // dipping below the flat middle.
+    let pathStr = "";
+    for (const run of runs) {
+      if (run.length < 2) continue;
+      pathStr += ` M${run[0].x.toFixed(2)},${run[0].y.toFixed(2)}`;
+      for (let i = 0; i < run.length - 1; i++) {
+        const p0 = run[i - 1] || run[i];
+        const p1 = run[i];
+        const p2 = run[i + 1];
+        const p3 = run[i + 2] || run[i + 1];
+        const c1 = {
+          x: p1.x + (p2.x - p0.x) / 6,
+          y: p1.y + (p2.y - p0.y) / 6,
+        };
+        const c2 = {
+          x: p2.x - (p3.x - p1.x) / 6,
+          y: p2.y - (p3.y - p1.y) / 6,
+        };
+        const yMin = Math.min(p1.y, p2.y);
+        const yMax = Math.max(p1.y, p2.y);
+        if (c1.y < yMin) c1.y = yMin;
+        else if (c1.y > yMax) c1.y = yMax;
+        if (c2.y < yMin) c2.y = yMin;
+        else if (c2.y > yMax) c2.y = yMax;
+
+        pathStr += ` C${c1.x.toFixed(2)},${c1.y.toFixed(2)} ${c2.x.toFixed(2)},${c2.y.toFixed(2)} ${p2.x.toFixed(2)},${p2.y.toFixed(2)}`;
+      }
+    }
+
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.setAttribute("preserveAspectRatio", "none");
+    svg.innerHTML = pathStr
+      ? `<path class="lv-hist__curve" vector-effect="non-scaling-stroke" d="${pathStr.trim()}"></path>`
+      : "";
+  });
 }
 
 function renderHistogram(daily) {
@@ -519,8 +608,24 @@ export function renderAnalyticsPanel(container, analytics, opts = {}) {
 
   // Hist interactions only apply when the chart is rendered (not in
   // compact mode). The conversion "?" toggle ships on both surfaces.
-  if (!compact) wireHistogramInteractions(container);
+  if (!compact) {
+    wireHistogramInteractions(container);
+    setupCurveDrawing(container);
+  }
   wireConversionInfoToggle(container);
+}
+
+// Draw the curve once the panel is in the DOM, then redraw on window
+// resize so each segment keeps terminating at the node perimeter
+// (HTML nodes are positioned by % and adapt automatically, but the
+// SVG path is in measured pixels and needs a fresh pass on resize).
+function setupCurveDrawing(container) {
+  const draw = () => drawCurves(container);
+  requestAnimationFrame(draw);
+  const prior = container.__lvCurveHandler;
+  if (prior) window.removeEventListener("resize", prior);
+  container.__lvCurveHandler = draw;
+  window.addEventListener("resize", draw);
 }
 
 // "?" affordance next to the view→offer rate label. Click flips the
@@ -571,15 +676,15 @@ function wireHistogramInteractions(root) {
   const viewsEl = tooltip.querySelector('[data-tooltip="views"]');
   const offersEl = tooltip.querySelector('[data-tooltip="offers"]');
 
-  function showTooltipForDot(dot) {
-    const ghost = dot.dataset.ghost === "1";
+  function showTooltipForNode(node) {
+    const ghost = node.dataset.ghost === "1";
     if (ghost) {
       tooltip.hidden = true;
       return;
     }
-    const count = parseInt(dot.dataset.count || "0", 10);
-    const offers = parseInt(dot.dataset.offers || "0", 10);
-    const date = dot.dataset.date;
+    const count = parseInt(node.dataset.count || "0", 10);
+    const offers = parseInt(node.dataset.offers || "0", 10);
+    const date = node.dataset.date;
     if (!date) return;
     const [y, m, d] = date.split("-").map(Number);
     const dateObj = new Date(y, m - 1, d);
@@ -595,9 +700,9 @@ function wireHistogramInteractions(root) {
     // left position so the bubble never overflows the pages wrapper.
     tooltip.hidden = false;
     const histRect = pagesWrap.getBoundingClientRect();
-    const dotRect = dot.getBoundingClientRect();
+    const nodeRect = node.getBoundingClientRect();
     const tipRect = tooltip.getBoundingClientRect();
-    const centerX = dotRect.left + dotRect.width / 2 - histRect.left;
+    const centerX = nodeRect.left + nodeRect.width / 2 - histRect.left;
     const half = tipRect.width / 2;
     const margin = 6;
     const clamped = Math.max(
@@ -609,20 +714,18 @@ function wireHistogramInteractions(root) {
   }
 
   function clearTooltipForLeave(target) {
-    // Only hide if the cursor actually left the dot, not when it
-    // moved into the visible circle inside it.
-    if (!target?.closest(".lv-hist__dot")) tooltip.hidden = true;
+    if (!target?.closest(".lv-hist__node")) tooltip.hidden = true;
   }
 
   pagesWrap.addEventListener("mouseover", (e) => {
-    const dot = e.target.closest(".lv-hist__dot");
-    if (!dot) return;
-    showTooltipForDot(dot);
+    const node = e.target.closest(".lv-hist__node");
+    if (!node) return;
+    showTooltipForNode(node);
   });
   pagesWrap.addEventListener("focusin", (e) => {
-    const dot = e.target.closest(".lv-hist__dot");
-    if (!dot) return;
-    showTooltipForDot(dot);
+    const node = e.target.closest(".lv-hist__node");
+    if (!node) return;
+    showTooltipForNode(node);
   });
   pagesWrap.addEventListener("mouseleave", () => {
     tooltip.hidden = true;

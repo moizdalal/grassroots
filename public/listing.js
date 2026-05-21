@@ -2938,7 +2938,183 @@ async function buildOwnerMsgThread(client, listingId, myId, consultantId, contai
    Init
    ================================================================ */
 
+// ───────────────── tutorial fixture mode ─────────────────
+// When the URL carries `?tutorial=1` we boot a fake listing instead of
+// hitting Supabase. The consultant onboarding tutorial uses this to
+// walk a new user through the listing surfaces (bio, context, problem,
+// standards, have-a-question, make-an-offer) without ever creating a
+// real bid or paying a real business. The submit handler shows a
+// toast and bumps the tutorial to the garden chapter; nothing writes.
+function isTutorialMode() {
+  return new URLSearchParams(window.location.search).get("tutorial") === "1";
+}
+
+const TUTORIAL_FIXTURE_LISTING = {
+  id: "tutorial-mock-listing",
+  owner_id: "tutorial-mock-owner",
+  title: "weekend farmers market sales push",
+  status: "open",
+  contract_type: "standard",
+  category: "marketing, retail",
+  turnaround_days: 14,
+  created_at: new Date().toISOString(),
+  // populateListing parses structured sections out of `details`. The
+  // create-listing form writes the same shape, so the fixture mirrors
+  // that contract.
+  details: [
+    "budget range: $600–$1,200",
+    "",
+    "context:",
+    "we run a small bakery near campus. our weekend booth at the farmers market has the highest foot traffic of the week, but sales have plateaued for three months. menu, pricing, and signage have not changed in that window.",
+    "",
+    "business problem:",
+    "we want to lift saturday booth sales by at least twenty percent over four weeks. budget exists for new menu prints, but staffing is fixed.",
+    "",
+    "standards of work:",
+    "a written plan with two or three testable tactics, suggested menu and signage tweaks, and a short script the booth staff can use to upsell. we want it as a google doc or pdf, ready to apply the following saturday.",
+    "",
+    "additional details:",
+    "we mostly sell bread, cookies, and coffee. our regulars are college students and parents with young kids. our instagram has 1,200 followers but engagement is low.",
+  ].join("\n"),
+  qualifications_required: [
+    "comfortable working with a small-team retail business",
+    "examples of similar storefront or market activations",
+  ].join("\n"),
+  attachments: [],
+  profiles: {
+    full_name: "amelia chen",
+    avatar_path: null,
+    linkedin_url: "",
+  },
+  _business: {
+    business_name: "honeycomb bakery",
+    business_details:
+      "neighborhood bakery and coffee shop, two years in. saturday market booth is our highest-volume day.",
+    website_url: "",
+    social_links: [],
+  },
+};
+
+function runTutorialListing() {
+  // Render fixture into the existing DOM via populateListing — the
+  // function is pure DOM-population and doesn't touch Supabase.
+  populateListing(TUTORIAL_FIXTURE_LISTING);
+  setOwnerSidebarVisible(false);
+  setOfferRailVisible(true);
+
+  // Show the offer panel + wire the inputs to render the live breakdown.
+  const panel = document.getElementById("ld-offer-panel");
+  if (panel) panel.hidden = false;
+  const amountInput = document.getElementById("ld-bid-amount");
+  const breakdownEl = document.getElementById("ld-offer-breakdown");
+  const renderBreakdown = () => {
+    if (!breakdownEl) return;
+    const dollars = Number(amountInput?.value);
+    if (!Number.isFinite(dollars) || dollars <= 0) {
+      breakdownEl.hidden = true;
+      breakdownEl.innerHTML = "";
+      return;
+    }
+    const f = computeFees(Math.round(dollars * 100));
+    const platformValueClass = f.platformFeeWaived
+      ? "ld-offer-breakdown__value ld-offer-breakdown__value--strike"
+      : "ld-offer-breakdown__value";
+    breakdownEl.innerHTML = `
+      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
+        <span>offer</span>
+        <span class="ld-offer-breakdown__value">${formatUsd(f.amountCents)}</span>
+      </div>
+      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
+        <span>
+          platform fee (10%)
+          ${f.platformFeeWaived ? '<span class="ld-offer-breakdown__hint">waived during launch</span>' : ""}
+        </span>
+        <span class="${platformValueClass}">${formatUsd(f.platformFeeFullCents)}</span>
+      </div>
+      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--biz">
+        <span>business pays</span>
+        <span class="ld-offer-breakdown__value">${formatUsd(f.businessTotalCents)}</span>
+      </div>
+      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
+        <span>
+          stripe processing fee
+          <span class="ld-offer-breakdown__hint">your cost to receive payment</span>
+        </span>
+        <span class="ld-offer-breakdown__value">−${formatUsd(f.stripeFeeCents)}</span>
+      </div>
+      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--total">
+        <span>you take home</span>
+        <span class="ld-offer-breakdown__value">${formatUsd(f.consultantPayoutCents)}</span>
+      </div>
+    `;
+    breakdownEl.hidden = false;
+  };
+  amountInput?.addEventListener("input", renderBreakdown);
+
+  // "+ attach a message" toggle — re-uses the live page's elements
+  // but wires a simpler open/close.
+  const msgToggle = document.getElementById("ld-offer-msg-toggle");
+  const msgWrap = document.getElementById("ld-offer-msg-wrap");
+  msgToggle?.addEventListener("click", () => {
+    if (!msgWrap) return;
+    msgWrap.classList.toggle("hidden");
+  });
+
+  // Stubbed submit — no DB write. Just toasts and advances the
+  // onboarding state to the garden chapter so the next "next" lands
+  // the user on the simulated garden.
+  const submitBtn = document.getElementById("ld-bid-submit");
+  submitBtn?.addEventListener("click", () => {
+    showSuccess(
+      "submitted (tutorial). real offers go to the business right away.",
+      { duration: 4500 }
+    );
+    submitBtn.disabled = true;
+    submitBtn.textContent = "submitted";
+    // Bump the onboarding state directly so the bubble auto-advances
+    // to the garden step on its next render.
+    try {
+      const raw = localStorage.getItem("grassroots_onboarding");
+      const state = raw ? JSON.parse(raw) : null;
+      if (state?.active) {
+        state.stepId = "c-garden-intro";
+        localStorage.setItem("grassroots_onboarding", JSON.stringify(state));
+      }
+    } catch (_) {}
+    // Navigate to the simulated garden after a brief moment so the
+    // user sees the success state register before we redirect.
+    setTimeout(() => {
+      window.location.href = "/consultant-dashboard.html?tutorial=garden";
+    }, 1200);
+  });
+
+  // "have a question?" — show the button and stub its handler.
+  const questionWrap = document.getElementById("ld-question-wrap");
+  if (questionWrap) questionWrap.hidden = false;
+  const questionBtn = document.getElementById("ld-question-btn");
+  questionBtn?.addEventListener("click", () => {
+    showToast(
+      "in real use this opens a chat with the business. tutorial mode keeps it simple.",
+      { kind: "info", duration: 4500 }
+    );
+  });
+
+  // Unhide the page chrome and we're done.
+  gate.hidden = true;
+  detail.hidden = false;
+}
+
 async function init() {
+  if (isTutorialMode()) {
+    try { runTutorialListing(); }
+    catch (err) {
+      console.warn("[tutorial] listing fixture failed", err);
+      gate.textContent = "tutorial preview unavailable. ping support.";
+      gate.className = "gr-status error";
+    }
+    return;
+  }
+
   const listingId = getListingId();
   if (!listingId) {
     gate.textContent = "no listing id provided.";

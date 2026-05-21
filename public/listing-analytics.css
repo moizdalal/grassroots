@@ -235,28 +235,33 @@
 }
 
 .lv-hist__body {
-  display: grid;
-  grid-template-columns: 1.6rem 1fr;
-  gap: 0.45rem;
-  align-items: stretch;
+  position: relative;
 }
 
+/* Y-axis labels overlay the plot's left edge so the plot itself can
+   start flush with the panel's left edge (aligned with the metric
+   tiles above). Each tick is positioned absolutely at its data y. */
 .lv-hist__y-axis {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 9.5rem;
-  padding: 0.6rem 0;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1.6rem;
+  z-index: 2;
+  pointer-events: none;
   font-family: "Manrope", system-ui, sans-serif;
   font-size: var(--type-eyebrow);
   letter-spacing: 0.04em;
   color: var(--fo-text-3);
   text-align: right;
-  box-sizing: border-box;
 }
 
 .lv-hist__y-tick {
+  position: absolute;
+  right: 0;
+  transform: translateY(-50%);
   line-height: 1;
+  padding-right: 0.4rem;
 }
 
 .lv-hist__pages {
@@ -284,104 +289,111 @@
   box-sizing: border-box;
 }
 
-.lv-hist__plot svg {
-  width: 100%;
-  height: 100%;
-  display: block;
-  overflow: visible;
-}
-
-/* Line graph + dots. The polyline is drawn in SVG (stretched to the
-   container width by preserveAspectRatio="none", with non-scaling
-   stroke so weight stays constant). The dots sit in an HTML overlay
-   on top of the SVG so they keep a perfect circular shape regardless
-   of the container's aspect ratio. */
+/* Smooth curve + nodes. The path is drawn in JS at measured screen
+   pixels (so each segment stops a consistent gap shy of the next
+   node). Nodes sit in an HTML overlay on top of the SVG so they keep
+   a perfect circular shape regardless of plot aspect. */
 .lv-hist__plot {
   position: relative;
 }
 
-.lv-hist__plot > svg {
+.lv-hist__plot > .lv-hist__svg {
   position: absolute;
   inset: 0.6rem;
   width: calc(100% - 1.2rem);
   height: calc(100% - 1.2rem);
+  display: block;
+  overflow: visible;
 }
 
-.lv-hist__line {
+.lv-hist__curve {
   fill: none;
   stroke: var(--fo-text-3);
-  stroke-width: 1.5;
+  stroke-width: 1.8;
   stroke-linejoin: round;
   stroke-linecap: round;
-  opacity: 0.75;
+  opacity: 0.85;
 }
 
-.lv-hist__dots-layer {
+.lv-hist__nodes-layer {
   position: absolute;
   inset: 0.6rem;
   pointer-events: none;
 }
 
-/* Each dot button is positioned by left% / bottom% over the line.
-   The visible circle is a fixed-px element inside the button — a
-   button-sized hit-target around it expands hover without distorting
-   the visual mark. */
-.lv-hist__dot {
+/* Each node positions its center by left% / bottom% over the curve.
+   Visual-only — no click affordance. The transparent wrapper is wider
+   than the mark so the mouseover region is comfortable for tooltips.
+   Margin: negative `margin-bottom` (not `margin-top`) centers the box
+   on the bottom% line — with `bottom: Y%`, only margin-bottom shifts
+   the border-bottom edge upward by half the box height. */
+.lv-hist__node {
   position: absolute;
-  width: 22px;
-  height: 22px;
-  margin: -11px 0 0 -11px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  margin: 0 0 -14px -14px;
   pointer-events: auto;
 }
 
-.lv-hist__dot[disabled] {
-  cursor: default;
-  pointer-events: none;
-}
-
-/* Visible mark — absolutely centered inside the larger hit-target so
-   the circle always renders 9×9 (not flex-shrunk by an inline-flex
-   parent). border-radius:50% on a square element guarantees round. */
-.lv-hist__dot-mark {
+/* Visible mark — a filled circle with a surface-colored border that
+   cleanly masks the curve passing under it. */
+.lv-hist__node-mark {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 9px;
-  height: 9px;
-  margin: -4.5px 0 0 -4.5px;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
   box-sizing: border-box;
   border-radius: 50%;
   background: var(--fo-text-2);
-  border: 1px solid var(--fo-surface-2);
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  border: 2px solid var(--fo-surface-2);
 }
 
-/* Days with at least one offer pick up the brand accent. */
-.lv-hist__dot--offer .lv-hist__dot-mark {
+/* Days with at least one offer pick up the brand accent and an
+   accent-tinted pulse so they read as the "good news" on the chart. */
+.lv-hist__node--offer .lv-hist__node-mark {
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
   background: var(--fo-accent);
+  border-color: var(--fo-accent);
+  animation: lv-hist-offer-pulse 2.4s ease-out infinite;
 }
 
-/* Future / padded days — outline only, low opacity. */
-.lv-hist__dot--ghost .lv-hist__dot-mark {
+@keyframes lv-hist-offer-pulse {
+  0% {
+    box-shadow:
+      0 0 0 0 color-mix(in srgb, var(--fo-accent) 55%, transparent),
+      0 0 0 0 color-mix(in srgb, var(--fo-accent) 45%, transparent);
+  }
+  60% {
+    box-shadow:
+      0 0 0 10px color-mix(in srgb, var(--fo-accent) 0%, transparent),
+      0 0 16px 4px color-mix(in srgb, var(--fo-accent) 35%, transparent);
+  }
+  100% {
+    box-shadow:
+      0 0 0 14px color-mix(in srgb, var(--fo-accent) 0%, transparent),
+      0 0 0 0 color-mix(in srgb, var(--fo-accent) 0%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lv-hist__node--offer .lv-hist__node-mark {
+    animation: none;
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--fo-accent) 28%, transparent),
+      0 0 14px 2px color-mix(in srgb, var(--fo-accent) 38%, transparent);
+  }
+}
+
+/* Future / padded days — hollow, dashed border, low opacity. */
+.lv-hist__node--ghost .lv-hist__node-mark {
   background: var(--fo-bg);
   border-color: var(--fo-line-strong);
-  opacity: 0.55;
-}
-
-.lv-hist__dot:hover .lv-hist__dot-mark,
-.lv-hist__dot:focus-visible .lv-hist__dot-mark {
-  transform: scale(1.25);
-  border-color: var(--fo-text);
-}
-
-.lv-hist__dot:focus-visible {
-  outline: 2px solid var(--fo-accent);
-  outline-offset: 2px;
-  border-radius: 50%;
+  border-style: dashed;
+  opacity: 0.6;
 }
 
 /* X-axis labels — HTML spans absolutely positioned by left percentage
@@ -406,23 +418,14 @@
   line-height: 1;
 }
 
-/* First and last labels would otherwise center on the edge dot and
-   overflow the chart. Anchor them so the date stays inside the
-   plot's horizontal bounds. */
-.lv-hist__label--first {
-  transform: none;
-  left: 0 !important;
-  text-align: left;
-}
-.lv-hist__label--last {
-  transform: none;
-  left: auto !important;
-  right: 0;
-  text-align: right;
-}
-
 .lv-hist__label--ghost {
   opacity: 0.5;
+}
+
+/* Today's date — bold so the "you are here" position pops. */
+.lv-hist__label--today {
+  font-weight: 700;
+  color: var(--fo-text);
 }
 
 /* Dot navigation — one per page, filled = active. Mirrors the
