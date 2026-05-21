@@ -1,0 +1,267 @@
+      .ld-nav {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        padding: var(--space-3) clamp(var(--space-5), 4vw, var(--space-7));
+        background: transparent;
+        transition: background 0.3s ease, border-color 0.3s ease, backdrop-filter 0.3s ease, padding 0.3s ease;
+        border-bottom: 1px solid transparent;
+      }
+      .ld-nav.is-scrolled {
+        background: color-mix(in srgb, var(--fo-bg) 70%, transparent);
+        backdrop-filter: blur(16px) saturate(160%);
+        -webkit-backdrop-filter: blur(16px) saturate(160%);
+        border-bottom-color: var(--fo-line);
+        padding-block: calc(var(--space-3) - 2px);
+      }
+      .ld-nav__inner {
+        max-width: 1180px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-4);
+      }
+
+      /* brand: sprout grows on hover; wordmark gets a subtle slide */
+      .ld-nav__brand {
+        display: inline-flex; align-items: center; gap: 0.55rem;
+        text-decoration: none; color: var(--fo-text);
+        font-family: "Fraunces", Georgia, serif;
+        font-weight: 600; font-size: 1.2rem;
+        letter-spacing: -0.02em;
+        position: relative;
+        padding: 0.2rem 0;
+      }
+      .ld-nav__brand-mark {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.7rem;
+        height: 1.7rem;
+        flex-shrink: 0;
+        transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .ld-nav__brand:hover .ld-nav__brand-mark { transform: rotate(-6deg); }
+      .ld-nav__brand .ld-sprout {
+        height: 1.5rem; width: auto;
+        color: var(--fo-accent);
+        flex-shrink: 0; display: block;
+        transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .ld-nav__brand:hover .ld-sprout {
+        transform: scale(1.08) translateY(-1px);
+      }
+      /* a soft halo glow when hovered */
+      .ld-nav__brand-mark::after {
+        content: "";
+        position: absolute;
+        inset: -25%;
+        background: radial-gradient(closest-side, var(--fo-accent-soft), transparent 70%);
+        border-radius: 50%;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: -1;
+      }
+      .ld-nav__brand:hover .ld-nav__brand-mark::after { opacity: 1; }
+      .ld-nav__brand-text {
+        display: inline-flex;
+      }
+      .ld-nav__brand-text span {
+        display: inline-block;
+        transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), color 0.25s ease;
+      }
+      .ld-nav__brand:hover .ld-nav__brand-text span { color: var(--fo-accent); }
+
+      .ld-nav__links {
+        display: flex; align-items: center;
+        gap: clamp(var(--space-3), 2vw, var(--space-5));
+        margin: 0; padding: 0; list-style: none;
+      }
+
+      /* theme-toggle pill in the nav. shows a sun in dark themes
+         (click → light) and a moon in light theme (click → dark). */
+      .ld-nav__theme {
+        appearance: none;
+        background: transparent;
+        border: 1px solid var(--fo-line-strong);
+        border-radius: 999px;
+        padding: 0;
+        width: 36px; height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: var(--fo-text-2);
+        transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease, transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+        position: relative;
+        overflow: hidden;
+      }
+      .ld-nav__theme:hover {
+        color: var(--fo-accent);
+        border-color: var(--fo-accent);
+        background: var(--fo-accent-soft);
+        transform: rotate(-15deg);
+      }
+      .ld-nav__theme svg {
+        width: 1.05rem; height: 1.05rem;
+      }
+      .ld-nav__theme-sun, .ld-nav__theme-moon {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      /* default (dark themes) → show sun (click to go light) */
+      .ld-nav__theme-sun  { opacity: 1; }
+      .ld-nav__theme-moon { opacity: 0; transform: translate(-50%, -50%) rotate(-90deg); }
+      /* light theme → show moon (click to go dark) */
+      [data-theme="light"] .ld-nav__theme-sun  { opacity: 0; transform: translate(-50%, -50%) rotate(90deg); }
+      [data-theme="light"] .ld-nav__theme-moon { opacity: 1; transform: translate(-50%, -50%) rotate(0deg); }
+
+      /* ─── animated link: ink-draw underline + dot above ─── */
+      .ld-nav__link {
+        position: relative;
+        color: var(--fo-text-2); text-decoration: none;
+        font-family: "Manrope", system-ui, sans-serif;
+        font-size: var(--type-body); font-weight: 500;
+        padding: 0.6rem 0.2rem;
+        transition: color 0.22s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+      .ld-nav__link::before {
+        /* dot indicator that drops in from above */
+        content: "";
+        position: absolute;
+        top: 0.15rem; left: 50%;
+        width: 4px; height: 4px;
+        border-radius: 50%;
+        background: var(--fo-accent);
+        transform: translate(-50%, -8px) scale(0.5);
+        opacity: 0;
+        transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .ld-nav__link::after {
+        /* ink-draw underline */
+        content: "";
+        position: absolute;
+        left: 0; bottom: 0.35rem;
+        width: 100%; height: 1.5px;
+        background: var(--fo-accent);
+        transform-origin: left center;
+        transform: scaleX(0);
+        transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .ld-nav__link:hover,
+      .ld-nav__link:focus-visible {
+        color: var(--fo-text);
+        outline: none;
+      }
+      .ld-nav__link:hover::before,
+      .ld-nav__link:focus-visible::before {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+      }
+      .ld-nav__link:hover::after,
+      .ld-nav__link:focus-visible::after {
+        transform: scaleX(1);
+      }
+      .ld-nav__link[aria-current="page"]::after {
+        transform: scaleX(1);
+      }
+
+      /* ─── CTA: spring on hover, shimmer arrow reveal ─── */
+      .ld-nav__cta {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.6rem 1.1rem 0.6rem 1.15rem;
+        background: var(--fo-accent);
+        color: var(--fo-accent-on);
+        text-decoration: none;
+        border-radius: 999px;
+        font-family: "Manrope", system-ui, sans-serif;
+        font-size: var(--type-body);
+        font-weight: 700;
+        letter-spacing: 0;
+        overflow: hidden;
+        isolation: isolate;
+        transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+                    box-shadow 0.32s ease,
+                    color 0.22s ease;
+        box-shadow: 0 4px 14px color-mix(in srgb, var(--fo-accent) 28%, transparent),
+                    inset 0 0 0 0 transparent;
+      }
+      /* sliding sheen that swipes left→right on hover */
+      .ld-nav__cta::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: linear-gradient(120deg,
+          transparent 30%,
+          color-mix(in srgb, var(--fo-accent-on) 24%, transparent) 50%,
+          transparent 70%);
+        transform: translateX(-110%);
+        transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .ld-nav__cta:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 30px color-mix(in srgb, var(--fo-accent) 38%, transparent);
+        color: var(--fo-accent-on);
+      }
+      .ld-nav__cta:hover::before { transform: translateX(110%); }
+      .ld-nav__cta:active { transform: translateY(0); transition-duration: 0.1s; }
+      [data-theme="light"] .ld-nav__cta:hover { filter: none; }
+
+      /* arrow that slides in from inside the pill on hover */
+      .ld-nav__cta-arrow {
+        display: inline-block;
+        width: 0;
+        overflow: hidden;
+        opacity: 0;
+        transition: width 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+                    opacity 0.32s ease;
+      }
+      .ld-nav__cta-arrow svg {
+        width: 1rem; height: 1rem; display: block;
+      }
+      .ld-nav__cta:hover .ld-nav__cta-arrow {
+        width: 1.05rem;
+        opacity: 1;
+      }
+
+      /* scroll progress hairline at the bottom edge of the nav */
+      .ld-nav__progress {
+        position: absolute;
+        left: 0; right: 0; bottom: 0;
+        height: 2px;
+        background: transparent;
+        pointer-events: none;
+      }
+      .ld-nav__progress-fill {
+        position: absolute;
+        left: 0; top: 0;
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--fo-accent), color-mix(in srgb, var(--fo-accent) 60%, transparent));
+        transform-origin: left;
+        transition: width 0.12s linear;
+      }
+
+      @media (max-width: 720px) {
+        .ld-nav__links li.ld-nav__hide-sm { display: none; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ld-nav, .ld-nav *,
+        .ld-nav__brand-mark, .ld-sprout,
+        .ld-nav__link, .ld-nav__link::before, .ld-nav__link::after,
+        .ld-nav__cta, .ld-nav__cta::before, .ld-nav__cta-arrow,
+        .ld-nav__progress-fill {
+          transition: none !important;
+        }
+      }

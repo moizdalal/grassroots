@@ -1,702 +1,748 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark-forest">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>about — grassroots</title>
-    <link rel="icon" type="image/svg+xml" href="./assets/grassroots-icon-syne.svg" />
+    <title>grassroots — about. a field guide.</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+    <link rel="alternate icon" href="/favicon.svg?v=2" />
+    <meta name="description" content="grassroots is a local consulting marketplace built by a junior who watched his aunt write a four-thousand-dollar check for a logo. this is the field guide." />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Manrope:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,500;1,9..144,600;1,9..144,700;1,9..144,900&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./index.css" />
-    <style>
-      .about-page {
-        background:
-          radial-gradient(120% 120% at 50% 0%, rgba(47, 82, 67, 0.36) 0%, rgba(33, 37, 45, 0) 54%),
-          radial-gradient(120% 80% at 50% 0%, #343a47 0%, var(--bg-mid) 45%, var(--bg-deep) 100%);
-      }
 
-      .about-shell {
-        width: min(1200px, calc(100% - 2.25rem));
-        margin: 0 auto;
-        padding: 7.5rem 0 5rem;
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 240px;
-        gap: clamp(1.5rem, 4vw, 3rem);
-        align-items: start;
-      }
-
-      .about-content {
-        display: grid;
-        gap: 1.75rem;
-      }
-
-      .about-panel {
-        background: rgba(20, 24, 30, 0.52);
-        border: 1px solid rgba(223, 231, 242, 0.12);
-        border-radius: 1.5rem;
-        padding: clamp(2rem, 4vw, 3rem);
-        box-shadow: 0 24px 60px rgba(4, 9, 16, 0.18);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-      }
-
-      .about-panel[id] {
-        scroll-margin-top: 6.5rem;
-      }
-
-      .about-kicker {
-        margin: 0 0 0.75rem;
-        font-size: 0.8rem;
-        font-weight: 700;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: #9ed0ff;
-      }
-
-      .about-heading {
-        margin: 0;
-        font-family: "Syne", sans-serif;
-        font-size: clamp(2rem, 5vw, 3.35rem);
-        line-height: 1.05;
-        letter-spacing: -0.04em;
-        color: #fff;
-      }
-
-      .about-body {
-        font-family: "Inter", sans-serif;
-        font-size: 1.02rem;
-        line-height: 1.75;
-        color: rgba(255, 255, 255, 0.8);
-      }
-
-      .about-body p {
-        margin: 0;
-      }
-
-      .about-body p + p {
-        margin-top: 1.15rem;
-      }
-
-      .about-mission {
-        display: grid;
-        grid-template-columns: minmax(0, 1.02fr) minmax(280px, 0.98fr);
-        gap: clamp(1.5rem, 4vw, 2.75rem);
-        align-items: center;
-      }
-
-      .about-mission__copy .about-body {
-        margin-top: 1.3rem;
-        max-width: 38rem;
-      }
-
-      .about-mission__art {
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-      }
-
-      .about-mission__art .mission-supercharge {
-        max-width: min(470px, 100%);
-        transform: none;
-      }
-
-      .about-founder {
-        display: grid;
-        grid-template-columns: 180px minmax(0, 1fr);
-        gap: clamp(1.4rem, 3vw, 2.25rem);
-        align-items: start;
-      }
-
-      .founder-avatar {
-        width: 160px;
-        height: 160px;
-        border-radius: 50%;
-        background: linear-gradient(145deg, rgba(143, 215, 180, 0.2), rgba(158, 208, 255, 0.16));
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        display: grid;
-        place-items: center;
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #dff4e8;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
-      }
-
-      .about-stats__head,
-      .about-reviews__head {
-        max-width: 42rem;
-      }
-
-      .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 1rem;
-        margin-top: 2rem;
-      }
-
-      .stat-card {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 1.2rem;
-        padding: 1.75rem 1.35rem;
-      }
-
-      .stat-card__number {
-        margin-bottom: 0.45rem;
-        font-family: "Syne", sans-serif;
-        font-size: clamp(2.4rem, 5vw, 3.4rem);
-        font-weight: 800;
-        line-height: 1;
-        color: #9ed0ff;
-      }
-
-      .stat-card__label {
-        font-family: "Inter", sans-serif;
-        font-size: 0.95rem;
-        line-height: 1.5;
-        color: rgba(255, 255, 255, 0.7);
-      }
-
-      .about-note {
-        margin: 1rem 0 0;
-        font-family: "Inter", sans-serif;
-        font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.46);
-      }
-
-      .reviews-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 1rem;
-        margin-top: 2rem;
-      }
-
-      .review-card {
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 1.1rem;
-        padding: 1.5rem 1.35rem;
-      }
-
-      .review-card__avatar {
-        width: 52px;
-        height: 52px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.08);
-        margin-bottom: 0.9rem;
-      }
-
-      .review-card__name {
-        margin-bottom: 0.55rem;
-        font-size: 0.95rem;
-        font-weight: 700;
-        color: rgba(255, 255, 255, 0.6);
-      }
-
-      .review-card__stars {
-        display: flex;
-        gap: 0.25rem;
-        margin-bottom: 0.85rem;
-      }
-
-      .review-card__stars svg {
-        width: 16px;
-        height: 16px;
-        stroke: rgba(255, 255, 255, 0.26);
-        fill: none;
-        stroke-width: 1.5;
-      }
-
-      .review-card__quote {
-        margin: 0;
-        font-family: "Inter", sans-serif;
-        font-size: 0.95rem;
-        line-height: 1.7;
-        color: rgba(255, 255, 255, 0.62);
-      }
-
-      .about-toc {
-        position: sticky;
-        top: 6.25rem;
-        background: rgba(12, 16, 22, 0.44);
-        border: 1px solid rgba(223, 231, 242, 0.12);
-        border-radius: 1.2rem;
-        padding: 1rem;
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        box-shadow: 0 18px 40px rgba(5, 10, 18, 0.16);
-      }
-
-      .about-toc__title {
-        margin: 0 0 0.85rem;
-        font-size: 0.76rem;
-        font-weight: 700;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.52);
-      }
-
-      .about-toc__list {
-        display: grid;
-        gap: 0.45rem;
-      }
-
-      .about-toc__link {
-        display: block;
-        padding: 0.7rem 0.8rem;
-        border-radius: 0.9rem;
-        color: rgba(255, 255, 255, 0.84);
-        text-decoration: none;
-        font-size: 0.95rem;
-        line-height: 1.35;
-        transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
-      }
-
-      .about-toc__link:hover,
-      .about-toc__link:focus-visible {
-        background: rgba(158, 208, 255, 0.14);
-        color: #fff;
-        transform: translateX(2px);
-        outline: none;
-      }
-
-      @media (max-width: 980px) {
-        .about-shell {
-          grid-template-columns: 1fr;
-          padding-top: 6.5rem;
-        }
-
-        .about-toc {
-          order: -1;
-          position: sticky;
-          top: 5.4rem;
-          z-index: 8;
-        }
-
-        .about-toc__list {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .about-mission,
-        .about-founder {
-          grid-template-columns: 1fr;
-        }
-
-        .about-mission__art {
-          justify-content: center;
-        }
-      }
-
-      @media (max-width: 760px) {
-        .about-shell {
-          width: min(100%, calc(100% - 1.1rem));
-          padding-bottom: 3.5rem;
-        }
-
-        .about-panel {
-          padding: 1.5rem 1.2rem;
-          border-radius: 1.2rem;
-        }
-
-        .about-toc__list,
-        .stats-grid,
-        .reviews-grid {
-          grid-template-columns: 1fr;
-        }
-
-        .founder-avatar {
-          width: 132px;
-          height: 132px;
-          font-size: 2.1rem;
-        }
-      }
-    </style>
+    <link rel="stylesheet" href="/grassroots.css" />
+    <link rel="stylesheet" href="/field-office.css" />
+    <link rel="stylesheet" href="/home/nav.css" />
+    <link rel="stylesheet" href="/home/about.css" />
+    <script src="/theme.js"></script>
+    <script src="/home/nav.js" defer></script>
   </head>
-  <body class="beta-page about-page">
-    <nav class="site-nav" aria-label="Primary">
-      <div class="site-nav__inner">
-        <div class="site-nav__start">
-          <a class="site-nav__brand" href="./index.html">
-            <img class="site-nav__logo" src="./assets/grassroots-icon-syne.svg" width="24" height="40" alt="grassroots" />
-            <span class="site-nav__wordmark">grassroots</span>
-          </a>
-        </div>
-        <ul class="site-nav__links">
-          <li><a href="/marketplace.html">marketplace</a></li>
-          <li><a href="/home/about.html" aria-current="page">about</a></li>
-          <li><a href="/signin.html">sign in</a></li>
-          <li><a class="site-nav__cta" href="/register.html">join grassroots</a></li>
+
+  <body class="gr-body">
+    <!-- ambient bg -->
+    <div class="ab-bg" aria-hidden="true">
+      <div class="ab-bg__paper"></div>
+      <div class="ab-bg__noise"></div>
+    </div>
+
+    <!-- shared nav (.ld-nav) — same markup as landing + for-students -->
+    <nav class="ld-nav" id="ld-nav" aria-label="primary">
+      <div class="ld-nav__inner">
+        <a class="ld-nav__brand" href="/">
+          <span class="ld-nav__brand-mark" aria-hidden="true">
+            <svg class="ld-sprout" viewBox="0 0 163 275" fill="currentColor" aria-hidden="true">
+              <path transform="translate(72, 130)" d="M19 10.15C19 4.54431 14.7467 0 9.5 0C4.25329 0 0 4.54431 0 10.15C7.91804 91.2467 8.44249 120.691 0 134.85C0 140.456 4.25329 145 9.5 145C14.7467 145 19 140.456 19 134.85C16.2169 71.2734 12.3479 23.288 19 10.15Z"/>
+              <path transform="translate(0, 65)" d="M84 87C21 71.5333 -6.5625 42.5333 1.3125 0C56.4375 3.86667 84 32.8667 84 87Z"/>
+              <path transform="translate(82, 0)" d="M0 147C48.6 116.053 75.6 67.0526 81 0C27 5.1579 0 54.1579 0 147Z"/>
+            </svg>
+          </span>
+          <span class="ld-nav__brand-text"><span>grassroots</span></span>
+        </a>
+        <ul class="ld-nav__links">
+          <li class="ld-nav__hide-sm"><a class="ld-nav__link" href="/#how-it-works">how it works</a></li>
+          <li class="ld-nav__hide-sm"><a class="ld-nav__link" href="/home/for-students.html">for students</a></li>
+          <li class="ld-nav__hide-sm"><a class="ld-nav__link" aria-current="page" href="/home/about.html">about</a></li>
+          <li><a class="ld-nav__link" href="/signin.html">sign in</a></li>
+          <li>
+            <button class="ld-nav__theme" id="ld-nav-theme" type="button" aria-label="toggle dark mode" title="toggle dark mode">
+              <svg class="ld-nav__theme-sun" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="4.4" stroke="currentColor" stroke-width="1.8"/>
+                <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.5 5.5l1.4 1.4M17.1 17.1l1.4 1.4M5.5 18.5l1.4-1.4M17.1 6.9l1.4-1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+              <svg class="ld-nav__theme-moon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </li>
+          <li>
+            <a class="ld-nav__cta" href="/register.html?role=owner">
+              <span>post a project</span>
+              <span class="ld-nav__cta-arrow" aria-hidden="true">
+                <svg viewBox="0 0 16 16" fill="none">
+                  <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+            </a>
+          </li>
         </ul>
-        <div class="site-nav__end">
-          <a class="site-nav__sticky-cta" href="/register.html">join grassroots</a>
-          <button class="site-nav__menu-button" type="button" aria-expanded="false" aria-label="Open menu">
-            <span></span><span></span><span></span>
-          </button>
-        </div>
+      </div>
+      <div class="ld-nav__progress" aria-hidden="true">
+        <div class="ld-nav__progress-fill" id="ld-nav-progress"></div>
       </div>
     </nav>
 
-    <main class="about-shell">
-      <div class="about-content">
-        <section class="about-panel about-mission" id="about-mission" aria-labelledby="about-mission-heading">
-          <div class="about-mission__copy">
-            <p class="about-kicker">our mission</p>
-            <h1 class="about-heading" id="about-mission-heading">small business growth powered by students</h1>
-            <div class="about-body">
-              <p>grassroots connects small businesses with high-intent student talent so meaningful work, practical experience, and local growth happen at the same time.</p>
-            </div>
-          </div>
-
-          <div class="about-mission__art">
-            <div
-              class="mission-supercharge"
-              role="img"
-              aria-label="Illustration: a labeled student and your-business storefront; the graduate plugs in a cord and the building lights up with energy and brief cyan sparks"
-            >
-              <svg
-                class="mission-supercharge__svg"
-                viewBox="0 0 400 300"
-                xmlns="http://www.w3.org/2000/svg"
-                aria-hidden="true"
-              >
-                <defs>
-                  <pattern
-                    id="about-ms-brickface"
-                    width="48"
-                    height="22"
-                    patternUnits="userSpaceOnUse"
-                    patternTransform="translate(207 96)"
-                  >
-                    <rect width="48" height="22" fill="#c9b2a8" />
-                    <rect x="1" y="1" width="14" height="8.5" rx="0.5" fill="#a3625a" stroke="#5c2a24" stroke-width="0.35" opacity="0.92" />
-                    <rect x="16" y="1" width="14" height="8.5" rx="0.5" fill="#8a5048" stroke="#4e2420" stroke-width="0.35" opacity="0.92" />
-                    <rect x="31" y="1" width="16" height="8.5" rx="0.5" fill="#ae7068" stroke="#5c3028" stroke-width="0.35" opacity="0.92" />
-                    <rect x="1" y="11" width="11" height="8.5" rx="0.5" fill="#955850" stroke="#4a221c" stroke-width="0.35" opacity="0.92" />
-                    <rect x="13" y="11" width="14" height="8.5" rx="0.5" fill="#bc8278" stroke="#62342c" stroke-width="0.35" opacity="0.92" />
-                    <rect x="28" y="11" width="14" height="8.5" rx="0.5" fill="#824840" stroke="#4a201c" stroke-width="0.35" opacity="0.92" />
-                    <rect x="43" y="11" width="4" height="8.5" rx="0.4" fill="#a6665c" stroke="#523028" stroke-width="0.35" opacity="0.92" />
-                  </pattern>
-                  <clipPath id="about-ms-brick-clip" clipPathUnits="userSpaceOnUse">
-                    <path
-                      fill-rule="evenodd"
-                      d="M207,96 L385,96 L385,262 L207,262 Z M218,136 L322,136 L322,218 L218,218 Z M332,136 L372,136 L372,250 L332,250 Z"
-                    />
-                  </clipPath>
-                  <clipPath id="about-ms-plug-prong-clip" clipPathUnits="userSpaceOnUse">
-                    <rect x="0" y="0" width="206.75" height="300" />
-                  </clipPath>
-                  <linearGradient id="about-ms-awning" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stop-color="#6b7585" />
-                    <stop offset="100%" stop-color="#454c58" />
-                  </linearGradient>
-                  <linearGradient id="about-ms-glass" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stop-color="#a5c3dc" stop-opacity="0.35" />
-                    <stop offset="45%" stop-color="#1c2430" stop-opacity="0.92" />
-                    <stop offset="100%" stop-color="#141a22" stop-opacity="0.96" />
-                  </linearGradient>
-                  <linearGradient id="about-ms-glow" x1="0%" y1="100%" x2="0%" y2="0%">
-                    <stop offset="0%" stop-color="#8fd7b4" stop-opacity="0" />
-                    <stop offset="0.55" stop-color="#9ed0ff" stop-opacity="0.55" />
-                    <stop offset="1" stop-color="#e8f4ff" stop-opacity="0.9" />
-                  </linearGradient>
-                </defs>
-
-                <g class="mission-supercharge__store">
-                  <g class="mission-supercharge__facade-shake">
-                    <path
-                      class="mission-supercharge__cable"
-                      fill="none"
-                      stroke="rgba(55, 62, 72, 0.92)"
-                      stroke-width="3.5"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M62,206 C74,226 102,232 132,218 C140,214 152,210 171,207"
-                    />
-                    <path
-                      class="mission-supercharge__cable mission-supercharge__cable--inner"
-                      fill="none"
-                      stroke="rgba(200, 210, 225, 0.35)"
-                      stroke-width="1.2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M62,206 C74,226 102,232 132,218 C140,214 152,210 171,207"
-                    />
-
-                    <g clip-path="url(#about-ms-plug-prong-clip)">
-                      <g class="mission-supercharge__plug-prongs">
-                        <rect x="27" y="8.8" width="7.5" height="2.4" rx="0.6" fill="#c8d4e0" />
-                        <rect x="27" y="13.8" width="7.5" height="2.4" rx="0.6" fill="#c8d4e0" />
-                      </g>
-                    </g>
-
-                    <g class="mission-supercharge__facade">
-                      <rect x="207" y="96" width="178" height="166" rx="3" fill="#c9b2a8" stroke="rgba(0,0,0,0.4)" stroke-width="1.2" />
-                      <rect x="207" y="96" width="178" height="166" rx="3" fill="url(#about-ms-brickface)" clip-path="url(#about-ms-brick-clip)" />
-                      <rect x="203" y="92" width="186" height="8" rx="2" fill="#6e6258" stroke="rgba(0,0,0,0.22)" stroke-width="0.8" />
-                      <rect x="207" y="98" width="178" height="4" fill="rgba(255,248,240,0.08)" />
-                      <path d="M198,110 L392,110 L386,128 L204,128 Z" fill="url(#about-ms-awning)" stroke="rgba(0,0,0,0.28)" stroke-width="0.8" />
-                      <text
-                        x="296"
-                        y="90"
-                        text-anchor="middle"
-                        fill="rgba(255,255,255,0.5)"
-                        font-size="8"
-                        font-family="Syne, sans-serif"
-                        font-weight="700"
-                        style="text-transform: lowercase"
-                      >
-                        your business
-                      </text>
-                      <rect x="220" y="138" width="100" height="78" rx="1" fill="#161b21" />
-                      <rect x="218" y="136" width="104" height="82" rx="2" fill="url(#about-ms-glass)" stroke="rgba(30,26,22,0.55)" stroke-width="2" />
-                      <rect x="224" y="142" width="92" height="70" rx="1" fill="rgba(10,14,18,0.62)" />
-                      <line x1="270" y1="142" x2="270" y2="212" stroke="rgba(30,26,22,0.35)" stroke-width="1.6" />
-                      <rect x="218" y="218" width="104" height="5" rx="1" fill="rgba(88, 80, 72, 0.98)" stroke="rgba(0,0,0,0.25)" stroke-width="0.55" />
-                      <rect x="332" y="136" width="40" height="114" rx="2" fill="#2c2622" stroke="rgba(30,26,22,0.55)" stroke-width="2" />
-                      <rect x="335" y="139" width="34" height="108" rx="1" fill="#252019" />
-                      <circle cx="362" cy="192" r="2.2" fill="rgba(212, 200, 180, 0.65)" />
-                      <rect x="332" y="132" width="40" height="6" rx="1" fill="#4a4038" />
-                      <rect x="322" y="254" width="56" height="8" rx="1" fill="#6e6860" stroke="rgba(0,0,0,0.28)" stroke-width="0.7" />
-                      <rect x="326" y="250" width="48" height="4" rx="1" fill="#787068" stroke="rgba(0,0,0,0.22)" stroke-width="0.65" />
-                      <rect x="330" y="246" width="42" height="4" rx="1" fill="#827a72" stroke="rgba(0,0,0,0.2)" stroke-width="0.6" />
-                    </g>
-
-                    <g class="mission-supercharge__plug-body">
-                      <rect x="0" y="5" width="27" height="15" rx="3" fill="#3a424c" stroke="rgba(200, 210, 225, 0.45)" stroke-width="1" />
-                    </g>
-
-                    <g class="mission-supercharge__click-flash" transform="translate(204, 207)">
-                      <circle class="mission-supercharge__click-core" r="4" fill="#f4fbff" opacity="0" />
-                      <circle class="mission-supercharge__click-ring" r="10" fill="none" stroke="rgba(180, 230, 255, 0.95)" stroke-width="2" opacity="0" />
-                    </g>
-
-                    <rect
-                      x="207"
-                      y="96"
-                      width="178"
-                      height="166"
-                      rx="3"
-                      fill="url(#about-ms-glow)"
-                      class="mission-supercharge__facade-glow"
-                    />
-                    <rect
-                      x="207"
-                      y="96"
-                      width="178"
-                      height="166"
-                      rx="3"
-                      fill="none"
-                      stroke="rgba(158, 208, 255, 0.4)"
-                      stroke-width="1.2"
-                      class="mission-supercharge__facade-crackle"
-                    />
-
-                    <g class="mission-supercharge__lightning" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path
-                        class="mission-supercharge__bolt mission-supercharge__bolt--a"
-                        stroke="rgba(110, 235, 255, 0.95)"
-                        stroke-width="1.15"
-                        d="M238,99 L244,90 L240,84 M256,97 L264,86 L260,80 M276,101 L284,91 L280,84 M298,96 L306,86 L302,80 M318,99 L326,90 L322,84 M340,97 L348,88 L344,82"
-                      />
-                      <path
-                        class="mission-supercharge__bolt mission-supercharge__bolt--b"
-                        stroke="rgba(170, 250, 255, 0.9)"
-                        stroke-width="0.85"
-                        d="M220,104 L224,96 L221,91 M352,103 L358,95 L354,89 M268,88 L272,82 L269,77 M308,88 L314,80 L310,75"
-                      />
-                    </g>
-
-                    <g class="mission-supercharge__sparks" stroke-linecap="round" fill="none">
-                      <path
-                        class="mission-supercharge__spark"
-                        stroke="rgba(180, 230, 255, 0.85)"
-                        stroke-width="1.4"
-                        d="M216,118 L228,106 M236,116 L248,100 M258,114 L270,98 M284,116 L298,102"
-                      />
-                      <path
-                        class="mission-supercharge__spark mission-supercharge__spark--b"
-                        stroke="rgba(143, 215, 180, 0.75)"
-                        stroke-width="1.1"
-                        d="M308,122 L324,110 M336,120 L350,104"
-                      />
-                      <path
-                        class="mission-supercharge__spark mission-supercharge__spark--c"
-                        stroke="rgba(220, 240, 255, 0.65)"
-                        stroke-width="0.9"
-                        d="M220,148 L234,140 M248,150 L262,142 M274,150 L288,142"
-                      />
-                    </g>
-                  </g>
-                </g>
-
-                <g class="mission-supercharge__student">
-                  <text
-                    x="48"
-                    y="152"
-                    text-anchor="middle"
-                    fill="rgba(255,255,255,0.5)"
-                    font-size="8"
-                    font-family="Syne, sans-serif"
-                    font-weight="700"
-                    style="text-transform: lowercase"
-                  >
-                    student
-                  </text>
-                  <ellipse cx="48" cy="248" rx="22" ry="5" fill="rgba(0,0,0,0.12)" />
-                  <circle cx="48" cy="192" r="11" fill="#e8d8ca" stroke="rgba(40,32,28,0.15)" stroke-width="0.8" />
-                  <path
-                    d="M34,203 Q48,195 62,203 L60,241 Q48,247 36,241 Z"
-                    fill="#2a4067"
-                    stroke="rgba(255,255,255,0.05)"
-                    stroke-width="0.6"
-                  />
-                  <path
-                    d="M41,202.5 L55,202.5 L56.5,215.5 L48,228 L39.5,215.5 Z"
-                    fill="#f5f4f0"
-                    opacity="0.98"
-                  />
-                  <path d="M48,207 L52.3,216 L48,227 L43.7,216 Z" fill="#25364f" />
-                  <path d="M34.5,214 L42,216" fill="none" stroke="rgba(18,27,42,0.32)" stroke-width="1.1" stroke-linecap="round" />
-                  <path d="M61.5,214 L54,216" fill="none" stroke="rgba(18,27,42,0.32)" stroke-width="1.1" stroke-linecap="round" />
-                  <rect x="40.5" y="236" width="6.2" height="13.5" rx="2.2" fill="#4c6997" />
-                  <rect x="49.3" y="236" width="6.2" height="13.5" rx="2.2" fill="#456189" />
-                  <rect x="39.6" y="248.2" width="7.8" height="2.9" rx="1.45" fill="#1d2330" />
-                  <rect x="48.8" y="248.2" width="7.8" height="2.9" rx="1.45" fill="#1d2330" />
-                  <g transform="translate(48,181)">
-                    <path
-                      d="M0,-9 L18,0 L0,9 L-18,0 Z"
-                      fill="#1a1e26"
-                      stroke="rgba(255,248,240,0.22)"
-                      stroke-width="0.55"
-                      stroke-linejoin="miter"
-                    />
-                    <path
-                      d="M-15,0 Q0,4 15,0 L14,5 Q0,10 -14,5 Z"
-                      fill="#252a34"
-                      stroke="rgba(255,248,240,0.18)"
-                      stroke-width="0.45"
-                    />
-                    <g class="mission-supercharge__tassel">
-                      <line x1="18" y1="0" x2="18" y2="5.5" stroke="#d4af37" stroke-width="1.35" stroke-linecap="round" />
-                      <path
-                        d="M18,5.5 Q19.2,11.5 19.8,17.5"
-                        stroke="#c9a227"
-                        stroke-width="1.15"
-                        stroke-linecap="round"
-                        fill="none"
-                      />
-                      <path
-                        d="M16.8,17.5 L17.8,22 L18.8,17.5 L19.8,22 L20.8,17.5 L21.8,22 L22.8,17.5"
-                        stroke="#e8c84a"
-                        stroke-width="1.05"
-                        stroke-linecap="round"
-                        fill="none"
-                      />
-                      <ellipse cx="19.8" cy="22.8" rx="2.2" ry="1.45" fill="#e8c84a" opacity="0.95" />
-                    </g>
-                  </g>
-                  <path d="M57.5,210 L65.5,212 L68.5,202.5" fill="none" stroke="#2a4067" stroke-width="8" stroke-linecap="round" />
-                  <circle cx="68" cy="201" r="5.5" fill="#e8d8ca" stroke="rgba(55,62,72,0.25)" stroke-width="0.6" />
-                </g>
-              </svg>
-            </div>
-          </div>
-        </section>
-
-        <section class="about-panel about-founder" id="about-founder" aria-labelledby="about-founder-heading">
-          <div class="founder-avatar" aria-label="Moiz Dalal">MD</div>
-          <div>
-            <p class="about-kicker">meet the founder</p>
-            <h2 class="about-heading" id="about-founder-heading">moiz dalal</h2>
-            <div class="about-body" style="margin-top: 1.3rem">
-              <p>While serving on the leadership team of the UF Rho Epsilon Mu (REM) on-campus chapter, Moiz saw firsthand how many small businesses were desperate for consultative services like marketing strategy, financial planning, and operations support but could not afford traditional agency rates.</p>
-              <p>At the same time, he noticed an incredible pool of motivated students eager to apply what they were learning in real-world settings and hungry for experience, portfolio pieces, and the kind of work that actually moves the needle.</p>
-              <p>grassroots was born from that realization: the gap between small business need and student ambition is a bridge worth building. By connecting businesses with talented consultants at accessible price points, grassroots creates a win-win with real growth for businesses and invaluable experience for consultants.</p>
-            </div>
-          </div>
-        </section>
-
-        <section class="about-panel about-stats" id="about-stats" aria-labelledby="about-stats-heading">
-          <div class="about-stats__head">
-            <p class="about-kicker">grassroots by the numbers</p>
-            <h2 class="about-heading" id="about-stats-heading">the platform so far</h2>
-          </div>
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-card__number">0</div>
-              <div class="stat-card__label">businesses onboarded</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-card__number">0</div>
-              <div class="stat-card__label">consultants active</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-card__number">0</div>
-              <div class="stat-card__label">opportunities completed</div>
-            </div>
-          </div>
-          <p class="about-note">live stats — updated in real time</p>
-        </section>
-
-        <section class="about-panel about-reviews" id="about-reviews" aria-labelledby="about-reviews-heading">
-          <div class="about-reviews__head">
-            <p class="about-kicker">reviews</p>
-            <h2 class="about-heading" id="about-reviews-heading">what businesses are saying</h2>
-          </div>
-          <div class="reviews-grid">
-            <article class="review-card">
-              <div class="review-card__avatar" aria-hidden="true"></div>
-              <div class="review-card__name">—</div>
-              <div class="review-card__stars" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
-                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
-                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
-                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
-                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
-              </div>
-              <p class="review-card__quote">review coming soon...</p>
-            </article>
-            <article class="review-card">
-              <div class="review-card__avatar" aria-hidden="true"></div>
-              <div class="review-card__name">—</div>
-              <div class="review-card__stars" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
-                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
-                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
-                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
-                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
-              </div>
-              <p class="review-card__quote">review coming soon...</p>
-            </article>
-            <article class="review-card">
-              <div class="review-card__avatar" aria-hidden="true"></div>
-              <div class="review-card__name">—</div>
-              <div class="review-card__stars" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
-                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
-                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
-                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
-                <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
-              </div>
-              <p class="review-card__quote">review coming soon...</p>
-            </article>
-          </div>
-          <p class="about-note">reviews will appear here as businesses share their grassroots experience.</p>
-        </section>
-      </div>
-
-      <aside class="about-toc" aria-label="About page guide">
-        <p class="about-toc__title">on this page</p>
-        <div class="about-toc__list">
-          <a class="about-toc__link" href="#about-mission">our mission</a>
-          <a class="about-toc__link" href="#about-founder">meet the founder</a>
-          <a class="about-toc__link" href="#about-stats">the platform so far</a>
-          <a class="about-toc__link" href="#about-reviews">what businesses are saying</a>
+    <!-- ── MAGAZINE COVER ── -->
+    <header class="ab-cover" aria-labelledby="ab-cover-title">
+      <div class="ab-shell">
+        <div class="ab-cover__colophon ab-reveal">
+          <div class="ab-cover__colophon-l">vol. 01 · issue I</div>
+          <div class="ab-cover__colophon-c">a field guide.</div>
+          <div class="ab-cover__colophon-r">filed · spring 2026</div>
         </div>
-      </aside>
-    </main>
+
+        <div class="ab-cover__center">
+          <div>
+            <h1 class="ab-cover__title ab-reveal" id="ab-cover-title">
+              about<em>.</em>
+              <span class="ab-line-2">how a junior <em>down the street</em> turned a $4,400 logo into a marketplace.</span>
+            </h1>
+            <p class="ab-cover__sublede ab-reveal">
+              the inside-cover note. who built grassroots, why we built it where we built it, and what we think a small business actually deserves.
+            </p>
+          </div>
+        </div>
+
+        <div class="ab-cover__masthead ab-reveal">
+          <div class="ab-cover__masthead-cell">
+            edited &amp; written by<br/>
+            <b>wes holloway, ej weir</b>
+          </div>
+          <div class="ab-cover__masthead-cell">
+            printed from<br/>
+            <b>gainesville, florida</b>
+          </div>
+          <div class="ab-cover__masthead-cell">
+            for the use of<br/>
+            <b>main street, usa</b>
+          </div>
+        </div>
+
+        <!-- TOC -->
+        <div class="ab-toc ab-reveal">
+          <div class="ab-toc__h">in this issue —</div>
+          <ul class="ab-toc__list">
+            <li class="ab-toc__item">
+              <span class="ab-toc__item-num">№ 001</span>
+              <a class="ab-toc__item-title" href="#mission">the mission, in one paragraph</a>
+              <span class="ab-toc__item-page">p. 03</span>
+            </li>
+            <li class="ab-toc__item">
+              <span class="ab-toc__item-num">№ 002</span>
+              <a class="ab-toc__item-title" href="#letter">a letter from the founder</a>
+              <span class="ab-toc__item-page">p. 05</span>
+            </li>
+            <li class="ab-toc__item">
+              <span class="ab-toc__item-num">№ 003</span>
+              <a class="ab-toc__item-title" href="#origin">an origin story, in nine entries</a>
+              <span class="ab-toc__item-page">p. 09</span>
+            </li>
+            <li class="ab-toc__item">
+              <span class="ab-toc__item-num">№ 004</span>
+              <a class="ab-toc__item-title" href="#credo">six things we believe</a>
+              <span class="ab-toc__item-page">p. 14</span>
+            </li>
+            <li class="ab-toc__item">
+              <span class="ab-toc__item-num">№ 005</span>
+              <a class="ab-toc__item-title" href="#press">in the wild · what folks have said</a>
+              <span class="ab-toc__item-page">p. 18</span>
+            </li>
+            <li class="ab-toc__item">
+              <span class="ab-toc__item-num">№ 006</span>
+              <a class="ab-toc__item-title" href="#team">co-conspirators</a>
+              <span class="ab-toc__item-page">p. 22</span>
+            </li>
+            <li class="ab-toc__item">
+              <span class="ab-toc__item-num">№ 007</span>
+              <a class="ab-toc__item-title" href="#contact">post us a letter — say hello</a>
+              <span class="ab-toc__item-page">p. 26</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── MISSION ── -->
+    <section class="ab-section ab-mission" id="mission" aria-labelledby="ab-mission-title">
+      <div class="ab-shell">
+        <div class="ab-section__head ab-reveal">
+          <div class="ab-section__marker">
+            chapter <b>i.</b>
+            mission
+          </div>
+          <h2 class="ab-section__title" id="ab-mission-title">
+            the mission, <span class="ab-italic">in one paragraph.</span>
+          </h2>
+        </div>
+      </div>
+      <div class="ab-shell ab-shell--reading">
+        <p class="ab-mission__body ab-reveal">
+          A small business should not have to write a <em>four-thousand-dollar check</em> for a logo, or wait <em>six weeks</em> for a one-page website. A college student should not graduate with a 0-line resume just because nobody local had the budget for an intern. <em>Grassroots is the bridge.</em> We pair local students with the small businesses in their town, scope the work, hold the money in escrow, and release it when the work ships. That's the entire thing. We're not disrupting anybody. We're just <em>doing the obvious thing</em> the agencies forgot to do.
+        </p>
+
+        <div class="ab-mission__rule ab-reveal" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
+
+        <div class="ab-mission__sig ab-reveal">— the field office</div>
+      </div>
+    </section>
+
+    <!-- ── FOUNDER'S LETTER ── -->
+    <section class="ab-section" id="letter" aria-labelledby="ab-letter-title">
+      <div class="ab-shell">
+        <div class="ab-section__head ab-reveal">
+          <div class="ab-section__marker">
+            chapter <b>ii.</b>
+            from the founder
+          </div>
+          <h2 class="ab-section__title" id="ab-letter-title">
+            a letter, <span class="ab-italic">unfolded.</span>
+          </h2>
+        </div>
+
+        <article class="ab-letter ab-reveal">
+          <div class="ab-letter__head">
+            <div class="ab-letter__head-l">
+              <b>from the desk of</b>
+              wes holloway · founder<br/>
+              4th floor, the chestnut, gainesville, fl
+            </div>
+            <div class="ab-letter__head-r">
+              april 14, 2026<br/>
+              re: who we are<br/>
+              folio 02 / 03
+            </div>
+          </div>
+
+          <div class="ab-letter__grid">
+            <div class="ab-letter__body">
+              <p class="ab-letter__greet">Dear reader —</p>
+              <p>
+                In August of 2025 I watched my aunt Cherie write a check for <strong>$4,400</strong> to a creative agency three towns over. She'd been quoted a logo, a one-pager, and a "brand voice document." Twelve weeks later she got a logo. Just the logo. No site. No voice doc. It cost more than the new oven she'd been saving for.
+              </p>
+              <p>
+                I was a junior at the time. <em>I had two friends who could've done that work in a weekend for $300.</em> They were both delivering DoorDash. The mismatch wouldn't leave me alone.
+              </p>
+              <p>
+                So I started writing it down. The shape of the problem was simple: small businesses needed light, scoped consulting work — logos, decks, copy, photos, shopify cleanups — and there was nowhere honest to find it. Agencies wanted retainers. Freelance sites wanted volume. Nobody wanted <em>$240 worth</em> of work, paid like a contract, done by somebody you'd recognize at the farmer's market.
+              </p>
+              <p>
+                Meanwhile, the talent was sitting in the same zip code. Sophomores with portfolios. Seniors with case studies. Twenty-year-olds who had already shipped more work for free than most agencies bill for in a quarter. They needed money. They needed real reviews. They needed a way to point at something and say <em>I shipped that.</em>
+              </p>
+              <p>
+                We launched a prototype with three students and one café in October. We held $180 in escrow, the menu shipped on a Sunday, we released the funds on a Monday. The café tipped extra. The student told two friends. The week after, we had eight more businesses asking.
+              </p>
+              <p>
+                That's the entire thing. We hold the money where you can see it. We don't take a fee until the work funds. We let students bid honest prices instead of bidding against ninety strangers in Bangalore. We review every release. We send the receipts.
+              </p>
+              <p>
+                If you are a small business: <strong>post a project.</strong> If you are a student: <strong>apply, or refer three friends and skip the line.</strong> If you are neither — just send us a letter. The post box at the bottom of this page is real.
+              </p>
+
+              <div class="ab-letter__signoff">
+                yours, in the field —
+                <svg class="ab-letter__signature" viewBox="0 0 220 80" aria-hidden="true">
+                  <!-- a stylized "Wes" with flourish -->
+                  <path d="M 10 50 C 16 30, 24 30, 30 50 C 35 30, 42 30, 48 50 C 52 36, 58 36, 62 50 M 68 22 C 76 22, 86 22, 92 30 C 92 42, 80 42, 72 42 C 80 42, 96 46, 92 56 C 86 64, 72 60, 64 56 M 104 30 C 96 38, 96 48, 104 52 C 112 56, 120 50, 122 42 C 122 36, 116 32, 108 36 M 138 50 L 138 18 M 132 30 L 152 30 M 158 50 L 174 18 M 162 38 L 184 38 M 188 50 L 200 18 L 212 50" />
+                </svg>
+                <div class="ab-letter__byline">
+                  Wes Holloway
+                  <span>founder · junior, marketing · university of florida</span>
+                </div>
+              </div>
+            </div>
+
+            <aside>
+              <div class="ab-polaroid" aria-hidden="true">
+                <div class="ab-polaroid__photo"></div>
+                <div class="ab-polaroid__caption">wes &amp; cherie · apr '26</div>
+              </div>
+              <p class="ab-margin-note">↑ aunt cherie<br/>(she got her logo)</p>
+            </aside>
+          </div>
+
+          <div class="ab-letter__ps">
+            <b>p.s.</b> if you are aunt cherie reading this — yes, the logo really was overpriced. love you. wes.
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ── ORIGIN TIMELINE ── -->
+    <section class="ab-section" id="origin" aria-labelledby="ab-origin-title">
+      <div class="ab-shell">
+        <div class="ab-section__head ab-reveal">
+          <div class="ab-section__marker">
+            chapter <b>iii.</b>
+            an origin story
+          </div>
+          <h2 class="ab-section__title" id="ab-origin-title">
+            nine entries, <span class="ab-italic">in chronological order.</span>
+          </h2>
+        </div>
+
+        <div class="ab-timeline">
+          <article class="ab-timeline__item ab-reveal">
+            <div class="ab-timeline__date">aug · 2025</div>
+            <h3 class="ab-timeline__title">the <em>$4,400</em> check.</h3>
+            <p class="ab-timeline__body">Wes watches his aunt sign for a logo she could've gotten anywhere for a fraction. Writes the first note in the margin of his marketing textbook: <em>"the market is broken for sub-$1k work."</em></p>
+            <span class="ab-timeline__chip">the problem · located</span>
+          </article>
+
+          <article class="ab-timeline__item ab-reveal">
+            <div class="ab-timeline__date">sep · 2025</div>
+            <h3 class="ab-timeline__title">a coffee, three students, one idea.</h3>
+            <p class="ab-timeline__body">First whiteboard session at a coffee shop in Gainesville with two friends — Maya (design), Jordan (research). They sketch a marketplace where students bid on local briefs. Napkin still on file.</p>
+          </article>
+
+          <article class="ab-timeline__item ab-reveal">
+            <div class="ab-timeline__date">oct · 2025</div>
+            <h3 class="ab-timeline__title">side street coffee, <em>$180</em>.</h3>
+            <p class="ab-timeline__body">First paid engagement on a Google Form. Menu redesign for Side Street Coffee. Funds held in a Stripe test account. Released on a Monday. Owner tipped an extra <em>$30</em>.</p>
+            <span class="ab-timeline__chip">first funded · v0</span>
+          </article>
+
+          <article class="ab-timeline__item ab-reveal">
+            <div class="ab-timeline__date">nov · 2025</div>
+            <h3 class="ab-timeline__title">grassroots, the real site.</h3>
+            <p class="ab-timeline__body">Real domain, real escrow, real reviews. 14 students vetted from UF and Santa Fe. 8 local businesses post listings in the first week.</p>
+          </article>
+
+          <article class="ab-timeline__item ab-reveal">
+            <div class="ab-timeline__date">dec · 2025</div>
+            <h3 class="ab-timeline__title">the six-dimension review.</h3>
+            <p class="ab-timeline__body">After a confused star-rating fight, we replace the 1-to-5 with six dimensions — <em>work, communication, timeliness, professionalism, collaboration, value</em>. Owners say it's "what a recruiter would actually read."</p>
+          </article>
+
+          <article class="ab-timeline__item ab-reveal">
+            <div class="ab-timeline__date">feb · 2026</div>
+            <h3 class="ab-timeline__title">project number <em>100.</em></h3>
+            <p class="ab-timeline__body">A market research deck for Split/Fix. The team prints the receipt, frames it, hangs it on the office wall. (It's still there.)</p>
+            <span class="ab-timeline__chip">100 funded engagements</span>
+          </article>
+
+          <article class="ab-timeline__item ab-reveal">
+            <div class="ab-timeline__date">mar · 2026</div>
+            <h3 class="ab-timeline__title">five more towns.</h3>
+            <p class="ab-timeline__body">Gainesville, Tallahassee, Athens, Charleston, Chapel Hill. Each town opened by three founding students. The pattern holds: cafés first, then bike shops, then florists, then everyone else.</p>
+          </article>
+
+          <article class="ab-timeline__item ab-reveal">
+            <div class="ab-timeline__date">apr · 2026</div>
+            <h3 class="ab-timeline__title">invite-only · the badge gets valuable.</h3>
+            <p class="ab-timeline__body">Acceptance falls to ~12%. We add the referral path: bring three businesses to the platform and you skip the queue. Half of the next cohort gets in this way.</p>
+          </article>
+
+          <article class="ab-timeline__item ab-reveal">
+            <div class="ab-timeline__date">today</div>
+            <h3 class="ab-timeline__title">14 towns. <em>$340k</em> paid to students. and counting.</h3>
+            <p class="ab-timeline__body">You're reading the field guide. There will be a Volume 02. Probably from a different town.</p>
+            <span class="ab-timeline__chip">in progress</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── BY THE NUMBERS ── -->
+    <section class="ab-section" aria-labelledby="ab-numbers-title" style="padding-block: clamp(60px, 8vw, 110px);">
+      <div class="ab-shell">
+        <div class="ab-section__head ab-reveal">
+          <div class="ab-section__marker">
+            interlude
+            <b>data</b>
+          </div>
+          <h2 class="ab-section__title" id="ab-numbers-title">
+            by the <span class="ab-italic">numbers.</span>
+          </h2>
+        </div>
+
+        <div class="ab-numbers">
+          <div class="ab-numbers__cell ab-reveal">
+            <div class="ab-numbers__big"><sup>$</sup>340<sub>k</sub></div>
+            <div class="ab-numbers__cap">paid to students
+              <span>since launch · oct 2025</span>
+            </div>
+          </div>
+          <div class="ab-numbers__cell ab-reveal">
+            <div class="ab-numbers__big">487</div>
+            <div class="ab-numbers__cap">engagements funded
+              <span>across 14 college towns</span>
+            </div>
+          </div>
+          <div class="ab-numbers__cell ab-reveal">
+            <div class="ab-numbers__big">412<sub>avg</sub></div>
+            <div class="ab-numbers__cap">dollars per project
+              <span>after platform fee</span>
+            </div>
+          </div>
+          <div class="ab-numbers__cell ab-reveal">
+            <div class="ab-numbers__big">4.<em style="font-style:italic; color: var(--fo-accent);">9</em></div>
+            <div class="ab-numbers__cap">avg rating · six dims
+              <span>n = 487 reviews</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── CREDO ── -->
+    <section class="ab-section" id="credo" aria-labelledby="ab-credo-title">
+      <div class="ab-shell">
+        <div class="ab-section__head ab-reveal">
+          <div class="ab-section__marker">
+            chapter <b>iv.</b>
+            the credo
+          </div>
+          <h2 class="ab-section__title" id="ab-credo-title">
+            six things we <span class="ab-italic">believe.</span>
+          </h2>
+        </div>
+
+        <div class="ab-credo">
+          <article class="ab-credo__item ab-reveal">
+            <div class="ab-credo__num">01</div>
+            <div>
+              <h3 class="ab-credo__title">local is not a feature. <em>it is the product.</em></h3>
+              <p class="ab-credo__body">Every other platform tries to deliver "anywhere, anytime." We deliver here, this week, with a person you can wave at. Local is the entire reason this works.</p>
+            </div>
+          </article>
+
+          <article class="ab-credo__item ab-reveal">
+            <div class="ab-credo__num">02</div>
+            <div>
+              <h3 class="ab-credo__title">money waits <em>in the open.</em></h3>
+              <p class="ab-credo__body">No invoice chasing. No 30-day terms. The dollars sit in Stripe escrow where both sides can see them, and they only move when the work moves.</p>
+            </div>
+          </article>
+
+          <article class="ab-credo__item ab-reveal">
+            <div class="ab-credo__num">03</div>
+            <div>
+              <h3 class="ab-credo__title">a receipt is <em>a story.</em></h3>
+              <p class="ab-credo__body">Every closed engagement generates a real, signed, six-dimension review. We don't trust five-star averages. We trust paragraphs from people who paid.</p>
+            </div>
+          </article>
+
+          <article class="ab-credo__item ab-reveal">
+            <div class="ab-credo__num">04</div>
+            <div>
+              <h3 class="ab-credo__title">a bid is <em>not a quote.</em></h3>
+              <p class="ab-credo__body">Bids are pitches: a short note, a price, a plan. No mystery margins, no scope tricks, no "starting from." The number on the bid is the number on the receipt.</p>
+            </div>
+          </article>
+
+          <article class="ab-credo__item ab-reveal">
+            <div class="ab-credo__num">05</div>
+            <div>
+              <h3 class="ab-credo__title">reviews are <em>for life.</em></h3>
+              <p class="ab-credo__body">The reviews attached to a profile travel with the student forever. Through internships, jobs, grad school. We don't gate them, expire them, or rewrite the past.</p>
+            </div>
+          </article>
+
+          <article class="ab-credo__item ab-reveal">
+            <div class="ab-credo__num">06</div>
+            <div>
+              <h3 class="ab-credo__title">a network of three is <em>enough.</em></h3>
+              <p class="ab-credo__body">If a student brings three businesses onto the platform, they've already proven they belong on it. That's the entire invite system. No algorithm.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PRESS / IN THE WILD ── -->
+    <section class="ab-section" id="press" aria-labelledby="ab-press-title">
+      <div class="ab-shell">
+        <div class="ab-section__head ab-reveal">
+          <div class="ab-section__marker">
+            chapter <b>v.</b>
+            in the wild
+          </div>
+          <h2 class="ab-section__title" id="ab-press-title">
+            what folks <span class="ab-italic">have said.</span>
+          </h2>
+        </div>
+
+        <div class="ab-press">
+          <article class="ab-press__clip ab-press__clip--a ab-reveal">
+            <div class="ab-press__masthead">— mainstreet magazine · vol. 47</div>
+            <blockquote>The first marketplace that finally treats a $240 logo job like it deserves the same dignity as a $24,000 one.</blockquote>
+            <cite>— feature · march 2026</cite>
+          </article>
+
+          <article class="ab-press__clip ab-press__clip--b ab-press__clip--big ab-reveal">
+            <div class="ab-press__masthead">— florida business review</div>
+            <blockquote>What would happen if Etsy and a community college had a sensible child.</blockquote>
+            <cite>— ★★★★½ · cover story</cite>
+          </article>
+
+          <article class="ab-press__clip ab-press__clip--c ab-reveal">
+            <div class="ab-press__masthead">— the bridge · uf student paper</div>
+            <blockquote>Marketing junior earns $3,400 redesigning storefronts.</blockquote>
+            <cite>— page A1 · feb 14, 2026</cite>
+          </article>
+
+          <article class="ab-press__clip ab-press__clip--d ab-reveal">
+            <div class="ab-press__masthead">— small biz weekly · podcast</div>
+            <blockquote>This is what the small-business internet was supposed to look like in 2010.</blockquote>
+            <cite>— ep. 138, the local-first turn</cite>
+          </article>
+
+          <article class="ab-press__clip ab-press__clip--e ab-reveal">
+            <div class="ab-press__masthead">— founder slack channel · anonymized</div>
+            <div class="ab-press__pull">"It's the only piece of software my dad's auto shop has ever willingly used twice."</div>
+            <cite style="margin-top: 0.6rem; display: inline-block;">— anonymous owner · cited with permission</cite>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── TEAM / CO-CONSPIRATORS ── -->
+    <section class="ab-section" id="team" aria-labelledby="ab-team-title">
+      <div class="ab-shell">
+        <div class="ab-section__head ab-reveal">
+          <div class="ab-section__marker">
+            chapter <b>vi.</b>
+            co-conspirators
+          </div>
+          <h2 class="ab-section__title" id="ab-team-title">
+            the people who <span class="ab-italic">make this go.</span>
+          </h2>
+        </div>
+
+        <div class="ab-team">
+          <article class="ab-team__card ab-reveal">
+            <div class="ab-team__photo">w</div>
+            <h3 class="ab-team__name">wes holloway</h3>
+            <div class="ab-team__role">founder · field office</div>
+            <p class="ab-team__bio">junior, marketing. wrote the first napkin. answers most of the support email himself. you'll meet him at office hours.</p>
+          </article>
+
+          <article class="ab-team__card ab-reveal">
+            <div class="ab-team__photo">e</div>
+            <h3 class="ab-team__name">ej weir</h3>
+            <div class="ab-team__role">design &amp; ops</div>
+            <p class="ab-team__bio">senior, design. designed everything you're looking at, including the receipt. ate three of the prototypes alive.</p>
+          </article>
+
+          <article class="ab-team__card ab-reveal">
+            <div class="ab-team__photo">m</div>
+            <h3 class="ab-team__name">maya rivera</h3>
+            <div class="ab-team__role">community lead</div>
+            <p class="ab-team__bio">first student on the platform. now runs the cohort, vets applications, signs the welcome emails. she still designs menus on the side.</p>
+          </article>
+
+          <article class="ab-team__card ab-reveal">
+            <div class="ab-team__photo">j</div>
+            <h3 class="ab-team__name">jordan park</h3>
+            <div class="ab-team__role">trust &amp; reviews</div>
+            <p class="ab-team__bio">built the six-dimension review system. reads every release before it ships. has somehow never missed a class.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── CONTACT ── -->
+    <section class="ab-section ab-contact" id="contact" aria-labelledby="ab-contact-title">
+      <div class="ab-shell">
+        <div class="ab-contact__grid">
+          <div class="ab-reveal">
+            <div class="ab-section__marker" style="grid-column: auto;">
+              chapter <b>vii.</b>
+              say hello
+            </div>
+            <h2 class="ab-contact__title" id="ab-contact-title">
+              post us <span class="ab-italic">a letter.</span>
+            </h2>
+            <p class="ab-contact__sub">
+              we read everything. founders, students, businesses, journalists, lurkers — pick a channel, or fill out the letter on the right. we'll write back.
+            </p>
+
+            <div class="ab-channels">
+              <a class="ab-channel" href="mailto:hello@grassroots.work">
+                <div>
+                  <div class="ab-channel__role">general · hello</div>
+                  <div class="ab-channel__line"><em>hello</em>@grassroots.work</div>
+                </div>
+                <span class="ab-channel__arrow" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+              </a>
+              <a class="ab-channel" href="mailto:owners@grassroots.work">
+                <div>
+                  <div class="ab-channel__role">small business · post a project</div>
+                  <div class="ab-channel__line"><em>owners</em>@grassroots.work</div>
+                </div>
+                <span class="ab-channel__arrow" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+              </a>
+              <a class="ab-channel" href="mailto:students@grassroots.work">
+                <div>
+                  <div class="ab-channel__role">students · apply or refer</div>
+                  <div class="ab-channel__line"><em>students</em>@grassroots.work</div>
+                </div>
+                <span class="ab-channel__arrow" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+              </a>
+              <a class="ab-channel" href="mailto:press@grassroots.work">
+                <div>
+                  <div class="ab-channel__role">press &amp; interviews</div>
+                  <div class="ab-channel__line"><em>press</em>@grassroots.work</div>
+                </div>
+                <span class="ab-channel__arrow" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+              </a>
+              <a class="ab-channel" href="https://www.instagram.com" target="_blank" rel="noopener">
+                <div>
+                  <div class="ab-channel__role">instagram</div>
+                  <div class="ab-channel__line"><em>@</em>grassroots.work</div>
+                </div>
+                <span class="ab-channel__arrow" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+              </a>
+            </div>
+          </div>
+
+          <!-- mad-libs letter form -->
+          <div class="ab-reveal">
+            <form class="ab-letter-form" id="ab-letter-form" onsubmit="return false;">
+              <div class="ab-letter-form__stamp" aria-hidden="true">first class · 14¢ · gainesville</div>
+              <div class="ab-letter-form__head">
+                a letter to <em>grassroots</em>
+              </div>
+
+              <div class="ab-letter-form__body">
+                <p>Dear grassroots,</p>
+                <p>
+                  My name is
+                  <input class="ab-fill" name="name" placeholder="(your name)" aria-label="your name" required/>
+                  and I am writing from
+                  <input class="ab-fill" name="city" placeholder="(your town)" aria-label="your town" required/>.
+                </p>
+                <p>
+                  I am a
+                  <select class="ab-letter-form__select" name="kind" aria-label="who you are">
+                    <option>small business owner</option>
+                    <option>student</option>
+                    <option>journalist</option>
+                    <option>founder</option>
+                    <option>curious lurker</option>
+                    <option>aunt cherie</option>
+                  </select>
+                  and I would love to
+                  <select class="ab-letter-form__select" name="want" aria-label="what you want">
+                    <option>post a project</option>
+                    <option>apply to the network</option>
+                    <option>partner up</option>
+                    <option>just say hi</option>
+                    <option>cover the story</option>
+                  </select>.
+                </p>
+                <p>
+                  You should know that:
+                  <input class="ab-fill ab-fill--xwide" name="message" placeholder="(say anything — one sentence is fine)" aria-label="message"/>
+                </p>
+                <p>
+                  Please write back at
+                  <input class="ab-fill ab-fill--wide" type="email" name="email" placeholder="(your email)" aria-label="your email" required/>.
+                </p>
+                <p class="ab-letter-form__signoff">Yours faithfully,</p>
+              </div>
+
+              <button class="ab-letter-form__submit" type="submit" id="ab-letter-submit">
+                <span>post the letter</span>
+                <span aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+              </button>
+              <span class="ab-sr" role="status" aria-live="polite" id="ab-letter-live"></span>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── footer ── -->
+    <footer class="ab-foot">
+      <div class="ab-shell">
+        <p class="ab-foot__signoff ab-reveal">
+          made <span class="ab-italic">down the street.</span>
+        </p>
+        <p class="ab-foot__cap ab-reveal">vol. 01 · issue I · spring 2026 · gainesville → 14 college towns</p>
+        <div class="ab-foot__nav ab-reveal">
+          <a href="/">marketplace</a>
+          <a href="/home/for-students.html">for students</a>
+          <a href="#contact">contact</a>
+          <a href="mailto:press@grassroots.work">press</a>
+          <a href="/privacy">privacy</a>
+          <a href="/terms">terms</a>
+        </div>
+        <div class="ab-foot__rule" aria-hidden="true"></div>
+        <p class="ab-foot__fine">&copy; 2026 grassroots · made by students, for the towns they're in.</p>
+      </div>
+    </footer>
+
+    <script>
+      // nav scrolled state
+      (function () {
+        var nav = document.getElementById('ab-nav');
+        if (!nav) return;
+        function onScroll() {
+          if (window.scrollY > 12) nav.classList.add('is-scrolled');
+          else nav.classList.remove('is-scrolled');
+        }
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+      })();
+
+      // reveal on scroll
+      (function () {
+        var els = document.querySelectorAll('.ab-reveal');
+        if (!els.length) return;
+        if (!('IntersectionObserver' in window)) {
+          els.forEach(function (el) { el.classList.add('is-visible'); });
+          return;
+        }
+        var io = new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) {
+            if (e.isIntersecting) {
+              e.target.classList.add('is-visible');
+              // letter has its own thing
+              io.unobserve(e.target);
+            }
+          });
+        }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+        els.forEach(function (el) { io.observe(el); });
+      })();
+
+      // letter form: fake post
+      (function () {
+        var f = document.getElementById('ab-letter-form');
+        var btn = document.getElementById('ab-letter-submit');
+        var live = document.getElementById('ab-letter-live');
+        if (!f || !btn) return;
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          // check basic fields
+          var ok = true;
+          f.querySelectorAll('input[required]').forEach(function (i) {
+            if (!i.value || (i.type === 'email' && i.value.indexOf('@') === -1)) {
+              i.style.borderBottomColor = '#c46f44';
+              ok = false;
+            } else {
+              i.style.borderBottomColor = '';
+            }
+          });
+          if (!ok) {
+            if (live) live.textContent = 'please fill in name, town, and email.';
+            return;
+          }
+          btn.classList.add('is-sent');
+          btn.innerHTML = '<span>✓ posted — we\'ll write back</span>';
+          btn.disabled = true;
+          if (live) live.textContent = 'letter posted. we will write back within the week.';
+        });
+      })();
+    </script>
   </body>
+</html>
 </html>

@@ -1,906 +1,1351 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grassroots — the local consulting marketplace</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+    <link rel="alternate icon" href="/favicon.svg?v=2" />
+    <meta name="description" content="post a project. students bid. you fund escrow. work ships. the agency-quality answer, at a college-town price." />
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>grassroots beta</title>
-    <link rel="icon" type="image/svg+xml" href="./assets/grassroots-icon-syne.svg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Manrope:wght@400;500;600;700;800&display=swap"
-    rel="stylesheet" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="./index.css" />
-</head>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600;1,9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
 
-<body class="beta-page is-loading" data-audience="business">
-  <canvas id="starfield" class="starfield" aria-hidden="true"></canvas>
-  <div class="hero-clouds" id="hero-clouds" aria-hidden="true">
-    <div class="hero-clouds__layer hero-clouds__layer--far">
-      <div class="hero-clouds__scroll">
-        <div class="hero-clouds__pane hero-clouds__pane--far">
-          <span class="hero-clouds__blob hero-clouds__blob--a"></span>
-          <span class="hero-clouds__blob hero-clouds__blob--b"></span>
-          <span class="hero-clouds__blob hero-clouds__blob--c"></span>
-          <span class="hero-clouds__blob hero-clouds__blob--d"></span>
-        </div>
-        <div class="hero-clouds__pane hero-clouds__pane--far">
-          <span class="hero-clouds__blob hero-clouds__blob--a"></span>
-          <span class="hero-clouds__blob hero-clouds__blob--b"></span>
-          <span class="hero-clouds__blob hero-clouds__blob--c"></span>
-          <span class="hero-clouds__blob hero-clouds__blob--d"></span>
-        </div>
-      </div>
-    </div>
-    <div class="hero-clouds__layer hero-clouds__layer--mid">
-      <div class="hero-clouds__scroll">
-        <div class="hero-clouds__pane hero-clouds__pane--mid">
-          <span class="hero-clouds__blob hero-clouds__blob--e"></span>
-          <span class="hero-clouds__blob hero-clouds__blob--f"></span>
-          <span class="hero-clouds__blob hero-clouds__blob--g"></span>
-          <span class="hero-clouds__blob hero-clouds__blob--h"></span>
-          <span class="hero-clouds__blob hero-clouds__blob--i"></span>
-        </div>
-        <div class="hero-clouds__pane hero-clouds__pane--mid">
-          <span class="hero-clouds__blob hero-clouds__blob--e"></span>
-          <span class="hero-clouds__blob hero-clouds__blob--f"></span>
-          <span class="hero-clouds__blob hero-clouds__blob--g"></span>
-          <span class="hero-clouds__blob hero-clouds__blob--h"></span>
-          <span class="hero-clouds__blob hero-clouds__blob--i"></span>
-        </div>
-      </div>
-    </div>
-    <div class="hero-clouds__layer hero-clouds__layer--near">
-      <div class="hero-clouds__scroll">
-        <div class="hero-clouds__pane hero-clouds__pane--near">
-          <span class="hero-clouds__blob hero-clouds__blob--j"></span>
-          <span class="hero-clouds__blob hero-clouds__blob--k"></span>
-          <span class="hero-clouds__blob hero-clouds__blob--l"></span>
-          <span class="hero-clouds__blob hero-clouds__blob--m"></span>
-        </div>
-        <div class="hero-clouds__pane hero-clouds__pane--near">
-          <span class="hero-clouds__blob hero-clouds__blob--j"></span>
-          <span class="hero-clouds__blob hero-clouds__blob--k"></span>
-          <span class="hero-clouds__blob hero-clouds__blob--l"></span>
-          <span class="hero-clouds__blob hero-clouds__blob--m"></span>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="intro-wipe" id="intro-wipe" aria-hidden="true">
-    <div class="intro-wipe__title">
-      <img class="intro-wipe__logo" src="./assets/grassroots-icon-syne.svg" width="32" height="54" alt="" />
-      grassroots <span class="intro-wipe__beta">[beta]</span>
-    </div>
-  </div>
+    <link rel="stylesheet" href="/grassroots.css" />
+    <link rel="stylesheet" href="/field-office.css" />
+    <link rel="stylesheet" href="/garden-stem.css" />
+    <link rel="stylesheet" href="/home/nav.css" />
+    <link rel="stylesheet" href="/home/index.css" />
+    <script src="/theme.js"></script>
+    <script src="/home/nav.js" defer></script>
+  </head>
 
-  <nav class="site-nav" aria-label="Primary">
-    <div class="site-nav__inner">
-      <div class="site-nav__start">
-        <a class="site-nav__brand" href="./index.html">
-          <img class="site-nav__logo" src="./assets/grassroots-icon-syne.svg" width="24" height="40" alt="grassroots" />
-          <span class="site-nav__wordmark">grassroots</span>
+  <body class="gr-body">
+    <!-- vine rail removed (per design direction) -->
+
+    <!-- ambient page background — fixed under everything -->
+    <div class="ld-page-bg" aria-hidden="true">
+      <div class="ld-page-bg__dots"></div>
+      <div class="ld-page-bg__blob ld-page-bg__blob--a"></div>
+      <div class="ld-page-bg__blob ld-page-bg__blob--b"></div>
+      <div class="ld-page-bg__blob ld-page-bg__blob--c"></div>
+    </div>
+
+    <!-- ── nav ─────────────────────────────────────────────── -->
+    <nav class="ld-nav" id="ld-nav" aria-label="primary">
+      <div class="ld-nav__inner">
+        <a class="ld-nav__brand" href="/">
+          <span class="ld-nav__brand-mark" aria-hidden="true">
+            <svg class="ld-sprout" viewBox="0 0 163 275" fill="currentColor" aria-hidden="true">
+              <path transform="translate(72, 130)" d="M19 10.15C19 4.54431 14.7467 0 9.5 0C4.25329 0 0 4.54431 0 10.15C7.91804 91.2467 8.44249 120.691 0 134.85C0 140.456 4.25329 145 9.5 145C14.7467 145 19 140.456 19 134.85C16.2169 71.2734 12.3479 23.288 19 10.15Z"/>
+              <path transform="translate(0, 65)" d="M84 87C21 71.5333 -6.5625 42.5333 1.3125 0C56.4375 3.86667 84 32.8667 84 87Z"/>
+              <path transform="translate(82, 0)" d="M0 147C48.6 116.053 75.6 67.0526 81 0C27 5.1579 0 54.1579 0 147Z"/>
+            </svg>
+          </span>
+          <span class="ld-nav__brand-text"><span>grassroots</span></span>
         </a>
-      </div>
-      <ul class="site-nav__links">
-        <li><a href="/marketplace.html">marketplace</a></li>
-        <li><a href="/home/about.html">about</a></li>
-        <li><a href="/signin.html">sign in</a></li>
-        <li><a class="site-nav__cta" href="/register.html">join grassroots</a></li>
-      </ul>
-      <div class="site-nav__end">
-        <a class="site-nav__sticky-cta" id="site-sticky-cta" href="/register.html">join
-          grassroots</a>
-        <button class="site-nav__menu-button" id="site-menu-button" type="button" aria-expanded="false"
-          aria-controls="site-menu-panel" aria-label="Open menu">
-          <span></span><span></span><span></span>
-        </button>
-      </div>
-    </div>
-  </nav>
-  <div class="site-menu-panel" id="site-menu-panel" hidden>
-    <a href="/marketplace.html">marketplace</a>
-    <a href="/home/about.html">about</a>
-    <a href="/signin.html">sign in</a>
-    <a href="/register.html">join grassroots</a>
-  </div>
-
-  <main class="hero" aria-label="Beta intro" id="top">
-    <div class="hero__track">
-      <div class="hero__content">
-        <div class="hero__float hero__float--title">
-          <h1 class="hero-line">
-            <span class="hero-line__static">the small business solution for:</span>
-            <span class="hero-line__cycle-row">
-              <span class="word-cycle" id="word-cycle-slot" aria-live="polite">
-                <span class="word-cycle__inner" id="word-cycle-target">strategy</span>
-                <span class="word-cycle__icon" id="word-cycle-icon" aria-hidden="true">✧</span>
-              </span>
-            </span>
-          </h1>
-        </div>
-        <div class="hero__float hero__float--sub">
-          <p class="hero-subscript">
-            register your business as a grassroots partner and<br aria-hidden="true" />
-            <strong class="hero-subscript__emphasis">join the marketplace</strong>
-          </p>
-        </div>
-        <div class="hero__cta-wrap">
-          <a class="hero__cta" href="/register.html"><span class="hero__cta__text">join
-              grassroots</span></a>
-        </div>
-      </div>
-    </div>
-  </main>
-  <div class="grass-bed" aria-hidden="true">
-    <canvas id="grass-overlay" class="grass-overlay"></canvas>
-  </div>
-  <button class="scroll-cue" id="scroll-cue" type="button" aria-label="Scroll down">
-    <span class="scroll-cue__dot" aria-hidden="true"></span>
-    <span class="scroll-cue__arrow" aria-hidden="true">⌄</span>
-  </button>
-
-  <section class="mission-section mission-section--dirt mission-section--marketplace" id="mission"
-    aria-labelledby="mission-heading">
-    <div class="mission-section__roots" aria-hidden="true">
-      <svg class="mission-section__roots-svg" viewBox="0 0 1200 88" preserveAspectRatio="none"
-        xmlns="http://www.w3.org/2000/svg">
-        <path class="mission-section__root" fill="none" stroke="rgba(214, 190, 160, 0.86)" stroke-width="1.78"
-          stroke-linecap="round" d="M24,0 C18,16 18,34 26,72" />
-        <path class="mission-section__root" fill="none" stroke="rgba(190, 164, 134, 0.78)" stroke-width="1.16"
-          stroke-linecap="round" d="M72,0 C76,14 78,30 74,58" />
-        <path class="mission-section__root" fill="none" stroke="rgba(220, 198, 170, 0.84)" stroke-width="1.92"
-          stroke-linecap="round" d="M120,0 C114,20 116,38 124,80" />
-        <path class="mission-section__root" fill="none" stroke="rgba(184, 158, 126, 0.78)" stroke-width="1.2"
-          stroke-linecap="round" d="M168,0 C172,14 176,28 170,50" />
-        <path class="mission-section__root" fill="none" stroke="rgba(208, 184, 152, 0.84)" stroke-width="1.7"
-          stroke-linecap="round" d="M216,0 C210,18 212,38 220,68" />
-        <path class="mission-section__root" fill="none" stroke="rgba(172, 146, 116, 0.76)" stroke-width="1.08"
-          stroke-linecap="round" d="M264,0 C268,12 272,26 266,44" />
-        <path class="mission-section__root" fill="none" stroke="rgba(214, 190, 160, 0.84)" stroke-width="1.8"
-          stroke-linecap="round" d="M312,0 C306,18 306,36 316,76" />
-        <path class="mission-section__root" fill="none" stroke="rgba(194, 168, 138, 0.8)" stroke-width="1.24"
-          stroke-linecap="round" d="M360,0 C364,14 366,30 362,56" />
-        <path class="mission-section__root" fill="none" stroke="rgba(224, 202, 174, 0.84)" stroke-width="1.96"
-          stroke-linecap="round" d="M408,0 C402,18 404,40 412,82" />
-        <path class="mission-section__root" fill="none" stroke="rgba(186, 160, 128, 0.78)" stroke-width="1.18"
-          stroke-linecap="round" d="M456,0 C462,14 464,26 458,48" />
-        <path class="mission-section__root" fill="none" stroke="rgba(204, 180, 148, 0.82)" stroke-width="1.6"
-          stroke-linecap="round" d="M504,0 C498,18 500,34 508,64" />
-        <path class="mission-section__root" fill="none" stroke="rgba(172, 146, 116, 0.74)" stroke-width="1.04"
-          stroke-linecap="round" d="M552,0 C556,12 558,24 554,42" />
-        <path class="mission-section__root" fill="none" stroke="rgba(216, 192, 160, 0.84)" stroke-width="1.84"
-          stroke-linecap="round" d="M600,0 C594,16 596,38 604,78" />
-        <path class="mission-section__root" fill="none" stroke="rgba(194, 168, 138, 0.78)" stroke-width="1.22"
-          stroke-linecap="round" d="M648,0 C652,14 654,30 650,56" />
-        <path class="mission-section__root" fill="none" stroke="rgba(222, 200, 170, 0.84)" stroke-width="1.9"
-          stroke-linecap="round" d="M696,0 C690,20 692,40 700,84" />
-        <path class="mission-section__root" fill="none" stroke="rgba(186, 160, 130, 0.78)" stroke-width="1.14"
-          stroke-linecap="round" d="M744,0 C750,14 752,26 746,46" />
-        <path class="mission-section__root" fill="none" stroke="rgba(208, 184, 154, 0.82)" stroke-width="1.66"
-          stroke-linecap="round" d="M792,0 C786,18 786,34 796,66" />
-        <path class="mission-section__root" fill="none" stroke="rgba(170, 144, 114, 0.74)" stroke-width="1.02"
-          stroke-linecap="round" d="M840,0 C844,12 846,24 842,44" />
-        <path class="mission-section__root" fill="none" stroke="rgba(216, 192, 162, 0.84)" stroke-width="1.86"
-          stroke-linecap="round" d="M888,0 C882,18 884,38 892,80" />
-        <path class="mission-section__root" fill="none" stroke="rgba(192, 166, 136, 0.78)" stroke-width="1.2"
-          stroke-linecap="round" d="M936,0 C942,14 944,30 938,56" />
-        <path class="mission-section__root" fill="none" stroke="rgba(224, 202, 174, 0.84)" stroke-width="1.94"
-          stroke-linecap="round" d="M984,0 C978,20 980,40 988,82" />
-        <path class="mission-section__root" fill="none" stroke="rgba(184, 158, 128, 0.78)" stroke-width="1.16"
-          stroke-linecap="round" d="M1032,0 C1038,14 1040,26 1034,48" />
-        <path class="mission-section__root" fill="none" stroke="rgba(208, 184, 154, 0.82)" stroke-width="1.68"
-          stroke-linecap="round" d="M1080,0 C1074,18 1076,34 1084,68" />
-        <path class="mission-section__root" fill="none" stroke="rgba(172, 146, 116, 0.74)" stroke-width="1.04"
-          stroke-linecap="round" d="M1128,0 C1132,12 1134,28 1130,52" />
-        <path class="mission-section__root" fill="none" stroke="rgba(214, 190, 160, 0.84)" stroke-width="1.82"
-          stroke-linecap="round" d="M1176,0 C1170,18 1172,36 1180,74" />
-      </svg>
-    </div>
-    <div class="mission-inner mission-inner--marketplace">
-      <div class="mission-copy mission-copy--marketplace">
-        <span class="mission-kicker">the marketplace</span>
-        <h2 id="mission-heading">a marketplace for the one-off intern.</h2>
-      </div>
-
-      <section class="marketplace-demo" id="marketplace-preview" aria-labelledby="marketplace-demo-heading">
-        <div class="marketplace-demo__meta">
-          <span class="marketplace-demo__eyebrow">consultant marketplace simulation</span>
-          <div class="marketplace-demo__tooltip">
-            <button type="button" class="marketplace-demo__tooltip-trigger" aria-describedby="marketplace-demo-tooltip">
-              interactive
+        <ul class="ld-nav__links">
+          <li class="ld-nav__hide-sm"><a class="ld-nav__link" href="#how-it-works">how it works</a></li>
+          <li class="ld-nav__hide-sm"><a class="ld-nav__link" href="/home/for-students.html">for students</a></li>
+          <li class="ld-nav__hide-sm"><a class="ld-nav__link" href="/home/about.html">about</a></li>
+          <li><a class="ld-nav__link" href="/signin.html">sign in</a></li>
+          <li>
+            <button class="ld-nav__theme" id="ld-nav-theme" type="button" aria-label="toggle dark mode" title="toggle dark mode">
+              <svg class="ld-nav__theme-sun" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="4.4" stroke="currentColor" stroke-width="1.8"/>
+                <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.5 5.5l1.4 1.4M17.1 17.1l1.4 1.4M5.5 18.5l1.4-1.4M17.1 6.9l1.4-1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+              <svg class="ld-nav__theme-moon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              </svg>
             </button>
-            <div class="marketplace-demo__tooltip-bubble" id="marketplace-demo-tooltip" role="tooltip">
-              click any listing, move between pages, type your own offer details, and submit without saving anything.
-            </div>
-          </div>
-        </div>
-
-        <div class="mac-preview marketplace-browser">
-            <div class="mac-preview__chrome marketplace-browser__chrome">
-              <div class="marketplace-browser__lights" aria-hidden="true">
-                <i class="marketplace-browser__light marketplace-browser__light--red"></i>
-              </div>
-              <div class="marketplace-browser__tabs">
-                <div class="marketplace-browser__tab is-active">marketplace</div>
-              </div>
-              <div class="marketplace-browser__address">grassroots.local/marketplace</div>
-            </div>
-
-            <div class="mac-preview__body marketplace-browser__body" id="marketplace-sim-root" data-view="grid">
-              <div class="marketplace-sim__stage marketplace-sim__stage--grid" id="marketplace-grid-stage">
-                <div class="marketplace-sim__market-head">
-                  <div>
-                    <p class="marketplace-sim__crumb">marketplace</p>
-                    <h3 class="marketplace-sim__market-title" id="marketplace-demo-heading">browse open opportunities</h3>
-                  </div>
-                  <button type="button" class="marketplace-sim__ghost" id="marketplace-reset-btn">restart demo</button>
-                </div>
-
-                <div class="marketplace-sim__filters" aria-hidden="true">
-                  <span class="marketplace-sim__search">search opportunities…</span>
-                  <span class="marketplace-sim__filter-pill">all types</span>
-                  <span class="marketplace-sim__filter-pill">all categories</span>
-                  <span class="marketplace-sim__filter-pill">$ min-max</span>
-                </div>
-
-                <div class="marketplace-sim__grid" id="marketplace-sim-grid" aria-live="polite"></div>
-              </div>
-
-              <div class="marketplace-sim__stage marketplace-sim__stage--detail" id="marketplace-detail-stage" hidden>
-                <div class="marketplace-sim__detail-shell">
-                  <div class="marketplace-sim__detail-main">
-                    <button type="button" class="marketplace-sim__back" id="marketplace-back-btn">&larr; back to
-                      marketplace</button>
-
-                    <section class="marketplace-sim__about-card">
-                      <div class="marketplace-sim__about-brand">
-                        <div class="marketplace-sim__logo marketplace-sim__logo--detail" id="marketplace-detail-logo"
-                          aria-hidden="true"></div>
-                        <div class="marketplace-sim__about-brand-copy">
-                          <p class="marketplace-sim__about-kicker">about the business</p>
-                          <h3 class="marketplace-sim__about-name" id="marketplace-detail-business"></h3>
-                          <p class="marketplace-sim__about-owner" id="marketplace-detail-owner"></p>
-                        </div>
-                      </div>
-                      <p class="marketplace-sim__about-copy" id="marketplace-detail-about"></p>
-                    </section>
-
-                    <section class="marketplace-sim__opportunity">
-                      <p class="marketplace-sim__opportunity-label">opportunity</p>
-                      <div class="marketplace-sim__tag-row" id="marketplace-detail-tags"></div>
-                      <h3 class="marketplace-sim__opportunity-title" id="marketplace-detail-title"></h3>
-                      <p class="marketplace-sim__opportunity-budget" id="marketplace-detail-budget"></p>
-                      <div class="marketplace-sim__meta-row">
-                        <span id="marketplace-detail-posted"></span>
-                        <span id="marketplace-detail-turnaround"></span>
-                      </div>
-
-                      <div class="marketplace-sim__detail-section">
-                        <h4>the challenge</h4>
-                        <p id="marketplace-detail-summary"></p>
-                      </div>
-
-                      <div class="marketplace-sim__detail-section">
-                        <h4>details</h4>
-                        <p id="marketplace-detail-details"></p>
-                      </div>
-
-                      <div class="marketplace-sim__detail-section">
-                        <h4>qualifications</h4>
-                        <ul id="marketplace-detail-quals"></ul>
-                      </div>
-
-                      <button type="button" class="marketplace-sim__question-btn" id="marketplace-question-btn">have a
-                        question?</button>
-                    </section>
-                  </div>
-
-                  <aside class="marketplace-sim__offer-panel">
-                    <p class="marketplace-sim__offer-kicker">make an offer</p>
-                    <label class="marketplace-sim__offer-label" for="marketplace-offer-input">offer amount</label>
-                    <div class="marketplace-sim__offer-input-wrap">
-                      <span>$</span>
-                      <input id="marketplace-offer-input" type="number" min="0" step="1" placeholder="0" />
-                    </div>
-
-                    <label class="marketplace-sim__offer-label" for="marketplace-offer-note">note</label>
-                    <textarea id="marketplace-offer-note" class="marketplace-sim__offer-note" rows="3" maxlength="300"
-                      placeholder="briefly describe why you are a fit..."></textarea>
-
-                    <button type="button" class="marketplace-sim__primary" id="marketplace-offer-submit">submit offer</button>
-                    <p class="marketplace-sim__offer-status" id="marketplace-offer-status" aria-live="polite"></p>
-                  </aside>
-                </div>
-              </div>
-
-              <div class="marketplace-sim__chat" id="marketplace-chat" hidden>
-                <button type="button" class="marketplace-sim__chat-backdrop" id="marketplace-chat-backdrop"
-                  aria-label="Close chat"></button>
-                <div class="marketplace-sim__chat-window">
-                  <div class="marketplace-sim__chat-head">
-                    <span>message the business</span>
-                    <button type="button" class="marketplace-sim__chat-close" id="marketplace-chat-close"
-                      aria-label="Close chat">&times;</button>
-                  </div>
-                  <div class="marketplace-sim__chat-thread">
-                    <p class="marketplace-sim__chat-empty">no messages in the simulation thread.</p>
-                  </div>
-                  <label class="marketplace-sim__offer-label" for="marketplace-chat-input">message</label>
-                  <textarea id="marketplace-chat-input" class="marketplace-sim__chat-input" rows="2"
-                    disabled>simulation doesn't support messaging (yet)</textarea>
-                </div>
-              </div>
-
-              <div class="marketplace-sim__toast" id="marketplace-toast" hidden>offer submitted</div>
-            </div>
-        </div>
-      </section>
-    </div>
-  </section>
-
-  <section class="community-band audience-theme-surface audience-only--consultant" id="student-community"
-    aria-labelledby="student-community-heading">
-    <div class="community-band__inner">
-      <div class="community-band__copy">
-        <span class="mission-kicker">for students</span>
-        <h2 id="student-community-heading">campus is just the starting point.</h2>
-        <p class="community-band__lede">
-          College towns are full of local businesses that want student help. Real projects can build hands-on experience,
-          connect you to your neighbors, and give you a way to give back beyond class.
-        </p>
-        <div class="community-band__chips" aria-hidden="true">
-          <span class="community-band__chip">hands-on work</span>
-          <span class="community-band__chip">local community</span>
-          <span class="community-band__chip">real impact</span>
-        </div>
-      </div>
-
-      <div class="community-map" id="community-map" data-map-state="campus">
-        <div class="community-map__hud">
-          <button type="button" class="community-map__reset" id="community-map-reset">reset view</button>
-        </div>
-
-        <div class="community-map__frame">
-          <div class="community-map__canvas" id="community-map-canvas"
-            aria-label="Interactive minimalist map of the University of Florida campus and nearby business opportunity pins within about two and a half miles."></div>
-
-          <div class="community-map__overlay" aria-hidden="true">
-            <div class="community-map__overlay-card">
-              <span class="community-map__overlay-kicker">opportunity field</span>
-              <strong>start in the campus core, then explore the nearby businesses around it</strong>
-            </div>
-          </div>
-        </div>
-
-        <div class="community-map__legend"></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="student-values audience-theme-surface audience-only--consultant" id="student-values"
-    aria-labelledby="student-values-heading">
-    <div class="student-values__inner">
-      <div class="student-values__intro">
-        <span class="mission-kicker">for students</span>
-        <h2 id="student-values-heading">why students use grassroots.</h2>
-        <p class="student-values__lede">Three clear reasons to turn the skills you already have into real local momentum.</p>
-      </div>
-
-      <div class="student-values__grid" role="list">
-        <article class="student-value-card student-value-card--experience" role="listitem">
-          <div class="student-value-card__icon" aria-hidden="true">
-            <svg viewBox="0 0 40 40" width="40" height="40" xmlns="http://www.w3.org/2000/svg" fill="none">
-              <rect x="7" y="9" width="26" height="22" rx="6" stroke="currentColor" stroke-width="2" />
-              <path d="M14 15h12M14 20h8M14 25h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-              <path d="M27 12l5 5-9 9h-5v-5l9-9Z" fill="currentColor" opacity="0.22" />
-            </svg>
-          </div>
-          <div class="student-value-card__copy">
-            <p class="student-value-card__kicker">build experience</p>
-            <h3 class="student-value-card__title">
-              <span class="student-value-card__title-lead">Real-world experience</span>
-              <span class="student-value-card__title-sub">from businesses already looking for student help.</span>
-            </h3>
-            <p class="student-value-card__body">Take on <strong>hands-on projects</strong>, build client context, and learn by doing instead of waiting for an internship cycle.</p>
-          </div>
-        </article>
-
-        <article class="student-value-card student-value-card--resume" role="listitem">
-          <div class="student-value-card__icon" aria-hidden="true">
-            <svg viewBox="0 0 40 40" width="40" height="40" xmlns="http://www.w3.org/2000/svg" fill="none">
-              <rect x="8" y="10" width="24" height="20" rx="5" stroke="currentColor" stroke-width="2" />
-              <path d="M14 17h12M14 22h12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-              <circle cx="15" cy="15" r="2" fill="currentColor" opacity="0.3" />
-            </svg>
-          </div>
-          <div class="student-value-card__copy">
-            <p class="student-value-card__kicker">earn while you learn</p>
-            <h3 class="student-value-card__title">
-              <span class="student-value-card__title-lead">Monetize your skills</span>
-              <span class="student-value-card__title-sub">while building experience you can actually point to.</span>
-            </h3>
-            <p class="student-value-card__body">Earn from your current skill set and turn completed work into <strong>resume-ready credibility</strong>.</p>
-          </div>
-
-          <div class="student-role-card" aria-label="Mock Grassroots consultant position card">
-            <div class="student-role-card__head">
-              <div class="student-role-card__logo-wrap">
-                <img src="./assets/grassroots-icon-syne.svg" width="24" height="34" alt="" />
-              </div>
-              <div class="student-role-card__meta">
-                <strong>Grassroots Consultant</strong>
-                <span>Grassroots</span>
-              </div>
-            </div>
-            <div class="student-role-card__details">
-              <span>Freelance</span>
-              <span>Gainesville, FL</span>
-            </div>
-          </div>
-        </article>
-
-        <article class="student-value-card student-value-card--community" role="listitem">
-          <div class="student-value-card__icon" aria-hidden="true">
-            <svg viewBox="0 0 40 40" width="40" height="40" xmlns="http://www.w3.org/2000/svg" fill="none">
-              <path d="M20 31s-8-4.9-8-12.1A5.1 5.1 0 0 1 20 15a5.1 5.1 0 0 1 8 3.9C28 26.1 20 31 20 31Z"
-                stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
-              <path d="M12 24c1.8-1.8 4.2-2.7 8-2.7s6.2.9 8 2.7" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" opacity="0.4" />
-              <circle cx="20" cy="18" r="1.8" fill="currentColor" />
-            </svg>
-          </div>
-          <div class="student-value-card__copy">
-            <p class="student-value-card__kicker">show up locally</p>
-            <h3 class="student-value-card__title">
-              <span class="student-value-card__title-lead">Show up in your college town</span>
-              <span class="student-value-card__title-sub">and create value beyond campus.</span>
-            </h3>
-            <p class="student-value-card__body">Work with local owners, support nearby organizations, and make a <strong>meaningful impact</strong> in the community you live in.</p>
-          </div>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <section class="prop-section audience-theme-surface" id="value-prop" aria-labelledby="prop-heading">
-    <div class="prop-section__inner">
-      <div class="audience-panel audience-panel--business prop-section__grid" data-audience-panel="business">
-        <div class="prop-section__intro">
-          <span class="mission-kicker">for your shop</span>
-          <h2 id="prop-heading" class="prop-heading-brand">
-            <span class="prop-heading-brand__why">why</span>
-            <span class="prop-heading-brand__lockup">
-              <img class="prop-heading-brand__icon" src="./assets/grassroots-icon-syne.svg" width="36" height="52"
-                alt="" />
-              <span class="prop-heading-brand__wordmark">grassroots</span>
-            </span>
-            <svg class="prop-heading-brand__brush" data-brush-replay width="64" height="78" viewBox="0 0 72 92"
-              aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-              <path class="prop-heading-brand__brushstroke prop-heading-brand__brushstroke--q" pathLength="1"
-                fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"
-                d="M22 20 C20 6 38 4 52 14 C66 26 62 50 40 56 C28 60 24 72 28 82" />
-              <circle class="prop-heading-brand__brushdot" cx="32" cy="91" r="5" fill="currentColor" />
-            </svg>
-          </h2>
-        </div>
-        <div class="value-cards" role="list">
-          <article class="value-card value-card--sage" role="listitem">
-            <div class="value-card__icon" aria-hidden="true">
-              <svg viewBox="0 0 40 40" width="40" height="40" xmlns="http://www.w3.org/2000/svg" fill="none">
-                <path stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M8 28V14l8-4 8 4v14" />
-                <path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 18h8M12 22h8" />
-                <circle cx="28" cy="12" r="3.5" fill="currentColor" opacity="0.35" />
-                <path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M26 26l6-6M26 20l6 6" />
-              </svg>
-            </div>
-            <h3 class="value-card__title">open market</h3>
-            <p class="value-card__body">for consultative work—you post; students bid.</p>
-          </article>
-          <article class="value-card value-card--warm" role="listitem">
-            <div class="value-card__icon" aria-hidden="true">
-              <svg viewBox="0 0 40 40" width="40" height="40" xmlns="http://www.w3.org/2000/svg" fill="none">
-                <path stroke="currentColor" stroke-width="2" stroke-linejoin="round"
-                  d="M12 14l8-6 8 6v12a4 4 0 01-4 4h-8a4 4 0 01-4-4V14z" />
-                <path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M16 26h8M20 22v8" />
-              </svg>
-            </div>
-            <h3 class="value-card__title">lower cost</h3>
-            <p class="value-card__body">than typical agency or retained help.</p>
-          </article>
-          <article class="value-card value-card--green" role="listitem">
-            <div class="value-card__icon" aria-hidden="true">
-              <svg viewBox="0 0 40 40" width="40" height="40" xmlns="http://www.w3.org/2000/svg" fill="none">
-                <path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M10 28L18 12l6 10 6-6 6 12" />
-                <circle cx="18" cy="11" r="3" fill="currentColor" />
-              </svg>
-            </div>
-            <h3 class="value-card__title">light onboarding</h3>
-            <p class="value-card__body">compared with heavy hiring platforms.</p>
-          </article>
-        </div>
-      </div>
-
-      <div class="audience-panel audience-panel--consultant prop-section__grid" data-audience-panel="consultant">
-        <div class="prop-section__intro prop-section__intro--consultant-why">
-          <h2 id="prop-heading-consultant" class="prop-heading-brand prop-heading-brand--consultant-mission-scale">
-            <span class="prop-heading-brand__why">how does</span>
-            <span class="prop-heading-brand__lockup">
-              <img class="prop-heading-brand__icon" src="./assets/grassroots-icon-syne.svg" width="36" height="52"
-                alt="" />
-              <span class="prop-heading-brand__wordmark">grassroots</span>
-            </span>
-            <span class="prop-heading-brand__tail">work</span>
-            <svg class="prop-heading-brand__brush" data-brush-replay width="64" height="78" viewBox="0 0 72 92"
-              aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-              <path class="prop-heading-brand__brushstroke prop-heading-brand__brushstroke--q" pathLength="1"
-                fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"
-                d="M22 20 C20 6 38 4 52 14 C66 26 62 50 40 56 C28 60 24 72 28 82" />
-              <circle class="prop-heading-brand__brushdot" cx="32" cy="91" r="5" fill="currentColor" />
-            </svg>
-          </h2>
-        </div>
-
-        <div class="escrow-model" aria-labelledby="prop-heading-consultant">
-          <div class="escrow-model__diagram" aria-label="Escrow flow from business to grassroots to consultant">
-            <article class="escrow-node escrow-node--business">
-              <span class="escrow-node__icon-wrap" aria-hidden="true">
-                <svg class="escrow-node__icon" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="none">
-                  <path d="M8 18l16-8 16 8v17a3 3 0 0 1-3 3H11a3 3 0 0 1-3-3V18Z" stroke="currentColor"
-                    stroke-width="2.4" stroke-linejoin="round" />
-                  <path d="M14 24h10M14 29h16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
-                  <path d="M31 11v9" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+          </li>
+          <li>
+            <a class="ld-nav__cta" href="/register.html?role=owner">
+              <span>post a project</span>
+              <span class="ld-nav__cta-arrow" aria-hidden="true">
+                <svg viewBox="0 0 16 16" fill="none">
+                  <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </span>
-              <p class="escrow-node__eyebrow">business</p>
-              <h3 class="escrow-node__title"><span class="escrow-node__accent">accepts</span> an offer</h3>
-            </article>
+            </a>
+          </li>
+        </ul>
+      </div>
+      <div class="ld-nav__progress" aria-hidden="true">
+        <div class="ld-nav__progress-fill" id="ld-nav-progress"></div>
+      </div>
+    </nav>
 
-            <div class="escrow-link escrow-link--in" aria-hidden="true">
-              <span class="escrow-link__coin">$</span>
-              <span class="escrow-link__line"></span>
-              <p class="escrow-link__label">1. payment in</p>
+    <!-- ── hero ───────────────────────────────────────────── -->
+    <header class="ld-hero ld-shell" aria-labelledby="ld-hero-title" data-vine-anchor="seed">
+      <!-- Three-layer parallax clouds (far/mid/near) — same system as
+           the previous landing's night sky, each layer drifting at its
+           own speed and the panes duplicated so translateX(-50%) wraps
+           seamlessly. Scoped to .ld-hero so they don't leak into other
+           sections. -->
+      <div class="hero-clouds" id="hero-clouds" aria-hidden="true">
+        <div class="hero-clouds__layer hero-clouds__layer--far">
+          <div class="hero-clouds__scroll">
+            <div class="hero-clouds__pane hero-clouds__pane--far">
+              <span class="hero-clouds__blob hero-clouds__blob--a"></span>
+              <span class="hero-clouds__blob hero-clouds__blob--b"></span>
+              <span class="hero-clouds__blob hero-clouds__blob--c"></span>
+              <span class="hero-clouds__blob hero-clouds__blob--d"></span>
             </div>
-
-            <article class="escrow-node escrow-node--grassroots">
-              <span class="escrow-node__icon-wrap escrow-node__icon-wrap--logo" aria-hidden="true">
-                <img class="escrow-node__logo" src="./assets/grassroots-icon-syne.svg" width="40" height="66" alt="" />
-              </span>
-              <p class="escrow-node__eyebrow">grassroots</p>
-              <h3 class="escrow-node__title">holds funds in escrow</h3>
-              <div class="escrow-node__badge">
-                <span class="escrow-node__badge-title">release after confirmation</span>
-              </div>
-            </article>
-
-            <div class="escrow-link escrow-link--out" aria-hidden="true">
-              <span class="escrow-link__coin">$</span>
-              <span class="escrow-link__line"></span>
-              <p class="escrow-link__label">3. payout</p>
-            </div>
-
-            <article class="escrow-node escrow-node--consultant">
-              <span class="escrow-node__icon-wrap" aria-hidden="true">
-                <svg class="escrow-node__icon" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="none">
-                  <circle cx="24" cy="16" r="7" stroke="currentColor" stroke-width="2.4" />
-                  <path d="M13 38c2.6-6.7 7.2-10 11-10s8.4 3.3 11 10" stroke="currentColor" stroke-width="2.4"
-                    stroke-linecap="round" />
-                  <path d="M34 11l4 4 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"
-                    stroke-linejoin="round" />
-                </svg>
-              </span>
-              <p class="escrow-node__eyebrow">consultant</p>
-              <h3 class="escrow-node__title"><span class="escrow-node__accent">delivers</span> the work</h3>
-            </article>
-
-            <div class="escrow-model__milestone" aria-hidden="true">
-              <span class="escrow-model__milestone-step">2</span>
-              <p>work happens while funds stay in escrow</p>
+            <div class="hero-clouds__pane hero-clouds__pane--far">
+              <span class="hero-clouds__blob hero-clouds__blob--a"></span>
+              <span class="hero-clouds__blob hero-clouds__blob--b"></span>
+              <span class="hero-clouds__blob hero-clouds__blob--c"></span>
+              <span class="hero-clouds__blob hero-clouds__blob--d"></span>
             </div>
           </div>
-
-          <article class="escrow-support">
-            <span class="escrow-support__icon-wrap" aria-hidden="true">
-              <svg class="escrow-support__icon" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="none">
-                <path d="M12 25a12 12 0 0 1 24 0" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
-                <rect x="10" y="24" width="8" height="12" rx="4" stroke="currentColor" stroke-width="2.4" />
-                <rect x="30" y="24" width="8" height="12" rx="4" stroke="currentColor" stroke-width="2.4" />
-                <path d="M24 37h4a5 5 0 0 0 5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
-              </svg>
-            </span>
-            <div>
-              <p class="escrow-support__eyebrow">support team</p>
-              <h3 class="escrow-support__title">steps in before payout</h3>
-              <p class="escrow-support__copy">issues get reviewed before funds move.</p>
+        </div>
+        <div class="hero-clouds__layer hero-clouds__layer--mid">
+          <div class="hero-clouds__scroll">
+            <div class="hero-clouds__pane hero-clouds__pane--mid">
+              <span class="hero-clouds__blob hero-clouds__blob--e"></span>
+              <span class="hero-clouds__blob hero-clouds__blob--f"></span>
+              <span class="hero-clouds__blob hero-clouds__blob--g"></span>
+              <span class="hero-clouds__blob hero-clouds__blob--h"></span>
+              <span class="hero-clouds__blob hero-clouds__blob--i"></span>
             </div>
+            <div class="hero-clouds__pane hero-clouds__pane--mid">
+              <span class="hero-clouds__blob hero-clouds__blob--e"></span>
+              <span class="hero-clouds__blob hero-clouds__blob--f"></span>
+              <span class="hero-clouds__blob hero-clouds__blob--g"></span>
+              <span class="hero-clouds__blob hero-clouds__blob--h"></span>
+              <span class="hero-clouds__blob hero-clouds__blob--i"></span>
+            </div>
+          </div>
+        </div>
+        <div class="hero-clouds__layer hero-clouds__layer--near">
+          <div class="hero-clouds__scroll">
+            <div class="hero-clouds__pane hero-clouds__pane--near">
+              <span class="hero-clouds__blob hero-clouds__blob--j"></span>
+              <span class="hero-clouds__blob hero-clouds__blob--k"></span>
+              <span class="hero-clouds__blob hero-clouds__blob--l"></span>
+              <span class="hero-clouds__blob hero-clouds__blob--m"></span>
+            </div>
+            <div class="hero-clouds__pane hero-clouds__pane--near">
+              <span class="hero-clouds__blob hero-clouds__blob--j"></span>
+              <span class="hero-clouds__blob hero-clouds__blob--k"></span>
+              <span class="hero-clouds__blob hero-clouds__blob--l"></span>
+              <span class="hero-clouds__blob hero-clouds__blob--m"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ld-hero__grid">
+        <div>
+          <p class="ld-eyebrow ld-eyebrow--accent ld-reveal">the marketplace consultancy</p>
+          <h1 class="ld-hero__title ld-reveal" id="ld-hero-title">
+            small jobs, big results — done by students who live <span class="ld-italic">down the street</span>.
+          </h1>
+          <p class="ld-hero__sub ld-reveal">
+            post a piece of scoped work. local students bid with a price and a plan. you pick. funds wait in escrow until you approve.
+          </p>
+          <div class="ld-hero__ctas ld-reveal">
+            <a class="gr-btn gr-btn--primary gr-btn--lg" href="/register.html?role=owner">post a project</a>
+            <a class="gr-btn gr-btn--ghost gr-btn--lg" href="/marketplace.html">see what's live</a>
+          </div>
+          <div class="ld-trust-row ld-reveal" aria-label="recent activity">
+            <span class="ld-trust-row__avatars" aria-hidden="true">
+              <span class="gr-avatar gr-avatar--round gr-avatar--accent">ma</span>
+              <span class="gr-avatar gr-avatar--round gr-avatar--soft">tk</span>
+              <span class="gr-avatar gr-avatar--round gr-avatar--accent">jc</span>
+              <span class="gr-avatar gr-avatar--round gr-avatar--soft">rd</span>
+            </span>
+            <span><b>127 businesses</b> posted this week across 14 college towns</span>
+          </div>
+        </div>
+
+        <div class="ld-reveal">
+          <div class="ld-hero__visual">
+            <div class="ld-hero__cards" id="ld-hero-cards" aria-hidden="true"></div>
+            <div class="ld-hero__garden" id="ld-hero-garden" aria-hidden="true"></div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── manifesto / pull quote ────────────────────────────
+         a single editorial statement with a banded background that
+         sets it apart from the hero. Words animate in one-by-one on
+         scroll-in (initialized at the bottom of <body>). -->
+    <section class="ld-manifesto" id="ld-manifesto" aria-label="why we built this">
+      <div class="ld-manifesto__bg" aria-hidden="true"></div>
+      <div class="ld-shell ld-manifesto__shell">
+        <div class="ld-manifesto__mark" aria-hidden="true">&ldquo;</div>
+        <p class="ld-manifesto__text" id="ld-manifesto-text">
+          a small business shouldn't have to write a <span class="ld-italic">four-thousand-dollar check</span> to get a logo redrawn,
+          or wait <span class="ld-italic">six weeks</span> for a one-page site.
+          we built grassroots because we kept watching it happen.
+        </p>
+        <div class="ld-manifesto__by">
+          <span class="ld-manifesto__rule" aria-hidden="true"></span>
+          <span>grassroots team · founded 2026</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── how it works: pinned scrub story ───────────────── -->
+    <section class="ld-section ld-story" id="how-it-works" aria-labelledby="ld-how-title" data-vine-anchor="how">
+      <div class="ld-shell">
+        <!-- intro head sits above the pinned stage; visible at start of section -->
+        <div class="ld-section__head ld-reveal" style="position: relative; z-index: 2;">
+          <p class="ld-eyebrow">how it works</p>
+          <h2 class="ld-section__title" id="ld-how-title">four steps. nothing weird.</h2>
+          <p class="ld-section__sub">scope the work, pick a bid, fund escrow, approve the result. no recruiter calls. no agency intake forms.</p>
+        </div>
+      </div>
+
+      <!-- pinned scrub container — 400vh tall, sticky inner -->
+      <div class="ld-story__scrub" id="ld-story-scrub" style="height: 360vh; position: relative;">
+        <div class="ld-story__stage ld-shell">
+          <div class="ld-story__title-col">
+            <div class="ld-cherry" id="ld-cherry" aria-hidden="true">
+              <span class="ld-cherry__counter">
+                <span class="ld-cherry__counter-num" id="ld-cherry-counter" data-step="1"></span>
+                <span class="ld-cherry__counter-of">/ 04</span>
+              </span>
+              <!-- 5 cherry-blossom growth stages injected by landing-cherry.js + landing.js -->
+            </div>
+          </div>
+          <div class="ld-story__steps">
+            <article class="ld-story-card is-active" data-step="1">
+              <div class="ld-story-card__head">
+                <span class="ld-story-card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    <circle cx="18" cy="18" r="2.6" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M19.9 19.9L21 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                  </svg>
+                </span>
+                <span class="ld-story-card__chip">step one</span>
+              </div>
+              <h3 class="ld-story-card__title">post a project</h3>
+              <p class="ld-story-card__body">write a short brief. set a budget range. pick one-off, phased, or retainer. takes about five minutes.</p>
+            </article>
+            <article class="ld-story-card" data-step="2">
+              <div class="ld-story-card__head">
+                <span class="ld-story-card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                    <circle cx="9" cy="11" r="1.2" fill="currentColor"/>
+                    <circle cx="13" cy="11" r="1.2" fill="currentColor"/>
+                    <circle cx="17" cy="11" r="1.2" fill="currentColor"/>
+                  </svg>
+                </span>
+                <span class="ld-story-card__chip">step two</span>
+              </div>
+              <h3 class="ld-story-card__title">get scoped bids</h3>
+              <p class="ld-story-card__body">local students send a short pitch and a price. read them at your own pace. no recruiter calls.</p>
+            </article>
+            <article class="ld-story-card" data-step="3">
+              <div class="ld-story-card__head">
+                <span class="ld-story-card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="7" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M3 11h18" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M8 16h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="M17 4l-5 3-5-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+                <span class="ld-story-card__chip">step three</span>
+              </div>
+              <h3 class="ld-story-card__title">fund escrow</h3>
+              <p class="ld-story-card__body">pick a bid. fund the agreed amount through Stripe. it sits there, untouched, until you say so.</p>
+            </article>
+            <article class="ld-story-card" data-step="4">
+              <div class="ld-story-card__head">
+                <span class="ld-story-card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M5 12l4 4 10-10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.6" opacity="0.45"/>
+                  </svg>
+                </span>
+                <span class="ld-story-card__chip">step four</span>
+              </div>
+              <h3 class="ld-story-card__title">release on approval</h3>
+              <p class="ld-story-card__body">review the work. ask for changes if needed. release funds when it's yours. the student gets paid same day.</p>
+            </article>
+          </div>
+
+          <div class="ld-story__progress" aria-hidden="true">
+            <div class="ld-story__progress-fill" id="ld-story-progress"></div>
+            <div class="ld-story__progress-ticks" id="ld-story-ticks">
+              <span class="ld-story__progress-tick is-passed"></span>
+              <span class="ld-story__progress-tick"></span>
+              <span class="ld-story__progress-tick"></span>
+              <span class="ld-story__progress-tick"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── why grassroots: 3-column reveal grid ────────────── -->
+    <section class="ld-section ld-why" aria-labelledby="ld-why-title">
+      <div class="ld-shell">
+        <div class="ld-section__head ld-reveal">
+          <p class="ld-eyebrow">why grassroots</p>
+          <h2 class="ld-section__title" id="ld-why-title">the agency-quality answer, <span class="ld-italic">at a college-town price.</span></h2>
+        </div>
+
+        <div class="ld-why__grid">
+          <article class="ld-why-card ld-why-card--bids" data-why>
+            <div class="ld-why-card__num"><span>01</span><span class="ld-why-card__num-bar"></span></div>
+            <div class="ld-why-card__chip">open market</div>
+            <h3 class="ld-why-card__title">you post; the field bids.</h3>
+            <p class="ld-why-card__body">multiple students bid on your work. you read short pitches side-by-side. you pick the fit, not the algorithm.</p>
+            <svg class="ld-why-card__art ld-why-card__art--bids" viewBox="0 0 200 130" fill="none" aria-hidden="true">
+              <!-- faint floor grid -->
+              <g class="bm-grid" stroke="currentColor" stroke-width="0.7" stroke-dasharray="2 4" opacity="0.18">
+                <line x1="8"  y1="22"  x2="192" y2="22"/>
+                <line x1="8"  y1="58"  x2="192" y2="58"/>
+                <line x1="8"  y1="94"  x2="192" y2="94"/>
+              </g>
+              <!-- spokes (connection lines from each bidder to the central post) -->
+              <g class="bm-spokes" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none">
+                <path class="bm-spoke" pathLength="1" d="M100 65 L38 22"/>
+                <path class="bm-spoke" pathLength="1" d="M100 65 L72 14"/>
+                <path class="bm-spoke" pathLength="1" d="M100 65 L132 14"/>
+                <path class="bm-spoke" pathLength="1" d="M100 65 L166 24"/>
+                <path class="bm-spoke" pathLength="1" d="M100 65 L34 100"/>
+                <path class="bm-spoke" pathLength="1" d="M100 65 L168 104"/>
+              </g>
+              <!-- bidder avatars: outer ring + inner dot -->
+              <g class="bm-bidders">
+                <g class="bm-bidder" style="--bm-i: 0;">
+                  <circle cx="38" cy="22" r="7.5" fill="currentColor"/>
+                  <circle cx="38" cy="22" r="3"   fill="currentColor" opacity="0.35"/>
+                  <circle cx="38" cy="22" r="11"  fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+                </g>
+                <g class="bm-bidder" style="--bm-i: 1;">
+                  <circle cx="72" cy="14" r="7.5" fill="currentColor"/>
+                  <circle cx="72" cy="14" r="3"   fill="currentColor" opacity="0.35"/>
+                  <circle cx="72" cy="14" r="11"  fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+                </g>
+                <g class="bm-bidder" style="--bm-i: 2;">
+                  <circle cx="132" cy="14" r="7.5" fill="currentColor"/>
+                  <circle cx="132" cy="14" r="3"   fill="currentColor" opacity="0.35"/>
+                  <circle cx="132" cy="14" r="11"  fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+                </g>
+                <g class="bm-bidder" style="--bm-i: 3;">
+                  <circle cx="166" cy="24" r="7.5" fill="currentColor"/>
+                  <circle cx="166" cy="24" r="3"   fill="currentColor" opacity="0.35"/>
+                  <circle cx="166" cy="24" r="11"  fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+                </g>
+                <g class="bm-bidder" style="--bm-i: 4;">
+                  <circle cx="34" cy="100" r="7.5" fill="currentColor"/>
+                  <circle cx="34" cy="100" r="3"   fill="currentColor" opacity="0.35"/>
+                  <circle cx="34" cy="100" r="11"  fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+                </g>
+                <g class="bm-bidder" style="--bm-i: 5;">
+                  <circle cx="168" cy="104" r="7.5" fill="currentColor"/>
+                  <circle cx="168" cy="104" r="3"   fill="currentColor" opacity="0.35"/>
+                  <circle cx="168" cy="104" r="11"  fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+                </g>
+              </g>
+              <!-- central listing card with content rules -->
+              <g class="bm-post">
+                <rect class="bm-post-bg"
+                      x="78" y="46" width="44" height="38" rx="6"
+                      fill="currentColor" fill-opacity="0.18"
+                      stroke="currentColor" stroke-width="1.6"/>
+                <line x1="84" y1="55" x2="116" y2="55" stroke="currentColor" stroke-width="1.4" opacity="0.55"/>
+                <line x1="84" y1="61" x2="106" y2="61" stroke="currentColor" stroke-width="1.4" opacity="0.55"/>
+                <line x1="84" y1="67" x2="112" y2="67" stroke="currentColor" stroke-width="1.4" opacity="0.55"/>
+                <circle cx="90" cy="77" r="2.2" fill="currentColor"/>
+                <line x1="96" y1="77" x2="116" y2="77" stroke="currentColor" stroke-width="1.6"/>
+              </g>
+            </svg>
+          </article>
+
+          <article class="ld-why-card ld-why-card--price" data-why>
+            <div class="ld-why-card__num"><span>02</span><span class="ld-why-card__num-bar"></span></div>
+            <div class="ld-why-card__chip">priced for main street</div>
+            <h3 class="ld-why-card__title">30–60% of agency cost. <span class="ld-italic">no hidden margin.</span></h3>
+            <p class="ld-why-card__body">rates are published on every bid. no scope-creep tricks. one project, one number, posted in plain dollars.</p>
+            <svg class="ld-why-card__art ld-why-card__art--price" viewBox="0 0 200 130" fill="none" aria-hidden="true">
+              <!-- background grid -->
+              <g class="pm-grid" stroke="currentColor" stroke-width="0.7" stroke-dasharray="2 3" opacity="0.22">
+                <line x1="8"  y1="22"  x2="192" y2="22"/>
+                <line x1="8"  y1="48"  x2="192" y2="48"/>
+                <line x1="8"  y1="74"  x2="192" y2="74"/>
+                <line x1="8"  y1="100" x2="192" y2="100"/>
+              </g>
+              <!-- tier labels -->
+              <g class="pm-labels" font-family="Manrope, system-ui, sans-serif" font-weight="700" font-size="6" letter-spacing="0.04em" fill="currentColor">
+                <text x="14"  y="18" opacity="0.55">AGENCY $$$</text>
+                <text x="14"  y="70" opacity="0.45">FREELANCE</text>
+                <text x="138" y="124" opacity="0.85">YOU PAY ↓</text>
+              </g>
+              <!-- area under price line -->
+              <path class="pm-area"
+                    d="M16 24 L62 38 L106 60 L148 86 L182 110 L182 122 L16 122 Z"
+                    fill="currentColor" fill-opacity="0.10"/>
+              <!-- the price line itself -->
+              <path class="pm-line" pathLength="1"
+                    d="M16 24 L62 38 L106 60 L148 86 L182 110"
+                    stroke="currentColor" stroke-width="2.4"
+                    stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <!-- nodes -->
+              <g class="pm-nodes" fill="currentColor">
+                <g class="pm-node" style="--pm-i: 0;"><circle cx="16"  cy="24"  r="3.4"/></g>
+                <g class="pm-node" style="--pm-i: 1;"><circle cx="62"  cy="38"  r="3.4"/></g>
+                <g class="pm-node" style="--pm-i: 2;"><circle cx="106" cy="60"  r="3.4"/></g>
+                <g class="pm-node" style="--pm-i: 3;"><circle cx="148" cy="86"  r="3.4"/></g>
+              </g>
+              <!-- terminal "you pay" anchor: coin with $ -->
+              <g class="pm-anchor">
+                <circle cx="182" cy="110" r="14" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.4"/>
+                <circle cx="182" cy="110" r="9"  fill="currentColor"/>
+                <text x="182" y="114" text-anchor="middle"
+                      font-family="Fraunces, Georgia, serif" font-style="italic"
+                      font-weight="700" font-size="11"
+                      fill="var(--fo-bg)">$</text>
+              </g>
+            </svg>
+          </article>
+
+          <article class="ld-why-card ld-why-card--emphasis ld-why-card--shield" data-why>
+            <div class="ld-why-card__num"><span>03</span><span class="ld-why-card__num-bar"></span></div>
+            <div class="ld-why-card__chip">trust, on by default</div>
+            <h3 class="ld-why-card__title">your money waits where you can see it.</h3>
+            <p class="ld-why-card__body">Stripe-secured escrow holds every dollar until you approve. our team reviews each release before funds move.</p>
+            <svg class="ld-why-card__art ld-why-card__art--shield" viewBox="0 0 200 130" fill="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="tr-fill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"   stop-color="currentColor" stop-opacity="0.30"/>
+                  <stop offset="100%" stop-color="currentColor" stop-opacity="0.04"/>
+                </linearGradient>
+              </defs>
+              <!-- rotating dashed halo -->
+              <g class="tr-halo">
+                <circle cx="100" cy="66" r="50" fill="none" stroke="currentColor" stroke-width="1.1" stroke-dasharray="3 6" opacity="0.4"/>
+              </g>
+              <!-- shield outline -->
+              <path class="tr-shield" pathLength="1"
+                    d="M100 16 L150 30 V68 C150 92 130 110 100 117 C70 110 50 92 50 68 V30 Z"
+                    fill="url(#tr-fill)" stroke="currentColor" stroke-width="2.4"
+                    stroke-linejoin="round" stroke-linecap="round"/>
+              <!-- inner bevel -->
+              <path class="tr-bevel"
+                    d="M100 28 L140 39 V68 C140 88 124 102 100 108 C76 102 60 88 60 68 V39 Z"
+                    fill="none" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+              <!-- small padlock atop the shield notch -->
+              <g class="tr-lock">
+                <rect x="92"  y="46" width="16" height="13" rx="2" fill="currentColor" opacity="0.85"/>
+                <path d="M95 46 V42 C95 38 98 36 100 36 C102 36 105 38 105 42 V46" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                <circle cx="100" cy="52" r="1.5" fill="var(--fo-bg)"/>
+              </g>
+              <!-- checkmark — drawn in on hover -->
+              <path class="tr-check" pathLength="1"
+                    d="M76 72 L94 88 L126 58"
+                    stroke="currentColor" stroke-width="3.6" fill="none"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- decorative sparks -->
+              <g class="tr-sparks" fill="currentColor" opacity="0.65">
+                <circle class="tr-spark" style="--tr-i: 0;" cx="36"  cy="34" r="1.6"/>
+                <circle class="tr-spark" style="--tr-i: 1;" cx="164" cy="48" r="1.6"/>
+                <circle class="tr-spark" style="--tr-i: 2;" cx="172" cy="100" r="1.6"/>
+                <circle class="tr-spark" style="--tr-i: 3;" cx="30"  cy="98" r="1.6"/>
+                <circle class="tr-spark" style="--tr-i: 4;" cx="100" cy="8"  r="1.6"/>
+                <circle class="tr-spark" style="--tr-i: 5;" cx="64"  cy="20" r="1.2"/>
+                <circle class="tr-spark" style="--tr-i: 6;" cx="138" cy="20" r="1.2"/>
+              </g>
+            </svg>
           </article>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="beta-band beta-band--night beta-band--stars audience-theme-surface" id="reviews"
-    aria-labelledby="reviews-heading">
-    <canvas id="section-sparkles" class="section-sparkles" aria-hidden="true"></canvas>
-    <div class="beta-band__inner">
-      <header class="beta-section-head">
-        <span class="mission-kicker beta-kicker--on-dark">trust</span>
-        <h2 id="reviews-heading">scores &amp; stories</h2>
-        <p class="beta-lead beta-lead--narrow">
-          after each job, <strong>both sides</strong> leave feedback—stars travel with every name.
-        </p>
-      </header>
-      <div class="audience-panel audience-panel--business" data-audience-panel="business">
-        <div class="trust-grid trust-grid--split">
-          <div class="trust-card">
-            <h3 class="trust-card__title">rating consultants you hire</h3>
-            <p>you’ll see the same <strong>★ chip</strong> on bids and profiles. drill in for the six-dimension
-              breakdown students are scored on.</p>
-            <ul class="pill-list">
-              <li>work product</li>
-              <li>communication</li>
-              <li>timeliness</li>
-              <li>professionalism</li>
-              <li>collaboration</li>
-              <li>value</li>
-            </ul>
+    <!-- ── COMPARISON TABLE ───────────────────────────────────
+         placed right after "why grassroots" so the page flows from
+         "here's what we offer" into a direct vs.-alternatives view.
+         Two columns: grassroots vs. a local agency. -->
+    <section class="ld-section ld-compare" aria-labelledby="ld-compare-title">
+      <div class="ld-shell">
+        <div class="ld-compare__head ld-reveal">
+          <p class="ld-eyebrow ld-eyebrow--accent">the honest comparison</p>
+          <h2 class="ld-section__title" id="ld-compare-title">priced for your street. <span class="ld-italic">not wall street.</span></h2>
+          <p class="ld-section__sub">how a typical small-business project plays out on grassroots vs. an agency.</p>
+        </div>
+
+        <div class="ld-compare__table" role="table" aria-label="comparison: grassroots vs agency">
+          <!-- header row -->
+          <div class="ld-compare__cell ld-compare__cell--criterion ld-compare__cell--header" role="columnheader">what you get</div>
+          <div class="ld-compare__cell ld-compare__cell--header is-us" role="columnheader">
+            grassroots
+            <span class="ld-compare__yours">
+              <svg class="ld-compare__yours-heart" viewBox="0 0 24 22" fill="none" aria-hidden="true">
+                <!-- vine heart: outlined lobes + a tendril curl at the dimple + two leaves at the lobes -->
+                <path d="M12 20 C7 16.5, 3 13.5, 3 9 C3 6, 5 4, 7 4 C9 4, 11 5.5, 12 8 C13 5.5, 15 4, 17 4 C19 4, 21 6, 21 9 C21 13.5, 17 16.5, 12 20 Z"
+                      stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                <!-- tendril sprig at the heart's dimple -->
+                <path d="M12 7.5 C12 5.5, 12.8 4, 13.6 3 C13.9 2.6, 13.8 2.1, 13.4 2.0"
+                      stroke="currentColor" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+                <!-- left leaf on the lobe -->
+                <path d="M5.5 5.2 C4 4.8, 3 4.2, 2.6 3.0 C3.6 2.5, 4.9 3, 5.5 4.0 Z"
+                      fill="currentColor" opacity="0.85"/>
+                <!-- right leaf on the lobe -->
+                <path d="M18.5 5.2 C20 4.8, 21 4.2, 21.4 3.0 C20.4 2.5, 19.1 3, 18.5 4.0 Z"
+                      fill="currentColor" opacity="0.85"/>
+              </svg>
+              <span class="ld-compare__yours-text">yours truly</span>
+            </span>
           </div>
-          <div class="trust-card">
-            <h3 class="trust-card__title">your voice on the record</h3>
-            <p>a few sentences of <strong>public</strong> feedback on their profile helps the next shop decide.</p>
-            <div class="review-snippet" aria-hidden="true">
-              <p>“shipped early, great comms on inventory.”</p>
-              <span class="review-snippet__meta">— you · 5★</span>
+          <div class="ld-compare__cell ld-compare__cell--header" role="columnheader">local agency</div>
+
+          <!-- row: typical price -->
+          <div class="ld-compare__cell ld-compare__cell--criterion" role="rowheader">typical price · logo refresh</div>
+          <div class="ld-compare__cell ld-compare__cell--us" role="cell"><span class="ld-compare__price">$180–600</span></div>
+          <div class="ld-compare__cell" role="cell"><span class="ld-compare__price">$3,500–8,000</span></div>
+
+          <!-- row: time to first bid -->
+          <div class="ld-compare__cell ld-compare__cell--criterion" role="rowheader">time to first bid</div>
+          <div class="ld-compare__cell ld-compare__cell--us" role="cell">under 48 hours</div>
+          <div class="ld-compare__cell" role="cell">2–3 weeks of intake</div>
+
+          <!-- row: escrow -->
+          <div class="ld-compare__cell ld-compare__cell--criterion" role="rowheader">stripe-held escrow</div>
+          <div class="ld-compare__cell ld-compare__cell--us" role="cell">
+            <span class="ld-compare__yes" aria-label="yes">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span>held until you approve</span>
+          </div>
+          <div class="ld-compare__cell" role="cell">
+            <span class="ld-compare__mid" aria-label="sort of">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+            </span>
+            <span>retainer up front</span>
+          </div>
+
+          <!-- row: vetted -->
+          <div class="ld-compare__cell ld-compare__cell--criterion" role="rowheader">talent quality</div>
+          <div class="ld-compare__cell ld-compare__cell--us" role="cell">
+            <span class="ld-compare__yes" aria-label="yes">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span>verified students, school &amp; portfolio</span>
+          </div>
+          <div class="ld-compare__cell" role="cell">
+            <span class="ld-compare__yes" aria-label="yes">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span>vetted, at agency-rate</span>
+          </div>
+
+          <!-- row: local -->
+          <div class="ld-compare__cell ld-compare__cell--criterion" role="rowheader">local · same town</div>
+          <div class="ld-compare__cell ld-compare__cell--us" role="cell">
+            <span class="ld-compare__yes" aria-label="yes">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span>down the street, in your time zone</span>
+          </div>
+          <div class="ld-compare__cell" role="cell">
+            <span class="ld-compare__yes" aria-label="yes">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span>if your town has one</span>
+          </div>
+
+          <!-- row: platform fee -->
+          <div class="ld-compare__cell ld-compare__cell--criterion" role="rowheader">platform fee</div>
+          <div class="ld-compare__cell ld-compare__cell--us" role="cell">10% (only on funded work)</div>
+          <div class="ld-compare__cell" role="cell">baked in to retainer</div>
+        </div>
+
+        <p class="ld-compare__footnote ld-reveal">price ranges are pulled from 6 months of grassroots listings &amp; 2026 industry surveys.</p>
+      </div>
+    </section>
+
+    <!-- ── WHERE YOUR DOLLAR LANDS ────────────────────────────
+         pathos beat after the comparison: same project, two very
+         different stories about whose tuesday you just funded. -->
+    <section class="ld-section ld-where" aria-labelledby="ld-where-title">
+      <div class="ld-shell">
+        <div class="ld-section__head ld-section__head--center ld-reveal">
+          <p class="ld-eyebrow ld-eyebrow--accent">where your dollar lands</p>
+          <h2 class="ld-section__title" id="ld-where-title">$3,500 at an agency. <span class="ld-italic">$360 with maya.</span></h2>
+          <p class="ld-section__sub">same logo refresh. same outcome. very different stories about whose tuesday you just funded.</p>
+        </div>
+
+        <div class="ld-where__grid">
+          <article class="ld-where-card ld-where-card--agency ld-reveal" aria-label="agency dollar breakdown">
+            <p class="ld-where-card__title">at a typical agency</p>
+            <p class="ld-where-card__big">
+              <span class="ld-where-card__amt">$3,500</span>
+              <span class="ld-where-card__cents">retainer · paid up front · 6-week turn</span>
+            </p>
+            <ul class="ld-where-card__list">
+              <li><span class="ld-where-card__bullet">35%</span> partner overhead</li>
+              <li><span class="ld-where-card__bullet">22%</span> office + software stack</li>
+              <li><span class="ld-where-card__bullet">18%</span> account management</li>
+              <li><span class="ld-where-card__bullet">25%</span> the designer who actually does the work</li>
+            </ul>
+            <p class="ld-where-card__cap">a partner you meet once. a designer you never do.</p>
+          </article>
+
+          <article class="ld-where-card ld-where-card--grassroots ld-reveal" aria-label="grassroots dollar breakdown">
+            <div class="ld-where-card__face">
+              <span class="ld-where-card__avatar" aria-hidden="true">m</span>
+              <div>
+                <p class="ld-where-card__name">maya r.</p>
+                <p class="ld-where-card__role">marketing junior · uf · gainesville</p>
+              </div>
+            </div>
+            <p class="ld-where-card__big">
+              <span class="ld-where-card__amt">$360</span>
+              <span class="ld-where-card__cents">your project · paid same day</span>
+            </p>
+            <ul class="ld-where-card__list">
+              <li><span class="ld-where-card__bullet ld-where-card__bullet--accent">$324</span> to maya — textbooks, rent, gas to the studio</li>
+              <li><span class="ld-where-card__bullet">$36</span> keeps the lights on for us</li>
+            </ul>
+            <p class="ld-where-card__cap">~5 days end-to-end. revisions until you sign off.</p>
+            <blockquote class="ld-where-card__note">
+              <span class="ld-where-card__note-mark" aria-hidden="true">&ldquo;</span>
+              first paid gig of the semester — covered my organic chem textbook. thanks for the shot.
+              <cite>— maya, after release</cite>
+            </blockquote>
+          </article>
+        </div>
+
+        <p class="ld-where__footer ld-reveal">your money walks down the street. <span class="ld-italic">not to wall street.</span></p>
+      </div>
+    </section>
+
+    <!-- ── marketplace peek ────────────────────────────────── -->
+    <section class="ld-section ld-peek" aria-labelledby="ld-peek-title" data-vine-anchor="field">
+      <div class="ld-shell">
+        <div class="ld-section__head ld-reveal">
+          <p class="ld-eyebrow">live now</p>
+          <h2 class="ld-section__title" id="ld-peek-title">what's on the field this week.</h2>
+          <p class="ld-section__sub">a sample of open listings from across the network. real businesses, real budgets, real students.</p>
+        </div>
+      </div>
+
+      <div class="ld-peek__viewport" id="ld-peek-viewport">
+        <div class="ld-peek__track" id="ld-peek-track"></div>
+      </div>
+
+      <div class="ld-shell">
+        <div class="ld-peek__cta-row">
+          <a class="gr-btn gr-btn--secondary gr-btn--lg" href="/marketplace.html">browse the full marketplace</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── escrow / trust — sticky pinned scene ────────────────
+         outer .ld-escrow-scrub provides the scroll length; inner
+         .ld-escrow__pinned is the actually-pinned viewport. all
+         motion (coins falling in, vault holding, support badge,
+         coins flying out) is driven by a single scroll progress
+         value computed in landing.js. -->
+    <section class="ld-escrow-scrub" id="ld-escrow-scrub" aria-labelledby="ld-escrow-title">
+      <div class="ld-escrow__pinned" id="ld-escrow-pinned">
+        <div class="ld-escrow__pinned-head">
+          <p class="ld-eyebrow ld-eyebrow--accent">trust &amp; escrow</p>
+          <h2 class="ld-section__title" id="ld-escrow-title">your money waits where you can see it.</h2>
+          <p class="ld-section__sub">funds hold with Stripe until you approve. nothing moves without a green light from you.</p>
+        </div>
+
+        <div class="ld-escrow__stage" id="ld-escrow-stage"
+             role="img" aria-label="business funds the escrow vault; on approval, funds release to the student consultant">
+          <!-- LEFT: business -->
+          <div class="ld-escrow__party" data-party="biz">
+            <div class="ld-escrow__party-icon" id="ld-escrow-icon-biz">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M4 21V8l8-5 8 5v13" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+                <path d="M10 21v-6h4v6" stroke="currentColor" stroke-width="1.6"/>
+              </svg>
+            </div>
+            <span class="ld-escrow__party-label">business</span>
+            <span class="ld-escrow__party-cap">you</span>
+            <span class="ld-escrow__party-balance" id="ld-escrow-biz-balance">$420 ready</span>
+          </div>
+
+          <!-- CENTER: vault (circle + arc + lock) -->
+          <div class="ld-escrow__vault" id="ld-escrow-vault-el">
+            <span class="ld-escrow__review" id="ld-escrow-review" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M3 7h13l-3-3M3 7l3 3M21 17H8l3 3M21 17l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              work shipped
+            </span>
+            <svg class="ld-escrow__vault-arc" viewBox="0 0 100 100" aria-hidden="true">
+              <circle id="ld-escrow-arc" cx="50" cy="50" r="46" pathLength="1"/>
+            </svg>
+            <div class="ld-escrow__vault-inner">
+              <svg class="ld-escrow__vault-lock" id="ld-escrow-lock" viewBox="0 0 24 24" fill="none" overflow="visible" aria-hidden="true">
+                <rect class="ld-lock-body" x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.7"/>
+                <path class="ld-lock-shackle" d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                <circle class="ld-lock-keyhole" cx="12" cy="15.5" r="1.3" fill="currentColor"/>
+              </svg>
+              <div class="ld-escrow__vault-amount" id="ld-escrow-amount">$0</div>
+              <div class="ld-escrow__vault-state" id="ld-escrow-state">empty</div>
             </div>
           </div>
-          <div class="trust-card trust-card--wide">
-            <h3 class="trust-card__title">perks for shops (tbd)</h3>
-            <p class="beta-note">policy still in motion.</p>
-            <ul class="value-list value-list--dark">
-              <li><strong>three solid reviews</strong> you leave → <strong>premium listing</strong> unlock.</li>
-            </ul>
+
+          <!-- RIGHT: student -->
+          <div class="ld-escrow__party" data-party="student">
+            <div class="ld-escrow__party-icon" id="ld-escrow-icon-student">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="ld-escrow__party-label">student</span>
+            <span class="ld-escrow__party-cap">consultant</span>
+            <span class="ld-escrow__party-balance" id="ld-escrow-student-balance">$0 received</span>
+          </div>
+
+          <!-- the single $420 money note that travels biz → vault → student -->
+          <div class="ld-escrow__note" id="ld-escrow-note" aria-hidden="true">$420</div>
+        </div>
+
+        <div class="ld-escrow__steps" id="ld-escrow-steps">
+          <div class="ld-escrow__step" data-step="0">funded</div>
+          <div class="ld-escrow__step" data-step="1">held in escrow</div>
+          <div class="ld-escrow__step" data-step="2">work shipped</div>
+          <div class="ld-escrow__step" data-step="3">released</div>
+        </div>
+
+        <div class="ld-escrow__progress" aria-hidden="true">
+          <div class="ld-escrow__progress-fill" id="ld-escrow-progress"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 6-dimension review chips ────────────────────────── -->
+    <section class="ld-section" aria-labelledby="ld-review-title" data-vine-anchor="six">
+      <div class="ld-shell">
+        <div class="ld-review" id="ld-review">
+          <div class="ld-review__head ld-reveal">
+            <p class="ld-eyebrow ld-eyebrow--accent">quietly thorough</p>
+            <h2 class="ld-review__title" id="ld-review-title">every job is reviewed across six dimensions.</h2>
+          </div>
+          <div class="ld-review__chips" role="list">
+            <span class="ld-review__chip" role="listitem">work product</span>
+            <span class="ld-review__chip" role="listitem">communication</span>
+            <span class="ld-review__chip" role="listitem">timeliness</span>
+            <span class="ld-review__chip" role="listitem">professionalism</span>
+            <span class="ld-review__chip" role="listitem">collaboration</span>
+            <span class="ld-review__chip" role="listitem">value</span>
+          </div>
+          <p class="ld-review__sub ld-reveal">no star average on a one-line summary. real notes on the dimensions that matter when you hire someone again.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── testimonials ────────────────────────────────────── -->
+    <section class="ld-section" aria-labelledby="ld-quotes-title" data-vine-anchor="voices">
+      <div class="ld-shell">
+        <div class="ld-section__head ld-reveal">
+          <p class="ld-eyebrow">in their words</p>
+          <h2 class="ld-section__title" id="ld-quotes-title">what people are saying.</h2>
+        </div>
+
+        <div class="ld-quotes">
+          <figure class="ld-quote ld-reveal">
+            <div class="ld-quote__mark" aria-hidden="true">&ldquo;</div>
+            <blockquote class="ld-quote__body">i'd been quoted four grand for a logo refresh. paid $220 here. it's hanging in my window.</blockquote>
+            <figcaption class="ld-quote__by">
+              <span class="gr-avatar gr-avatar--round ld-quote__avatar">mr</span>
+              <div>
+                <div class="ld-quote__name">maya r.</div>
+                <div class="ld-quote__role">owner, side street coffee</div>
+              </div>
+            </figcaption>
+          </figure>
+
+          <figure class="ld-quote ld-reveal">
+            <div class="ld-quote__mark" aria-hidden="true">&ldquo;</div>
+            <blockquote class="ld-quote__body">i've posted seven projects now. same student keeps winning the bids. it's basically my marketing team.</blockquote>
+            <figcaption class="ld-quote__by">
+              <span class="gr-avatar gr-avatar--round ld-quote__avatar">dc</span>
+              <div>
+                <div class="ld-quote__name">danny c.</div>
+                <div class="ld-quote__role">owner, north end bikes</div>
+              </div>
+            </figcaption>
+          </figure>
+
+          <figure class="ld-quote ld-reveal">
+            <div class="ld-quote__mark" aria-hidden="true">&ldquo;</div>
+            <blockquote class="ld-quote__body">three real clients, three real reviews, on my resume by spring. recruiters opened with that, not my gpa.</blockquote>
+            <figcaption class="ld-quote__by">
+              <span class="gr-avatar gr-avatar--round ld-quote__avatar">jp</span>
+              <div>
+                <div class="ld-quote__name">jordan p.</div>
+                <div class="ld-quote__role">marketing junior, state school</div>
+              </div>
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── students band ───────────────────────────────────── -->
+    <section class="ld-students" aria-labelledby="ld-students-title" data-vine-anchor="students">
+      <div class="ld-shell">
+        <div class="ld-students__inner ld-reveal">
+          <div>
+            <h2 class="ld-students__title" id="ld-students-title">are you a student? real projects. real money. real reviews on your resume.</h2>
+            <p class="ld-students__sub">bid on local work, build a portfolio recruiters can actually call.</p>
+          </div>
+          <a class="gr-btn gr-btn--ghost gr-btn--lg ld-students__cta" href="/home/for-students.html">for students &rarr;</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── FAQ ─────────────────────────────────────────────── -->
+    <section class="ld-section" aria-labelledby="ld-faq-title" data-vine-anchor="faq">
+      <div class="ld-shell">
+        <div class="ld-faq">
+          <div class="ld-section__head ld-section__head--center ld-reveal">
+            <p class="ld-eyebrow" style="text-align:center;">questions</p>
+            <h2 class="ld-section__title" id="ld-faq-title" style="text-align:center;">things people ask before posting.</h2>
+          </div>
+
+          <div class="ld-faq__list ld-reveal">
+            <details>
+              <summary>how does pricing work?</summary>
+              <p class="ld-faq__answer">students bid their own price on each project; you pick the bid you like. there's no platform fee until a job is funded. once it is, grassroots takes a small percentage of the contract value — published up front on every bid.</p>
+            </details>
+            <details>
+              <summary>what kinds of students are on grassroots?</summary>
+              <p class="ld-faq__answer">verified college students at four-year and two-year schools, mostly juniors and seniors. each profile lists school, major, and past work. you can filter by skill, school, or city before you ever post.</p>
+            </details>
+            <details>
+              <summary>what happens if i don't approve the work?</summary>
+              <p class="ld-faq__answer">funds stay in escrow. you request changes through the engagement page. if you and the student can't agree, our support team mediates and can refund the escrow if the work hasn't met the agreed scope.</p>
+            </details>
+            <details>
+              <summary>can i hire the same student again?</summary>
+              <p class="ld-faq__answer">yes. you can re-post directly to a past consultant, set up a retainer contract, or open a new public listing and invite them to bid. most repeat posters lock in a retainer after two projects.</p>
+            </details>
+            <details>
+              <summary>are taxes and 1099s handled?</summary>
+              <p class="ld-faq__answer">payouts go to students through Stripe, which tracks earnings and issues 1099s where required. you'll get a clean year-end summary of what you paid through the platform for your own books.</p>
+            </details>
+            <details>
+              <summary>what cities are you in?</summary>
+              <p class="ld-faq__answer">we launched in 14 college towns across Florida, Georgia, and the Carolinas. new towns open when there's a critical mass of students and businesses; you can request your city from the footer.</p>
+            </details>
           </div>
         </div>
       </div>
-      <div class="audience-panel audience-panel--consultant" data-audience-panel="consultant">
-        <div class="trust-grid trust-grid--split">
-          <div class="trust-card trust-card--wide">
-            <h3 class="trust-card__title">how you’re measured</h3>
-            <p>buyers see an overall score plus <strong>six dimensions</strong> so you’re not reduced to one vague
-              number.</p>
-            <ul class="pill-list">
-              <li>work product</li>
-              <li>communication</li>
-              <li>timeliness</li>
-              <li>professionalism</li>
-              <li>collaboration</li>
-              <li>value</li>
+    </section>
+
+    <!-- ── FINAL CTA · simple ──────────────────────────
+         editorial headline + two buttons. (form-based CTA above
+         was removed per design direction.) -->
+    <section class="ld-final" aria-labelledby="ld-final-title" data-vine-anchor="plant">
+      <div class="ld-final__glyph" aria-hidden="true">
+        <svg viewBox="0 0 400 400" fill="none">
+          <path d="M200 380V200" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+          <path d="M200 200 C120 200, 60 140, 60 60 C140 60, 200 120, 200 200 Z" fill="currentColor"/>
+          <path d="M200 200 C280 200, 340 140, 340 60 C260 60, 200 120, 200 200 Z" fill="currentColor" opacity="0.7"/>
+          <path d="M200 240 C140 240, 100 200, 100 140 C160 140, 200 180, 200 240 Z" fill="currentColor" opacity="0.5"/>
+        </svg>
+      </div>
+      <div class="ld-shell">
+        <h2 class="ld-final__title ld-reveal" id="ld-final-title">post your first project. <span class="ld-italic">it's free until you fund.</span></h2>
+        <div class="ld-final__ctas ld-reveal">
+          <a class="gr-btn gr-btn--primary gr-btn--lg" href="/register.html?role=owner">post a project</a>
+          <a class="gr-btn gr-btn--ghost gr-btn--lg" href="mailto:hello@grassroots.work">talk to us</a>
+        </div>
+        <p class="ld-final__cap ld-reveal">no platform fee until a job goes live.</p>
+      </div>
+    </section>
+
+    <!-- ── footer ──────────────────────────────────────────── -->
+    <footer class="ld-foot">
+      <div class="ld-shell">
+        <div class="ld-foot__grid">
+          <div>
+            <a class="ld-foot__brand" href="/">
+              <svg class="ld-sprout" viewBox="0 0 163 275" fill="currentColor" aria-hidden="true">
+                <path transform="translate(72, 130)" d="M19 10.15C19 4.54431 14.7467 0 9.5 0C4.25329 0 0 4.54431 0 10.15C7.91804 91.2467 8.44249 120.691 0 134.85C0 140.456 4.25329 145 9.5 145C14.7467 145 19 140.456 19 134.85C16.2169 71.2734 12.3479 23.288 19 10.15Z"/>
+                <path transform="translate(0, 65)" d="M84 87C21 71.5333 -6.5625 42.5333 1.3125 0C56.4375 3.86667 84 32.8667 84 87Z"/>
+                <path transform="translate(82, 0)" d="M0 147C48.6 116.053 75.6 67.0526 81 0C27 5.1579 0 54.1579 0 147Z"/>
+              </svg>
+              <span>grassroots</span>
+            </a>
+            <p class="ld-foot__mission">the local consulting marketplace. small jobs, real students, escrow-held trust.</p>
+          </div>
+
+          <div>
+            <p class="ld-foot__col-h">product</p>
+            <ul class="ld-foot__list">
+              <li><a href="#how-it-works">how it works</a></li>
+              <li><a href="/marketplace.html">marketplace</a></li>
+              <li><a href="/home/for-students.html">for students</a></li>
+              <li><a href="/signin.html">sign in</a></li>
+              <li><a href="/register.html?role=owner">register</a></li>
+              <li><a href="/help">help</a></li>
             </ul>
-            <div class="stars-row" aria-hidden="true">
-              <span class="stars-row__icon">★★★★★</span>
-              <span class="stars-row__label">next to your name everywhere</span>
-            </div>
           </div>
-          <div class="trust-card">
-            <h3 class="trust-card__title">write‑ups from shops</h3>
-            <p>short <strong>public</strong> quotes on your full profile back up the stars.</p>
-            <div class="review-snippet" aria-hidden="true">
-              <p>“clear comms, would hire again for the next sprint.”</p>
-              <span class="review-snippet__meta">— corner cafe · 5★</span>
-            </div>
+
+          <div>
+            <p class="ld-foot__col-h">company</p>
+            <ul class="ld-foot__list">
+              <li><a href="/home/about.html">about</a></li>
+              <li><a href="https://www.linkedin.com" target="_blank" rel="noopener">LinkedIn</a></li>
+              <li><a href="https://www.instagram.com" target="_blank" rel="noopener">instagram</a></li>
+              <li><a href="mailto:hello@grassroots.work">email us</a></li>
+            </ul>
           </div>
-          <div class="trust-card">
-            <h3 class="trust-card__title">closing the loop (tbd)</h3>
-            <p class="beta-note">policy still in motion.</p>
-            <p>payout may wait until you’ve <strong>submitted your review</strong> of the engagement.</p>
+        </div>
+
+        <div class="ld-foot__bottom">
+          <ul class="ld-foot__fine">
+            <li><a href="/privacy">privacy</a></li>
+            <li><a href="/terms">terms</a></li>
+            <li><a href="mailto:hello@grassroots.work">contact</a></li>
+            <li>&copy; 2026 grassroots</li>
+          </ul>
+          <div class="ld-theme" id="ld-theme" role="group" aria-label="theme">
+            <button type="button" data-theme-set="dark-forest" aria-pressed="false">forest</button>
+            <button type="button" data-theme-set="forest-soft" aria-pressed="false">soft</button>
+            <button type="button" data-theme-set="dark" aria-pressed="false">dark</button>
+            <button type="button" data-theme-set="light" aria-pressed="false">light</button>
           </div>
         </div>
       </div>
-    </div>
-  </section>
+    </footer>
 
-  <section class="audience-flip-bar audience-theme-surface" id="audience-flip-bottom" aria-label="Switch audience view">
-    <div class="audience-flip-bar__inner">
-      <p class="audience-flip-bar__q" id="audience-flip-question"></p>
-      <button type="button" class="audience-flip-bar__action" id="audience-flip-button"></button>
-    </div>
-  </section>
+    <script id="ld-peek-data" type="application/json">
+      [
+        {"biz":"side street coffee","logo":"ss","title":"menu redesign + window decals","budget":"$240","contract":"one-off","tags":["design","print"],"eyebrow":"posted 2h ago"},
+        {"biz":"north end bikes","logo":"nb","title":"shopify cleanup + product photos","budget":"$450","contract":"phased","tags":["shopify","photo"],"eyebrow":"posted today"},
+        {"biz":"rooster & rye","logo":"rr","title":"weekly social posts retainer","budget":"$320/mo","contract":"retainer","tags":["social"],"eyebrow":"open"},
+        {"biz":"marigold florals","logo":"mf","title":"brand refresh + new logo","budget":"$600","contract":"phased","tags":["brand","logo"],"eyebrow":"5 bids"},
+        {"biz":"split / fix shop","logo":"sf","title":"market research for new location","budget":"$520","contract":"one-off","tags":["research"],"eyebrow":"posted yesterday"},
+        {"biz":"alma kitchen","logo":"ak","title":"site copy + photo direction","budget":"$380","contract":"one-off","tags":["copy","photo"],"eyebrow":"8 bids"}
+      ]
+    </script>
 
-  <footer class="beta-footer beta-footer--full audience-theme-surface" role="contentinfo">
-    <div class="beta-footer__grid">
-      <a class="beta-footer__brand" href="#top" aria-label="grassroots beta home">
-        <img src="./assets/grassroots-icon-syne.svg" width="36" height="61" alt="" />
-        <span>grassroots</span>
-      </a>
-      <nav class="beta-footer__nav" aria-label="Site pages">
-        <p class="beta-footer__nav-title">on this page</p>
-        <ul>
-          <li><a href="#top">hero</a></li>
-          <li><a href="#mission">the marketplace</a></li>
-          <li><a href="#value-prop">value</a></li>
-          <li><a href="#marketplace-preview">marketplace simulation</a></li>
-          <li><a href="#reviews">trust &amp; reviews</a></li>
-        </ul>
-        <p class="beta-footer__nav-title">elsewhere</p>
-        <ul>
-          <li><a href="./index.html">homepage</a></li>
-          <li><a href="/">marketplace</a></li>
-          <li><a href="/home/about.html">about</a></li>
-          <li><a href="/register.html">join grassroots</a></li>
-          <li><a href="/signin.html">sign in</a></li>
-        </ul>
-      </nav>
-    </div>
-    <p class="beta-footer__tagline">grassroots beta — small business work, student consultants.</p>
-  </footer>
+    <script src="/home/landing-cherry.js" defer></script>
+    <script src="/home/landing.js" defer></script>
+    <script>
+      // CTA form: fake submit (no backend), show success state in-place.
+      (function () {
+        var f = document.getElementById('ld-cta-form');
+        if (!f) return;
+        f.addEventListener('submit', function (e) {
+          e.preventDefault();
+          if (!f.checkValidity()) { f.reportValidity(); return; }
+          f.classList.add('is-sent');
+          setTimeout(function () {
+            var s = f.querySelector('.ld-cta__form-success');
+            if (s) s.scrollIntoView ? null : null; // no-op; keep position
+          }, 50);
+        });
+      })();
+    </script>
 
-  <div class="depth-scroll-spacer" aria-hidden="true"></div>
+    <!-- Hero "your garden" — mounts the dashboard's garden-stem with
+         six mock roots so the hero shows the marketplace outcome in
+         motion. The pool of listings cycles through the floating
+         hero cards over the top. -->
+    <script type="module">
+      import { mountGardenStem } from "/garden-stem.js";
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
-  <script src="./uf-campus-map-data.js" defer></script>
-  <script src="./index.js" defer></script>
+      const HERO_ROOTS = [
+        { bidId: "hero-1", listingId: "hero-listing-1",
+          listingTitle: "weekend bakery sales push",
+          consultantName: "jordan kim", amountCents: 32000,
+          releasedAt: "2026-04-12T15:30:00Z" },
+        { bidId: "hero-2", listingId: "hero-listing-2",
+          listingTitle: "instagram content refresh",
+          consultantName: "sam chen", amountCents: 18000,
+          releasedAt: "2026-03-22T10:00:00Z" },
+        { bidId: "hero-3", listingId: "hero-listing-3",
+          listingTitle: "logo + brand mark redesign",
+          consultantName: "morgan vasquez", amountCents: 55000,
+          releasedAt: "2026-02-14T18:00:00Z" },
+        { bidId: "hero-4", listingId: "hero-listing-4",
+          listingTitle: "square POS migration help",
+          consultantName: "alex park", amountCents: 22000,
+          releasedAt: "2026-01-30T09:15:00Z" },
+        { bidId: "hero-5", listingId: "hero-listing-5",
+          listingTitle: "press release for grand reopening",
+          consultantName: "priya rao", amountCents: 12500,
+          releasedAt: "2025-12-20T13:45:00Z" },
+        { bidId: "hero-6", listingId: "hero-listing-6",
+          listingTitle: "google business profile + seo cleanup",
+          consultantName: "riley alves", amountCents: 16000,
+          releasedAt: "2025-10-15T11:20:00Z" },
+      ];
 
-  <!-- Suggestion Box -->
-  <style>
-    .gr-suggest-btn {
-      position: fixed;
-      bottom: 1.25rem;
-      right: 1.25rem;
-      z-index: 900;
-      width: 48px;
-      height: 48px;
-      border-radius: 14px;
-      border: none;
-      background: rgba(15, 31, 26, .72);
-      color: rgba(255, 255, 255, .85);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      backdrop-filter: blur(8px);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, .2);
-      transition: transform .25s cubic-bezier(.22, 1, .36, 1), background .2s ease, box-shadow .2s ease
-    }
+      const garden = document.getElementById("ld-hero-garden");
+      // Hero garden: drag-to-reposition stays on so visitors can
+      // play with the roots, but clicks don't navigate (no listing
+      // page behind these fakes). The hover card still pops on hover.
+      if (garden) mountGardenStem(garden, { roots: HERO_ROOTS, interactive: true, navigateOnClick: false });
 
-    .gr-suggest-btn:hover {
-      transform: scale(1.1);
-      background: rgba(15, 31, 26, .88);
-      box-shadow: 0 8px 28px rgba(0, 0, 0, .3)
-    }
+      // ── grass blades along the soil line ─────────────────────────
+      // Ported from the previous landing's interactive grass canvas,
+      // scaled down so blade heights are 8–18px (≈10–15% of sprout
+      // height). Bezier-curved blades sway on a sine + bend away from
+      // the cursor with a soft spring return.
+      if (garden) {
+        const SPROUT_GREEN = { r: 109, g: 191, b: 138 };
+        const plot = garden.querySelector(".gs__plot");
+        const earth = garden.querySelector(".gs__earth");
+        const prefersReducedHero = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+        if (plot && earth) {
+          plot.style.position = "relative";
+          const grassCanvas = document.createElement("canvas");
+          grassCanvas.className = "ld-hero__grass";
+          grassCanvas.setAttribute("aria-hidden", "true");
+          plot.appendChild(grassCanvas);
+          initHeroGrass(grassCanvas, plot, earth);
+        }
 
-    .gr-suggest-btn svg {
-      width: 22px;
-      height: 22px
-    }
+        function initHeroGrass(canvas, container, earthEl) {
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return;
+          const HEIGHT_PX     = 64;          // canvas drawing height — fits ~49px blades + soil-line band
+          const SOIL_LINE_H   = 8;           // matches .ld-hero__garden .gs__soil-line { height }
+          const CANVAS_OVERLAP = 2;          // canvas bottom is this many px below soil-line bottom
+          const DENSITY  = 1.0;              // blades per CSS pixel of width (down from 1.7 — fewer but cleaner)
+          const INTERACT = 90;               // cursor influence radius
+          let w = 0;
+          const cursor = { x: -9999, y: -9999 };
+          const blades = [];
 
-    .gr-suggest-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 1500;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(15, 31, 26, .5);
-      backdrop-filter: blur(4px);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .3s ease
-    }
+          // Soil-line wave (extracted from garden-stem.js soilLineSvg).
+          // viewBox 100×6; each segment is a quadratic bezier from p0
+          // through control point cp to p2.
+          const SOIL_SEGMENTS = [
+            { p0: [  0, 3   ], cp: [ 7, 0.6 ], p2: [ 14, 3   ] },
+            { p0: [ 14, 3   ], cp: [22, 5   ], p2: [ 30, 2.8 ] },
+            { p0: [ 30, 2.8 ], cp: [38, 0.4 ], p2: [ 46, 3.2 ] },
+            { p0: [ 46, 3.2 ], cp: [54, 5.4 ], p2: [ 62, 3   ] },
+            { p0: [ 62, 3   ], cp: [70, 0.8 ], p2: [ 78, 3.4 ] },
+            { p0: [ 78, 3.4 ], cp: [86, 5   ], p2: [ 94, 2.8 ] },
+            { p0: [ 94, 2.8 ], cp: [98, 2   ], p2: [100, 3   ] },
+          ];
+          function soilCurveY(vbX) {
+            if (vbX <= 0) return 3;
+            if (vbX >= 100) return 3;
+            for (const seg of SOIL_SEGMENTS) {
+              if (vbX >= seg.p0[0] && vbX <= seg.p2[0]) {
+                const [x0, y0] = seg.p0;
+                const [x1, y1] = seg.cp;
+                const [x2, y2] = seg.p2;
+                const a = x0 - 2 * x1 + x2;
+                const b = 2 * (x1 - x0);
+                const c = x0 - vbX;
+                let t;
+                if (Math.abs(a) < 1e-6) {
+                  t = -c / b;
+                } else {
+                  const disc = b * b - 4 * a * c;
+                  const sq = Math.sqrt(Math.max(0, disc));
+                  const t1 = (-b + sq) / (2 * a);
+                  const t2 = (-b - sq) / (2 * a);
+                  t = (t1 >= 0 && t1 <= 1) ? t1 : t2;
+                }
+                t = Math.max(0, Math.min(1, t));
+                const omt = 1 - t;
+                return omt * omt * y0 + 2 * omt * t * y1 + t * t * y2;
+              }
+            }
+            return 3;
+          }
+          // Canvas y where a blade with this x should plant its base.
+          // The wavy horizon lives in a soil-line band of SOIL_LINE_H
+          // pixels, and the canvas bottom sits CANVAS_OVERLAP below
+          // the band bottom. vbY ∈ [0,6] maps to pixels above canvas
+          // bottom linearly.
+          function bladeBaseAt(x) {
+            const vbX = (x / Math.max(1, w)) * 100;
+            const vbY = soilCurveY(vbX);
+            return HEIGHT_PX - CANVAS_OVERLAP - SOIL_LINE_H + vbY * (SOIL_LINE_H / 6);
+          }
 
-    .gr-suggest-overlay.is-open {
-      opacity: 1;
-      pointer-events: auto
-    }
+          function size() {
+            const r = container.getBoundingClientRect();
+            // Render at up to 3× device pixel ratio so blade edges stay
+            // crisp on hi-DPI displays (was capped at 2).
+            const dpr = Math.min(window.devicePixelRatio || 1, 3);
+            w = Math.max(1, Math.floor(r.width));
+            canvas.width  = Math.floor(w * dpr);
+            canvas.height = Math.floor(HEIGHT_PX * dpr);
+            canvas.style.width  = w + "px";
+            canvas.style.height = HEIGHT_PX + "px";
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+          }
+          function positionAtSoil() {
+            // Place canvas bottom CANVAS_OVERLAP below the soil-line
+            // bottom (= earth top), so the soil-line band sits inside
+            // the canvas with the wavy horizon fully in view.
+            const eh = earthEl.getBoundingClientRect().height;
+            canvas.style.bottom = (eh - CANVAS_OVERLAP) + "px";
+          }
+          function makeBlades() {
+            blades.length = 0;
+            const count = Math.floor(w * DENSITY);
+            for (let i = 0; i < count; i++) {
+              const tall = Math.random() > 0.84;
+              // Heights are the previous 24–54 range × 0.9:
+              // most blades 22–35, tall sub-set 35–49.
+              const h = tall ? 34 + Math.random() * 14 : 22 + Math.random() * 14;
+              const x = (i / count) * w + (Math.random() - 0.5) * 5;
+              const depth = Math.random();   // 0 = back, 1 = front
+              blades.push({
+                x,
+                depth,
+                // Back blades sit a hair lower so the foreground reads
+                // as standing in front of them.
+                baseY: bladeBaseAt(x) + (1 - depth) * 1.6,
+                h,
+                bw: 1.2 + depth * 1.4,        // wider for visible defined edges
+                seed: Math.random() * Math.PI * 2,
+                speed: 0.42 + Math.random() * 0.75,
+                tilt: (Math.random() - 0.5) * 0.28,
+                bend: 0,
+                bendV: 0,
+                // Brightness rises with depth — front blades the brightest,
+                // back blades a darker forest green. Adds a per-blade jitter
+                // so neighbours don't all share one shade.
+                v: 0.42 + depth * 0.46 + (Math.random() - 0.5) * 0.08,
+                hueShift: (Math.random() - 0.5) * 14, // ±7 channel jitter
+              });
+            }
+            // Back-to-front so depth layering reads correctly.
+            blades.sort((a, b) => a.depth - b.depth);
+          }
+          function drawBlade(b, sway) {
+            const baseY = b.baseY;
+            const baseLean = b.tilt * 3.5 + sway * 0.24;
+            const tipBend  = b.tilt * 9 + sway * 0.62 + b.bend * 3.2;
+            const tipX = b.x + tipBend;
+            const tipY = baseY - b.h;
+            const bw = b.bw;
+            ctx.beginPath();
+            ctx.moveTo(b.x - bw, baseY);
+            ctx.bezierCurveTo(
+              b.x + baseLean - bw * 0.28, baseY - b.h * 0.30,
+              tipX - bw * 0.22,           baseY - b.h * 0.70,
+              tipX,                       tipY
+            );
+            ctx.bezierCurveTo(
+              tipX + bw * 0.22,           baseY - b.h * 0.70,
+              b.x + baseLean + bw * 0.28, baseY - b.h * 0.30,
+              b.x + bw,                   baseY
+            );
+            ctx.closePath();
+            const v = b.v;
+            const r  = Math.max(8,   Math.min(255, Math.round(SPROUT_GREEN.r * v + b.hueShift * 0.6)));
+            const g  = Math.max(20,  Math.min(255, Math.round(SPROUT_GREEN.g * v + b.hueShift)));
+            const bC = Math.max(6,   Math.min(255, Math.round(SPROUT_GREEN.b * v + b.hueShift * 0.4)));
+            ctx.fillStyle = `rgb(${r}, ${g}, ${bC})`;
+            ctx.fill();
+          }
+          function frame(nowMs) {
+            if (!document.body.contains(canvas)) return;
+            const t = nowMs * 0.001;
+            ctx.clearRect(0, 0, w, HEIGHT_PX);
+            const rect = canvas.getBoundingClientRect();
+            const cx = cursor.x - rect.left;
+            const cy = cursor.y - rect.top;
+            for (const b of blades) {
+              const sway = Math.sin(t * b.speed + b.seed) * 2.4;
+              const anchor = b.x + sway;
+              if (!prefersReducedHero) {
+                const dx = anchor + b.bend - cx;
+                const dy = (b.baseY - b.h / 2) - cy;
+                const d  = Math.hypot(dx, dy);
+                if (d < INTERACT) {
+                  const f = 1 - d / INTERACT;
+                  b.bendV += (dx >= 0 ? 1 : -1) * f * f * f * 0.55;
+                }
+              }
+              b.bendV += -b.bend * 0.045;
+              b.bendV *= 0.84;
+              b.bend  += b.bendV;
+              drawBlade(b, sway);
+            }
+            if (!prefersReducedHero) requestAnimationFrame(frame);
+          }
+          window.addEventListener("mousemove",  (e) => { cursor.x = e.clientX; cursor.y = e.clientY; });
+          window.addEventListener("mouseleave", () => { cursor.x = -9999; cursor.y = -9999; });
+          const rebuild = () => { size(); positionAtSoil(); makeBlades(); if (prefersReducedHero) frame(0); };
+          window.addEventListener("resize", rebuild);
+          if (typeof ResizeObserver !== "undefined") {
+            new ResizeObserver(rebuild).observe(container);
+          }
+          size();
+          positionAtSoil();
+          makeBlades();
+          if (prefersReducedHero) { frame(0); return; }
+          requestAnimationFrame(frame);
+        }
+      }
 
-    .gr-suggest-popup {
-      background: #fff;
-      border-radius: 18px;
-      padding: 2rem 1.75rem;
-      max-width: 420px;
-      width: 90%;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, .2);
-      transform: translateY(20px);
-      transition: transform .35s cubic-bezier(.22, 1, .36, 1);
-      text-align: center
-    }
+      // Mock business bios that fan + shuffle across the top of the
+      // visual — small bios of college-town businesses that use the
+      // marketplace. The fan logic below cycles them through the
+      // five slot positions; the center card is highlighted.
+      const BUSINESS_POOL = [
+        { name: "side street coffee",   tagline: "café · gainesville, fl",     stat: "12 projects · since 2024", avatar: "ss" },
+        { name: "north end bikes",      tagline: "bike shop · athens, ga",     stat: "7 projects · 4.9 ★",       avatar: "nb" },
+        { name: "rooster & rye",        tagline: "bakery · chapel hill, nc",   stat: "open to bids",             avatar: "rr" },
+        { name: "marigold florals",     tagline: "florist · columbia, sc",     stat: "3 active listings",        avatar: "mf" },
+        { name: "split / fix shop",     tagline: "auto repair · gainesville",  stat: "9 projects",               avatar: "sf" },
+        { name: "alma kitchen",         tagline: "restaurant · tampa",         stat: "verified business",        avatar: "ak" },
+        { name: "ember tea room",       tagline: "tea house · savannah, ga",   stat: "since spring 2024",        avatar: "et" },
+        { name: "blue line printing",   tagline: "print shop · raleigh",       stat: "5 projects",               avatar: "bl" },
+        { name: "west village wines",   tagline: "wine bar · oxford, ms",      stat: "open to bids",             avatar: "ww" },
+        { name: "the spool record co.", tagline: "vinyl · auburn, al",         stat: "8 projects",               avatar: "sr" },
+        { name: "harbor & hide",        tagline: "leather goods · charleston", stat: "2 projects",               avatar: "hh" },
+        { name: "amber haus design",    tagline: "design studio · austin",     stat: "agency partner",           avatar: "ah" },
+      ];
 
-    .gr-suggest-overlay.is-open .gr-suggest-popup {
-      transform: translateY(0)
-    }
+      // Three business-bio cards in fixed slots above the garden +
+      // brief off-screen states for entering/exiting cards. Each
+      // rotation tick moves every card one slot left:
+      //   off-right ← (new card)
+      //   right     ← center  (collapses, accent panel fades)
+      //   center    ← left? No — center comes FROM right; the old
+      //   left exits to off-left and is removed after the transition.
+      // Because each card just swaps its slot class, CSS handles the
+      // entire morph (transform, width, padding, background, content
+      // max-height) smoothly in one go. The center card always gets
+      // the accent-green panel via .s-center.
+      const cardsRoot = document.getElementById("ld-hero-cards");
+      const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      if (cardsRoot) {
+        function fillCard(card, B) {
+          card.querySelector(".ld-hero-card__avatar").textContent  = B.avatar;
+          card.querySelector(".ld-hero-card__name").textContent    = B.name;
+          card.querySelector(".ld-hero-card__tagline").textContent = B.tagline;
+          card.querySelector(".ld-hero-card__stat").textContent    = B.stat;
+        }
+        function makeCard(B, slotClass) {
+          const el = document.createElement("div");
+          el.className = "ld-hero-card " + slotClass;
+          el.innerHTML = `
+            <div class="ld-hero-card__head">
+              <span class="ld-hero-card__avatar"></span>
+              <div class="ld-hero-card__name-block">
+                <div class="ld-hero-card__name"></div>
+                <div class="ld-hero-card__tagline"></div>
+              </div>
+            </div>
+            <div class="ld-hero-card__stat"></div>`;
+          fillCard(el, B);
+          return el;
+        }
+        function setSlot(card, slotClass) {
+          card.classList.remove("s-off-left", "s-left", "s-center", "s-right", "s-off-right");
+          card.classList.add(slotClass);
+        }
 
-    .gr-suggest-popup__title {
-      font-family: Syne, Inter, system-ui, sans-serif;
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: #1b4332;
-      margin: 0 0 1rem;
-      line-height: 1.4
-    }
+        // Seed three visible cards.
+        let cards = [
+          makeCard(BUSINESS_POOL[0 % BUSINESS_POOL.length], "s-left"),
+          makeCard(BUSINESS_POOL[1 % BUSINESS_POOL.length], "s-center"),
+          makeCard(BUSINESS_POOL[2 % BUSINESS_POOL.length], "s-right"),
+        ];
+        cards.forEach((c) => cardsRoot.appendChild(c));
+        let poolIdx = 3 % BUSINESS_POOL.length;
 
-    .gr-suggest-popup__textarea {
-      width: 100%;
-      box-sizing: border-box;
-      min-height: 100px;
-      border: 1.5px solid rgba(27, 67, 50, .15);
-      border-radius: 12px;
-      padding: .75rem;
-      font: inherit;
-      font-size: .9rem;
-      color: #1b4332;
-      resize: vertical;
-      transition: border-color .2s ease
-    }
+        function rotate() {
+          const [leftCard, centerCard, rightCard] = cards;
+          // Spawn the new card pre-positioned off-screen right so the
+          // first transition step has somewhere to animate FROM.
+          const next = BUSINESS_POOL[poolIdx % BUSINESS_POOL.length];
+          poolIdx++;
+          const newCard = makeCard(next, "s-off-right");
+          cardsRoot.appendChild(newCard);
 
-    .gr-suggest-popup__textarea:focus {
-      outline: none;
-      border-color: #2d6a4f;
-      box-shadow: 0 0 0 3px rgba(45, 106, 79, .1)
-    }
+          // Next frame: trigger the morph by changing each slot.
+          //   left   → off-left (fades + slides further left)
+          //   center → left     (collapses, accent panel fades out)
+          //   right  → center   (expands, gains accent panel)
+          //   new    → right    (slides in collapsed from off-right)
+          requestAnimationFrame(() => {
+            setSlot(leftCard,   "s-off-left");
+            setSlot(centerCard, "s-left");
+            setSlot(rightCard,  "s-center");
+            setSlot(newCard,    "s-right");
+          });
 
-    .gr-suggest-popup__submit {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      margin-top: .85rem;
-      padding: .65rem 1.5rem;
-      font: inherit;
-      font-size: .9rem;
-      font-weight: 600;
-      color: #fff;
-      background: linear-gradient(145deg, #2d6a4f, #1b4332);
-      border: none;
-      border-radius: 999px;
-      cursor: pointer;
-      transition: transform .2s ease, box-shadow .2s ease
-    }
+          // Drop the exited card after the transition settles.
+          setTimeout(() => leftCard.remove(), 900);
+          cards = [centerCard, rightCard, newCard];
+        }
 
-    .gr-suggest-popup__submit:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 18px rgba(27, 67, 50, .2)
-    }
+        if (!reduced) setInterval(rotate, 4400);
+      }
 
-    .gr-suggest-popup__thanks {
-      font-size: 1rem;
-      font-weight: 600;
-      color: #2d6a4f;
-      padding: 1rem 0
-    }
-  </style>
-  <button class="gr-suggest-btn" id="gr-suggest-btn" type="button" aria-label="suggestion box">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-      stroke-linejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-      <line x1="9" y1="9" x2="15" y2="9" />
-      <line x1="9" y1="13" x2="13" y2="13" />
-    </svg>
-  </button>
-  <div class="gr-suggest-overlay" id="gr-suggest-overlay">
-    <div class="gr-suggest-popup">
-      <button class="gr-suggest-popup__close" id="gr-suggest-close" type="button" aria-label="close">
-        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
-      </button>
-      <div id="gr-suggest-form">
-        <p class="gr-suggest-popup__title">grassroots values and takes your feedback seriously&mdash;how can we improve?
-        </p>
-        <textarea class="gr-suggest-popup__textarea" id="gr-suggest-input" placeholder="your suggestion…"
-          maxlength="1000"></textarea>
-        <button class="gr-suggest-popup__submit" id="gr-suggest-submit" type="button">submit</button>
-      </div>
-      <div id="gr-suggest-thanks" hidden>
-        <p class="gr-suggest-popup__thanks">thanks for the note. we read all of these.</p>
-      </div>
-    </div>
-  </div>
-  <script>
-    (function () {
-      const btn = document.getElementById('gr-suggest-btn'), overlay = document.getElementById('gr-suggest-overlay'), submit = document.getElementById('gr-suggest-submit'), input = document.getElementById('gr-suggest-input'), form = document.getElementById('gr-suggest-form'), thanks = document.getElementById('gr-suggest-thanks');
-      btn.addEventListener('click', () => overlay.classList.add('is-open'));
-      overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('is-open') });
-      submit.addEventListener('click', () => { if (!input.value.trim()) return; form.hidden = true; thanks.hidden = false; setTimeout(() => { overlay.classList.remove('is-open'); setTimeout(() => { form.hidden = false; thanks.hidden = true; input.value = '' }, 400) }, 2000) });
-    })();
-  </script>
-</body>
+      // ── Manifesto / pull-quote entrance ─────────────────────────
+      // Wrap each whitespace-split word in a span with an index so the
+      // CSS can stagger their fade-in by delay. Then observe the
+      // section and toggle `is-in` when it scrolls into view to fire
+      // the background band + glyph + word + byline animations.
+      const manifesto = document.getElementById("ld-manifesto");
+      const manifestoText = document.getElementById("ld-manifesto-text");
+      if (manifesto && manifestoText) {
+        let counter = 0;
+        function wrapText(node) {
+          if (node.nodeType === Node.TEXT_NODE) {
+            const tokens = node.textContent.split(/(\s+)/);
+            const frag = document.createDocumentFragment();
+            for (const tok of tokens) {
+              if (!tok) continue;
+              if (/^\s+$/.test(tok)) {
+                frag.appendChild(document.createTextNode(tok));
+              } else {
+                const span = document.createElement("span");
+                span.className = "ld-manifesto__word";
+                span.style.setProperty("--ld-w-i", counter++);
+                span.textContent = tok;
+                frag.appendChild(span);
+              }
+            }
+            node.parentNode.replaceChild(frag, node);
+          } else if (node.nodeType === Node.ELEMENT_NODE) {
+            // Walk into .ld-italic spans (or any other inline element)
+            // so italic words also get wrapped + indexed.
+            for (const child of [...node.childNodes]) wrapText(child);
+          }
+        }
+        for (const child of [...manifestoText.childNodes]) wrapText(child);
 
+        if (reduced) {
+          manifesto.classList.add("is-in");
+        } else if ("IntersectionObserver" in window) {
+          const io = new IntersectionObserver((entries, obs) => {
+            for (const e of entries) {
+              if (e.isIntersecting) {
+                manifesto.classList.add("is-in");
+                obs.unobserve(manifesto);
+              }
+            }
+          }, { threshold: 0.25, rootMargin: "0px 0px -10% 0px" });
+          io.observe(manifesto);
+        } else {
+          manifesto.classList.add("is-in");
+        }
+      }
+    </script>
+  </body>
 </html>
