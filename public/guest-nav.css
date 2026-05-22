@@ -1,0 +1,210 @@
+/* ================================================================
+   GUEST NAV — top bar shown on /marketplace.html and /listing.html
+   when the viewer is in guest mode. Reuses the marketing .ld-nav
+   chrome via /home/nav.css; only the bits unique to the guest
+   variant live here.
+   ================================================================ */
+
+/* The guest top bar is sticky and needs to sit above any page
+   chrome below it. .ld-nav already sets sticky + z-index: 40 — we
+   only need to give the body a little top-padding compensation when
+   the page didn't expect a top bar (the marketplace and listing
+   pages were designed for a side-nav layout). */
+.gr-guest-body > main {
+  /* Tighter top padding than the marketing pages — the guest is
+     here to browse listings, not read a landing hero, so we want
+     the listing grid to start close to the nav. */
+  padding-top: 1.5rem;
+}
+
+/* "browsing as guest" chip — quiet, lowercase, sits inline with
+   the nav links so the user always sees their current state. */
+.gr-guest-nav__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.32rem 0.7rem;
+  background: var(--fo-accent-soft);
+  color: var(--fo-accent);
+  border: 1px solid color-mix(in srgb, var(--fo-accent) 22%, transparent);
+  border-radius: 999px;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 720px) {
+  .gr-guest-nav__chip { display: none; }
+}
+
+/* ================================================================
+   GUEST CONVERSION BANNER — marketplace.html
+   Inline rail above the search bar that gives guests two clear
+   paths (business / consultant) without being a modal blocker.
+   ================================================================ */
+.gr-guest-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  margin-block: 1rem 1.4rem;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--fo-accent) 8%, var(--fo-surface)),
+    var(--fo-surface)
+  );
+  border: 1px solid color-mix(in srgb, var(--fo-accent) 28%, var(--fo-line));
+  border-radius: 16px;
+}
+
+.gr-guest-banner__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.gr-guest-banner__title {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 600;
+  font-size: var(--type-h3);
+  color: var(--fo-text);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.gr-guest-banner__sub {
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-body);
+  color: var(--fo-text-2);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.gr-guest-banner__sub a {
+  color: var(--fo-accent);
+  text-decoration: none;
+  font-weight: 600;
+  border-bottom: 1px solid color-mix(in srgb, var(--fo-accent) 40%, transparent);
+}
+
+.gr-guest-banner__sub a:hover {
+  border-bottom-color: var(--fo-accent);
+}
+
+.gr-guest-banner__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+/* ================================================================
+   GUEST OFFER-RAIL CARD — listing.html
+   Replaces the make-an-offer panel in the right rail with two
+   clear conversion CTAs (business / consultant) plus a quiet
+   sign-in link for returning users.
+   ================================================================ */
+/* .ld-guest-rail inherits position: sticky + top from .ld-rail (listing.css).
+   The card below is the visible chrome. */
+
+.ld-guest-rail__card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1.25rem 1.25rem 1.35rem;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(20, 32, 26, 0.18);
+}
+
+.ld-guest-rail__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.28rem 0.65rem;
+  align-self: flex-start;
+  background: var(--fo-accent-soft);
+  color: var(--fo-accent);
+  border-radius: 999px;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+}
+
+.ld-guest-rail__title {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 600;
+  font-size: var(--type-h3);
+  color: var(--fo-text);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.ld-guest-rail__body {
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-body);
+  color: var(--fo-text-2);
+  margin: 0;
+  line-height: 1.55;
+}
+
+.ld-guest-rail__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.ld-guest-rail__divider {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.4rem 0 0;
+  color: var(--fo-text-3, var(--fo-text-2));
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 0.72rem;
+  text-transform: lowercase;
+  letter-spacing: 0.08em;
+}
+
+.ld-guest-rail__divider::before,
+.ld-guest-rail__divider::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--fo-line);
+}
+
+.ld-guest-rail__secondary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.ld-guest-rail__secondary p {
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 0.88rem;
+  color: var(--fo-text-2);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.ld-guest-rail__signin {
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 0.88rem;
+  color: var(--fo-accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.ld-guest-rail__signin:hover {
+  text-decoration: underline;
+}

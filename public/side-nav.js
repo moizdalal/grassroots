@@ -226,6 +226,18 @@ async function init() {
   // can wire data-driven badges directly).
   if (document.querySelector("aside.bza__side")) return;
 
+  // Guest mode: the dashboard sidebar links (home, inbox, engagements,
+  // notifications, payouts) all lead to pages a guest can't access.
+  // guest-nav.js renders a slim top bar instead; we just bail out
+  // here so no side nav is injected at all.
+  try {
+    const { isGuest } = await import("/guest-mode.js");
+    if (isGuest()) return;
+  } catch (_) {
+    // If the import fails for any reason fall through to the normal
+    // render — a missing guest module shouldn't break the side nav.
+  }
+
   const main = document.querySelector("body > main");
   if (!main) return;
 

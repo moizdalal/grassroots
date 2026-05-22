@@ -2,6 +2,12 @@ import { getSupabaseClient } from "/supabase-loader.js";
 import { initNotifBell } from "/nav-notify.js";
 import { formatBudgetRange, parseBudgetRange } from "/sim-budget.js";
 import { getInitials } from "/initials.js";
+import {
+  isGuest,
+  setGuestMode,
+  clearGuestModeIfSignedIn,
+  withGuestParam,
+} from "/guest-mode.js";
 
 const sessionSlot = document.getElementById("session-slot");
 const listingGrid = document.getElementById("listing-grid");
@@ -60,6 +66,34 @@ function redirectGuestsToSignin() {
   window.location.replace(
     "/signin.html?next=" + encodeURIComponent("/marketplace.html"),
   );
+}
+
+/* Render the guest conversion banner above the search bar. Two
+   paths: the primary "post a project" CTA (most guests are assumed
+   to be small-business owners — that's the side we're actively
+   trying to grow) and a quieter consultant-application link for the
+   minority of visitors who would join the supply side. Reading the
+   user's intent is impossible client-side, so we surface both. */
+function renderGuestBanner() {
+  const host = document.getElementById("guest-banner-slot");
+  if (!host) return;
+  host.hidden = false;
+  host.innerHTML = `
+    <div class="gr-guest-banner" role="region" aria-label="guest welcome">
+      <div class="gr-guest-banner__copy">
+        <p class="gr-guest-banner__title">browsing as a guest</p>
+        <p class="gr-guest-banner__sub">
+          this is real, live work small businesses are paying students to do. start by
+          <a href="/register.html?role=owner">posting your own project</a>, or
+          <a href="/home/for-students.html">apply to join as a student consultant</a>.
+        </p>
+      </div>
+      <div class="gr-guest-banner__actions">
+        <a class="gr-btn gr-btn--ghost gr-btn--sm" href="/signin.html">sign in</a>
+        <a class="gr-btn gr-btn--primary gr-btn--sm" href="/register.html?role=owner">post a project</a>
+      </div>
+    </div>
+  `;
 }
 
 function renderSession(client, session) {
@@ -236,7 +270,11 @@ function renderCard(row, client) {
   // foot carries tags on the left and the view CTA on the right.
   const card = document.createElement("a");
   card.className = "gr-listing-card";
-  card.href = `/listing.html?id=${row.id}`;
+  // withGuestParam appends ?guest=1 when the viewer is in guest mode
+  // so the listing detail recognises them even if the link is opened
+  // in a new tab (which would otherwise lose the sessionStorage flag).
+  // Signed-in members get a clean URL.
+  card.href = withGuestParam(`/listing.html?id=${row.id}`);
   card.innerHTML = `
     <div class="gr-listing-card-eyebrow">${recencyHtml}</div>
     <h2 class="gr-listing-title">${escapeHtml(row.title)}</h2>
@@ -528,6 +566,13 @@ async function refreshListings(client) {
 async function init() {
   listingsStatus.textContent = "loading…";
 
+  // Lock in guest mode (persists across in-tab navigation) so the
+  // listing detail page doesn't need ?guest=1 re-passed on every link.
+  // We still keep withGuestParam on card hrefs as a belt-and-braces
+  // measure for new-tab opens.
+  const guest = isGuest();
+  if (guest) setGuestMode();
+
   try {
     const client = await getSupabaseClient();
     _client = client;
@@ -535,10 +580,38 @@ async function init() {
       data: { session },
     } = await client.auth.getSession();
 
-    // Authoritative guest gate (the inline pre-check in marketplace.html
-    // catches definite guests pre-paint; this catches expired-token
-    // cases where getSession() couldn't refresh).
+    // A real session always wins. If a signed-in member happens to
+    // hit ?guest=1, clear the flag and give them the normal layout.
+    clearGuestModeIfSignedIn(session);
+
     if (!session?.user) {
+      // No session, but guest mode is active → render the marketplace
+      // in browse-only mode. The guest top bar (guest-nav.js) and
+      // banner replace the signed-in chrome; the listing grid itself
+      // is unchanged since RLS already allows anonymous reads of
+      // open listings (see supabase/migrations/restrict_inactive_listing_visibility.sql).
+      if (guest) {
+        renderGuestBanner();
+        // Hide the "post a project" CTA slot that owners would see —
+        // the guest banner above carries that conversion already and
+        // we don't want to double up.
+        const slot = document.getElementById("page-cta-slot");
+        if (slot) slot.innerHTML = "";
+        await refreshListings(client);
+        // Watch for the guest signing in mid-session (auth state
+        // change to a real user); the simplest correct behavior is
+        // to reload so they get the proper member layout.
+        client.auth.onAuthStateChange((_event, nextSession) => {
+          if (nextSession?.user) {
+            clearGuestModeIfSignedIn(nextSession);
+            window.location.reload();
+          }
+        });
+        return;
+      }
+      // Authoritative member gate (the inline pre-check in
+      // marketplace.html catches definite guests pre-paint; this
+      // catches expired-token cases where getSession() couldn't refresh).
       redirectGuestsToSignin();
       return;
     }
