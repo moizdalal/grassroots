@@ -7,9 +7,34 @@ import { getSupabaseClient } from "/supabase-loader.js";
 import { hydrateRatings } from "/rating.js";
 import { mountDashboardNotifications } from "/dashboard-notifications.js";
 import { getInitials } from "/initials.js";
-import { loadOwnerAnalytics, renderAnalyticsPanel } from "/listing-analytics.js";
-import { mountGardenStem } from "/garden-stem.js";
-import { loadCompletedEngagements } from "/garden-data.js";
+// The analytics + garden + completed-engagement modules together add
+// ~19KB gz to the dashboard's initial JS. Both surfaces render below
+// the fold on most viewports, so defer their fetch with dynamic import.
+let _analyticsPromise = null;
+function loadAnalyticsModule() {
+  if (!_analyticsPromise) _analyticsPromise = import("/listing-analytics.js");
+  return _analyticsPromise;
+}
+async function loadOwnerAnalytics(...args) {
+  const m = await loadAnalyticsModule();
+  return m.loadOwnerAnalytics(...args);
+}
+async function renderAnalyticsPanel(...args) {
+  const m = await loadAnalyticsModule();
+  return m.renderAnalyticsPanel(...args);
+}
+let _gardenStemPromise = null;
+async function mountGardenStem(...args) {
+  if (!_gardenStemPromise) _gardenStemPromise = import("/garden-stem.js");
+  const m = await _gardenStemPromise;
+  return m.mountGardenStem(...args);
+}
+let _gardenDataPromise = null;
+async function loadCompletedEngagements(...args) {
+  if (!_gardenDataPromise) _gardenDataPromise = import("/garden-data.js");
+  const m = await _gardenDataPromise;
+  return m.loadCompletedEngagements(...args);
+}
 import { renderHealthBucket, kickHealthBucketAnimation } from "/health-bucket.js";
 import { deleteListing, ListingOperationError } from "/listing-operations.js";
 import { confirmDialog } from "/confirm-modal.js";
@@ -152,19 +177,40 @@ async function loadData(client, userId) {
   const biz = bizRes.data;
   const listings = listingsRes.data || [];
 
-  // Bids per listing
+  // Bids + messages + reads — all three queries only depend on the
+  // listing-id set, so fire them in parallel rather than chained. Saves
+  // a round-trip on every dashboard load.
   let bidsByListing = {};
+  let threadsByListing = {};
+  let unreadCount = 0;
+  let bids = [], msgs = [], reads = [], msgErr = null, bidsErr = null;
   if (listings.length) {
     const ids = listings.map((l) => l.id);
-    const { data: bids, error: bidsErr } = await client
-      .from("bids")
-      .select(
-        "id, listing_id, consultant_id, amount_cents, message, status, created_at, proposal_due_at, accepted_at, profiles!bids_consultant_id_fkey ( full_name, avatar_path )"
-      )
-      .in("listing_id", ids)
-      .order("created_at", { ascending: false });
+    const [bidsRes, msgsRes, readsRes] = await Promise.all([
+      client
+        .from("bids")
+        .select(
+          "id, listing_id, consultant_id, amount_cents, message, status, created_at, proposal_due_at, accepted_at, profiles!bids_consultant_id_fkey ( full_name, avatar_path )"
+        )
+        .in("listing_id", ids)
+        .order("created_at", { ascending: false }),
+      client
+        .from("messages")
+        .select("id, listing_id, sender_id, recipient_id, body, created_at")
+        .in("listing_id", ids)
+        .order("created_at", { ascending: false }),
+      client
+        .from("message_reads")
+        .select("listing_id, other_user_id, last_read_at")
+        .eq("user_id", userId),
+    ]);
+    bids = bidsRes.data || [];
+    bidsErr = bidsRes.error;
+    msgs = msgsRes.data || [];
+    msgErr = msgsRes.error;
+    reads = readsRes.data || [];
     if (!bidsErr || isMissing(bidsErr)) {
-      for (const b of bids || []) {
+      for (const b of bids) {
         (bidsByListing[b.listing_id] ||= []).push(b);
       }
     }
@@ -178,24 +224,8 @@ async function loadData(client, userId) {
     l.__bids = bids;
   }
 
-  // Messages where owner is recipient or sender, scoped to their listings.
-  // Unread = messages I received whose created_at > my last_read_at for the
-  // (listing, other_user) thread, sourced from public.message_reads.
-  let threadsByListing = {};
-  let unreadCount = 0;
+  // Process messages now that we have both messages and reads.
   if (listings.length) {
-    const ids = listings.map((l) => l.id);
-    const [{ data: msgs, error: msgErr }, { data: reads }] = await Promise.all([
-      client
-        .from("messages")
-        .select("id, listing_id, sender_id, recipient_id, body, created_at")
-        .in("listing_id", ids)
-        .order("created_at", { ascending: false }),
-      client
-        .from("message_reads")
-        .select("listing_id, other_user_id, last_read_at")
-        .eq("user_id", userId),
-    ]);
 
     const readMap = new Map();
     for (const r of reads || []) {

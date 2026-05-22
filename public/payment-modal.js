@@ -48,11 +48,38 @@ function renderFeeBreakdown(fees) {
   `;
 }
 
+// Injects https://js.stripe.com/v3/ once and resolves when window.Stripe
+// is available. Idempotent — repeated calls share the same script tag.
+function ensureStripeScript() {
+  if (window.Stripe) return Promise.resolve();
+  if (window.__grStripeScriptPromise) return window.__grStripeScriptPromise;
+  window.__grStripeScriptPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[src^="https://js.stripe.com/v3/"]');
+    if (existing) {
+      if (window.Stripe) return resolve();
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => reject(new Error("stripe.js failed to load.")), { once: true });
+      return;
+    }
+    const s = document.createElement("script");
+    s.src = "https://js.stripe.com/v3/";
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error("stripe.js failed to load."));
+    document.head.appendChild(s);
+  });
+  return window.__grStripeScriptPromise;
+}
+
 async function loadStripe() {
   if (stripePromise) return stripePromise;
   stripePromise = (async () => {
-    const res = await fetch("/api/public-config");
-    const cfg = await res.json();
+    // Kick off the script load and config fetch in parallel; both must
+    // succeed before we can instantiate the client.
+    const [, cfg] = await Promise.all([
+      ensureStripeScript(),
+      fetch("/api/public-config").then((r) => r.json()),
+    ]);
     if (!cfg.stripePublishableKey) {
       throw new Error("payments aren't configured on the server.");
     }

@@ -6,12 +6,7 @@
     <meta name="robots" content="noindex,follow" />
     <title>grassroots — admin</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Manrope:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="stylesheet" href="/fonts.css" />
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <link rel="stylesheet" href="./admin.css" />
@@ -85,6 +80,12 @@
               <line x1="16" y1="3" x2="16" y2="7"/>
             </svg>
             <span>calendar</span>
+          </button>
+          <button type="button" class="adm-nav__item" data-tab="health">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12h4l2-7 4 14 2-7h6"/>
+            </svg>
+            <span>health</span>
           </button>
         </nav>
 
@@ -286,6 +287,109 @@
           </div>
         </section>
 
+        <!-- ============ HEALTH ============ -->
+        <section class="adm-section" data-section="health" hidden>
+          <header class="adm-page-h">
+            <div>
+              <h1 class="adm-page-h__title">platform health</h1>
+              <p class="adm-page-h__sub">real-user page speed + business funnel · live data</p>
+            </div>
+            <div class="adm-range" role="tablist" aria-label="health window">
+              <button type="button" class="adm-range__btn" data-health-range="1">today</button>
+              <button type="button" class="adm-range__btn is-active" data-health-range="7">7d</button>
+              <button type="button" class="adm-range__btn" data-health-range="30">30d</button>
+              <button type="button" class="adm-range__btn" data-health-range="90">90d</button>
+            </div>
+          </header>
+
+          <p id="adm-health-loading" class="adm-gate" hidden>loading…</p>
+          <p id="adm-health-error" class="adm-gate adm-gate--error" hidden></p>
+
+          <div id="adm-health-body" hidden>
+            <!-- ── BUSINESS KPIs ── -->
+            <h2 class="adm-section-h">business kpis</h2>
+
+            <div class="adm-kpis" id="adm-health-business-tiles"></div>
+
+            <div class="adm-grid-2-eq">
+              <section class="adm-card">
+                <header class="adm-card__head">
+                  <h2 class="adm-card__title">conversion funnel</h2>
+                  <p class="adm-card__sub">sign-ups all the way through to accepted offers</p>
+                </header>
+                <div id="adm-health-conversion"></div>
+              </section>
+
+              <section class="adm-card">
+                <header class="adm-card__head">
+                  <h2 class="adm-card__title">money flow</h2>
+                  <p class="adm-card__sub">funds in escrow + released payouts</p>
+                </header>
+                <div id="adm-health-money"></div>
+              </section>
+            </div>
+
+            <!-- ── PAGE PERFORMANCE ── -->
+            <h2 class="adm-section-h">page performance</h2>
+            <p class="adm-card__sub" id="adm-health-perf-sub" style="margin-top:-0.5rem;margin-bottom:1rem;"></p>
+
+            <div class="adm-kpis" id="adm-health-perf-tiles"></div>
+
+            <section class="adm-card">
+              <header class="adm-card__head">
+                <h2 class="adm-card__title">lcp trend by day</h2>
+                <p class="adm-card__sub">75th-percentile largest-contentful-paint, lower is faster</p>
+              </header>
+              <div id="adm-health-trend-chart"></div>
+            </section>
+
+            <section class="adm-card">
+              <header class="adm-card__head">
+                <h2 class="adm-card__title">per-page breakdown</h2>
+                <p class="adm-card__sub">routes ranked by traffic · click columns to sort</p>
+              </header>
+              <div class="adm-table-wrap">
+                <table class="adm-table">
+                  <thead>
+                    <tr>
+                      <th>page</th>
+                      <th>samples</th>
+                      <th>p50 lcp</th>
+                      <th>p75 lcp</th>
+                      <th>p95 lcp</th>
+                      <th>p75 cls</th>
+                      <th>p75 inp</th>
+                    </tr>
+                  </thead>
+                  <tbody id="adm-health-route-tbody"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="adm-card">
+              <header class="adm-card__head">
+                <h2 class="adm-card__title">slowest individual loads</h2>
+                <p class="adm-card__sub">top 20 worst page loads in the window — spot-check what broke</p>
+              </header>
+              <div class="adm-table-wrap">
+                <table class="adm-table">
+                  <thead>
+                    <tr>
+                      <th>when</th>
+                      <th>page</th>
+                      <th>device</th>
+                      <th>network</th>
+                      <th>lcp</th>
+                      <th>cls</th>
+                    </tr>
+                  </thead>
+                  <tbody id="adm-health-slowest-tbody"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </section>
+
       </main>
     </div>
 
@@ -307,5 +411,6 @@
     </div>
 
     <script type="module" src="./admin.js"></script>
+    <script defer src="/perf-beacon.js"></script>
   </body>
 </html>

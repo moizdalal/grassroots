@@ -3064,6 +3064,255 @@ app.post("/api/stripe/phased/confirm-proposals", async (req, res) => {
   }
 });
 
+/* ──────────────────────────────────────────────────────────────
+   HEALTH TAB — real-user perf ingest + admin read endpoints.
+   The browser beacon at /perf-beacon.js POSTs one row per page
+   view to /api/metrics/page-load. The admin "health" tab queries
+   /api/admin/health-summary for aggregated perf + business KPIs.
+   ────────────────────────────────────────────────────────────── */
+
+// Allow-list mirrored from public/admin/admin.js. When that page
+// migrates to a `profiles.is_admin` flag, swap both checks together.
+const ADMIN_EMAILS = new Set([
+  "moizdalal@ufl.edu",
+]);
+
+async function requireAdmin(req) {
+  const token = getBearerToken(req);
+  if (!token || !supabase) return null;
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data?.user?.id) return null;
+  const email = (data.user.email || "").toLowerCase();
+  if (!ADMIN_EMAILS.has(email)) return null;
+  return { id: data.user.id, email };
+}
+
+// Coerce a value to a bounded integer, returning null when out of range.
+// Keeps the ingest endpoint resilient against malformed payloads (a bot
+// posting NaN, a buggy browser reporting -1, an attacker sending
+// 999999999999, etc.) without complaining loudly.
+function asInt(value, max) {
+  if (value === null || value === undefined) return null;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  if (n < 0 || n > max) return null;
+  return Math.round(n);
+}
+
+// Insert a perf-beacon sample. No auth: anyone hitting a page should be
+// able to report timings. Service-role insert bypasses RLS.
+app.post("/api/metrics/page-load", express.json({ limit: "4kb" }), async (req, res) => {
+  if (!supabase) return res.status(204).end();
+  const b = req.body || {};
+  const pathname = typeof b.pathname === "string" ? b.pathname.slice(0, 200) : null;
+  if (!pathname || !pathname.startsWith("/")) return res.status(204).end();
+
+  const deviceClass = ["mobile", "tablet", "desktop"].includes(b.device_class)
+    ? b.device_class
+    : null;
+  const connectionType = typeof b.connection_type === "string"
+    ? b.connection_type.slice(0, 16)
+    : null;
+
+  const row = {
+    pathname,
+    device_class: deviceClass,
+    connection_type: connectionType,
+    lcp_ms: asInt(b.lcp_ms, 60000),
+    inp_ms: asInt(b.inp_ms, 30000),
+    cls_x1000: asInt(b.cls_x1000, 100000),
+    ttfb_ms: asInt(b.ttfb_ms, 60000),
+    fcp_ms: asInt(b.fcp_ms, 60000),
+    load_event_ms: asInt(b.load_event_ms, 120000),
+  };
+
+  // Fire-and-forget. Don't make the browser wait for the insert and don't
+  // leak DB state on failure — analytics is a soft feature.
+  supabase.from("page_metrics").insert(row).then(({ error }) => {
+    if (error && !/relation .* does not exist|schema cache/i.test(error.message || "")) {
+      console.warn("[page_metrics] insert failed:", error.message);
+    }
+  });
+  res.status(204).end();
+});
+
+// Combined admin read: returns perf rollups + business KPIs in one round
+// trip so the health tab can render with a single fetch.
+app.post("/api/admin/health-summary", express.json({ limit: "2kb" }), async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "admin required." });
+  if (!supabase) return res.status(503).json({ error: "db not configured." });
+
+  const days = Math.max(1, Math.min(90, Number(req.body?.days) || 7));
+
+  try {
+    const [overallRes, byRouteRes, trendRes, slowestRes] = await Promise.all([
+      supabase.rpc("page_metrics_overall", { days_back: days }),
+      supabase.rpc("page_metrics_by_route", { days_back: days, max_routes: 50 }),
+      supabase.rpc("page_metrics_daily_trend", { days_back: days }),
+      supabase.rpc("page_metrics_slowest", { days_back: days, max_rows: 20 }),
+    ]);
+
+    const business = await loadBusinessKpis(days);
+
+    return res.json({
+      window_days: days,
+      perf: {
+        overall: overallRes.data?.[0] || null,
+        by_route: byRouteRes.data || [],
+        daily_trend: trendRes.data || [],
+        slowest: slowestRes.data || [],
+      },
+      business,
+    });
+  } catch (err) {
+    console.warn("[health-summary]", err.message || err);
+    return res.status(500).json({ error: "could not load summary." });
+  }
+});
+
+async function loadBusinessKpis(days) {
+  const since = new Date(Date.now() - days * 86400000).toISOString();
+
+  // Fetch in parallel — none depend on each other.
+  const [
+    profilesRes,
+    listingsRes,
+    bidsRes,
+    phaseHeldRes,
+    schedulesRes,
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, role, created_at"),
+    supabase
+      .from("listings")
+      .select("id, owner_id, status, created_at"),
+    supabase
+      .from("bids")
+      .select("id, listing_id, consultant_id, status, created_at, accepted_at"),
+    supabase
+      .from("bid_phase_payments")
+      .select("id, amount_cents, status, paid_at, released_at"),
+    supabase
+      .from("engagement_schedules")
+      .select("bid_id, status, selected_start"),
+  ]);
+
+  const profiles = profilesRes.data || [];
+  const listings = listingsRes.data || [];
+  const bids = bidsRes.data || [];
+  const phasePayments = phaseHeldRes.data || [];
+  const schedules = schedulesRes.data || [];
+
+  const sinceMs = Date.now() - days * 86400000;
+  const inWindow = (iso) => iso && new Date(iso).getTime() >= sinceMs;
+
+  // Funnel
+  const owners = profiles.filter((p) => p.role === "business_owner");
+  const consultants = profiles.filter((p) => p.role === "consultant");
+  const newOwners = owners.filter((p) => inWindow(p.created_at)).length;
+  const newConsultants = consultants.filter((p) => inWindow(p.created_at)).length;
+  const newListings = listings.filter((l) => inWindow(l.created_at)).length;
+  const newBids = bids.filter((b) => inWindow(b.created_at)).length;
+
+  // Conversion: of owners who signed up in the window, what % posted a listing?
+  const ownerIdsInWindow = new Set(
+    owners.filter((p) => inWindow(p.created_at)).map((p) => p.id),
+  );
+  const ownersWhoListed = new Set();
+  for (const l of listings) {
+    if (ownerIdsInWindow.has(l.owner_id)) ownersWhoListed.add(l.owner_id);
+  }
+
+  // Conversion: of consultants who signed up in the window, what % bid?
+  const consultantIdsInWindow = new Set(
+    consultants.filter((p) => inWindow(p.created_at)).map((p) => p.id),
+  );
+  const consultantsWhoBid = new Set();
+  for (const b of bids) {
+    if (consultantIdsInWindow.has(b.consultant_id)) consultantsWhoBid.add(b.consultant_id);
+  }
+
+  // Conversion: of listings posted in the window, what % got a bid?
+  const listingIdsInWindow = new Set(
+    listings.filter((l) => inWindow(l.created_at)).map((l) => l.id),
+  );
+  const listingsWithBid = new Set();
+  for (const b of bids) {
+    if (listingIdsInWindow.has(b.listing_id)) listingsWithBid.add(b.listing_id);
+  }
+
+  // Conversion: of bids submitted in the window, what % were accepted?
+  const bidsInWindow = bids.filter((b) => inWindow(b.created_at));
+  const acceptedInWindow = bidsInWindow.filter((b) => b.status === "accepted").length;
+
+  // Activity
+  const activeListings = listings.filter((l) => l.status === "open").length;
+  const inProgressEngagements = schedules.filter((s) => s.status === "scheduled" || s.status === "in_progress").length;
+  const completedInWindow = schedules.filter((s) => s.status === "completed" && inWindow(s.selected_start)).length;
+
+  // Money flow
+  const escrowHeldCents = phasePayments
+    .filter((p) => p.status === "held")
+    .reduce((a, p) => a + Number(p.amount_cents || 0), 0);
+  const releasedInWindowCents = phasePayments
+    .filter((p) => p.status === "released" && inWindow(p.released_at))
+    .reduce((a, p) => a + Number(p.amount_cents || 0), 0);
+
+  // Time-to-first-bid: median time between listing.created_at and the
+  // first bid on that listing (only counting listings posted in the window).
+  const firstBidByListing = new Map();
+  for (const b of bids) {
+    const cur = firstBidByListing.get(b.listing_id);
+    if (!cur || new Date(b.created_at) < new Date(cur)) firstBidByListing.set(b.listing_id, b.created_at);
+  }
+  const ttfbMs = [];
+  for (const l of listings) {
+    if (!inWindow(l.created_at)) continue;
+    const first = firstBidByListing.get(l.id);
+    if (!first) continue;
+    ttfbMs.push(new Date(first).getTime() - new Date(l.created_at).getTime());
+  }
+  ttfbMs.sort((a, b) => a - b);
+  const medianTtfbMs = ttfbMs.length ? ttfbMs[Math.floor(ttfbMs.length / 2)] : null;
+
+  return {
+    window_days: days,
+    signups: {
+      owners: newOwners,
+      consultants: newConsultants,
+      total: newOwners + newConsultants,
+    },
+    activity: {
+      new_listings: newListings,
+      new_bids: newBids,
+      active_listings: activeListings,
+      in_progress_engagements: inProgressEngagements,
+      completed_in_window: completedInWindow,
+      median_time_to_first_bid_ms: medianTtfbMs,
+    },
+    conversion: {
+      owner_signup_to_first_listing_pct: ownerIdsInWindow.size
+        ? (ownersWhoListed.size / ownerIdsInWindow.size) * 100
+        : null,
+      consultant_signup_to_first_bid_pct: consultantIdsInWindow.size
+        ? (consultantsWhoBid.size / consultantIdsInWindow.size) * 100
+        : null,
+      listing_to_first_bid_pct: listingIdsInWindow.size
+        ? (listingsWithBid.size / listingIdsInWindow.size) * 100
+        : null,
+      bid_acceptance_pct: bidsInWindow.length
+        ? (acceptedInWindow / bidsInWindow.length) * 100
+        : null,
+    },
+    money: {
+      escrow_held_cents: escrowHeldCents,
+      released_in_window_cents: releasedInWindowCents,
+    },
+  };
+}
+
 // "/" is the landing page (public/home/index.html). The marketplace was
 // previously at "/" and now lives at "/marketplace.html" — Express's static
 // middleware below serves that file directly.

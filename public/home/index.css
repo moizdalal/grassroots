@@ -735,21 +735,20 @@
            band. Override to visible in the hero; the roots SVG inside
            still clips its own content via its viewBox. */
         overflow: visible;
-        /* Semicircle dirt dome anchored at the top center. `closest-corner`
-           pins the 100% (transparent) stop to the top-left/top-right
-           corners — guaranteeing the dome is exactly transparent at the
-           box's top edges and fades naturally past the sides + bottom.
-           The 0% stop uses the same tan as the soil-line stroke so the
-           dome's peak meets the line with the same colour. */
-        background: radial-gradient(
-          circle closest-corner at 50% 0%,
-          color-mix(in srgb, #7a5a3e 78%, transparent) 0%,
-          color-mix(in srgb, #6b4a30 62%, transparent) 14%,
-          color-mix(in srgb, #5a4530 50%, transparent) 32%,
-          color-mix(in srgb, #5a4530 28%, transparent) 58%,
-          color-mix(in srgb, #5a4530 10%, transparent) 82%,
-          transparent 100%
-        );
+        background:
+          radial-gradient(
+            ellipse 90% 60% at 50% 0%,
+            color-mix(in srgb, #5a4530 38%, transparent) 0%,
+            color-mix(in srgb, #5a4530 18%, transparent) 35%,
+            transparent 72%
+          ),
+          linear-gradient(
+            to bottom,
+            color-mix(in srgb, #3a2818 22%, transparent) 0%,
+            color-mix(in srgb, #3a2818 8%, transparent) 28%,
+            transparent 70%
+          );
+        border-radius: 0 0 18px 18px;
       }
       /* Soil-line SVG sits above the dirt cap (which is inside earth)
          so the tan horizon stroke stays visible on top of the dirt. */
@@ -758,15 +757,19 @@
         z-index: 3;
       }
       [data-theme="light"] .ld-hero__garden .gs__earth {
-        background: radial-gradient(
-          circle closest-corner at 50% 0%,
-          color-mix(in srgb, #6b4a30 60%, transparent) 0%,
-          color-mix(in srgb, #6b4a30 44%, transparent) 14%,
-          color-mix(in srgb, #6b4a30 30%, transparent) 32%,
-          color-mix(in srgb, #6b4a30 16%, transparent) 58%,
-          color-mix(in srgb, #6b4a30  6%, transparent) 82%,
-          transparent 100%
-        );
+        background:
+          radial-gradient(
+            ellipse 90% 60% at 50% 0%,
+            color-mix(in srgb, #6b4a30 28%, transparent) 0%,
+            color-mix(in srgb, #6b4a30 14%, transparent) 35%,
+            transparent 72%
+          ),
+          linear-gradient(
+            to bottom,
+            color-mix(in srgb, #6b4a30 16%, transparent) 0%,
+            color-mix(in srgb, #6b4a30 6%, transparent) 32%,
+            transparent 75%
+          );
       }
       /* Wavy-edge dirt cap — sits in the 8px soil-line band above the
          earth and is MASKED to "below the wavy soil path" so the dirt
@@ -775,49 +778,31 @@
       .ld-hero__garden .gs__earth::before {
         content: "";
         position: absolute;
-        /* Full width so the cap closes the gap between the soil-line
-           stroke and the dirt dome across the entire visible row. The
-           cap also fades horizontally in the same place the dome does
-           (via the horizontal fade mask), so it never extends past the
-           dome edge. */
         left: 0;
         right: 0;
         top: -8px;
         height: 16px; /* covers the 8px band + 8px of soft dropoff into earth */
         pointer-events: none;
         z-index: 0;
-        /* Cap colour matches the dome's 0% stop so the line, cap, and
-           dome peak read as one continuous material — no visible step
-           where the cap hands off to the dome below. */
         background: linear-gradient(
           to bottom,
-          color-mix(in srgb, #7a5a3e 80%, transparent) 0%,
-          color-mix(in srgb, #7a5a3e 78%, transparent) 50%,
-          color-mix(in srgb, #6b4a30 65%, transparent) 100%
+          color-mix(in srgb, #3a2818 35%, transparent) 0%,
+          color-mix(in srgb, #5a4530 28%, transparent) 38%,
+          color-mix(in srgb, #5a4530  8%, transparent) 100%
         );
-        /* Wavy soil-line mask (top edge of the cap follows the same
-           wave as the stroke above it) intersected with a soft
-           horizontal fade so the cap never sticks past where the
-           dome itself has faded out. */
-        -webkit-mask-image:
-          url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 12' preserveAspectRatio='none'><path d='M 0 3 Q 7 0.6 14 3 Q 22 5 30 2.8 Q 38 0.4 46 3.2 Q 54 5.4 62 3 Q 70 0.8 78 3.4 Q 86 5 94 2.8 Q 98 2 100 3 L 100 12 L 0 12 Z' fill='black'/></svg>"),
-          linear-gradient(to right, transparent 0%, #000 12%, #000 88%, transparent 100%);
-                mask-image:
-          url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 12' preserveAspectRatio='none'><path d='M 0 3 Q 7 0.6 14 3 Q 22 5 30 2.8 Q 38 0.4 46 3.2 Q 54 5.4 62 3 Q 70 0.8 78 3.4 Q 86 5 94 2.8 Q 98 2 100 3 L 100 12 L 0 12 Z' fill='black'/></svg>"),
-          linear-gradient(to right, transparent 0%, #000 12%, #000 88%, transparent 100%);
+        -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 12' preserveAspectRatio='none'><path d='M 0 3 Q 7 0.6 14 3 Q 22 5 30 2.8 Q 38 0.4 46 3.2 Q 54 5.4 62 3 Q 70 0.8 78 3.4 Q 86 5 94 2.8 Q 98 2 100 3 L 100 12 L 0 12 Z' fill='black'/></svg>");
+                mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 12' preserveAspectRatio='none'><path d='M 0 3 Q 7 0.6 14 3 Q 22 5 30 2.8 Q 38 0.4 46 3.2 Q 54 5.4 62 3 Q 70 0.8 78 3.4 Q 86 5 94 2.8 Q 98 2 100 3 L 100 12 L 0 12 Z' fill='black'/></svg>");
         -webkit-mask-size: 100% 100%;
                 mask-size: 100% 100%;
         -webkit-mask-repeat: no-repeat;
                 mask-repeat: no-repeat;
-        -webkit-mask-composite: source-in;
-                mask-composite: intersect;
       }
       [data-theme="light"] .ld-hero__garden .gs__earth::before {
         background: linear-gradient(
           to bottom,
-          color-mix(in srgb, #6b4a30 62%, transparent) 0%,
-          color-mix(in srgb, #6b4a30 58%, transparent) 50%,
-          color-mix(in srgb, #6b4a30 50%, transparent) 100%
+          color-mix(in srgb, #6b4a30 35%, transparent) 0%,
+          color-mix(in srgb, #6b4a30 22%, transparent) 38%,
+          color-mix(in srgb, #6b4a30  6%, transparent) 100%
         );
       }
       .ld-hero__garden .gs__soil-dot {

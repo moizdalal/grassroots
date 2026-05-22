@@ -180,6 +180,7 @@ function activateTab(name) {
     case "users": renderUsersTable(); break;
     case "engagements": renderEngagementsTable(); break;
     case "calendar": renderCalendar(); break;
+    case "health": renderHealth(); break;
   }
 }
 
@@ -699,3 +700,475 @@ function openEngagementDrawer(engId) {
 
 document.getElementById("adm-now-stamp").textContent =
   data.now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }).toLowerCase();
+
+/* ============================================================== */
+/*                            HEALTH                               */
+/* ============================================================== */
+/* Live perf + business KPIs. Unlike the rest of the admin (which
+   reads from fixtures.js), this tab fetches real data from
+   /api/admin/health-summary on every activation. The endpoint is
+   admin-gated server-side so an unauthorized fetch returns 403.   */
+
+let healthRangeDays = 7;
+let healthInFlight = null;
+
+const healthRangeButtons = document.querySelectorAll("[data-health-range]");
+healthRangeButtons.forEach((b) => {
+  b.addEventListener("click", () => {
+    healthRangeDays = Number(b.dataset.healthRange) || 7;
+    healthRangeButtons.forEach((x) => x.classList.toggle("is-active", x === b));
+    renderHealth(true);
+  });
+});
+
+async function renderHealth(force) {
+  const loading = document.getElementById("adm-health-loading");
+  const errorEl = document.getElementById("adm-health-error");
+  const body = document.getElementById("adm-health-body");
+  if (!loading || !body) return;
+
+  // Avoid clobbering an in-flight fetch (e.g. user double-clicks range).
+  if (healthInFlight && !force) return;
+
+  loading.hidden = false;
+  errorEl.hidden = true;
+
+  try {
+    const client = await getSupabaseClient();
+    const { data: { session } } = await client.auth.getSession();
+    if (!session?.access_token) throw new Error("not signed in");
+
+    healthInFlight = fetch("/api/admin/health-summary", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ days: healthRangeDays }),
+    });
+    const res = await healthInFlight;
+    healthInFlight = null;
+
+    if (!res.ok) {
+      const msg = res.status === 403 ? "you're not on the admin allow-list." : `request failed (${res.status}).`;
+      throw new Error(msg);
+    }
+    const summary = await res.json();
+    drawHealth(summary);
+    loading.hidden = true;
+    body.hidden = false;
+  } catch (err) {
+    healthInFlight = null;
+    loading.hidden = true;
+    body.hidden = true;
+    errorEl.textContent = err.message || "could not load health.";
+    errorEl.hidden = false;
+  }
+}
+
+function drawHealth(summary) {
+  drawBusinessTiles(summary.business);
+  drawConversion(summary.business);
+  drawMoney(summary.business);
+  drawPerfTiles(summary.perf);
+  drawTrendChart(summary.perf.daily_trend);
+  drawRouteTable(summary.perf.by_route);
+  drawSlowestTable(summary.perf.slowest);
+  drawPerfSub(summary.perf.overall, summary.window_days);
+}
+
+function drawBusinessTiles(b) {
+  const host = document.getElementById("adm-health-business-tiles");
+  if (!host) return;
+  const ttfbHours = b.activity.median_time_to_first_bid_ms
+    ? (b.activity.median_time_to_first_bid_ms / 3600000).toFixed(1) + "h"
+    : "—";
+  const tiles = [
+    {
+      label: "new sign-ups",
+      value: b.signups.total,
+      sub: `${b.signups.consultants} consultants · ${b.signups.owners} owners`,
+      explain: "top of the funnel. if this number isn't growing, growth is stalled. watch the split — too few of one role starves the other side of the marketplace.",
+    },
+    {
+      label: "new listings",
+      value: b.activity.new_listings,
+      sub: `${b.activity.active_listings} open right now`,
+      explain: "supply side — how much work businesses are putting up. few new listings means consultants have nothing to bid on.",
+    },
+    {
+      label: "new offers",
+      value: b.activity.new_bids,
+      sub: `${b.activity.in_progress_engagements} engagements in progress`,
+      explain: "demand side — how actively consultants are engaging with what's on the marketplace. lots of listings but few offers = your matching isn't working.",
+    },
+    {
+      label: "median time to first offer",
+      value: ttfbHours,
+      sub: "from listing posted → first bid",
+      explain: "how fast the marketplace responds when a business posts work. long waits make owners feel like nobody's home.",
+    },
+  ];
+  host.innerHTML = tiles.map(tileHtml).join("");
+}
+
+function drawConversion(b) {
+  const host = document.getElementById("adm-health-conversion");
+  if (!host) return;
+  const rows = [
+    {
+      label: "owners who signed up & posted a listing",
+      value: b.conversion.owner_signup_to_first_listing_pct,
+      sub: "in the window",
+      explain: "of business owners who joined this window, how many actually got around to posting work. low % = your onboarding for businesses is leaking — people sign up but never start.",
+    },
+    {
+      label: "consultants who signed up & submitted a bid",
+      value: b.conversion.consultant_signup_to_first_bid_pct,
+      sub: "in the window",
+      explain: "of consultants who joined this window, how many actually bid on something. low % = they're browsing but not engaging — usually a pricing or qualification clarity issue.",
+    },
+    {
+      label: "listings posted & got at least one bid",
+      value: b.conversion.listing_to_first_bid_pct,
+      sub: "in the window",
+      explain: "how many of the posted listings attracted any interest at all. low % = pricing too low, scope unclear, or briefs feel scary to consultants.",
+    },
+    {
+      label: "bids submitted & accepted",
+      value: b.conversion.bid_acceptance_pct,
+      sub: "of bids in the window",
+      explain: "of all proposals submitted, how many businesses said yes to. healthy is 5-15% (means owners have real choice). 100% means consultants aren't competing enough.",
+    },
+  ];
+  host.innerHTML = `
+    <ul class="adm-health-funnel">
+      ${rows.map((r) => `
+        <li class="adm-health-funnel__row">
+          <div class="adm-health-funnel__label">
+            <strong>
+              ${esc(r.label)}
+              ${infoBtnHtml(r.explain)}
+            </strong>
+            <span>${esc(r.sub)}</span>
+          </div>
+          <div class="adm-health-funnel__value">${formatPct(r.value)}</div>
+        </li>
+      `).join("")}
+    </ul>
+  `;
+}
+
+function drawMoney(b) {
+  const host = document.getElementById("adm-health-money");
+  if (!host) return;
+  const escrowExplain = "money sitting in your stripe escrow account, waiting for businesses to approve their work. you're responsible for it until it's released. this number grows when owners pay and shrinks when consultants get paid out.";
+  const releasedExplain = "money you've actually delivered to consultants this window. think of this as your 'value delivered' number — work approved, paid, done. it's the most concrete signal that the marketplace is functioning end-to-end.";
+  host.innerHTML = `
+    <div class="adm-health-money-stack">
+      <div>
+        <p class="adm-health-money-label">held in escrow right now ${infoBtnHtml(escrowExplain)}</p>
+        <p class="adm-health-money-value">${formatMoneyCents(b.money.escrow_held_cents)}</p>
+        <p class="adm-health-money-sub">funds you're holding on behalf of completed proposals</p>
+      </div>
+      <div>
+        <p class="adm-health-money-label">released to consultants in window ${infoBtnHtml(releasedExplain)}</p>
+        <p class="adm-health-money-value">${formatMoneyCents(b.money.released_in_window_cents)}</p>
+        <p class="adm-health-money-sub">payouts you've moved out of escrow</p>
+      </div>
+    </div>
+  `;
+}
+
+function drawPerfTiles(perf) {
+  const host = document.getElementById("adm-health-perf-tiles");
+  if (!host) return;
+  const o = perf.overall || {};
+  const samples = Number(o.total_samples || 0);
+  if (!samples) {
+    host.innerHTML = `<div class="adm-empty">no page-load data in this window yet — visit pages on the site to seed it.</div>`;
+    return;
+  }
+  const tiles = [
+    {
+      label: "page load speed (lcp)",
+      value: o.lcp_p75 != null ? formatMs(o.lcp_p75) : "—",
+      sub: lcpGrade(o.lcp_p75),
+      grade: lcpClass(o.lcp_p75),
+      explain: "how long the slowest 25% of your visitors wait before they see the main content on screen. slower than 2.5s and people start leaving before the page is usable — this also affects your google search ranking.",
+    },
+    {
+      label: "click responsiveness (inp)",
+      value: o.inp_p75 != null ? formatMs(o.inp_p75) : "—",
+      sub: inpGrade(o.inp_p75),
+      grade: inpClass(o.inp_p75),
+      explain: "when someone taps a button, how long until the page actually responds. sluggish responses make the site feel broken or unsure. under 200ms feels instant; over 500ms feels frozen.",
+    },
+    {
+      label: "layout stability (cls)",
+      value: o.cls_p75 != null ? (o.cls_p75 / 1000).toFixed(2) : "—",
+      sub: clsGrade(o.cls_p75),
+      grade: clsClass(o.cls_p75),
+      explain: "how much content jumps around while the page loads. high values mean visitors tap the wrong thing because the page shifted under their finger — classic example: tapping the wrong button right when an ad loaded in.",
+    },
+    {
+      label: "server response (ttfb)",
+      value: o.ttfb_p75 != null ? formatMs(o.ttfb_p75) : "—",
+      sub: `${samples} samples`,
+      explain: "how fast your server even starts responding. the starting block — if this is slow, every page feels sluggish no matter how clever the rest of the optimization is. under 800ms is the bar.",
+    },
+  ];
+  host.innerHTML = tiles.map((t) => `
+    <div class="adm-kpi adm-kpi--graded ${t.grade ? `adm-kpi--${t.grade}` : ""}">
+      <div class="adm-kpi__label">
+        ${esc(t.label)}
+        ${infoBtnHtml(t.explain)}
+      </div>
+      <div class="adm-kpi__value">${esc(String(t.value))}</div>
+      <div class="adm-kpi__sub">${esc(t.sub)}</div>
+    </div>
+  `).join("");
+}
+
+function drawPerfSub(overall, days) {
+  const el = document.getElementById("adm-health-perf-sub");
+  if (!el) return;
+  const samples = Number(overall?.total_samples || 0);
+  el.textContent = samples
+    ? `${samples.toLocaleString()} page loads recorded in the last ${days}d.`
+    : `no page-load data recorded in the last ${days}d yet.`;
+}
+
+function drawTrendChart(rows) {
+  const host = document.getElementById("adm-health-trend-chart");
+  if (!host) return;
+  if (!rows || !rows.length) {
+    host.innerHTML = `<div class="adm-empty">no daily samples yet.</div>`;
+    return;
+  }
+  const points = rows.map((r) => ({
+    x: new Date(r.day),
+    y: Number(r.lcp_p75) || 0,
+    label: `${r.day} · ${r.samples} samples`,
+  }));
+  renderLineChart(host, points, { ariaLabel: "p75 LCP by day in milliseconds" });
+}
+
+function drawRouteTable(rows) {
+  const tbody = document.getElementById("adm-health-route-tbody");
+  if (!tbody) return;
+  if (!rows || !rows.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="adm-empty">no per-route data yet.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map((r) => `
+    <tr>
+      <td class="adm-mono">${esc(r.pathname)}</td>
+      <td>${Number(r.samples).toLocaleString()}</td>
+      <td>${formatMs(r.lcp_p50)}</td>
+      <td class="${lcpCellClass(r.lcp_p75)}">${formatMs(r.lcp_p75)}</td>
+      <td>${formatMs(r.lcp_p95)}</td>
+      <td>${r.cls_p75 != null ? (r.cls_p75 / 1000).toFixed(2) : "—"}</td>
+      <td>${r.inp_p75 != null ? formatMs(r.inp_p75) : "—"}</td>
+    </tr>
+  `).join("");
+}
+
+function drawSlowestTable(rows) {
+  const tbody = document.getElementById("adm-health-slowest-tbody");
+  if (!tbody) return;
+  if (!rows || !rows.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="adm-empty">no slow loads recorded yet.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map((r) => {
+    const when = new Date(r.recorded_at);
+    return `
+      <tr>
+        <td>${esc(when.toLocaleString())}</td>
+        <td class="adm-mono">${esc(r.pathname)}</td>
+        <td>${esc(r.device_class || "—")}</td>
+        <td>${esc(r.connection_type || "—")}</td>
+        <td class="${lcpCellClass(r.lcp_ms)}">${formatMs(r.lcp_ms)}</td>
+        <td>${r.cls_x1000 != null ? (r.cls_x1000 / 1000).toFixed(2) : "—"}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+// ---- helpers ----
+
+function tileHtml(t) {
+  return `
+    <div class="adm-kpi">
+      <div class="adm-kpi__label">
+        ${esc(t.label)}
+        ${infoBtnHtml(t.explain)}
+      </div>
+      <div class="adm-kpi__value">${esc(String(t.value))}</div>
+      <div class="adm-kpi__sub">${esc(t.sub)}</div>
+    </div>
+  `;
+}
+
+// Tiny "i" circle button shown next to a metric label. Clicking it pops
+// a small bubble with the plain-English explainer. The bubble itself
+// is created on demand in showInfoPopover() and reused across clicks.
+function infoBtnHtml(explain) {
+  if (!explain) return "";
+  // Escape for both attribute and visible text contexts.
+  return `<button type="button" class="adm-info" aria-label="what does this mean" data-info="${esc(explain)}">
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/>
+      <circle cx="8" cy="4.5" r="0.9" fill="currentColor"/>
+      <path d="M8 7v5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>
+  </button>`;
+}
+
+function formatPct(value) {
+  if (value == null || !Number.isFinite(value)) return "—";
+  return value.toFixed(1) + "%";
+}
+
+function formatMs(ms) {
+  if (ms == null || !Number.isFinite(Number(ms))) return "—";
+  const n = Number(ms);
+  if (n < 1000) return `${n}ms`;
+  return `${(n / 1000).toFixed(2)}s`;
+}
+
+function formatMoneyCents(cents) {
+  const n = Number(cents || 0) / 100;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(n);
+}
+
+// Google's Core Web Vitals thresholds (good / needs-improvement / poor).
+function lcpClass(ms) {
+  if (ms == null) return "";
+  if (ms <= 2500) return "good";
+  if (ms <= 4000) return "warn";
+  return "poor";
+}
+function lcpGrade(ms) {
+  if (ms == null) return "no data";
+  if (ms <= 2500) return "good (under 2.5s)";
+  if (ms <= 4000) return "needs improvement";
+  return "poor (over 4s)";
+}
+function inpClass(ms) {
+  if (ms == null) return "";
+  if (ms <= 200) return "good";
+  if (ms <= 500) return "warn";
+  return "poor";
+}
+function inpGrade(ms) {
+  if (ms == null) return "no data";
+  if (ms <= 200) return "good (under 200ms)";
+  if (ms <= 500) return "needs improvement";
+  return "poor (over 500ms)";
+}
+function clsClass(clsX1000) {
+  if (clsX1000 == null) return "";
+  if (clsX1000 <= 100) return "good";
+  if (clsX1000 <= 250) return "warn";
+  return "poor";
+}
+function clsGrade(clsX1000) {
+  if (clsX1000 == null) return "no data";
+  if (clsX1000 <= 100) return "good (under 0.1)";
+  if (clsX1000 <= 250) return "needs improvement";
+  return "poor (over 0.25)";
+}
+function lcpCellClass(ms) {
+  const g = lcpClass(ms);
+  return g ? `adm-cell--${g}` : "";
+}
+
+/* ──────────────────────────────────────────────────────────────
+   INFO POPOVERS
+   Single delegated handler for all .adm-info buttons in the admin
+   page. The bubble is a singleton; we move + retext it on each
+   click instead of creating one per tile. Click outside or press
+   Escape to dismiss.
+   ────────────────────────────────────────────────────────────── */
+(function wireInfoPopovers() {
+  let bubble = null;
+  let anchorBtn = null;
+
+  function ensureBubble() {
+    if (bubble) return bubble;
+    bubble = document.createElement("div");
+    bubble.className = "adm-info-popover";
+    bubble.setAttribute("role", "tooltip");
+    bubble.hidden = true;
+    document.body.appendChild(bubble);
+    return bubble;
+  }
+
+  function positionBubble(btn) {
+    const rect = btn.getBoundingClientRect();
+    // Try to place below the button; if that would overflow viewport,
+    // place above. Horizontal align to the button, clamped to window.
+    const bw = Math.min(280, window.innerWidth - 24);
+    bubble.style.width = bw + "px";
+    bubble.hidden = false; // need it visible to measure height
+    const bh = bubble.offsetHeight;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const top = spaceBelow >= bh + 12
+      ? rect.bottom + window.scrollY + 8
+      : rect.top + window.scrollY - bh - 8;
+    let left = rect.left + window.scrollX + rect.width / 2 - bw / 2;
+    left = Math.max(12, Math.min(left, window.scrollX + window.innerWidth - bw - 12));
+    bubble.style.top = top + "px";
+    bubble.style.left = left + "px";
+  }
+
+  function open(btn) {
+    const text = btn.getAttribute("data-info") || "";
+    if (!text) return;
+    ensureBubble();
+    bubble.textContent = text;
+    anchorBtn = btn;
+    btn.classList.add("is-open");
+    positionBubble(btn);
+  }
+
+  function close() {
+    if (!bubble) return;
+    bubble.hidden = true;
+    if (anchorBtn) anchorBtn.classList.remove("is-open");
+    anchorBtn = null;
+  }
+
+  // One global click handler: open on info-btn click, close on outside click.
+  document.addEventListener("click", (event) => {
+    const btn = event.target.closest(".adm-info");
+    if (btn) {
+      event.preventDefault();
+      // Toggle: same button click closes it.
+      if (anchorBtn === btn) {
+        close();
+      } else {
+        open(btn);
+      }
+      return;
+    }
+    // Click anywhere else closes the bubble.
+    if (anchorBtn && !event.target.closest(".adm-info-popover")) {
+      close();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") close();
+  });
+
+  // Reposition on resize/scroll so the bubble stays anchored.
+  window.addEventListener("resize", () => { if (anchorBtn) positionBubble(anchorBtn); });
+  window.addEventListener("scroll", () => { if (anchorBtn) positionBubble(anchorBtn); }, { passive: true });
+})();

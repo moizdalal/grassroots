@@ -1,7 +1,14 @@
 import { getSupabaseClient } from "/supabase-loader.js";
 import { renderRatingMarkup, fetchRatingFor } from "/rating.js";
 import { showSuccess, showError, showInfo } from "/toast.js";
-import { payAndStartService } from "/payment-modal.js";
+// payment-modal is only needed when the owner taps "pay service fee".
+// Lazy-load on demand so engagement.html stays light on first paint.
+let _paymentModalPromise = null;
+async function payAndStartService(...args) {
+  if (!_paymentModalPromise) _paymentModalPromise = import("/payment-modal.js");
+  const m = await _paymentModalPromise;
+  return m.payAndStartService(...args);
+}
 
 const gate = document.getElementById("eg-gate");
 const detail = document.getElementById("eg-detail");

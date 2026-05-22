@@ -7,7 +7,26 @@ import { getSupabaseClient } from "/supabase-loader.js";
 import { fetchRatingFor, renderRatingMarkup } from "/rating.js";
 import { getInitials } from "/initials.js";
 import { renderHealthBucket, kickHealthBucketAnimation } from "/health-bucket.js";
-import { mountEngagementJourneyFlowers } from "/engagement-journey-flowers.js";
+// engagement-journey-flowers.js pulls flower-sketch.js (~250KB raw)
+// which is the heaviest module on the page. Defer the import until the
+// panel mounts so the rest of the dashboard becomes interactive first.
+let _flowersModulePromise = null;
+function loadFlowersModule() {
+  if (!_flowersModulePromise) {
+    _flowersModulePromise = import("/engagement-journey-flowers.js");
+  }
+  return _flowersModulePromise;
+}
+async function mountEngagementJourneyFlowers(container, opts) {
+  // Show a placeholder while the heavy art module fetches. Once mod
+  // arrives it overwrites the container's contents.
+  if (container && !container.dataset.flowersLoading) {
+    container.dataset.flowersLoading = "1";
+    container.innerHTML = '<p class="ej-loading">loading your garden…</p>';
+  }
+  const mod = await loadFlowersModule();
+  return mod.mountEngagementJourneyFlowers(container, opts);
+}
 import { mountDashboardNotifications } from "/dashboard-notifications.js";
 
 const $ = (id) => document.getElementById(id);
