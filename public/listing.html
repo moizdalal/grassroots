@@ -223,6 +223,13 @@
 
           </aside>
 
+          <!-- Guest-only conversion card. Rendered into this slot by
+               listing.js when the viewer has no session and guest mode
+               is active. Sits in the same rail column the offer panel
+               would occupy so the visual weight of the page stays
+               balanced for guests. -->
+          <aside class="ld-rail ld-guest-rail" id="ld-guest-rail" hidden></aside>
+
           <aside class="ld-rail" id="ld-offer-rail" hidden>
             <section id="ld-offer-panel" class="ld-sidebar__panel ld-offer-panel" hidden>
               <h2 class="ld-offer-panel__heading">make an offer</h2>
@@ -412,6 +419,7 @@
       </div>
     </div>
 
+    <script type="module" src="/guest-nav.js"></script>
     <script type="module" src="/nav-session.js"></script>
     <script type="module" src="/listing.js"></script>
 

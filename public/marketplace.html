@@ -15,14 +15,28 @@
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <script>
-      // Marketplace is signed-in only. Synchronous pre-check: if no
-      // Supabase auth token sits in localStorage, redirect to signin
-      // before the page shell renders so guests never see a flash of
-      // the marketplace. The async session check in marketplace.js
-      // remains the authoritative gate (catches expired tokens this
-      // pre-check can't validate).
+      // Marketplace is normally signed-in only. Synchronous pre-check:
+      // if no Supabase auth token sits in localStorage, redirect to
+      // signin before the page shell renders so members never see a
+      // flash of the marketplace under the wrong layout. The async
+      // session check in marketplace.js remains the authoritative gate
+      // (catches expired tokens this pre-check can't validate).
+      //
+      // Guest mode exception: visitors arriving from the marketing
+      // pages with ?guest=1 (or with the sessionStorage flag already
+      // set from an earlier in-tab navigation) get to browse without
+      // signing in. We persist the flag here in the inline script so
+      // that internal navigations within the guest tab don't need to
+      // re-pass the URL param.
       (function () {
         try {
+          var params = new URLSearchParams(window.location.search);
+          var isGuest = params.get("guest") === "1"
+            || sessionStorage.getItem("grassroots_guest_mode") === "1";
+          if (isGuest) {
+            try { sessionStorage.setItem("grassroots_guest_mode", "1"); } catch (_) {}
+            return;
+          }
           for (var i = 0; i < localStorage.length; i++) {
             var k = localStorage.key(i);
             if (k && k.indexOf("sb-") === 0 && k.indexOf("-auth-token") !== -1) {
@@ -34,7 +48,7 @@
             "/signin.html?next=" + encodeURIComponent("/marketplace.html"),
           );
         } catch (_) {
-          /* localStorage unavailable — let the JS layer handle it. */
+          /* storage unavailable — let the JS layer handle it. */
         }
       })();
     </script>
@@ -50,6 +64,10 @@
       </div>
 
       <div id="session-slot" class="gr-session-slot" aria-live="polite"></div>
+
+      <!-- Guest conversion banner — populated by marketplace.js when
+           guest mode is detected, empty otherwise. -->
+      <div id="guest-banner-slot" hidden></div>
 
       <!-- Search / Filter -->
       <div class="gr-search-bar" id="search-bar">
@@ -73,6 +91,7 @@
       </section>
     </main>
 
+    <script type="module" src="/guest-nav.js"></script>
     <script type="module" src="/nav-session.js"></script>
     <script type="module" src="/marketplace.js"></script>
 

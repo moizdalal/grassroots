@@ -10,6 +10,7 @@ import {
   renderAnalyticsPanel,
 } from "/listing-analytics.js";
 import { showToast, showSuccess, showError, showLoading } from "/toast.js";
+import { isGuest, setGuestMode, clearGuestModeIfSignedIn } from "/guest-mode.js";
 
 const gate = document.getElementById("listing-gate");
 const detail = document.getElementById("listing-detail");
@@ -722,6 +723,42 @@ function setOfferRailVisible(visible) {
   if (!offerRail) return;
   offerRail.hidden = !visible;
   syncLayoutRail();
+}
+
+/* Render the guest conversion card into the right rail. Guests have
+   no way to bid (consultant accounts are application-only, business
+   accounts are full-fledged), so we don't pretend the offer form
+   exists for them — instead we show two paths forward and a quiet
+   sign-in link for anyone who already has an account. The default
+   pitch leans toward the business side because that's the dominant
+   guest persona (and the side we're actively trying to grow). */
+function renderGuestRail() {
+  const rail = document.getElementById("ld-guest-rail");
+  if (!rail) return;
+  rail.innerHTML = `
+    <section class="ld-guest-rail__card" aria-label="join grassroots">
+      <span class="ld-guest-rail__eyebrow">guest preview</span>
+      <h2 class="ld-guest-rail__title">like what you see?</h2>
+      <p class="ld-guest-rail__body">
+        join grassroots to post your own project and get matched with
+        local student consultants — or apply to bid on work like this.
+      </p>
+      <div class="ld-guest-rail__actions">
+        <a class="gr-btn gr-btn--primary" href="/register.html?role=owner">post a project</a>
+        <a class="gr-btn gr-btn--ghost" href="/home/for-students.html">apply as a consultant</a>
+      </div>
+      <div class="ld-guest-rail__divider" aria-hidden="true">or</div>
+      <div class="ld-guest-rail__secondary">
+        <p>already on grassroots?</p>
+        <a class="ld-guest-rail__signin" href="/signin.html">sign in →</a>
+      </div>
+    </section>
+  `;
+  rail.hidden = false;
+  // syncLayoutRail() reads ownerSidebar / offerRail; the guest rail
+  // isn't in that check by design — we add the layout class directly
+  // here so the two-column grid kicks in for guests too.
+  if (layout) layout.classList.add("ld-layout--with-rail");
 }
 
 function renderListingAttachments(listing) {
@@ -3122,9 +3159,20 @@ async function init() {
     return;
   }
 
+  // Lock in guest mode early — same idea as the marketplace page,
+  // so internal navigation within the tab keeps the flag without
+  // requiring every link to carry ?guest=1.
+  const guest = isGuest();
+  if (guest) setGuestMode();
+
   try {
     const client = await getSupabaseClient();
     const { data: { session } } = await client.auth.getSession();
+
+    // Real session wins — clear any stale guest flag so this user
+    // gets the normal experience on the next navigation too.
+    clearGuestModeIfSignedIn(session);
+
     const { listing, error } = await loadListing(client, listingId);
 
     if (error) { gate.textContent = error.message; gate.className = "gr-status error"; return; }
@@ -3180,7 +3228,15 @@ async function init() {
       setOwnerSidebarVisible(false);
     }
 
-    if (uid && !isOwner) {
+    if (!uid && guest) {
+      // Guest view: render the listing body + business bio (already
+      // populated above) and drop in the conversion card where the
+      // offer panel would live. We intentionally don't load owner
+      // bids, listing analytics, or the question chat — none of
+      // those are accessible to a logged-out visitor anyway, and
+      // skipping them keeps the network requests honest.
+      renderGuestRail();
+    } else if (uid && !isOwner) {
       if (viewerRole === "consultant") {
         if (bidsAvailable) {
           showConsultantView(client, session, listing, existingBid);
