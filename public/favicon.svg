@@ -1,7 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-56 0 275 275" fill="#6DBF8A" role="img" aria-label="grassroots icon">
-  <!-- Same artwork as home/assets/grassroots-icon-syne.svg, re-framed
-       in a square 275×275 viewBox so it renders cleanly in browser
-       favicon slots and Google search-result snippets. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 163 275" fill="#6DBF8A" role="img" aria-label="grassroots icon">
+  <!-- Exported from Figma: file xR1yoZDLodnyDdgy4RAhIz, frame "Group" 4:4 (stem + two leaves) -->
   <g transform="translate(72, 130)">
     <path d="M19 10.15C19 4.54431 14.7467 0 9.5 0C4.25329 0 0 4.54431 0 10.15C7.91804 91.2467 8.44249 120.691 0 134.85C0 140.456 4.25329 145 9.5 145C14.7467 145 19 140.456 19 134.85C16.2169 71.2734 12.3479 23.288 19 10.15Z"/>
   </g>

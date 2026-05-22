@@ -49,7 +49,7 @@ const BOUNDS = { minX: 16, maxX: ROOTS_VB.w - 16, minY: 16, maxY: ROOTS_VB.h - 1
  *   consultantName: string, amountCents: number, releasedAt: string,
  * }> }} [opts]
  */
-export function mountGardenStem(container, { roots = [] } = {}) {
+export function mountGardenStem(container, { roots = [], interactive = true, navigateOnClick = true } = {}) {
   if (!container) return;
   container.innerHTML = `
     <div class="gs" data-roots="${roots.length}">
@@ -74,7 +74,7 @@ export function mountGardenStem(container, { roots = [] } = {}) {
   `;
 
   if (roots.length) {
-    wireRootPhysics(container, roots);
+    wireRootPhysics(container, roots, { interactive, navigateOnClick });
     wireHoverCard(container, roots);
   }
   wireSproutPhysics(container);
@@ -186,7 +186,7 @@ function initialBranchPath(end) {
         points lag behind the node's velocity, so motion creates
         natural curves — fast drags swoop, slow drifts ripple.
    Clamped to BOUNDS so a node can never escape the canvas. */
-function wireRootPhysics(container, roots) {
+function wireRootPhysics(container, roots, { interactive = true, navigateOnClick = true } = {}) {
   const svg = container.querySelector(".gs__roots-svg");
   if (!svg) return;
   const reducedMotion =
@@ -264,12 +264,19 @@ function wireRootPhysics(container, roots) {
     const node = nodeStates[idx];
     node.dragging = false;
     node.groupEl.classList.remove("is-dragging");
-    // If the pointer barely moved, treat it as a click → navigate.
+    // If the pointer barely moved, treat it as a click → navigate
+    // (when enabled). Hero contexts pass navigateOnClick:false so a
+    // brief click just dismisses the drag without leaving the page.
     if (!activeDrag.moved) {
-      const listingId = node.groupEl.dataset.listing;
-      activeDrag = null;
-      if (listingId) {
-        window.location.href = `/listing.html?id=${listingId}`;
+      if (navigateOnClick) {
+        const listingId = node.groupEl.dataset.listing;
+        activeDrag = null;
+        if (listingId) {
+          window.location.href = `/listing.html?id=${listingId}`;
+          return;
+        }
+      } else {
+        activeDrag = null;
         return;
       }
     } else {
@@ -281,17 +288,30 @@ function wireRootPhysics(container, roots) {
     activeDrag = null;
   }
 
-  groups.forEach((groupEl, i) => {
-    const nodeEl = groupEl.querySelector(".gs__root-node");
-    nodeEl.style.cursor = "grab";
-    nodeEl.addEventListener("pointerdown", (e) => onPointerDown(e, i));
-  });
-  // Move + up are bound on the SVG (not document) so we keep events
-  // within the panel surface. setPointerCapture above routes events
-  // back to the captured element until release.
-  svg.addEventListener("pointermove", onPointerMove);
-  svg.addEventListener("pointerup", onPointerUp);
-  svg.addEventListener("pointercancel", onPointerUp);
+  if (interactive) {
+    groups.forEach((groupEl, i) => {
+      const nodeEl = groupEl.querySelector(".gs__root-node");
+      nodeEl.style.cursor = "grab";
+      nodeEl.addEventListener("pointerdown", (e) => onPointerDown(e, i));
+    });
+    // Move + up are bound on the SVG (not document) so we keep events
+    // within the panel surface. setPointerCapture above routes events
+    // back to the captured element until release.
+    svg.addEventListener("pointermove", onPointerMove);
+    svg.addEventListener("pointerup", onPointerUp);
+    svg.addEventListener("pointercancel", onPointerUp);
+  } else {
+    // Non-interactive contexts (e.g. the marketing-page hero) still
+    // want the physics drift + hover card, but no click → navigate
+    // and no drag. Leave the pointerdown wiring off and reset the
+    // grab cursor so hover doesn't promise interaction.
+    container.querySelectorAll(".gs__root").forEach((el) => {
+      el.style.cursor = "default";
+    });
+    container.querySelectorAll(".gs__root-node").forEach((el) => {
+      el.style.cursor = "default";
+    });
+  }
 
   if (reducedMotion) {
     // Reduced-motion: render the resting state and skip the loop.
