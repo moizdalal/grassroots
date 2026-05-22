@@ -39,8 +39,13 @@ const ROOTS_VB = { w: 200, h: 240 };
 // Anchor point — where every branch starts (the seedling base, at the
 // top centre of the roots canvas, flush with the soil line).
 const ANCHOR = { x: ROOTS_VB.w / 2, y: 0 };
-// Position clamp — keeps the node + halo visible inside the section.
-const BOUNDS = { minX: 16, maxX: ROOTS_VB.w - 16, minY: 16, maxY: ROOTS_VB.h - 16 };
+// Position clamp — keeps the node center inside (or just past) the
+// canvas. The halo can extend slightly past the viewBox edge because
+// the SVG is rendered with overflow="visible" below; in contexts where
+// the parent .gs__earth has overflow:hidden, that parent does the
+// final clipping. Tight inset gives users a generous drag area without
+// nodes being able to escape into adjacent layout.
+const BOUNDS = { minX: 4, maxX: ROOTS_VB.w - 4, minY: 4, maxY: ROOTS_VB.h - 4 };
 
 /**
  * @param {HTMLElement} container - target host (panel content area).
@@ -123,7 +128,7 @@ function rootsSvg(roots) {
 
   return `
     <svg viewBox="0 0 ${ROOTS_VB.w} ${ROOTS_VB.h}" class="gs__roots-svg" aria-hidden="true"
-         preserveAspectRatio="xMidYMin meet">
+         preserveAspectRatio="xMidYMin meet" overflow="visible">
       ${soilDots()}
       ${groups}
     </svg>
