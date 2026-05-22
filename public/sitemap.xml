@@ -11,6 +11,11 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://www.grassroots-marketplace.com/home/for-students.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.grassroots-marketplace.com/help.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
