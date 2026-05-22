@@ -1,16 +1,13 @@
 import { getSupabaseClient } from "/supabase-loader.js";
-import { showSuccess } from "/toast.js";
+import { showSuccess, showError } from "/toast.js";
 // OAuth is paused until providers are configured in supabase. To re-enable,
 // uncomment the import + the renderOAuthButtons() call below.
 // import { renderOAuthButtons } from "/oauth.js";
 
 const form = document.getElementById("signin-form");
-const statusEl = document.getElementById("status");
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
-  statusEl.textContent = "";
-  statusEl.className = "gr-status";
 
   const email = form.email.value.trim();
   const password = form.password.value;
@@ -49,8 +46,7 @@ form.addEventListener("submit", async (event) => {
     }
     window.location.href = dest;
   } catch (error) {
-    statusEl.textContent = error.message || "sign-in failed.";
-    statusEl.className = "gr-status error";
+    showError(error.message || "sign-in failed.");
   }
 });
 

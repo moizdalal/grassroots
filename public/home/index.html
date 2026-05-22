@@ -208,6 +208,9 @@
           <div class="ld-hero__visual">
             <div class="ld-hero__cards" id="ld-hero-cards" aria-hidden="true"></div>
             <div class="ld-hero__garden" id="ld-hero-garden" aria-hidden="true"></div>
+            <p class="ld-hero__visual-caption">
+              every business above grows a garden like this. each root is <span class="ld-italic">a paid project</span> — hover any to peek.
+            </p>
           </div>
         </div>
       </div>
@@ -266,9 +269,8 @@
                     <path d="M19.9 19.9L21 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
                   </svg>
                 </span>
-                <span class="ld-story-card__chip">step one</span>
+                <h3 class="ld-story-card__title">post a project</h3>
               </div>
-              <h3 class="ld-story-card__title">post a project</h3>
               <p class="ld-story-card__body">write a short brief. set a budget range. pick one-off, phased, or retainer. takes about five minutes.</p>
             </article>
             <article class="ld-story-card" data-step="2">
@@ -281,9 +283,8 @@
                     <circle cx="17" cy="11" r="1.2" fill="currentColor"/>
                   </svg>
                 </span>
-                <span class="ld-story-card__chip">step two</span>
+                <h3 class="ld-story-card__title">get scoped bids</h3>
               </div>
-              <h3 class="ld-story-card__title">get scoped bids</h3>
               <p class="ld-story-card__body">local students send a short pitch and a price. read them at your own pace. no recruiter calls.</p>
             </article>
             <article class="ld-story-card" data-step="3">
@@ -296,9 +297,8 @@
                     <path d="M17 4l-5 3-5-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </span>
-                <span class="ld-story-card__chip">step three</span>
+                <h3 class="ld-story-card__title">fund escrow</h3>
               </div>
-              <h3 class="ld-story-card__title">fund escrow</h3>
               <p class="ld-story-card__body">pick a bid. fund the agreed amount through Stripe. it sits there, untouched, until you say so.</p>
             </article>
             <article class="ld-story-card" data-step="4">
@@ -309,9 +309,8 @@
                     <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.6" opacity="0.45"/>
                   </svg>
                 </span>
-                <span class="ld-story-card__chip">step four</span>
+                <h3 class="ld-story-card__title">release on approval</h3>
               </div>
-              <h3 class="ld-story-card__title">release on approval</h3>
               <p class="ld-story-card__body">review the work. ask for changes if needed. release funds when it's yours. the student gets paid same day.</p>
             </article>
           </div>
@@ -350,14 +349,16 @@
                 <line x1="8"  y1="58"  x2="192" y2="58"/>
                 <line x1="8"  y1="94"  x2="192" y2="94"/>
               </g>
-              <!-- spokes (connection lines from each bidder to the central post) -->
+              <!-- spokes from the post's edge out to each bidder, so the
+                   central listing icon (drawn after) cleanly covers what
+                   would otherwise be the spoke origin. -->
               <g class="bm-spokes" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none">
-                <path class="bm-spoke" pathLength="1" d="M100 65 L38 22"/>
-                <path class="bm-spoke" pathLength="1" d="M100 65 L72 14"/>
-                <path class="bm-spoke" pathLength="1" d="M100 65 L132 14"/>
-                <path class="bm-spoke" pathLength="1" d="M100 65 L166 24"/>
-                <path class="bm-spoke" pathLength="1" d="M100 65 L34 100"/>
-                <path class="bm-spoke" pathLength="1" d="M100 65 L168 104"/>
+                <path class="bm-spoke" pathLength="1" d="M78 50 L38 22"/>
+                <path class="bm-spoke" pathLength="1" d="M90 46 L72 14"/>
+                <path class="bm-spoke" pathLength="1" d="M112 46 L132 14"/>
+                <path class="bm-spoke" pathLength="1" d="M122 51 L166 24"/>
+                <path class="bm-spoke" pathLength="1" d="M78 77 L34 100"/>
+                <path class="bm-spoke" pathLength="1" d="M122 78 L168 104"/>
               </g>
               <!-- bidder avatars: outer ring + inner dot -->
               <g class="bm-bidders">
@@ -506,116 +507,14 @@
       </div>
     </section>
 
-    <!-- ── COMPARISON TABLE ───────────────────────────────────
-         placed right after "why grassroots" so the page flows from
-         "here's what we offer" into a direct vs.-alternatives view.
-         Two columns: grassroots vs. a local agency. -->
-    <section class="ld-section ld-compare" aria-labelledby="ld-compare-title">
-      <div class="ld-shell">
-        <div class="ld-compare__head ld-reveal">
-          <p class="ld-eyebrow ld-eyebrow--accent">the honest comparison</p>
-          <h2 class="ld-section__title" id="ld-compare-title">priced for your street. <span class="ld-italic">not wall street.</span></h2>
-          <p class="ld-section__sub">how a typical small-business project plays out on grassroots vs. an agency.</p>
-        </div>
-
-        <div class="ld-compare__table" role="table" aria-label="comparison: grassroots vs agency">
-          <!-- header row -->
-          <div class="ld-compare__cell ld-compare__cell--criterion ld-compare__cell--header" role="columnheader">what you get</div>
-          <div class="ld-compare__cell ld-compare__cell--header is-us" role="columnheader">
-            grassroots
-            <span class="ld-compare__yours">
-              <svg class="ld-compare__yours-heart" viewBox="0 0 24 22" fill="none" aria-hidden="true">
-                <!-- vine heart: outlined lobes + a tendril curl at the dimple + two leaves at the lobes -->
-                <path d="M12 20 C7 16.5, 3 13.5, 3 9 C3 6, 5 4, 7 4 C9 4, 11 5.5, 12 8 C13 5.5, 15 4, 17 4 C19 4, 21 6, 21 9 C21 13.5, 17 16.5, 12 20 Z"
-                      stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-                <!-- tendril sprig at the heart's dimple -->
-                <path d="M12 7.5 C12 5.5, 12.8 4, 13.6 3 C13.9 2.6, 13.8 2.1, 13.4 2.0"
-                      stroke="currentColor" stroke-width="1.1" fill="none" stroke-linecap="round"/>
-                <!-- left leaf on the lobe -->
-                <path d="M5.5 5.2 C4 4.8, 3 4.2, 2.6 3.0 C3.6 2.5, 4.9 3, 5.5 4.0 Z"
-                      fill="currentColor" opacity="0.85"/>
-                <!-- right leaf on the lobe -->
-                <path d="M18.5 5.2 C20 4.8, 21 4.2, 21.4 3.0 C20.4 2.5, 19.1 3, 18.5 4.0 Z"
-                      fill="currentColor" opacity="0.85"/>
-              </svg>
-              <span class="ld-compare__yours-text">yours truly</span>
-            </span>
-          </div>
-          <div class="ld-compare__cell ld-compare__cell--header" role="columnheader">local agency</div>
-
-          <!-- row: typical price -->
-          <div class="ld-compare__cell ld-compare__cell--criterion" role="rowheader">typical price · logo refresh</div>
-          <div class="ld-compare__cell ld-compare__cell--us" role="cell"><span class="ld-compare__price">$180–600</span></div>
-          <div class="ld-compare__cell" role="cell"><span class="ld-compare__price">$3,500–8,000</span></div>
-
-          <!-- row: time to first bid -->
-          <div class="ld-compare__cell ld-compare__cell--criterion" role="rowheader">time to first bid</div>
-          <div class="ld-compare__cell ld-compare__cell--us" role="cell">under 48 hours</div>
-          <div class="ld-compare__cell" role="cell">2–3 weeks of intake</div>
-
-          <!-- row: escrow -->
-          <div class="ld-compare__cell ld-compare__cell--criterion" role="rowheader">stripe-held escrow</div>
-          <div class="ld-compare__cell ld-compare__cell--us" role="cell">
-            <span class="ld-compare__yes" aria-label="yes">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-            <span>held until you approve</span>
-          </div>
-          <div class="ld-compare__cell" role="cell">
-            <span class="ld-compare__mid" aria-label="sort of">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
-            </span>
-            <span>retainer up front</span>
-          </div>
-
-          <!-- row: vetted -->
-          <div class="ld-compare__cell ld-compare__cell--criterion" role="rowheader">talent quality</div>
-          <div class="ld-compare__cell ld-compare__cell--us" role="cell">
-            <span class="ld-compare__yes" aria-label="yes">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-            <span>verified students, school &amp; portfolio</span>
-          </div>
-          <div class="ld-compare__cell" role="cell">
-            <span class="ld-compare__yes" aria-label="yes">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-            <span>vetted, at agency-rate</span>
-          </div>
-
-          <!-- row: local -->
-          <div class="ld-compare__cell ld-compare__cell--criterion" role="rowheader">local · same town</div>
-          <div class="ld-compare__cell ld-compare__cell--us" role="cell">
-            <span class="ld-compare__yes" aria-label="yes">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-            <span>down the street, in your time zone</span>
-          </div>
-          <div class="ld-compare__cell" role="cell">
-            <span class="ld-compare__yes" aria-label="yes">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-            <span>if your town has one</span>
-          </div>
-
-          <!-- row: platform fee -->
-          <div class="ld-compare__cell ld-compare__cell--criterion" role="rowheader">platform fee</div>
-          <div class="ld-compare__cell ld-compare__cell--us" role="cell">10% (only on funded work)</div>
-          <div class="ld-compare__cell" role="cell">baked in to retainer</div>
-        </div>
-
-        <p class="ld-compare__footnote ld-reveal">price ranges are pulled from 6 months of grassroots listings &amp; 2026 industry surveys.</p>
-      </div>
-    </section>
-
     <!-- ── WHERE YOUR DOLLAR LANDS ────────────────────────────
-         pathos beat after the comparison: same project, two very
-         different stories about whose tuesday you just funded. -->
+         pathos beat: same project, two very different stories
+         about whose tuesday you just funded. -->
     <section class="ld-section ld-where" aria-labelledby="ld-where-title">
       <div class="ld-shell">
         <div class="ld-section__head ld-section__head--center ld-reveal">
           <p class="ld-eyebrow ld-eyebrow--accent">where your dollar lands</p>
-          <h2 class="ld-section__title" id="ld-where-title">$3,500 at an agency. <span class="ld-italic">$360 with maya.</span></h2>
+          <h2 class="ld-section__title" id="ld-where-title">priced for your street. <span class="ld-italic">not wall street.</span></h2>
           <p class="ld-section__sub">same logo refresh. same outcome. very different stories about whose tuesday you just funded.</p>
         </div>
 
@@ -636,6 +535,19 @@
           </article>
 
           <article class="ld-where-card ld-where-card--grassroots ld-reveal" aria-label="grassroots dollar breakdown">
+            <span class="ld-where-card__yours" aria-hidden="true">
+              <svg class="ld-where-card__yours-heart" viewBox="0 0 24 22" fill="none">
+                <path d="M12 20 C7 16.5, 3 13.5, 3 9 C3 6, 5 4, 7 4 C9 4, 11 5.5, 12 8 C13 5.5, 15 4, 17 4 C19 4, 21 6, 21 9 C21 13.5, 17 16.5, 12 20 Z"
+                      stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 7.5 C12 5.5, 12.8 4, 13.6 3 C13.9 2.6, 13.8 2.1, 13.4 2.0"
+                      stroke="currentColor" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+                <path d="M5.5 5.2 C4 4.8, 3 4.2, 2.6 3.0 C3.6 2.5, 4.9 3, 5.5 4.0 Z"
+                      fill="currentColor" opacity="0.85"/>
+                <path d="M18.5 5.2 C20 4.8, 21 4.2, 21.4 3.0 C20.4 2.5, 19.1 3, 18.5 4.0 Z"
+                      fill="currentColor" opacity="0.85"/>
+              </svg>
+              <span>yours truly</span>
+            </span>
             <div class="ld-where-card__face">
               <span class="ld-where-card__avatar" aria-hidden="true">m</span>
               <div>
@@ -659,8 +571,6 @@
             </blockquote>
           </article>
         </div>
-
-        <p class="ld-where__footer ld-reveal">your money walks down the street. <span class="ld-italic">not to wall street.</span></p>
       </div>
     </section>
 
@@ -728,7 +638,9 @@
             <div class="ld-escrow__vault-inner">
               <svg class="ld-escrow__vault-lock" id="ld-escrow-lock" viewBox="0 0 24 24" fill="none" overflow="visible" aria-hidden="true">
                 <rect class="ld-lock-body" x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.7"/>
-                <path class="ld-lock-shackle" d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                <g class="ld-lock-shackle-lift">
+                  <path class="ld-lock-shackle" d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                </g>
                 <circle class="ld-lock-keyhole" cx="12" cy="15.5" r="1.3" fill="currentColor"/>
               </svg>
               <div class="ld-escrow__vault-amount" id="ld-escrow-amount">$0</div>
