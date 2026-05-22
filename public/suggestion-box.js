@@ -1,7 +1,11 @@
 // suggestion-box.js — floating "send us feedback" button + popup.
-// Wires the popup that already lives in every page's markup, and (since
-// 2026-05-17) actually persists submissions to public.suggestions and
-// uploads attached files to the suggestion-attachments storage bucket.
+// Persists submissions to public.suggestions and uploads attached files
+// to the suggestion-attachments storage bucket.
+//
+// The button + overlay markup is injected on first run (used to live
+// inline in ~10 page templates). The marketing home page ships its
+// own self-contained copy so we leave its DOM alone — `getElementById`
+// finding an existing `gr-suggest-btn` is the skip signal.
 //
 // Limits — kept generous but bounded so storage doesn't run wild:
 //   - up to 5 files per submission
@@ -9,7 +13,34 @@
 //   - up to 25 MB total per submission
 //   - any mime type (screenshots, short videos, pdfs, logs)
 
-(function initSuggestionBox() {
+function ensureSuggestionBoxMarkup() {
+  if (document.getElementById("gr-suggest-btn")) return;
+  const tpl = document.createElement("template");
+  tpl.innerHTML = `
+    <button class="gr-suggest-btn" id="gr-suggest-btn" type="button" aria-label="suggestion box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
+    </button>
+    <div class="gr-suggest-overlay" id="gr-suggest-overlay">
+      <div class="gr-suggest-popup">
+        <button class="gr-suggest-popup__close" id="gr-suggest-close" type="button" aria-label="close">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+        </button>
+        <div id="gr-suggest-form">
+          <p class="gr-suggest-popup__title">grassroots values and takes your feedback seriously&mdash;how can we improve?</p>
+          <textarea class="gr-suggest-popup__textarea" id="gr-suggest-input" placeholder="your suggestion…" maxlength="1000"></textarea>
+          <button class="gr-suggest-popup__submit" id="gr-suggest-submit" type="button">submit</button>
+        </div>
+        <div id="gr-suggest-thanks" hidden>
+          <p class="gr-suggest-popup__thanks">thanks for the note. we read all of these.</p>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(tpl.content);
+}
+
+function initSuggestionBox() {
+  ensureSuggestionBoxMarkup();
   const btn = document.getElementById("gr-suggest-btn");
   const overlay = document.getElementById("gr-suggest-overlay");
   const submit = document.getElementById("gr-suggest-submit");
@@ -217,4 +248,15 @@
   }
 
   syncSubmitState();
-})();
+}
+
+// Wait for <body> to exist before injecting markup. The script is
+// loaded with defer, so by the time it runs the parser has reached the
+// closing </body> tag for pages that don't include the markup inline.
+// Pages that still ship their own markup hit the early-return in
+// ensureSuggestionBoxMarkup() and behave exactly as before.
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initSuggestionBox, { once: true });
+} else {
+  initSuggestionBox();
+}

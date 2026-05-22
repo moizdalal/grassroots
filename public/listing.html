@@ -6,19 +6,12 @@
     <meta name="robots" content="noindex,follow" />
     <title>grassroots — listing</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Manrope:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="stylesheet" href="/fonts.css" />
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
-    <link rel="stylesheet" href="/onboarding.css" />
     <script src="/theme.js"></script>
     <script src="/loading-overlay.js"></script>
-    <script src="https://js.stripe.com/v3/"></script>
-    <script type="module" src="/onboarding.js"></script>
+    <script defer src="/onboarding-shim.js"></script>
     <link rel="stylesheet" href="/listing.css" />
     <link rel="stylesheet" href="/listing-analytics.css" />
   </head>
@@ -423,26 +416,8 @@
     <script type="module" src="/nav-session.js"></script>
     <script type="module" src="/listing.js"></script>
 
-    <!-- Suggestion Box -->
-    <button class="gr-suggest-btn" id="gr-suggest-btn" type="button" aria-label="suggestion box">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
-    </button>
-    <div class="gr-suggest-overlay" id="gr-suggest-overlay">
-      <div class="gr-suggest-popup">
-        <button class="gr-suggest-popup__close" id="gr-suggest-close" type="button" aria-label="close">
-          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
-        </button>
-        <div id="gr-suggest-form">
-          <p class="gr-suggest-popup__title">grassroots values and takes your feedback seriously&mdash;how can we improve?</p>
-          <textarea class="gr-suggest-popup__textarea" id="gr-suggest-input" placeholder="your suggestion…" maxlength="1000"></textarea>
-          <button class="gr-suggest-popup__submit" id="gr-suggest-submit" type="button">submit</button>
-        </div>
-        <div id="gr-suggest-thanks" hidden>
-          <p class="gr-suggest-popup__thanks">thanks for the note. we read all of these.</p>
-        </div>
-      </div>
-    </div>
     <script defer src="/suggestion-box.js"></script>
     <script type="module" src="/side-nav.js"></script>
+    <script defer src="/perf-beacon.js"></script>
   </body>
 </html>

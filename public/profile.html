@@ -6,20 +6,14 @@
     <meta name="robots" content="noindex,follow" />
     <title>grassroots — your profile</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Manrope:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="stylesheet" href="/fonts.css" />
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <link rel="stylesheet" href="/plant-animations.css" />
     <link rel="stylesheet" href="/garden.css" />
-    <link rel="stylesheet" href="/onboarding.css" />
     <script src="/theme.js"></script>
     <script src="/loading-overlay.js"></script>
-    <script type="module" src="/onboarding.js"></script>
+    <script defer src="/onboarding-shim.js"></script>
     <!-- consultant progression: parked — see parked/consultant-progression/.
          Removed model-viewer (~200KB) + /assets/seedling.glb (5.2MB)
          + profile-seedling.css from the load path. -->
@@ -122,5 +116,6 @@
 
     <script type="module" src="/profile-page.js"></script>
     <script type="module" src="/side-nav.js"></script>
+    <script defer src="/perf-beacon.js"></script>
   </body>
 </html>

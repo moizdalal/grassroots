@@ -1,7 +1,21 @@
 import { getSupabaseClient } from "/supabase-loader.js";
 import { formatBudgetRange, parseBudgetRange } from "/sim-budget.js";
 import { renderRatingMarkup, hydrateRatings } from "/rating.js";
-import { payAndAcceptBid, payAndAcceptProposals } from "/payment-modal.js";
+// payment-modal pulls Stripe.js on demand and is only needed when the
+// owner clicks accept/pay. Defer the fetch until a click happens.
+let _paymentModalPromise = null;
+function loadPaymentModal() {
+  if (!_paymentModalPromise) _paymentModalPromise = import("/payment-modal.js");
+  return _paymentModalPromise;
+}
+async function payAndAcceptBid(...args) {
+  const m = await loadPaymentModal();
+  return m.payAndAcceptBid(...args);
+}
+async function payAndAcceptProposals(...args) {
+  const m = await loadPaymentModal();
+  return m.payAndAcceptProposals(...args);
+}
 import { computeFees, formatUsd } from "/fees.js";
 import { getInitials } from "/initials.js";
 import {

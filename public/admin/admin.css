@@ -25,6 +25,13 @@ body.adm-body {
   color: var(--fo-text-3);
   letter-spacing: 0.04em;
 }
+/* `.adm-gate` overrides the user-agent `[hidden] { display: none }`
+   with its own `display: flex`, so `el.hidden = true` doesn't actually
+   hide the element. The explicit `[hidden]` rule below wins on
+   specificity (class + attribute selector). */
+.adm-gate[hidden] {
+  display: none;
+}
 .adm-gate.adm-gate--error {
   color: var(--fo-plan);
 }
@@ -1115,4 +1122,176 @@ body.adm-body {
   border-radius: 50%;
   background: var(--fo-accent-warm);
   display: inline-block;
+}
+
+/* ============================================================== */
+/*                            HEALTH                               */
+/* ============================================================== */
+
+/* Section header used to separate "business kpis" and "page performance"
+   blocks inside the health tab. Matches the visual weight of an
+   adm-card title without needing a wrapper card. */
+.adm-section-h {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--fo-text);
+  margin: 1.75rem 0 1rem;
+  letter-spacing: -0.01em;
+}
+.adm-section-h:first-of-type {
+  margin-top: 0.5rem;
+}
+
+/* Color-coded KPI tile for Core Web Vitals — good / warn / poor map to
+   Google's standard thresholds (≤2.5s / ≤4s / >4s for LCP, etc.). The
+   border color is the only signal; numbers stay readable. */
+.adm-kpi--graded {
+  border-left: 4px solid var(--fo-line-strong);
+}
+.adm-kpi--good {
+  border-left-color: var(--fo-accent);
+}
+.adm-kpi--warn {
+  border-left-color: var(--fo-accent-warm);
+}
+.adm-kpi--poor {
+  border-left-color: #c44545;
+}
+
+/* Per-route table cells get the same color treatment on the p75 LCP
+   column so you can scan the list and see hot spots at a glance. */
+.adm-cell--good { color: var(--fo-accent); font-weight: 600; }
+.adm-cell--warn { color: var(--fo-accent-warm); font-weight: 600; }
+.adm-cell--poor { color: #c44545; font-weight: 600; }
+
+/* Conversion funnel inside the health tab — list of label + big value.
+   Renders inside an adm-card so no own card chrome. */
+.adm-health-funnel {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.adm-health-funnel__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--fo-line);
+}
+.adm-health-funnel__row:last-child {
+  border-bottom: none;
+}
+.adm-health-funnel__label strong {
+  display: block;
+  color: var(--fo-text);
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+.adm-health-funnel__label span {
+  color: var(--fo-text-3);
+  font-size: 0.78rem;
+}
+.adm-health-funnel__value {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--fo-text);
+  letter-spacing: -0.02em;
+}
+
+/* Money flow — two stacked figures (escrow held + released in window). */
+.adm-health-money-stack {
+  display: grid;
+  gap: 1.25rem;
+}
+.adm-health-money-label {
+  color: var(--fo-text-3);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 0.25rem;
+}
+.adm-health-money-value {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.9rem;
+  font-weight: 600;
+  color: var(--fo-text);
+  margin: 0 0 0.25rem;
+  letter-spacing: -0.02em;
+}
+.adm-health-money-sub {
+  color: var(--fo-text-3);
+  font-size: 0.78rem;
+  margin: 0;
+}
+
+/* Empty-state cell used inside health tables when there's no data
+   yet (fresh table, no perf samples in the window). */
+.adm-empty {
+  color: var(--fo-text-3);
+  font-style: italic;
+  padding: 1rem 0.5rem;
+  text-align: center;
+}
+
+/* Monospace for paths/timestamps so they line up vertically. */
+.adm-mono {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.82rem;
+}
+
+/* ── info-icon popovers ──
+   Small "i" circle button next to a metric label. Click reveals a
+   floating bubble with a plain-English explainer. Keeps the dashboard
+   visually quiet while still giving non-coders a way in. */
+.adm-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 0.35rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fo-text-3);
+  opacity: 0.55;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+.adm-info:hover,
+.adm-info:focus-visible,
+.adm-info.is-open {
+  opacity: 1;
+  color: var(--fo-accent);
+  outline: none;
+}
+.adm-info svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.adm-info-popover {
+  position: absolute;
+  z-index: 1000;
+  max-width: 280px;
+  padding: 0.7rem 0.85rem;
+  background: var(--fo-surface);
+  color: var(--fo-text);
+  border: 1px solid var(--fo-line-strong);
+  border-radius: 10px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.22);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+/* In dark themes the body bg is dark and floating tooltips look better
+   with a slightly lifted surface than transparent. The non-light themes
+   overrode .adm-kpi/card backgrounds to transparent above; keep this
+   popover opaque so the text stays readable over any underlying chart. */
+:root:not([data-theme="light"]) .adm-info-popover {
+  background: var(--fo-surface-2);
 }
