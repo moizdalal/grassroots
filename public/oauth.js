@@ -1,3 +1,8 @@
+// OAuth is currently paused — no provider is wired up in Supabase, and
+// the call sites in signin.js / register-flow.js are commented out. This
+// module stays intact so it can be re-enabled by uncommenting those call
+// sites once providers are configured. The /api/oauth-complete endpoint
+// in app.js is its server-side counterpart.
 import { getSupabaseClient } from "/supabase-loader.js";
 
 export async function signInWithProvider(provider) {

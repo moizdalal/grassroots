@@ -730,6 +730,10 @@ app.post("/api/register", upload.single("resume"), async (req, res) => {
   }
 });
 
+// OAuth-complete endpoint. The client-side trigger in register-flow.js
+// has been removed while OAuth is paused; the endpoint stays intact for
+// when providers are re-wired and /oauth.js + /register-flow.js add the
+// post-OAuth branches back.
 app.post("/api/oauth-complete", express.json(), async (req, res) => {
   const { userId, role, fullName, phoneNumber } = req.body;
 
@@ -3312,6 +3316,59 @@ async function loadBusinessKpis(days) {
     },
   };
 }
+
+// Dynamic sitemap — replaces the static public/sitemap.xml so newly
+// posted open listings show up for crawlers without a manual rebuild.
+// Falls through to the static file if the admin client isn't configured.
+app.get("/sitemap.xml", async (_req, res) => {
+  const origin = "https://www.grassroots-marketplace.com";
+  const STATIC_URLS = [
+    { loc: `${origin}/`, changefreq: "weekly", priority: "1.0" },
+    { loc: `${origin}/marketplace.html`, changefreq: "daily", priority: "0.9" },
+    { loc: `${origin}/home/about.html`, changefreq: "monthly", priority: "0.7" },
+    { loc: `${origin}/home/for-students.html`, changefreq: "monthly", priority: "0.7" },
+    { loc: `${origin}/help.html`, changefreq: "monthly", priority: "0.6" },
+  ];
+  let listingUrls = [];
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from("listings")
+        .select("id, created_at")
+        .eq("status", "open")
+        .order("created_at", { ascending: false })
+        .limit(5000);
+      if (!error && Array.isArray(data)) {
+        listingUrls = data.map((l) => ({
+          loc: `${origin}/listing.html?id=${l.id}`,
+          lastmod: l.created_at ? new Date(l.created_at).toISOString() : undefined,
+          changefreq: "daily",
+          priority: "0.6",
+        }));
+      }
+    } catch (err) {
+      console.warn("[sitemap] listing fetch failed", err.message || err);
+    }
+  }
+  const all = [...STATIC_URLS, ...listingUrls];
+  const body = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ...all.map((u) => [
+      "  <url>",
+      `    <loc>${u.loc}</loc>`,
+      u.lastmod ? `    <lastmod>${u.lastmod}</lastmod>` : null,
+      u.changefreq ? `    <changefreq>${u.changefreq}</changefreq>` : null,
+      u.priority ? `    <priority>${u.priority}</priority>` : null,
+      "  </url>",
+    ].filter(Boolean).join("\n")),
+    "</urlset>",
+  ].join("\n");
+  res.set("Content-Type", "application/xml; charset=utf-8");
+  res.set("Cache-Control", "public, max-age=600");
+  res.send(body);
+});
+
 
 // "/" is the landing page (public/home/index.html). The marketplace was
 // previously at "/" and now lives at "/marketplace.html" — Express's static

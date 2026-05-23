@@ -16,7 +16,7 @@
   </head>
   <body class="gr-body gr-has-side-nav dash-page">
     <main>
-      <p id="cdash-gate" class="gr-status" style="text-align:center;padding:6rem 1rem;">loading…</p>
+      <p id="cdash-gate" class="gr-status" data-loading="true" style="text-align:center;padding:6rem 1rem;">loading…</p>
 
       <div id="cdash-shell" class="bza" hidden>
         <!-- ===== sidebar ===== -->
@@ -27,6 +27,9 @@
               <img class="bza__brand-mark" src="/home/assets/grassroots-icon-syne.svg" width="20" height="34" alt="" />
               <span class="bza__brand-text">grassroots</span>
             </a>
+            <button type="button" class="bza__side-toggle" id="cdash-side-toggle" aria-label="collapse sidebar" aria-expanded="true" title="collapse sidebar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+            </button>
           </div>
           <div class="bza__nav" role="navigation" aria-label="primary">
           <a href="/consultant-dashboard.html" class="bza__nav-item active" data-view="dashboard" title="home">
@@ -38,16 +41,6 @@
             </span>
             <span class="bza__nav-label">home</span>
           </a>
-          <a href="/engagements.html" class="bza__nav-item" title="engagements">
-            <span class="bza__nav-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="7" width="18" height="13" rx="2"/>
-                <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                <line x1="3" y1="13" x2="21" y2="13"/>
-              </svg>
-            </span>
-            <span class="bza__nav-label">engagements</span>
-          </a>
           <a href="/marketplace.html" class="bza__nav-item" title="marketplace">
             <span class="bza__nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -57,6 +50,16 @@
               </svg>
             </span>
             <span class="bza__nav-label">marketplace</span>
+          </a>
+          <a href="/engagements.html" class="bza__nav-item" title="engagements">
+            <span class="bza__nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="7" width="18" height="13" rx="2"/>
+                <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                <line x1="3" y1="13" x2="21" y2="13"/>
+              </svg>
+            </span>
+            <span class="bza__nav-label">engagements</span>
           </a>
           <a href="/inbox.html" class="bza__nav-item" title="inbox">
             <span class="bza__nav-icon" aria-hidden="true">
@@ -141,6 +144,14 @@
 
         <!-- ===== main ===== -->
         <main class="bza__main">
+          <!-- Payouts nudge — shown when the consultant has no engagements
+               yet AND hasn't completed stripe onboarding. JS in
+               consultant-dashboard.js toggles the hidden attribute. -->
+          <a class="bza__banner" id="cdash-payouts-banner" href="/payouts.html" hidden>
+            <span>set up payouts before your first offer comes in.</span>
+            <span aria-hidden="true">→</span>
+          </a>
+
           <section class="dash-view" data-view="dashboard">
             <div class="bza__page-h">
               <h1 id="cdash-welcome">welcome back.</h1>
@@ -154,6 +165,64 @@
                  indicator lives on individual plants instead of in a
                  side panel. -->
             <div id="cdash-journey-panel"></div>
+
+            <!-- Browse-opportunities CTA — shown when the journey is
+                 empty. JS toggles the hidden attribute. -->
+            <div id="cdash-browse-cta" class="gr-empty-state gr-empty-state--hero" hidden>
+              <h3 class="gr-empty-state__title">no engagements yet</h3>
+              <p class="gr-empty-state__sub">browse open listings and submit your first offer.</p>
+              <a href="/marketplace.html" class="gr-btn gr-btn--primary">browse opportunities near you</a>
+            </div>
+
+            <!-- ── Stats + bid pipeline ──
+                 Self-evaluation surface so consultants can see how often
+                 their offers land and where active bids stand. JS hides
+                 the whole panel when there are no bids yet so the
+                 dashboard doesn't open on a "0 / 0 / 0" wall. -->
+            <section class="bza__panel cdash-stats-panel" id="cdash-stats-panel" aria-labelledby="cdash-stats-title" hidden>
+              <div class="bza__panel-h">
+                <span class="bza__panel-h-title" id="cdash-stats-title"><strong>your numbers</strong> · last 90 days</span>
+              </div>
+              <div class="cdash-stats" role="list">
+                <div class="cdash-stat" role="listitem">
+                  <span class="cdash-stat__label">acceptance rate</span>
+                  <span class="cdash-stat__value" id="cdash-stat-accept-rate">—</span>
+                  <span class="cdash-stat__detail" id="cdash-stat-accept-detail"></span>
+                </div>
+                <div class="cdash-stat" role="listitem">
+                  <span class="cdash-stat__label">avg response time</span>
+                  <span class="cdash-stat__value" id="cdash-stat-response">—</span>
+                  <span class="cdash-stat__detail">owner accepts within</span>
+                </div>
+                <div class="cdash-stat" role="listitem">
+                  <span class="cdash-stat__label">avg payout</span>
+                  <span class="cdash-stat__value" id="cdash-stat-payout">—</span>
+                  <span class="cdash-stat__detail" id="cdash-stat-payout-detail">across released offers</span>
+                </div>
+                <div class="cdash-stat" role="listitem">
+                  <span class="cdash-stat__label">active bids</span>
+                  <span class="cdash-stat__value" id="cdash-stat-active">0</span>
+                  <span class="cdash-stat__detail">pending or countered</span>
+                </div>
+              </div>
+
+              <!-- Bid pipeline — three-cell row with click-through to
+                   filtered views (engagements with status filters). -->
+              <div class="cdash-pipeline" role="list">
+                <a class="cdash-pipeline__cell" role="listitem" href="/engagements.html?filter=active" id="cdash-pipeline-active">
+                  <span class="cdash-pipeline__num">0</span>
+                  <span class="cdash-pipeline__label">active bids</span>
+                </a>
+                <a class="cdash-pipeline__cell" role="listitem" href="/engagements.html?filter=accepted" id="cdash-pipeline-accepted">
+                  <span class="cdash-pipeline__num">0</span>
+                  <span class="cdash-pipeline__label">accepted</span>
+                </a>
+                <a class="cdash-pipeline__cell" role="listitem" href="/engagements.html?filter=rejected" id="cdash-pipeline-rejected">
+                  <span class="cdash-pipeline__num">0</span>
+                  <span class="cdash-pipeline__label">not selected</span>
+                </a>
+              </div>
+            </section>
 
             <!-- Half-column row beneath the journey: profile-
                  completion bucket card on the left, recent

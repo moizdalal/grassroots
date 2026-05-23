@@ -39,6 +39,7 @@ const reviewOffersLink = document.getElementById("eg-review-offers-link");
 const closeListingBtn = document.getElementById("eg-close-listing-btn");
 const workCompletedBtn = document.getElementById("eg-work-completed-btn");
 const refundBtn = document.getElementById("eg-refund-btn");
+const refundRequestBtn = document.getElementById("eg-refund-request-btn");
 
 // Owner-action buttons that are "unavailable for a reason" use
 // aria-disabled instead of the native disabled attribute — disabled
@@ -140,6 +141,91 @@ const ownerSelection = new Set();
 const reviewRatings = Object.create(null);
 let consultantChosen = null;
 let dragState = { active: false, nextValue: false };
+
+// Out-of-window refund modal. Lightweight; reuses the .gr-confirm-modal
+// classes so the visual matches the rest of the dialog system. Resolves
+// nothing — opens a mailto with the textarea content + engagement id
+// pre-filled when the user submits.
+function openRefundRequestModal({ engagementId, listingTitle } = {}) {
+  const MODAL_ID = "eg-refund-modal";
+  const existing = document.getElementById(MODAL_ID);
+  if (existing) existing.remove();
+
+  const previousFocus = document.activeElement;
+  const modal = document.createElement("div");
+  modal.id = MODAL_ID;
+  modal.className = "gr-confirm-modal";
+  modal.setAttribute("role", "dialog");
+  modal.setAttribute("aria-modal", "true");
+  modal.setAttribute("aria-labelledby", `${MODAL_ID}-title`);
+  modal.innerHTML = `
+    <div class="gr-confirm-modal__backdrop" data-refund-action="cancel"></div>
+    <div class="gr-confirm-modal__card" role="document">
+      <h2 id="${MODAL_ID}-title" class="gr-confirm-modal__title">request a refund</h2>
+      <p class="gr-confirm-modal__body">tell us what happened. we'll review and follow up by email within 2 business days.</p>
+      <label class="gr-label full-width" style="margin-top:0.85rem">
+        <span>what happened? <span class="gr-optional">required</span></span>
+        <textarea id="eg-refund-reason" rows="4" maxlength="1500" placeholder="describe the issue. include any specifics that'll help us review faster." required></textarea>
+      </label>
+      <div class="gr-confirm-modal__actions">
+        <button type="button" class="gr-btn gr-btn--ghost" data-refund-action="cancel">cancel</button>
+        <button type="button" class="gr-btn gr-btn--primary" data-refund-action="submit">send request</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  document.body.classList.add("gr-confirm-modal-open");
+
+  const textarea = modal.querySelector("#eg-refund-reason");
+  const submitBtn = modal.querySelector('[data-refund-action="submit"]');
+
+  function cleanup() {
+    document.removeEventListener("keydown", onKey);
+    modal.remove();
+    document.body.classList.remove("gr-confirm-modal-open");
+    if (previousFocus && typeof previousFocus.focus === "function") {
+      try { previousFocus.focus(); } catch (_) {}
+    }
+  }
+
+  function submit() {
+    const reason = String(textarea?.value || "").trim();
+    if (!reason) {
+      textarea?.focus();
+      return;
+    }
+    // Pre-fill mailto with engagement context so the support inbox has
+    // everything it needs to triage without round-tripping.
+    const subject = `refund request — engagement ${engagementId || "unknown"}`;
+    const bodyLines = [
+      `engagement id: ${engagementId || "(unavailable)"}`,
+      `listing: ${listingTitle || "(unavailable)"}`,
+      "",
+      "what happened:",
+      reason,
+    ];
+    const href = `mailto:support@grassroots.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join("\n"))}`;
+    window.location.href = href;
+    cleanup();
+  }
+
+  function onKey(e) {
+    if (e.key === "Escape") { e.preventDefault(); cleanup(); }
+  }
+
+  modal.addEventListener("click", (e) => {
+    const action = e.target.closest("[data-refund-action]")?.dataset.refundAction;
+    if (!action) return;
+    if (action === "cancel") cleanup();
+    if (action === "submit") submit();
+  });
+
+  document.addEventListener("keydown", onKey);
+
+  requestAnimationFrame(() => {
+    try { textarea.focus(); } catch (_) {}
+  });
+}
 
 function formatUsd(cents) {
   const n = Number(cents);
@@ -683,6 +769,20 @@ function hydrateSummary() {
   amountEl.textContent = formatUsd(currentBid.amount_cents);
   listingStatusEl.textContent = currentListing.status || "open";
   reviewOffersLink.href = `/listing.html?id=${currentListing.id}`;
+
+  // Inbox shortcut — drops the user into the right thread in /inbox.html.
+  // Thread key format expected by inbox.js:maybeOpenFromHash is
+  // `<listingId>:<otherUserId>`.
+  const threadLink = document.getElementById("eg-thread-link");
+  if (threadLink && currentListing?.id) {
+    const otherId = viewRole === "owner"
+      ? currentBid?.consultant_id
+      : currentListing.owner_id;
+    if (otherId) {
+      threadLink.href = `/inbox.html#inbox?thread=${currentListing.id}:${otherId}`;
+      threadLink.hidden = false;
+    }
+  }
 
   if (currentBid?.consultant_id) {
     fetchRatingFor(currentBid.consultant_id).then((rating) => {
@@ -2029,6 +2129,18 @@ function bindReviewInteractions() {
     );
     if (!confirmed) return;
     submitProposalDecision("declined");
+  });
+
+  // Out-of-window refund — opens a small modal so the owner can write
+  // up what happened, then drops them into a mailto with the engagement
+  // id + reason pre-filled. A proper refund-requests table + admin queue
+  // is on the roadmap; this is the minimum UX upgrade over the bare
+  // mailto link the audit flagged.
+  refundRequestBtn?.addEventListener("click", () => {
+    openRefundRequestModal({
+      engagementId: currentBid?.id,
+      listingTitle: currentListing?.title || "",
+    });
   });
 
   refundBtn?.addEventListener("click", async () => {

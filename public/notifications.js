@@ -96,6 +96,43 @@ function renderFilters() {
   });
 }
 
+// Two consecutive notifications targeting the same listing/engagement
+// roll up under a single collapsible group so the feed doesn't flood
+// when one thing generates five updates in a row. Returns a stable key
+// like "/listing.html?id=ABC" or "/engagement.html?bid=DEF" — anything
+// without a recognizable target key gets a unique fallback key so it
+// never groups.
+function notificationGroupKey(notif, idx) {
+  const link = String(notif?.link || "");
+  if (!link) return `__loner__${notif.id || idx}`;
+  try {
+    const url = new URL(link, window.location.origin);
+    const key = url.searchParams.get("id") || url.searchParams.get("bid");
+    if (key) return `${url.pathname}::${key}`;
+    return `__path__${url.pathname}`;
+  } catch (_) {
+    return `__raw__${link}`;
+  }
+}
+
+// Walk a (newest-first) array of notifications and produce a list of
+// groups. A group with one entry renders as a normal card; multi-entry
+// groups render as a collapsible row showing the lead notification
+// title + a count, expandable to the full list.
+function groupConsecutive(items) {
+  const groups = [];
+  for (let i = 0; i < items.length; i += 1) {
+    const key = notificationGroupKey(items[i], i);
+    const prev = groups[groups.length - 1];
+    if (prev && prev.key === key) {
+      prev.items.push(items[i]);
+    } else {
+      groups.push({ key, items: [items[i]] });
+    }
+  }
+  return groups;
+}
+
 function renderFeed() {
   const filtered = _activeFilter === "all"
     ? _notifs
@@ -114,11 +151,21 @@ function renderFeed() {
     buckets.get(key).push(n);
   }
 
-  const html = BUCKET_ORDER
-    .filter((k) => buckets.has(k))
-    .map((k) => {
+  // Track whether each bucket is the FIRST (top) bucket — its lead
+  // group renders expanded. Every other group starts collapsed.
+  const orderedKeys = BUCKET_ORDER.filter((k) => buckets.has(k));
+
+  const html = orderedKeys
+    .map((k, bucketIdx) => {
       const items = buckets.get(k);
-      const cards = items.map(renderCardHtml).join("");
+      const groups = groupConsecutive(items);
+      const cards = groups
+        .map((g, groupIdx) => {
+          if (g.items.length === 1) return renderCardHtml(g.items[0]);
+          const startOpen = bucketIdx === 0 && groupIdx === 0;
+          return renderGroupHtml(g, startOpen);
+        })
+        .join("");
       return `
         <div class="gr-notif-bucket">
           <h2 class="gr-notif-bucket__title">${k}<span class="gr-notif-bucket__count">${items.length}</span></h2>
@@ -153,6 +200,39 @@ function renderFeed() {
       dismissNotification(btn.dataset.dismissId);
     });
   });
+}
+
+// Collapsed-group renderer. Lead notification's title + body is shown
+// inline; the rest unfolds when the user clicks the disclosure.
+function renderGroupHtml(group, startOpen) {
+  const lead = group.items[0];
+  const rest = group.items.slice(1);
+  const extra = rest.length;
+  const unreadCount = group.items.filter((n) => !n.read).length;
+  const groupUnread = unreadCount > 0 ? "gr-notif-group--unread" : "";
+  const openAttr = startOpen ? " open" : "";
+  const restCards = rest.map(renderCardHtml).join("");
+  return `
+    <details class="gr-notif-group ${groupUnread}"${openAttr}>
+      <summary class="gr-notif-group__summary">
+        <div class="gr-notif-group__lead">
+          <p class="gr-notif-group__title">${escapeHtml(lead.title)}</p>
+          <p class="gr-notif-group__meta">
+            <span class="gr-notif-group__count">${group.items.length} updates${unreadCount ? ` · ${unreadCount} unread` : ""}</span>
+            <span class="gr-notif-group__time">${fmtTime(lead.created_at)}</span>
+          </p>
+        </div>
+        <span class="gr-notif-group__chevron" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </span>
+      </summary>
+      <div class="gr-notif-group__items">
+        ${renderCardHtml(lead)}
+        ${restCards}
+      </div>
+    </details>
+    <p class="gr-sr">${extra} more update${extra === 1 ? "" : "s"} about the same item</p>
+  `;
 }
 
 function renderCardHtml(n) {

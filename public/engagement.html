@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="/engagement.css" />
   </head>
   <body class="gr-body"><main class="gr-shell gr-shell--wide eg-shell">
-      <a href="javascript:history.back()" class="ld-back">&larr; back</a>
+      <a href="/engagements.html" class="ld-back" data-role-back data-consultant-href="/engagements.html" data-owner-href="/dashboard.html#engagements">&larr; back</a>
 
       <header class="eg-head gr-page-intro">
         <h1 class="gr-title">ongoing work</h1>
@@ -23,7 +23,7 @@
         </p>
       </header>
 
-      <p id="eg-gate" class="gr-status" aria-live="polite">loading…</p>
+      <p id="eg-gate" class="gr-status" data-loading="true" aria-live="polite">loading…</p>
 
       <div id="eg-detail" class="eg-layout" hidden>
         <section class="gr-card eg-summary">
@@ -52,6 +52,17 @@
               <span class="eg-meta__value" id="eg-listing-status"></span>
             </div>
           </div>
+
+          <!-- Inbox shortcut — wired by engagement.js once we know the
+               listing + counterpart. Hidden until the thread key is
+               known so the link doesn't 404. -->
+          <a class="eg-thread-link" id="eg-thread-link" href="/inbox.html" hidden>
+            <span class="eg-thread-link__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></svg>
+            </span>
+            <span class="eg-thread-link__label">open the conversation</span>
+            <span class="eg-thread-link__chev" aria-hidden="true">→</span>
+          </a>
         </section>
 
         <div class="eg-main">
@@ -279,7 +290,11 @@
             </div>
 
             <p class="eg-helper">you can keep the listing open while work is underway, or close it once you are ready.</p>
-            <p class="eg-helper hidden" id="eg-refund-helper">the 24-hour no-questions refund window has passed. <a href="mailto:support@grassroots.com">contact support</a> to request a refund.</p>
+            <p class="eg-helper hidden" id="eg-refund-helper">
+              the 24-hour no-questions refund window has passed.
+              <button type="button" class="gr-link-btn" id="eg-refund-request-btn">request a refund</button>
+              and we'll review.
+            </p>
             <p id="eg-owner-action-status" class="gr-status" aria-live="polite"></p>
           </section>
 
@@ -320,6 +335,7 @@
     </main>
 
     <script type="module" src="/nav-session.js"></script>
+    <script type="module" src="/back-link.js"></script>
     <script type="module" src="/engagement.js"></script>
     <script type="module" src="/side-nav.js"></script>
     <script defer src="/perf-beacon.js"></script>

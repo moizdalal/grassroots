@@ -33,6 +33,8 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
   help:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="4.93" y1="4.93" x2="9.17" y2="9.17"/><line x1="14.83" y1="14.83" x2="19.07" y2="19.07"/><line x1="14.83" y1="9.17" x2="19.07" y2="4.93"/><line x1="4.93" y1="19.07" x2="9.17" y2="14.83"/></svg>',
+  collapse:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>',
 };
 
 // Nav items are built per-role so consultants don't see "my listings"
@@ -46,10 +48,12 @@ function buildNavItems(role) {
     // Consultants get "home" (their dashboard), an expandable engagements
     // hub for managing active and past work, plus marketplace, inbox,
     // notifications, and a direct payouts link.
+    // Marketplace is positioned second (right after home) so discovery
+    // outranks bookkeeping in the consultant flow.
     return [
       { href: "/consultant-dashboard.html", label: "home", icon: ICONS.home, navId: "home" },
-      { href: "/engagements.html", label: "engagements", icon: ICONS.engagements, navId: "engagements" },
       { href: "/marketplace.html", label: "marketplace", icon: ICONS.marketplace, navId: "marketplace" },
+      { href: "/engagements.html", label: "engagements", icon: ICONS.engagements, navId: "engagements" },
       { href: "/inbox.html", label: "inbox", icon: ICONS.inbox, navId: "inbox" },
       { href: "/notifications.html", label: "notifications", icon: ICONS.notifications, navId: "notifications" },
       { href: "/payouts.html", label: "payouts", icon: ICONS.payouts, navId: "payouts" },
@@ -159,6 +163,9 @@ function renderSidebar({ role, activeNavId }) {
           <img class="bza__brand-mark" src="/home/assets/grassroots-icon-syne.svg" width="20" height="34" alt="" />
           <span class="bza__brand-text">grassroots</span>
         </a>
+        <button type="button" class="bza__side-toggle" id="gr-side-toggle" aria-label="collapse sidebar" aria-expanded="true" title="collapse sidebar">
+          ${ICONS.collapse}
+        </button>
       </div>
       <div class="bza__nav" role="navigation" aria-label="primary">
         ${primary}
@@ -172,7 +179,7 @@ function renderSidebar({ role, activeNavId }) {
         <span class="bza__darkmode-switch" aria-hidden="true"></span>
       </label>
       <div class="bza__side-foot">
-        <a class="bza__user" id="gr-side-user" href="/profile.html" title="open your profile">
+        <a class="bza__user" id="gr-side-user" href="/settings.html#personal" title="open profile settings">
           <span class="bza__user-avatar" id="gr-side-user-avatar"></span>
           <span class="bza__user-meta">
             <span class="bza__user-name" id="gr-side-user-name">your account</span>
@@ -316,7 +323,11 @@ function wireToggle() {
 
   function setCollapsed(collapsed) {
     wrap.classList.toggle("bza--collapsed", collapsed);
-    if (toggle) toggle.setAttribute("aria-expanded", String(!collapsed));
+    if (toggle) {
+      toggle.setAttribute("aria-expanded", String(!collapsed));
+      toggle.setAttribute("aria-label", collapsed ? "expand sidebar" : "collapse sidebar");
+      toggle.setAttribute("title", collapsed ? "expand sidebar" : "collapse sidebar");
+    }
     try {
       window.localStorage.setItem(COLLAPSE_KEY, collapsed ? "1" : "0");
     } catch {}

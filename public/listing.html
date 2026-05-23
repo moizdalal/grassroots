@@ -3,8 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="robots" content="noindex,follow" />
+    <meta name="robots" content="index,follow" />
     <title>grassroots — listing</title>
+    <meta name="description" content="real consulting work from a local small business — bid, deliver, and build your portfolio." />
+    <!-- Canonical + JSON-LD JobPosting block are injected by listing.js
+         once the listing data is fetched so the URL + content match. -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/fonts.css" />
     <link rel="stylesheet" href="/grassroots.css" />
@@ -16,9 +19,9 @@
     <link rel="stylesheet" href="/listing-analytics.css" />
   </head>
   <body class="gr-body"><main class="gr-shell gr-shell--wide ld-shell">
-      <a href="javascript:history.back()" class="ld-back">&larr; back</a>
+      <a href="/marketplace.html" class="ld-back" data-role-back data-consultant-href="/marketplace.html" data-owner-href="/dashboard.html#listings">&larr; back</a>
 
-      <div id="listing-gate" class="gr-status" aria-live="polite">loading…</div>
+      <div id="listing-gate" class="gr-status" data-loading="true" aria-live="polite">loading…</div>
 
       <div id="listing-detail" class="ld-detail" hidden>
 
@@ -414,6 +417,7 @@
 
     <script type="module" src="/guest-nav.js"></script>
     <script type="module" src="/nav-session.js"></script>
+    <script type="module" src="/back-link.js"></script>
     <script type="module" src="/listing.js"></script>
 
     <script defer src="/suggestion-box.js"></script>

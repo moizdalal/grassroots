@@ -2611,6 +2611,105 @@ summary:focus-visible,
   gap: 0.7rem;
 }
 
+/* Collapsible group — wraps 2+ consecutive notifications about the same
+   listing/engagement so the feed doesn't repeat. The summary renders
+   the lead title + a "N updates" pill; expanding reveals the full set
+   of cards including the lead. */
+.gr-notif-group {
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  background: var(--card-bg);
+  overflow: hidden;
+}
+
+.gr-notif-group--unread {
+  border-color: rgba(45, 106, 79, 0.35);
+}
+
+.gr-notif-group__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.85rem 1.05rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.gr-notif-group__summary::-webkit-details-marker { display: none; }
+
+.gr-notif-group__lead {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.gr-notif-group__title {
+  margin: 0;
+  font-weight: 600;
+  font-size: var(--type-body);
+  color: var(--fo-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gr-notif-group__meta {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--type-meta);
+  color: var(--tagline-body);
+}
+
+.gr-notif-group__count {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.55rem;
+  background: var(--fo-accent-soft);
+  color: var(--fo-accent);
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: var(--type-eyebrow);
+  letter-spacing: 0.04em;
+}
+
+.gr-notif-group__chevron {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+  color: var(--fo-text-3);
+}
+
+.gr-notif-group[open] > .gr-notif-group__summary > .gr-notif-group__chevron {
+  transform: rotate(180deg);
+}
+
+.gr-notif-group__items {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0 0.55rem 0.75rem;
+}
+
+/* Visually-hidden helper for screen-reader hints — the group summary
+   already conveys count, but this gives non-visual users an explicit
+   sibling line. */
+.gr-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .gr-notification-card {
   position: relative;
   display: grid;
@@ -3261,6 +3360,38 @@ button.gr-bid-link {
   border-radius: 12px;
   color: var(--tagline-body);
   font-size: var(--type-body);  line-height: 1.5;
+}
+
+/* Empty-state hero — used when a panel is wholly empty (zero items) and
+   the empty message can lean into a CTA. Composes a stacked layout
+   (title, sub, chips row, button) inside the same dashed panel. */
+.gr-empty-state--hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.85rem;
+  padding: 2rem 1.5rem;
+}
+
+.gr-empty-state--hero .gr-empty-state__title {
+  margin: 0;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: var(--type-h2);
+  font-weight: 600;
+  color: var(--fo-text);
+}
+
+.gr-empty-state--hero .gr-empty-state__sub {
+  margin: 0;
+  max-width: 32ch;
+}
+
+.gr-empty-state--hero .gr-empty-state__chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
 }
 
 .gr-empty-state code {
@@ -4555,6 +4686,18 @@ button.gr-bid-link {
   grid-column: 1 / -1;
 }
 
+/* Eyebrow row shown above the category list when the search is empty —
+   teaches the multi-select interaction. */
+.ms-eyebrow {
+  padding: 0.55rem 0.85rem 0.25rem;
+  font-size: var(--type-eyebrow);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tagline-body);
+  font-weight: 600;
+  grid-column: 1 / -1;
+}
+
 /* --- Unread notification highlight --- */
 .ld-notif--unread {
   border-left: 3px solid var(--green-mid);
@@ -4757,7 +4900,7 @@ button.gr-bid-link {
 
 .gr-suggest-popup__close:hover {
   background: rgba(27, 67, 50, 0.08);
-  color: #1b4332;
+  color: var(--fo-text);
 }
 
 .gr-suggest-popup__close:focus-visible {
@@ -4775,9 +4918,9 @@ button.gr-bid-link {
 }
 
 .gr-suggest-popup__title {
-  font-family: Syne, Inter, system-ui, sans-serif;
+  font-family: "Fraunces", Georgia, serif;
   font-size: var(--type-h3);  font-weight: 700;
-  color: #1b4332;
+  color: var(--fo-text);
   margin: 0 0 1rem;
   line-height: 1.4;
 }
@@ -4790,14 +4933,14 @@ button.gr-bid-link {
   border-radius: 12px;
   padding: 0.75rem;
   font: inherit;
-  font-size: var(--type-body);  color: #1b4332;
+  font-size: var(--type-body);  color: var(--fo-text);
   resize: vertical;
   transition: border-color 0.2s ease;
 }
 
 .gr-suggest-popup__textarea:focus {
   outline: none;
-  border-color: #2d6a4f;
+  border-color: var(--fo-accent);
   box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
 }
 
@@ -4926,7 +5069,9 @@ button.gr-bid-link {
   font: inherit;
   font-size: var(--type-body);  font-weight: 600;
   color: #fff;
-  background: linear-gradient(145deg, #2d6a4f, #1b4332);
+  /* Guaranteed-contrast gradient — moss accent → deep forest. Same
+     hardcoded-hex pattern as the primary-button hover exception. */
+  background: linear-gradient(145deg, var(--fo-accent), var(--fo-text));
   border: none;
   border-radius: 999px;
   cursor: pointer;
@@ -4947,7 +5092,7 @@ button.gr-bid-link {
 
 .gr-suggest-popup__thanks {
   font-size: var(--type-h3);  font-weight: 600;
-  color: #2d6a4f;
+  color: var(--fo-accent);
   padding: 1rem 0;
 }
 

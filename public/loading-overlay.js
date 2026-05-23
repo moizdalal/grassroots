@@ -47,6 +47,12 @@
     if (!el) return false;
     if (el.hidden) return false;
     if (el.classList && el.classList.contains("hidden")) return false;
+    // Preferred: explicit data-loading="true" on the gate element. Falls
+    // back to text-match on the literal word "loading" for gates that
+    // haven't migrated yet — once every gate carries data-loading, the
+    // text-match fallback can be deleted.
+    if (el.getAttribute("data-loading") === "true") return true;
+    if (el.getAttribute("data-loading") === "false") return false;
     return isLoadingText(el.textContent);
   }
 

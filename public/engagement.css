@@ -96,6 +96,51 @@
   color: var(--ink);
 }
 
+/* Inbox shortcut card — pinned under the summary meta row. Links into
+   the conversation in /inbox.html#inbox?thread=<listing>:<otherUser>. */
+.eg-thread-link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  padding: 0.7rem 0.95rem;
+  background: var(--fo-accent-soft, rgba(45,106,79,0.06));
+  border: 1px dashed var(--fo-line-strong, var(--card-border));
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--fo-text, var(--ink));
+  font-size: var(--type-body);
+  transition: background 0.15s ease;
+}
+
+.eg-thread-link:hover {
+  background: var(--fo-accent-soft, rgba(45,106,79,0.12));
+  text-decoration: none;
+}
+
+.eg-thread-link__icon {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  color: var(--fo-accent);
+  flex-shrink: 0;
+}
+
+.eg-thread-link__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.eg-thread-link__label {
+  flex: 1;
+  font-weight: 600;
+}
+
+.eg-thread-link__chev {
+  color: var(--fo-accent);
+  font-weight: 700;
+}
+
 .eg-main {
   display: grid;
   gap: 1.2rem;

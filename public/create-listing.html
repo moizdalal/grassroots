@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="/create-listing.css" />
   </head>
   <body class="gr-body"><main class="gr-shell gr-shell--wide cl-layout-shell">
-      <a href="javascript:history.back()" class="ld-back">&larr; back</a>
+      <a href="/dashboard.html#listings" class="ld-back" id="cl-back">&larr; back</a>
       <div class="gr-page-intro">
         <h1 class="gr-title">post a new listing</h1>
         <p class="gr-subtitle">describe the opportunity your business is trying to pursue — consultants will see this and submit offers.</p>
@@ -32,11 +32,12 @@
         <div class="gr-card">
           <div class="cl-progress" aria-live="polite">
             <div class="cl-progress__track" id="cl-progress-track">
-              <div class="cl-progress__seg" data-step-dot="0" aria-hidden="true"></div>
-              <div class="cl-progress__seg" data-step-dot="1" aria-hidden="true"></div>
-              <div class="cl-progress__seg" data-step-dot="2" aria-hidden="true"></div>
+              <button type="button" class="cl-progress__seg" data-step-dot="0" aria-label="step 1 — title and type"></button>
+              <button type="button" class="cl-progress__seg" data-step-dot="1" aria-label="step 2 — describe the project"></button>
+              <button type="button" class="cl-progress__seg" data-step-dot="2" aria-label="step 3 — categories and budget"></button>
             </div>
             <span class="cl-progress__label" id="cl-progress-label">title &amp; type</span>
+            <span class="cl-progress__hint">takes about 5 minutes.</span>
           </div>
 
           <div class="cl-slides">
@@ -69,7 +70,7 @@
                         <svg class="ct-advanced__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                       </summary>
                       <div class="ct-advanced__body">
-                        <p class="ct-advanced__desc">Pick a contract model that matches the shape of the engagement.</p>
+                        <p class="ct-advanced__desc">pick a contract model that matches the shape of the engagement.</p>
 
                         <!-- Sub-option 1: phase-based contract -->
                         <div class="ct-suboption-group" data-mode="phased">
@@ -198,15 +199,14 @@
               <div class="gr-field-grid">
                 <label class="gr-label full-width">
                   <span class="cl-field-label">
-                    <span class="cl-field-label__title">context</span>
-                    <span class="cl-field-label__subtext">what is the context of the issue you are trying to solve?</span>
+                    <span class="cl-field-label__title">context <span class="gr-optional">optional</span></span>
+                    <span class="cl-field-label__subtext">what led to this need? helps consultants tailor proposals.</span>
                   </span>
                   <textarea
                     name="issue_context"
                     rows="4"
-                    required
                     maxlength="2000"
-                    placeholder="what is happening in the business right now, and what led to this need?"
+                    placeholder="optional — what led to this need?"
                   ></textarea>
                 </label>
 
@@ -226,15 +226,14 @@
 
                 <label class="gr-label full-width">
                   <span class="cl-field-label">
-                    <span class="cl-field-label__title">standards of work</span>
-                    <span class="cl-field-label__subtext">what do you expect from the consultant in terms of output?</span>
+                    <span class="cl-field-label__title">standards of work <span class="gr-optional">optional</span></span>
+                    <span class="cl-field-label__subtext">what do you want when this is done? deliverables, format, ownership.</span>
                   </span>
                   <textarea
                     name="expected_output"
                     rows="4"
-                    required
                     maxlength="2000"
-                    placeholder="for example: deliverables, level of rigor, format, ownership, or implementation expectations"
+                    placeholder="optional — what do you want when this is done?"
                   ></textarea>
                 </label>
 
@@ -286,6 +285,7 @@
                     type="file"
                     id="listing-attachments"
                     name="listing_attachments"
+                    accept="application/pdf,image/png,image/jpeg,image/webp,.doc,.docx"
                     multiple
                   />
                   <span class="gr-profile-hint">
@@ -302,7 +302,7 @@
                   <span>categories</span>
                   <div class="cl-cat-tags" id="cat-tags" aria-live="polite"></div>
                   <div class="ms-wrap" id="cat-multiselect">
-                    <input type="text" class="ms-search" id="cat-search" placeholder="search categories…" autocomplete="off" />
+                    <input type="text" class="ms-search" id="cat-search" aria-label="search categories" placeholder="search categories…" autocomplete="off" />
                     <div class="ms-dropdown hidden" id="cat-dropdown"></div>
                   </div>
                 </div>
@@ -343,7 +343,7 @@
           <div class="cl-nav">
             <button type="button" class="gr-btn gr-btn--ghost hidden" id="back-btn">back</button>
             <div class="gr-action-spacer" aria-hidden="true"></div>
-            <button type="button" class="gr-btn gr-btn--ghost" id="save-draft-btn">save as draft</button>
+            <button type="button" class="gr-btn gr-btn--secondary" id="save-draft-btn">save as draft</button>
             <button type="button" class="gr-btn gr-btn--primary" id="next-btn">continue</button>
             <button type="submit" class="gr-btn gr-btn--primary hidden" id="submit-btn">post listing</button>
           </div>

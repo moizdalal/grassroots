@@ -1,9 +1,9 @@
 import { getSupabaseClient } from "/supabase-loader.js";
 import { wireSchoolAutocomplete } from "/school-autocomplete.js";
 import { wireAllCityAutocompletes } from "/city-autocomplete.js";
-// OAuth is paused until providers are configured in supabase. To re-enable,
-// uncomment the import + the renderOAuthButtons() call below.
-// import { renderOAuthButtons } from "/oauth.js";
+// OAuth is paused until providers are configured in supabase. The
+// /oauth.js renderer and the /api/oauth-complete endpoint stay intact;
+// re-add the post-OAuth branches here when re-enabling.
 
 const form = document.getElementById("registration-form");
 const statusEl = document.getElementById("status");
@@ -13,13 +13,10 @@ const submitBtn = document.getElementById("reg-submit");
 const progressLabel = document.getElementById("reg-progress-label");
 const progressTrack = document.getElementById("reg-progress-track");
 const roleField = document.getElementById("field-role");
-const oauthHiddenLabels = [...form.querySelectorAll("[data-oauth-hide=\"true\"]")];
-
-const isOAuth = new URLSearchParams(window.location.search).get("oauth") === "1";
 
 // Steps are dynamic based on role selection; start with base
-let STEP_LABELS = isOAuth ? ["pick your path"] : ["pick your path", "account details"];
-let STEPS = isOAuth ? [0] : [0, 1];
+let STEP_LABELS = ["pick your path", "account details"];
+let STEPS = [0, 1];
 
 let currentStep = 0;
 let selectedRole = "";
@@ -159,11 +156,6 @@ function syncStepFieldState() {
     const isIncludedStep = STEPS.includes(slideIdx);
     slide.querySelectorAll("input, select, textarea").forEach((field) => {
       if (field.type === "hidden") return;
-      if (isOAuth && field.closest("[data-oauth-hide=\"true\"]")) {
-        field.disabled = true;
-        field.required = false;
-        return;
-      }
       field.disabled = !isIncludedStep;
       field.required = isIncludedStep && field.dataset.initialRequired === "1";
     });
@@ -245,15 +237,9 @@ function validateCurrentStep() {
     roleField.value = selectedRole;
 
     // Dynamically set steps based on role
-    if (selectedRole === "consultant" && !isOAuth) {
+    if (selectedRole === "consultant") {
       STEP_LABELS = ["pick your path", "account details", "education"];
       STEPS = [0, 1, 2];
-    } else if (selectedRole === "consultant" && isOAuth) {
-      STEP_LABELS = ["pick your path", "contact details", "education"];
-      STEPS = [0, 1, 2];
-    } else if (isOAuth) {
-      STEP_LABELS = ["pick your path", "contact details"];
-      STEPS = [0, 1];
     } else {
       STEP_LABELS = ["pick your path", "account details"];
       STEPS = [0, 1];
@@ -277,7 +263,7 @@ function validateCurrentStep() {
         return false;
       }
     }
-    if (!isOAuth && !validatePassword()) return false;
+    if (!validatePassword()) return false;
   }
 
   if (currentStep === 2) {
@@ -328,68 +314,6 @@ form.addEventListener("submit", async (e) => {
   submitBtn.disabled = true;
   submitBtn.textContent = "creating…";
   statusEl.textContent = "setting up your account…";
-
-  if (isOAuth) {
-    try {
-      const supabase = await getSupabaseClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) throw new Error("no active session — please sign in again.");
-
-      const user = session.user;
-      const meta = user.user_metadata || {};
-      const fullName = meta.full_name || meta.name || user.email.split("@")[0];
-      const phoneNumber = form.phoneNumber?.value?.trim() || "";
-      if (!phoneNumber) throw new Error("phone number is required.");
-
-      const educations = selectedRole === "consultant" ? collectEducations() : [];
-      const primaryEdu = educations[0] || { major: null, minor: null, school: null };
-
-      const res = await fetch("/api/oauth-complete", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          role: selectedRole,
-          fullName,
-          phoneNumber,
-        }),
-      });
-
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error || "profile setup failed.");
-
-      // Save education + city for consultant. educations jsonb mirrors
-      // to the legacy flat columns for read-compat; city is what feeds
-      // the marketplace "local" bucket. Both writes are non-blocking —
-      // a missing field at this stage just leaves the column null and
-      // the user can fill it in later via Settings → Personal.
-      if (selectedRole === "consultant" && (educations.length || true)) {
-        const cityRecord = collectCity();
-        try {
-          await supabase.from("consultant_profiles").update({
-            educations,
-            major: primaryEdu.major,
-            minor: primaryEdu.minor,
-            school: primaryEdu.school,
-            ...(cityRecord || { city: null, city_lat: null, city_lng: null }),
-          }).eq("user_id", user.id);
-        } catch (_) { /* non-blocking */ }
-      }
-
-      statusEl.textContent = "profile created — redirecting…";
-      statusEl.className = "gr-status success";
-      window.location.href = "/profile.html?welcome=1";
-    } catch (err) {
-      statusEl.textContent = err.message;
-      statusEl.className = "gr-status error";
-      submitBtn.disabled = false;
-      submitBtn.textContent = "create account";
-    }
-    return;
-  }
 
   const email = form.email.value.trim();
   const password = form.password.value;
@@ -470,19 +394,6 @@ form.addEventListener(
   },
   true
 );
-
-if (isOAuth) {
-  oauthHiddenLabels.forEach((label) => {
-    label.classList.add("hidden");
-    label.querySelectorAll("input, select, textarea").forEach((field) => {
-      field.disabled = true;
-      field.required = false;
-    });
-  });
-  submitBtn.textContent = "finish setup";
-} else {
-  // renderOAuthButtons("oauth-slot"); // re-enable once oauth providers are configured in supabase
-}
 
 // Hide the third progress segment initially (only shown for consultant)
 if (segments[2]) segments[2].style.display = "none";

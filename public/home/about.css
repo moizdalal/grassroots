@@ -372,6 +372,9 @@
         background: color-mix(in srgb, var(--fo-surface) 88%, transparent);
         backdrop-filter: blur(8px);
       }
+      /* Light-theme paper override: cream stays cream regardless of
+         tokens because the letter is a paper-card metaphor. Same
+         bypass pattern as the brandkit's guaranteed-contrast exception. */
       [data-theme="light"] .ab-letter {
         background: #faf6ec;
         box-shadow: 0 40px 80px rgba(20,32,26,0.15);
@@ -518,7 +521,10 @@
         margin-top: 0.25rem;
       }
 
-      /* polaroid */
+      /* polaroid — physical-object metaphor; cream paper + dark ink stay
+         hardcoded across all themes so the photo reads as a polaroid
+         and not as a themed surface. See brandkit's guaranteed-contrast
+         exception for the same pattern. */
       .ab-polaroid {
         position: relative;
         background: #faf6ec;
@@ -754,6 +760,9 @@
         grid-template-columns: repeat(12, 1fr);
         gap: 24px;
       }
+      /* Newspaper-clipping metaphor — cream paper + dark ink stay
+         hardcoded across all themes so the clipping reads as newsprint
+         and not as a themed card. Same bypass pattern as polaroid above. */
       .ab-press__clip {
         background: #faf6ec;
         color: #14201a;
@@ -1049,7 +1058,11 @@
         color: var(--fo-accent-on);
       }
 
-      /* mad-libs letter form */
+      /* mad-libs letter form — paper-letter metaphor; cream + dark ink
+         stay hardcoded across all themes so the form reads as a physical
+         letter you fill in. The descendants (submit button, stamp, head
+         rules) follow the same bypass. See brandkit's guaranteed-contrast
+         exception. */
       .ab-letter-form {
         background: #faf6ec;
         color: #14201a;

@@ -30,6 +30,10 @@
   --fo-develop: #2f7a5a;
   --fo-plan: #d97757;
   --fo-draft: #9485c9;
+  /* Status-dot token — terminal red for "closed" / "cancelled" status dots.
+     Exists because --fo-plan collapses into --fo-accent-warm in the light
+     theme. See dashboard.js STATE_DOT_COLORS. */
+  --fo-status-closed: #a83232;
   --fo-nav-bg: rgba(20, 32, 26, 0.85);
   --fo-nav-shadow: 0 14px 40px rgba(0, 0, 0, 0.32);
 }
@@ -54,6 +58,7 @@
   --fo-develop: #2f7a5a;
   --fo-plan: #ed8a68;
   --fo-draft: #a698d6;
+  --fo-status-closed: #bf3a3a;
   --fo-nav-bg: rgba(28, 46, 37, 0.85);
   --fo-nav-shadow: 0 14px 40px rgba(0, 0, 0, 0.30);
 }
@@ -77,6 +82,7 @@
   --fo-develop: #2f7a5a;
   --fo-plan: #d97757;
   --fo-draft: #9485c9;
+  --fo-status-closed: #a83232;
   --fo-nav-bg: rgba(21, 22, 26, 0.88);
   --fo-nav-shadow: 0 14px 40px rgba(0, 0, 0, 0.36);
 }
@@ -100,6 +106,7 @@
   --fo-develop: #2f7a5a;
   --fo-plan: #c46f44;
   --fo-draft: #6f5fb3;
+  --fo-status-closed: #9a2828;
   --fo-nav-bg: rgba(255, 255, 255, 0.85);
   --fo-nav-shadow: 0 12px 32px rgba(20, 32, 26, 0.10);
 }
@@ -1029,6 +1036,92 @@ body.gr-body .gr-section-h {
   .cdash__top {
     grid-template-columns: 1fr;
   }
+}
+
+/* Consultant stats panel — four metric cells in a responsive grid plus
+   a three-cell bid-pipeline strip at the foot. Sits between the
+   journey hero and the .cdash__below row. */
+.cdash-stats-panel { margin-top: 1.5rem; }
+
+.cdash-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  padding: 0.75rem 0.25rem 1rem;
+}
+
+@media (max-width: 880px) {
+  .cdash-stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 520px) {
+  .cdash-stats { grid-template-columns: 1fr; }
+}
+
+.cdash-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.6rem 0.85rem;
+  border-left: 2px solid var(--fo-line);
+}
+
+.cdash-stat__label {
+  font-size: var(--type-eyebrow);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--fo-text-3);
+}
+
+.cdash-stat__value {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.65rem;
+  font-weight: 600;
+  color: var(--fo-text);
+  line-height: 1.1;
+}
+
+.cdash-stat__detail {
+  font-size: var(--type-meta);
+  color: var(--fo-text-3);
+}
+
+.cdash-pipeline {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--fo-line);
+}
+
+.cdash-pipeline__cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.15rem;
+  padding: 0.6rem 0.5rem;
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--fo-text);
+  transition: background 0.15s ease;
+}
+
+.cdash-pipeline__cell:hover {
+  background: var(--fo-accent-soft);
+}
+
+.cdash-pipeline__num {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.cdash-pipeline__label {
+  font-size: var(--type-meta);
+  color: var(--fo-text-3);
 }
 
 /* Row beneath the full-width engagement journey: profile-completion
@@ -4763,6 +4856,40 @@ body.gr-has-side-nav .bza__main {
   border-radius: 14px;
   padding: 1rem 1.1rem;
   margin-bottom: 1.25rem;
+}
+
+/* Soft attention banner. Used at the top of dashboard surfaces to nudge
+   a one-time setup task (e.g. payouts onboarding). Dashed border + accent-
+   soft background per brandkit — no animation, intentionally calm. */
+.bza__banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.1rem;
+  margin-bottom: 1.25rem;
+  background: var(--fo-accent-soft);
+  border: 1px dashed var(--fo-line-strong);
+  border-radius: 12px;
+  color: var(--fo-text);
+  font-size: var(--type-body);
+  line-height: 1.4;
+}
+
+.bza__banner a {
+  color: var(--fo-accent);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.bza__banner a:hover { text-decoration: underline; }
+
+/* Marketplace guest banner — two CTAs side by side per the
+   consultant-application-only rule (separate apply path). */
+.mkt-guest-banner .mkt-guest-banner__cta-group {
+  display: inline-flex;
+  gap: 0.85rem;
 }
 
 .bza__panel-h {

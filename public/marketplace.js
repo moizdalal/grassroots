@@ -14,7 +14,9 @@ const listingGrid = document.getElementById("listing-grid");
 const listingsStatus = document.getElementById("listings-status");
 
 const LISTING_SELECT =
-  "id, owner_id, title, category, problem_summary, details, budget_cents, contract_type, lat, lng, created_at, profiles!listings_owner_id_fkey ( full_name, role, avatar_path )";
+  "id, owner_id, title, category, problem_summary, details, budget_cents, contract_type, turnaround_days, lat, lng, created_at, profiles!listings_owner_id_fkey ( full_name, role, avatar_path )";
+
+const SORT_KEY = "grassroots_marketplace_sort";
 
 // Distance threshold for the "local" marketplace bucket. 50 miles is
 // the brief — far enough that a metro counts, tight enough that "local"
@@ -62,12 +64,6 @@ function parseDetails(row) {
   return { budgetRange };
 }
 
-function redirectGuestsToSignin() {
-  window.location.replace(
-    "/signin.html?next=" + encodeURIComponent("/marketplace.html"),
-  );
-}
-
 /* Render the guest conversion banner above the search bar. Two
    paths: the primary "post a project" CTA (most guests are assumed
    to be small-business owners — that's the side we're actively
@@ -97,11 +93,12 @@ function renderGuestBanner() {
 }
 
 function renderSession(client, session) {
-  // Marketplace is signed-in only. init() guards against guests on
-  // first load; this branch catches the user signing out mid-session
-  // via the auth-state-change listener.
+  // Marketplace is now open to guests. When no session, render the
+  // sign-in nudge instead of redirecting. When a business owner lands
+  // here we still send them to their dashboard since they don't
+  // submit offers (avoids the marketplace + dashboard loop).
   if (!session?.user) {
-    redirectGuestsToSignin();
+    renderGuestBanner();
     return;
   }
 
@@ -520,27 +517,78 @@ function applyFilters() {
     return true;
   });
 
-  renderResultCount(filtered.length, allRows.length);
-  renderListings(filtered, _client);
+  // Sort the filtered set before render. New listings default to "newest";
+  // selection is persisted in localStorage so the user's preferred sort
+  // sticks across reloads.
+  const sortEl = document.getElementById("filter-sort");
+  const sortKey = sortEl?.value || "newest";
+  const sorted = filtered.slice().sort((a, b) => {
+    if (sortKey === "newest") {
+      return Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0);
+    }
+    if (sortKey === "budget-desc" || sortKey === "budget-asc") {
+      const budgetTop = (row) => {
+        const rangeMax = parseDetails(row).budgetRange?.max;
+        if (rangeMax != null) return rangeMax;
+        if (row.budget_cents != null) return Math.round(row.budget_cents / 100);
+        return 0;
+      };
+      const aMax = budgetTop(a);
+      const bMax = budgetTop(b);
+      return sortKey === "budget-desc" ? bMax - aMax : aMax - bMax;
+    }
+    if (sortKey === "turnaround") {
+      // Listings without a turnaround sort last via Infinity.
+      const aDays = Number.isFinite(a.turnaround_days) ? a.turnaround_days : Infinity;
+      const bDays = Number.isFinite(b.turnaround_days) ? b.turnaround_days : Infinity;
+      return aDays - bDays;
+    }
+    return 0;
+  });
+
+  renderResultCount(sorted.length, allRows.length);
+  renderListings(sorted, _client);
 }
 
 function setupFilterListeners() {
-  const ids = ["filter-search", "filter-type", "filter-category", "filter-budget-min", "filter-budget-max"];
+  const ids = ["filter-search", "filter-type", "filter-category", "filter-budget-min", "filter-budget-max", "filter-sort"];
   for (const id of ids) {
     const el = document.getElementById(id);
     if (!el) continue;
     const event = el.tagName === "SELECT" ? "change" : "input";
     el.addEventListener(event, applyFilters);
   }
+
+  // Restore the persisted sort selection on first paint + remember new
+  // choices for next visit.
+  const sortEl = document.getElementById("filter-sort");
+  if (sortEl) {
+    try {
+      const saved = localStorage.getItem(SORT_KEY);
+      if (saved && [...sortEl.options].some((o) => o.value === saved)) {
+        sortEl.value = saved;
+      }
+    } catch (_) {}
+    sortEl.addEventListener("change", () => {
+      try { localStorage.setItem(SORT_KEY, sortEl.value); } catch (_) {}
+    });
+  }
+}
+
+function renderListingsSkeleton(count = 6) {
+  if (!listingGrid) return;
+  listingGrid.innerHTML = Array.from({ length: count }, () => `<div class="gr-skeleton gr-skeleton--card"></div>`).join("");
 }
 
 async function refreshListings(client) {
-  listingsStatus.textContent = "loading…";
+  listingsStatus.textContent = "";
   listingsStatus.className = "gr-status";
+  renderListingsSkeleton(6);
 
   const { data: rows, error } = await fetchOpenListings(client);
 
   if (error) {
+    listingGrid.innerHTML = "";
     listingsStatus.textContent = error.message;
     listingsStatus.className = "gr-status error";
     return;
@@ -616,18 +664,15 @@ async function init() {
       return;
     }
 
+
     renderSession(client, session);
-    initNotifBell(client);
+    if (session?.user) initNotifBell(client);
 
     // Load the consultant's home-city coords once. Powers the "local"
-    // bucket in renderListings. Null → bucket simply doesn't render.
+    // bucket in renderListings. Null for guests + non-consultants.
     consultantCity = await loadConsultantCity(client, session);
 
     client.auth.onAuthStateChange(async (_event, nextSession) => {
-      if (!nextSession?.user) {
-        redirectGuestsToSignin();
-        return;
-      }
       renderSession(client, nextSession);
       consultantCity = await loadConsultantCity(client, nextSession);
     });

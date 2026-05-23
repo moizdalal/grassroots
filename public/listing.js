@@ -3301,8 +3301,24 @@ async function init() {
       // Owner is previewing their own draft — the draft banner above
       // already explains the state, no extra hint needed.
     } else {
-      showHint('<a href="/signin.html">sign in</a> as a consultant to submit a proposal.');
+      // Guest or signed-in non-consultant. Surface a clear conversion
+      // CTA that returns to this listing after sign-in.
+      const nextUrl = encodeURIComponent(`/listing.html?id=${listingId}`);
+      if (uid) {
+        showHint('only consultants can submit a proposal. <a href="/home/for-students.html#apply">apply as a consultant →</a>');
+      } else {
+        showHint(`<strong>sign in to make an offer →</strong> <a href="/signin.html?next=${nextUrl}">sign in</a> · <a href="/home/for-students.html#apply">apply as a consultant</a>`);
+        // Hide attachments for guests — the file links may include
+        // direct storage URLs the bucket RLS won't gate.
+        const attachmentsWrap = document.getElementById("ld-attachments");
+        if (attachmentsWrap) attachmentsWrap.hidden = true;
+      }
     }
+
+    // SEO surface: canonical + JobPosting JSON-LD. Both reflect the
+    // listing we just loaded; injected client-side so the SSR layer
+    // doesn't need to render listings.
+    injectListingSeo(listing);
 
     gate.hidden = true;
     detail.hidden = false;
@@ -3316,6 +3332,70 @@ function showHint(html) {
   const el = document.getElementById("ld-auth-prompt");
   el.innerHTML = `<p class="gr-listing-hint">${html}</p>`;
   el.hidden = false;
+}
+
+// SEO injection — adds <link rel="canonical"> + a Google-recognized
+// JobPosting JSON-LD block once the listing data is available. Idempotent.
+function injectListingSeo(listing) {
+  if (!listing) return;
+  const origin = window.location.origin;
+  const canonicalHref = `${origin}/listing.html?id=${listing.id}`;
+
+  // Canonical link
+  let canonical = document.querySelector('link[rel="canonical"]');
+  if (!canonical) {
+    canonical = document.createElement("link");
+    canonical.rel = "canonical";
+    document.head.appendChild(canonical);
+  }
+  canonical.href = canonicalHref;
+
+  // Description (fallback when the listing has no summary)
+  const descBits = [listing.problem_summary, listing.title].filter(Boolean);
+  const description = String(descBits[0] || "consulting project on grassroots.").slice(0, 200);
+  let metaDesc = document.querySelector('meta[name="description"]');
+  if (metaDesc) metaDesc.setAttribute("content", description);
+
+  // JobPosting schema
+  const budgetMin = listing.budget_cents ? Math.round(listing.budget_cents / 100) : undefined;
+  const turnaround = Number(listing.turnaround_days);
+  const validThrough = Number.isFinite(turnaround) && turnaround > 0
+    ? new Date(Date.now() + turnaround * 24 * 60 * 60 * 1000).toISOString()
+    : undefined;
+
+  const jobPosting = {
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    title: listing.title || "consulting project",
+    description,
+    datePosted: listing.created_at,
+    employmentType: "CONTRACTOR",
+    hiringOrganization: {
+      "@type": "Organization",
+      name: "grassroots",
+      sameAs: "https://www.grassroots-marketplace.com/",
+    },
+    jobLocationType: "TELECOMMUTE",
+    applicantLocationRequirements: { "@type": "Country", name: "US" },
+    url: canonicalHref,
+  };
+  if (validThrough) jobPosting.validThrough = validThrough;
+  if (budgetMin != null) {
+    jobPosting.baseSalary = {
+      "@type": "MonetaryAmount",
+      currency: "USD",
+      value: { "@type": "QuantitativeValue", value: budgetMin, unitText: "PROJECT" },
+    };
+  }
+
+  let existing = document.getElementById("listing-jsonld");
+  if (!existing) {
+    existing = document.createElement("script");
+    existing.type = "application/ld+json";
+    existing.id = "listing-jsonld";
+    document.head.appendChild(existing);
+  }
+  existing.textContent = JSON.stringify(jobPosting);
 }
 
 init();

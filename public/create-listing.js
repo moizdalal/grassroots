@@ -10,6 +10,17 @@ const submitBtn = document.getElementById("submit-btn");
 const nextBtn = document.getElementById("next-btn");
 const backBtn = document.getElementById("back-btn");
 
+// Dirty-form guard: warn before navigating away if the user has typed
+// anything. Cleared once the listing is saved/published so the post-
+// submit redirect doesn't trigger a confirm prompt.
+form.addEventListener("input", () => { form.dataset.dirty = "true"; }, { once: true });
+window.addEventListener("beforeunload", (event) => {
+  if (form.dataset.dirty === "true") {
+    event.preventDefault();
+    event.returnValue = "";
+  }
+});
+
 const slides = [...document.querySelectorAll(".cl-slide")];
 const stepDots = [...document.querySelectorAll(".cl-progress__seg")];
 const progressLabel = document.getElementById("cl-progress-label");
@@ -336,7 +347,14 @@ function renderCategoryDropdown() {
     return;
   }
 
-  dropdownEl.innerHTML = filtered
+  // On an empty query the dropdown serves double-duty as a "browse"
+  // affordance — surface a one-line hint so the user knows they can
+  // pick multiple before they've started typing.
+  const headerHtml = query
+    ? ""
+    : '<div class="ms-eyebrow">pick one or more — you can search above</div>';
+
+  dropdownEl.innerHTML = headerHtml + filtered
     .map((option) => {
       const selectedClass = selectedCategories.has(option.value) ? " is-selected" : "";
       return `
@@ -401,6 +419,12 @@ function updateWizardUI() {
   stepDots.forEach((seg, index) => {
     seg.classList.toggle("is-done", index < currentSlide);
     seg.classList.toggle("is-active", index === currentSlide);
+    // Future / unreached steps are visible but inert. Clicking the current
+    // step or a completed one re-targets via the cl:request-slide event,
+    // which validates each in-between step on forward jumps.
+    const reachable = index <= currentSlide;
+    seg.setAttribute("aria-disabled", reachable ? "false" : "true");
+    seg.tabIndex = reachable ? 0 : -1;
   });
 
   progressLabel.textContent = STEP_LABELS[currentSlide] || "";
@@ -426,14 +450,13 @@ function validateSlide(index) {
   }
 
   if (index === 1) {
-    const issueContext = form.elements.issue_context.value.trim();
+    // Only business_problem is required — context + standards-of-work are
+    // optional so the owner can post a listing without writing three essays.
+    // The HTML labels reflect this via gr-optional.
     const businessProblem = form.elements.business_problem.value.trim();
-    const expectedOutput = form.elements.expected_output.value.trim();
     const proposalBudget = String(form.elements.proposal_budget?.value || "").trim();
     const maintenanceTerms = String(form.elements.maintenance_terms?.value || "").trim();
-    if (!issueContext) throw new Error("please add the context behind the issue you want to solve.");
     if (!businessProblem) throw new Error("please describe the business problem you want to solve.");
-    if (!expectedOutput) throw new Error("please explain the standards of work you expect from the consultant.");
     if (isPhasedContractSelected() && !proposalBudget) {
       throw new Error("please enter the budget per proposal for this advanced contract.");
     }
@@ -746,6 +769,15 @@ backBtn.addEventListener("click", () => {
 // we'd cross and bail if one fails. This means dot-clicking ahead
 // only succeeds once the user has filled in the in-between fields,
 // which matches the wizard's own next-button behavior.
+// Wire the progress dots: clicking a reachable (completed or current)
+// step dispatches the same cl:request-slide event the tutorial uses.
+stepDots.forEach((seg, index) => {
+  seg.addEventListener("click", () => {
+    if (seg.getAttribute("aria-disabled") === "true") return;
+    window.dispatchEvent(new CustomEvent("cl:request-slide", { detail: { slide: index } }));
+  });
+});
+
 window.addEventListener("cl:request-slide", (event) => {
   const target = Number(event?.detail?.slide);
   if (!Number.isFinite(target)) return;
@@ -1042,6 +1074,7 @@ saveDraftBtn?.addEventListener("click", async () => {
     // bubble needs to advance to the "now delete" coda when they do.
     window.dispatchEvent(new CustomEvent("cl:listing-saved-as-draft", { detail: { listingId: id } }));
 
+    form.dataset.dirty = "false";
     setTimeout(() => {
       window.location.href = "/dashboard.html#listings";
     }, 600);
@@ -1228,6 +1261,7 @@ form.addEventListener("submit", async (event) => {
     // the redirect fires.
     window.dispatchEvent(new CustomEvent("cl:listing-published", { detail: { listingId } }));
 
+    form.dataset.dirty = "false";
     setTimeout(() => {
       window.location.href = `/listing.html?id=${listingId}`;
     }, 800);

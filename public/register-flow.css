@@ -132,6 +132,14 @@
   cursor: pointer;
 }
 
+/* Application-only consultant card is an <a> link, not a <label>. Reset
+   default link styling so it reads as a card like its sibling. */
+a.reg-role-card--apply,
+a.reg-role-card--apply:visited {
+  text-decoration: none;
+  color: inherit;
+}
+
 .reg-role-card input[type="radio"] {
   position: absolute;
   opacity: 0;

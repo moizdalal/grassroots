@@ -353,30 +353,20 @@ function shortRecency(createdAt) {
   return `${Math.round(days / 30)}m`;
 }
 
-// State → status dot.
-//
-// Two intentional bypasses of brandkit tokens for legibility — both
-// commented per brandkit's "If you find yourself bypassing tokens for
-// a quick fix — leave a comment" rule:
-//
-//   1) NEUTRAL_GREY_DOT for "live" / "draft" — --fo-text-3 is green-
-//      tinted in both light (#767f78) and dark-forest (#6e8378), so
-//      it washed into the moss --fo-accent dot beside it.
-//   2) CLOSED_RED_DOT for "closed" / "cancelled" — --fo-plan is the
-//      system's destructive token (warm coral) but in the light theme
-//      it resolves to #c46f44, the EXACT same value as --fo-accent-warm.
-//      So the "paused" and "closed" dots became indistinguishable, and
-//      both read as orange instead of one orange + one red. The dot
-//      uses a deeper brick-red hex so the status is unmistakably
-//      "closed" and not "paused".
-const NEUTRAL_GREY_DOT = "#9aa3aa";
-const CLOSED_RED_DOT = "#a83232";
+// State → status dot. Semantic mapping:
+//   live / open       → green active (collecting bids)
+//   hired / in flight → warm orange (work happening, attention warranted)
+//   paused            → muted (calm pause)
+//   closed/cancelled  → terminal red (uses --fo-status-closed token so the
+//                       light theme doesn't collapse it into --fo-accent-warm;
+//                       see Pass 1 notes in field-office.css)
+//   draft             → soft violet (private/owner-only)
 const STATE_DOT_COLORS = {
-  open: NEUTRAL_GREY_DOT,            // live — neutral, awaiting offers
-  hired: "var(--fo-accent)",         // in progress — work happening
-  paused: "var(--fo-accent-warm)",   // paused — warn-orange
-  closed: CLOSED_RED_DOT,            // closed — deep brick red
-  cancelled: CLOSED_RED_DOT,         // cancelled — same red
+  open: "var(--fo-accent)",          // live — active, collecting bids
+  hired: "var(--fo-accent-warm)",    // in progress — warm, work in flight
+  paused: "var(--fo-text-3)",        // paused — muted, on hold
+  closed: "var(--fo-status-closed)", // closed — terminal red
+  cancelled: "var(--fo-status-closed)",
   draft: "var(--fo-draft)",          // draft — soft violet, owner-only
 };
 
@@ -419,6 +409,16 @@ function listingPrimaryAction(l, schedulesByBidId) {
   return null;
 }
 
+// A listing is "stale" when it's been live (open) for more than four
+// weeks without a hire. Same threshold the welcome line uses on the
+// owner dashboard.
+const STALE_AFTER_MS = 4 * 7 * 24 * 60 * 60 * 1000;
+function isStaleListing(l) {
+  if (listingState(l) !== "open") return false;
+  const t = l.created_at ? Date.parse(l.created_at) : NaN;
+  return Number.isFinite(t) && (Date.now() - t) > STALE_AFTER_MS;
+}
+
 function listingRowHtml(l, schedulesByBidId) {
   const state = listingState(l);
   const stateLabel = STATE_LABELS[state] || state;
@@ -433,6 +433,9 @@ function listingRowHtml(l, schedulesByBidId) {
   const offerCount = l.__bidCount || 0;
   const offerLabel = offerCount === 1 ? "1 offer" : `${offerCount} offers`;
   const openLabel = daysOpenLabel(l.created_at);
+  const stalePill = isStaleListing(l)
+    ? `<span class="gr-pill gr-pill--warn gr-pill--no-dot" title="open more than four weeks">stale</span>`
+    : "";
 
   // Dashboard rows stay slim — state pill, days open, offer count,
   // budget on the right. Category + turnaround moved to the full
@@ -478,7 +481,7 @@ function listingRowHtml(l, schedulesByBidId) {
       <a class="bza__row-link" href="/listing.html?id=${escape(l.id)}">
         <span class="${stateDotClass}"></span>
         <div class="bza__row-main">
-          <h3 class="bza__row-title">${escape(l.title || "untitled")}${needsYouPill}</h3>
+          <h3 class="bza__row-title">${escape(l.title || "untitled")}${needsYouPill}${stalePill}</h3>
           <div class="bza__row-meta">${metaBits}</div>
         </div>
         <div class="bza__row-budget">${escape(budgetText)}</div>
@@ -564,6 +567,7 @@ function ownerListingCardHtml(l, schedulesByBidId) {
         <span class="ml-card__dot" style="background:${dotColor}" aria-label="${escape(stateLabel)}" title="${escape(stateLabel)}"></span>
         <div class="gr-listing-card-eyebrow">
           ${needsAction ? `<span class="ml-card__action-tag">needs you</span>` : ""}
+          ${isStaleListing(l) ? `<span class="gr-pill gr-pill--warn gr-pill--no-dot" title="open more than four weeks">stale</span>` : ""}
           ${recencyLabel ? `<span class="ml-card__recency">${escape(recencyLabel)}</span>` : ""}
         </div>
         <h2 class="gr-listing-title">${escape(l.title || "untitled")}</h2>
@@ -907,9 +911,29 @@ function renderDashboard(client, data) {
     engageBadge.hidden = false;
   }
 
-  // welcome
+  // Welcome line — counts pending offers across all listings + listings
+  // that have gone stale (open >4 weeks). Falls back to the bare greeting
+  // when there's nothing actionable to surface.
   const firstName = (profile?.full_name || "").split(" ")[0] || "there";
-  $("dash-welcome").textContent = `welcome back, ${firstName}.`;
+  const STALE_AFTER_MS = 4 * 7 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const newOffers = listings.reduce((sum, l) => sum + ((l.__bids || []).filter(
+    (b) => b.status === "pending" || b.status === "submitted"
+  ).length), 0);
+  const staleListings = listings.filter((l) => {
+    if (listingState(l) !== "open") return false;
+    const t = l.created_at ? Date.parse(l.created_at) : NaN;
+    return Number.isFinite(t) && (now - t) > STALE_AFTER_MS;
+  }).length;
+  let welcomeLine = `welcome back, ${firstName}.`;
+  if (newOffers > 0 && staleListings > 0) {
+    welcomeLine = `welcome back, ${firstName}. ${newOffers} new offer${newOffers === 1 ? "" : "s"} and ${staleListings} listing${staleListings === 1 ? "" : "s"} going stale.`;
+  } else if (newOffers > 0) {
+    welcomeLine = `welcome back, ${firstName}. ${newOffers} new offer${newOffers === 1 ? "" : "s"} to review.`;
+  } else if (staleListings > 0) {
+    welcomeLine = `welcome back, ${firstName}. ${staleListings} listing${staleListings === 1 ? "" : "s"} could use a refresh.`;
+  }
+  $("dash-welcome").textContent = welcomeLine;
 
   // Today's date — adds a small dynamic anchor to the header.
   const dateEl = $("dash-page-date");

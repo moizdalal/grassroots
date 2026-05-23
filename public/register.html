@@ -83,12 +83,14 @@
                     </span>
                     <span class="reg-role-card__title">business owner</span>
                     <span class="reg-role-card__hint"
-                      >you run a small business and want hands-on help.</span
+                      >post a project and pick from real student proposals.</span
                     >
                   </span>
                 </label>
-                <label class="reg-role-card">
-                  <input type="radio" name="role_choice" value="consultant" />
+                <!-- Consultant signup is application-only — link out to the
+                     /home/for-students.html#apply form instead of registering
+                     directly. Keeps the supply side curated. -->
+                <a class="reg-role-card reg-role-card--apply" href="/home/for-students.html#apply">
                   <span class="reg-role-card__face">
                     <span class="reg-role-card__icon" aria-hidden="true">
                       <svg viewBox="0 0 32 32" overflow="visible" fill="currentColor" aria-hidden="true" class="rrc-can-svg">
@@ -107,10 +109,10 @@
                     </span>
                     <span class="reg-role-card__title">consultant</span>
                     <span class="reg-role-card__hint"
-                      >you're a student offering scoped work.</span
+                      >application-only — apply to earn from your skills →</span
                     >
                   </span>
-                </label>
+                </a>
               </div>
             </div>
 
@@ -138,6 +140,7 @@
                 <label class="gr-label full-width">
                   <span>phone number</span>
                   <input type="tel" name="phoneNumber" autocomplete="tel" inputmode="tel" required />
+                  <span class="gr-field-hint">we text you when an offer changes status. no spam.</span>
                 </label>
                 <label class="gr-label" data-oauth-hide="true">
                   <span>password</span>
