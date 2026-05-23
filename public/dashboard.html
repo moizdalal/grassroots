@@ -17,7 +17,7 @@
   </head>
   <body class="gr-body gr-has-side-nav dash-page">
     <main>
-      <p id="dash-gate" class="gr-status" style="text-align:center;padding:6rem 1rem;">loading…</p>
+      <p id="dash-gate" class="gr-status" data-loading="true" style="text-align:center;padding:6rem 1rem;">loading…</p>
 
       <div id="dash-shell" class="bza" hidden>
         <!-- ===== sidebar ===== -->
@@ -28,6 +28,9 @@
               <img class="bza__brand-mark" src="/home/assets/grassroots-icon-syne.svg" width="20" height="34" alt="" />
               <span class="bza__brand-text">grassroots</span>
             </a>
+            <button type="button" class="bza__side-toggle" id="dash-side-toggle" aria-label="collapse sidebar" aria-expanded="true" title="collapse sidebar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+            </button>
           </div>
           <div class="bza__nav">
           <button type="button" class="bza__nav-item active" data-view="dashboard" title="home">
@@ -172,16 +175,25 @@
                     <div class="bza__panel-h-tabs" id="dash-listings-tabs">
                       <button type="button" class="active" data-state="all">all <span data-count="all">0</span></button>
                       <button type="button" data-state="draft"><span class="bza__tab-dot" style="background:var(--fo-draft)"></span>drafts <span data-count="draft">0</span></button>
-                      <button type="button" data-state="open"><span class="bza__tab-dot" style="background:#9aa3aa"></span>live <span data-count="open">0</span></button>
-                      <button type="button" data-state="hired"><span class="bza__tab-dot" style="background:var(--fo-accent)"></span>in progress <span data-count="hired">0</span></button>
-                      <button type="button" data-state="paused"><span class="bza__tab-dot" style="background:var(--fo-accent-warm)"></span>paused <span data-count="paused">0</span></button>
-                      <button type="button" data-state="closed"><span class="bza__tab-dot" style="background:#a83232"></span>closed <span data-count="closed">0</span></button>
+                      <button type="button" data-state="open"><span class="bza__tab-dot" style="background:var(--fo-accent)"></span>live <span data-count="open">0</span></button>
+                      <button type="button" data-state="hired"><span class="bza__tab-dot" style="background:var(--fo-accent-warm)"></span>in progress <span data-count="hired">0</span></button>
+                      <button type="button" data-state="paused"><span class="bza__tab-dot" style="background:var(--fo-text-3)"></span>paused <span data-count="paused">0</span></button>
+                      <button type="button" data-state="closed"><span class="bza__tab-dot" style="background:var(--fo-status-closed)"></span>closed <span data-count="closed">0</span></button>
                     </div>
                   </div>
                   <div class="dash-listings-rows-wrap">
                     <div id="dash-listings-rows"></div>
                   </div>
-                  <p id="dash-listings-empty" class="gr-empty-state" hidden>no listings yet — <a href="/create-listing.html" class="gr-empty-state__link">post one</a> to start collecting offers.</p>
+                  <div id="dash-listings-empty" class="gr-empty-state gr-empty-state--hero" hidden>
+                    <h3 class="gr-empty-state__title">post your first listing</h3>
+                    <p class="gr-empty-state__sub">describe what you need help with. students bid. you pick.</p>
+                    <div class="gr-empty-state__chips">
+                      <span class="gr-pill">marketing</span>
+                      <span class="gr-pill">strategy</span>
+                      <span class="gr-pill">operations</span>
+                    </div>
+                    <a href="/create-listing.html" class="gr-btn gr-btn--primary">post a listing</a>
+                  </div>
                 </div>
 
                 <!-- Performance + profile health sit side-by-side on
@@ -225,6 +237,7 @@
                   type="search"
                   id="ml-search"
                   class="ml-search-input"
+                  aria-label="search your listings"
                   placeholder="search your listings…"
                   autocomplete="off"
                 />
@@ -248,22 +261,22 @@
               </li>
               <li>
                 <button type="button" class="ml-legend-chip" data-state="open" aria-pressed="false">
-                  <span class="ml-legend__dot" style="background:#9aa3aa"></span>live
+                  <span class="ml-legend__dot" style="background:var(--fo-accent)"></span>live
                 </button>
               </li>
               <li>
                 <button type="button" class="ml-legend-chip" data-state="hired" aria-pressed="false">
-                  <span class="ml-legend__dot" style="background:var(--fo-accent)"></span>in progress
+                  <span class="ml-legend__dot" style="background:var(--fo-accent-warm)"></span>in progress
                 </button>
               </li>
               <li>
                 <button type="button" class="ml-legend-chip" data-state="paused" aria-pressed="false">
-                  <span class="ml-legend__dot" style="background:var(--fo-accent-warm)"></span>paused
+                  <span class="ml-legend__dot" style="background:var(--fo-text-3)"></span>paused
                 </button>
               </li>
               <li>
                 <button type="button" class="ml-legend-chip" data-state="closed" aria-pressed="false">
-                  <span class="ml-legend__dot" style="background:#a83232"></span>closed
+                  <span class="ml-legend__dot" style="background:var(--fo-status-closed)"></span>closed
                 </button>
               </li>
             </ul>

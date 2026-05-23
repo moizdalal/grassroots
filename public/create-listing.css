@@ -319,9 +319,17 @@
 .cl-progress__seg {
   flex: 1;
   height: 4px;
+  border: none;
+  padding: 0;
   border-radius: 999px;
   background: rgba(27, 67, 50, 0.1);
-  transition: background 0.4s var(--ease-framer);
+  transition: background 0.4s var(--ease-framer), transform 0.15s ease;
+  cursor: pointer;
+}
+
+/* Future / unreached steps render the segment but aren't interactive. */
+.cl-progress__seg[aria-disabled="true"] {
+  cursor: not-allowed;
 }
 
 .cl-progress__seg.is-done {
@@ -332,12 +340,29 @@
   background: var(--green-pale);
 }
 
+.cl-progress__seg:not([aria-disabled="true"]):hover {
+  transform: scaleY(1.4);
+}
+
+.cl-progress__seg:focus-visible {
+  outline: 2px solid var(--input-focus);
+  outline-offset: 3px;
+}
+
 .cl-progress__label {
   font-size: var(--type-eyebrow);
   font-weight: 600;
   letter-spacing: 0.08em;
   color: var(--tagline-body);
   text-transform: uppercase;
+}
+
+.cl-progress__hint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: var(--type-meta);
+  color: var(--tagline-body);
+  font-weight: 500;
 }
 
 /* --- Slides ---

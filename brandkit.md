@@ -21,8 +21,15 @@ Headers, page titles, button labels, status messages, empty states, placeholders
 
 Two fonts, one rhythm:
 
-- **Fraunces** (serif, weights 400/500/600/700) — display, headings, hero numbers, italic title accents
+- **Fraunces** (serif, weights 400/500/600/700/900, plus italic) — display, headings, hero numbers, italic title accents
 - **Manrope** (sans, weights 400/500/600/700/800) — body, UI, labels, eyebrows
+
+### Marketing-only exceptions
+
+The marketing surface (`/`, `/home/about.html`, `/home/for-students.html`) is allowed two narrowly-scoped extra fonts. Anything outside these surfaces stays Fraunces + Manrope.
+
+- **Caveat** (handwritten, weights 400/500/600/700) — founder signature on `about.html` only. Never use for headings, body, or any UI affordance.
+- **JetBrains Mono** (mono, weights 400/500/600) — monospaced accent labels (e.g. timestamp stamps, "draft" stamps, code-style chips) on the marketing pages. Not for body text.
 
 ### Type scale tokens (defined in `:root` in `grassroots.css`)
 
@@ -92,6 +99,7 @@ Set on `<html data-theme="…">` by `theme.js` synchronously in head. Tokens def
 | `--fo-accent-soft` | translucent accent fill (hover, soft chips, gradients) |
 | `--fo-accent-warm` | warm orange — pending/warn state only |
 | `--fo-plan` | warm coral — destructive only |
+| `--fo-status-closed` | terminal red for "closed" / "cancelled" status dots — exists because `--fo-plan` collapses into `--fo-accent-warm` in the light theme |
 
 ### Banned
 
@@ -102,6 +110,14 @@ Set on `<html data-theme="…">` by `theme.js` synchronously in head. Tokens def
 ### Guaranteed-contrast exception
 
 Primary button hover uses solid hex (`#b8e0c0` bg + `#14201a` text) because translucent token-based hovers blew out legibility in dark themes. If you ever need to bypass theme tokens for contrast, leave a code comment explaining why.
+
+### Scoped illustration palettes
+
+Illustrations that need colors the global token set doesn't carry (e.g. browns for soil/roots/wood) declare a small set of scoped CSS vars on the consuming component selector, with a `[data-theme="..."]` override block for per-theme variation. The vars stay component-local — they do NOT get promoted to `field-office.css`. Add a comment explaining why the brandkit's global tokens couldn't cover the case.
+
+Canonical examples:
+- `public/garden-stem.css` → `--gs-root`, `--gs-root-edge`, `--gs-soil-dot-color`
+- `public/home/index.css` → `.ld-hero__garden { --ld-soil-line, --ld-soil-fill, --ld-soil-deep, --ld-soil-grain }`
 
 ### Card backgrounds — dark mode has none
 

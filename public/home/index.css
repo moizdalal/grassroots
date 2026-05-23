@@ -759,6 +759,22 @@
         font-size: 1rem;
         color: var(--fo-accent);
       }
+      /* Soil scene palette — scoped to the hero garden illustration.
+         The brandkit has no brown token; these belong to the
+         illustration, not the global theme. Same bypass pattern as
+         garden-stem.css's --gs-root / --gs-soil-dot-color. */
+      .ld-hero__garden {
+        --ld-soil-line:  #7a5a3e; /* horizon stroke base */
+        --ld-soil-fill:  #5a4530; /* earth radial body */
+        --ld-soil-deep:  #3a2818; /* top-edge shadow + dirt-cap */
+        --ld-soil-grain: #c9a479; /* soil dot fill */
+      }
+      [data-theme="light"] .ld-hero__garden {
+        --ld-soil-line:  #6b4a30;
+        --ld-soil-fill:  #6b4a30;
+        --ld-soil-deep:  #6b4a30;
+        --ld-soil-grain: #8a6940;
+      }
       /* Stronger soil divide — the horizon reads as a real ground
          line (thicker, slightly contrasted) with a soft shadow
          underneath so the earth sits below it rather than alongside.
@@ -767,11 +783,11 @@
       .ld-hero__garden .gs__soil-line { opacity: 1; height: 8px; }
       .ld-hero__garden .gs__soil-horizon {
         stroke-width: 3.2;
-        stroke: color-mix(in srgb, #7a5a3e 70%, var(--fo-text-2));
+        stroke: color-mix(in srgb, var(--ld-soil-line) 70%, var(--fo-text-2));
         filter: drop-shadow(0 1.5px 1.5px rgba(0, 0, 0, 0.55));
       }
       [data-theme="light"] .ld-hero__garden .gs__soil-horizon {
-        stroke: color-mix(in srgb, #6b4a30 80%, var(--fo-ink, var(--fo-text)));
+        stroke: color-mix(in srgb, var(--ld-soil-line) 80%, var(--fo-ink, var(--fo-text)));
         filter: drop-shadow(0 1.2px 1.2px rgba(20, 32, 26, 0.22));
       }
       .ld-hero__garden .gs__earth {
@@ -868,11 +884,11 @@
       }
       .ld-hero__garden .gs__soil-dot {
         opacity: 0.65;
-        fill: color-mix(in srgb, #c9a479 90%, var(--fo-text-2));
+        fill: color-mix(in srgb, var(--ld-soil-grain) 90%, var(--fo-text-2));
       }
       [data-theme="light"] .ld-hero__garden .gs__soil-dot {
         opacity: 0.55;
-        fill: color-mix(in srgb, #8a6940 80%, var(--fo-text-2));
+        fill: color-mix(in srgb, var(--ld-soil-grain) 80%, var(--fo-text-2));
       }
 
       /* Cards row — sits above the garden, never overlapping it. The
