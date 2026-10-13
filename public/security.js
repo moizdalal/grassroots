@@ -169,8 +169,57 @@ async function handleDeleteRequest(event) {
   }
 }
 
+/* ---- Request data export -------------------------------------------- */
+
+const EXPORT_PHRASE = "export my data";
+
+async function handleExportRequest(event) {
+  event.preventDefault();
+  const status = $("sec-export-status");
+  const btn = $("sec-export-btn");
+  const phraseEl = $("sec-export-confirm");
+  const phrase = (phraseEl?.value || "").trim().toLowerCase();
+
+  if (phrase !== EXPORT_PHRASE) {
+    setStatus(status, `type "${EXPORT_PHRASE}" exactly to confirm.`, "error");
+    return;
+  }
+
+  setButtonLoading(btn, true);
+  setStatus(status, "submitting request…");
+
+  try {
+    const supabase = await getSupabaseClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    const res = await fetch("/api/account/export-request", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ confirm: EXPORT_PHRASE }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body?.error || `server returned ${res.status}`);
+    }
+    if (phraseEl) phraseEl.value = "";
+    setStatus(
+      status,
+      "request received. we'll email you a download link within 30 days.",
+      "success"
+    );
+  } catch (err) {
+    setStatus(status, err?.message || "could not submit request. try again later.", "error");
+  } finally {
+    setButtonLoading(btn, false);
+  }
+}
+
 /* ---- Wire up -------------------------------------------------------- */
 
 $("sec-password-form")?.addEventListener("submit", handlePasswordSubmit);
 $("sec-signout-others")?.addEventListener("click", handleSignOutOthers);
 $("sec-delete-form")?.addEventListener("submit", handleDeleteRequest);
+$("sec-export-form")?.addEventListener("submit", handleExportRequest);

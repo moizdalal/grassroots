@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="/profile-seedling.css" />
     <link rel="stylesheet" href="/avatar-cropper.css" />
     <script src="/theme.js"></script>
+    <script src="/cookie-banner.js" defer></script>
     <script src="/loading-overlay.js"></script>
     <script defer src="/onboarding-shim.js"></script>
   </head>
@@ -564,6 +565,39 @@
                     sign out other devices
                   </button>
                 </div>
+              </div>
+            </section>
+
+            <!-- Data export request — request-only for v1. Server logs the
+                 request and emails admin; admin runs the export script and
+                 sends the user a download link manually. Doc:
+                 docs/data-export-process.md -->
+            <section class="settings-section">
+              <div class="settings-section-h">
+                <h3>request a copy of your data</h3>
+                <p>we'll email you a portable copy of the personal information we hold about you, within 30 days.</p>
+              </div>
+              <div class="settings-section__body">
+                <form id="sec-export-form" class="sec-form">
+                  <label class="gr-label">
+                    <span>type <em>export my data</em> to confirm</span>
+                    <input
+                      type="text"
+                      id="sec-export-confirm"
+                      name="confirmPhrase"
+                      autocomplete="off"
+                      autocapitalize="off"
+                      spellcheck="false"
+                      required
+                    />
+                  </label>
+                  <div class="sec-form__actions">
+                    <p class="gr-status" id="sec-export-status" aria-live="polite"></p>
+                    <button type="submit" class="gr-btn gr-btn--secondary" id="sec-export-btn">
+                      request data export
+                    </button>
+                  </div>
+                </form>
               </div>
             </section>
 

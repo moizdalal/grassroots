@@ -17,6 +17,12 @@ const {
   stableHash,
   createPaymentIntentOnce,
 } = require("./lib/stripe-compat");
+const { sendEmail } = require("./lib/email");
+
+// Admin contact that receives operational notifications (deletion requests,
+// data-export requests, suggestion submissions). Overridable per-env so we
+// don't accidentally hit a real inbox from staging.
+const PRIVACY_ADMIN_EMAIL = (process.env.PRIVACY_ADMIN_EMAIL || "moiz@grassroots-marketplace.com").trim();
 
 const app = express();
 
@@ -37,6 +43,54 @@ app.use(
 );
 
 app.use(compression());
+
+// EU/EEA/UK geo-block. Grassroots is US-only at launch; we redirect EU
+// traffic to a static "not available in your region" page to defer GDPR
+// scope. Vercel injects the request's ISO country code into the
+// `x-vercel-ip-country` header on every forwarded request — when the
+// header is absent (localhost dev, direct origin hits) we allow the
+// request through unchanged.
+//
+// We allow /privacy from any country because legal access to the privacy
+// policy is required even where service isn't offered, and we allow static
+// assets through so the block page itself loads correctly. The block page
+// is served with HTTP 451 (Unavailable For Legal Reasons) so crawlers
+// don't index it as the canonical content of every URL.
+const EU_BLOCK_COUNTRIES = new Set([
+  // EU member states
+  "AT","BE","BG","HR","CY","CZ","DK","EE","FI","FR","DE","GR","HU","IE",
+  "IT","LV","LT","LU","MT","NL","PL","PT","RO","SK","SI","ES","SE",
+  // United Kingdom
+  "GB",
+  // EFTA / EEA non-EU
+  "IS","LI","NO","CH",
+]);
+const REGION_BLOCK_ALLOW_PATHS = new Set([
+  "/privacy",
+  "/region-unavailable.html",
+  "/region-unavailable",
+  "/favicon.svg",
+  "/apple-touch-icon.png",
+  "/robots.txt",
+]);
+const REGION_BLOCK_STATIC_EXTS = new Set([
+  ".css", ".js", ".mjs", ".map",
+  ".svg", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".ico",
+  ".woff", ".woff2", ".ttf",
+]);
+app.use((req, res, next) => {
+  const country = (req.headers["x-vercel-ip-country"] || "").toUpperCase();
+  if (!country) return next();
+  if (!EU_BLOCK_COUNTRIES.has(country)) return next();
+
+  if (REGION_BLOCK_ALLOW_PATHS.has(req.path)) return next();
+  const ext = path.extname(req.path).toLowerCase();
+  if (REGION_BLOCK_STATIC_EXTS.has(ext)) return next();
+
+  res
+    .status(451)
+    .sendFile("region-unavailable.html", { root: path.join(__dirname, "public") });
+});
 
 function envTrim(name, fallback = "") {
   const v = process.env[name];
@@ -1174,15 +1228,131 @@ app.post("/api/account/delete-request", express.json(), async (req, res) => {
   if (confirm !== "delete my account") {
     return res.status(400).json({ ok: false, error: "missing confirmation phrase" });
   }
+
+  const userId = userData.user.id;
+  const userEmail = userData.user.email || "";
+  const requestedAt = new Date().toISOString();
+
+  // Idempotent: only stamp deletion_requested_at the first time. Re-sending
+  // emails on repeat clicks is annoying. We still return ok so the UI is
+  // consistent.
+  const { data: existing } = await supabase
+    .from("profiles")
+    .select("deletion_requested_at")
+    .eq("id", userId)
+    .maybeSingle();
+
+  const alreadyRequested = Boolean(existing?.deletion_requested_at);
+
+  if (!alreadyRequested) {
+    await supabase
+      .from("profiles")
+      .update({ deletion_requested_at: requestedAt })
+      .eq("id", userId);
+
+    // Best-effort: send the admin notification + the user confirmation.
+    // sendEmail no-ops cleanly when RESEND_API_KEY isn't configured.
+    sendEmail({
+      to: PRIVACY_ADMIN_EMAIL,
+      subject: `[grassroots] account deletion request — ${userEmail || userId}`,
+      replyTo: userEmail || undefined,
+      text:
+        `A user has requested deletion of their account.\n\n` +
+        `User ID: ${userId}\n` +
+        `Email:   ${userEmail}\n` +
+        `Requested at: ${requestedAt}\n\n` +
+        `Process per docs/account-deletion-process.md within 14 days.`,
+    }).catch((e) => console.warn("[delete-request] admin email failed", e?.message));
+
+    if (userEmail) {
+      sendEmail({
+        to: userEmail,
+        subject: "we received your deletion request",
+        text:
+          `hi,\n\n` +
+          `we received your request to delete your grassroots account. ` +
+          `we'll process it within 14 days and email you again to confirm when it's done. ` +
+          `if you didn't make this request, reply to this email immediately and we'll cancel it.\n\n` +
+          `— grassroots`,
+      }).catch((e) => console.warn("[delete-request] user email failed", e?.message));
+    }
+  }
+
   console.log(
     "[account-delete-request]",
     JSON.stringify({
-      userId: userData.user.id,
-      email: userData.user.email,
-      at: new Date().toISOString(),
+      userId,
+      email: userEmail,
+      at: requestedAt,
+      alreadyRequested,
     })
   );
-  return res.json({ ok: true, pending: true });
+
+  return res.json({
+    ok: true,
+    pending: true,
+    requested_at: existing?.deletion_requested_at || requestedAt,
+    already_requested: alreadyRequested,
+  });
+});
+
+// Data export request — same shape as delete-request. Logs + emails admin;
+// admin runs the export script and sends the user a download link. Manual
+// for v1 (see docs/data-export-process.md).
+app.post("/api/account/export-request", express.json(), async (req, res) => {
+  const token = getBearerToken(req);
+  if (!token) {
+    return res.status(401).json({ ok: false, error: "missing token" });
+  }
+  const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+  if (userErr || !userData?.user?.id) {
+    return res.status(401).json({ ok: false, error: "invalid session" });
+  }
+  const confirm = typeof req.body?.confirm === "string" ? req.body.confirm.trim().toLowerCase() : "";
+  if (confirm !== "export my data") {
+    return res.status(400).json({ ok: false, error: "missing confirmation phrase" });
+  }
+
+  const userId = userData.user.id;
+  const userEmail = userData.user.email || "";
+  const requestedAt = new Date().toISOString();
+
+  await supabase
+    .from("profiles")
+    .update({ export_requested_at: requestedAt })
+    .eq("id", userId);
+
+  sendEmail({
+    to: PRIVACY_ADMIN_EMAIL,
+    subject: `[grassroots] data export request — ${userEmail || userId}`,
+    replyTo: userEmail || undefined,
+    text:
+      `A user has requested a copy of their personal data.\n\n` +
+      `User ID: ${userId}\n` +
+      `Email:   ${userEmail}\n` +
+      `Requested at: ${requestedAt}\n\n` +
+      `Fulfill per docs/data-export-process.md within 30 days.`,
+  }).catch((e) => console.warn("[export-request] admin email failed", e?.message));
+
+  if (userEmail) {
+    sendEmail({
+      to: userEmail,
+      subject: "we received your data export request",
+      text:
+        `hi,\n\n` +
+        `we received your request for a copy of your grassroots data. ` +
+        `we'll email you a secure download link within 30 days. ` +
+        `if you didn't make this request, reply to this email and we'll cancel it.\n\n` +
+        `— grassroots`,
+    }).catch((e) => console.warn("[export-request] user email failed", e?.message));
+  }
+
+  console.log(
+    "[account-export-request]",
+    JSON.stringify({ userId, email: userEmail, at: requestedAt })
+  );
+
+  return res.json({ ok: true, pending: true, requested_at: requestedAt });
 });
 
 app.post("/api/register", upload.single("resume"), async (req, res) => {
@@ -1198,6 +1368,7 @@ app.post("/api/register", upload.single("resume"), async (req, res) => {
     socialLinks,
     businessDetails,
     currentEfforts,
+    accepted_terms,
   } = req.body;
 
   if (!email || !password || !role || !fullName || !String(phoneNumber || "").trim()) {
@@ -1207,6 +1378,21 @@ app.post("/api/register", upload.single("resume"), async (req, res) => {
   if (!["business_owner", "consultant"].includes(role)) {
     return res.status(400).json({ error: "Invalid role selection." });
   }
+
+  // Privacy + terms consent. The client-side gate blocks submission without
+  // it, but enforce server-side too so the column reliably reflects
+  // affirmative consent (and so a hand-crafted request can't bypass).
+  const acceptedTerms =
+    accepted_terms === "1" ||
+    accepted_terms === true ||
+    accepted_terms === "true" ||
+    accepted_terms === "on";
+  if (!acceptedTerms) {
+    return res.status(400).json({
+      error: "You must agree to the privacy policy and terms of service to create an account.",
+    });
+  }
+  const termsAcceptedAt = new Date().toISOString();
 
   let parsedSocialLinks = null;
   if (socialLinks && socialLinks.trim()) {
@@ -1265,6 +1451,7 @@ app.post("/api/register", upload.single("resume"), async (req, res) => {
       phone_number: String(phoneNumber || "").trim(),
       linkedin_url: linkedinUrl || null,
       resume_path: resumePath,
+      terms_accepted_at: termsAcceptedAt,
     });
 
     if (profileError) {
@@ -4561,6 +4748,7 @@ app.get("/sitemap.xml", async (_req, res) => {
     { loc: `${origin}/home/about.html`, changefreq: "monthly", priority: "0.7" },
     { loc: `${origin}/home/for-students.html`, changefreq: "monthly", priority: "0.7" },
     { loc: `${origin}/help.html`, changefreq: "monthly", priority: "0.6" },
+    { loc: `${origin}/privacy`, changefreq: "yearly", priority: "0.3" },
   ];
   let listingUrls = [];
   if (supabase) {
@@ -4608,6 +4796,13 @@ app.get("/sitemap.xml", async (_req, res) => {
 // middleware below serves that file directly.
 app.get("/", (_req, res) => {
   res.sendFile("index.html", { root: path.join(__dirname, "public", "home") });
+});
+
+// Extension-less alias for the privacy policy so footer links to "/privacy"
+// resolve. Express's static middleware below doesn't auto-resolve .html, so
+// any policy/legal pages referenced without extension need an explicit route.
+app.get("/privacy", (_req, res) => {
+  res.sendFile("privacy.html", { root: path.join(__dirname, "public") });
 });
 
 app.use(
