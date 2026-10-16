@@ -3269,7 +3269,11 @@ body.gr-has-side-nav .bza__side {
   max-height: calc(100vh - 2rem);
 }
 
-body.gr-has-side-nav .bza__main {
+/* min-width: 0 lets the 1fr main column shrink below its content's
+   intrinsic width. Unconditional so it applies before side-nav.js
+   adds .gr-has-side-nav; otherwise wide content squishes the column
+   on loads where the script runs late. */
+.bza__main {
   min-width: 0;
 }
 

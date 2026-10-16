@@ -615,17 +615,35 @@ export function renderAnalyticsPanel(container, analytics, opts = {}) {
   wireConversionInfoToggle(container);
 }
 
-// Draw the curve once the panel is in the DOM, then redraw on window
-// resize so each segment keeps terminating at the node perimeter
-// (HTML nodes are positioned by % and adapt automatically, but the
-// SVG path is in measured pixels and needs a fresh pass on resize).
+// Draw the curve once the panel is in the DOM, then redraw whenever
+// the container's size changes so each segment keeps terminating at
+// the node perimeter (HTML nodes are positioned by % and adapt
+// automatically, but the SVG path is in measured pixels). Observing
+// the container, not the window, also catches layout shifts that
+// never fire a window resize: side-nav wrapping the page, the
+// sidebar collapse transition, and web fonts swapping in.
 function setupCurveDrawing(container) {
-  const draw = () => drawCurves(container);
-  requestAnimationFrame(draw);
-  const prior = container.__lvCurveHandler;
-  if (prior) window.removeEventListener("resize", prior);
-  container.__lvCurveHandler = draw;
-  window.addEventListener("resize", draw);
+  let queued = false;
+  const draw = () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => {
+      queued = false;
+      drawCurves(container);
+    });
+  };
+  draw();
+  container.__lvCurveObserver?.disconnect();
+  if (typeof ResizeObserver === "function") {
+    const observer = new ResizeObserver(draw);
+    observer.observe(container);
+    container.__lvCurveObserver = observer;
+  } else {
+    const prior = container.__lvCurveHandler;
+    if (prior) window.removeEventListener("resize", prior);
+    container.__lvCurveHandler = draw;
+    window.addEventListener("resize", draw);
+  }
 }
 
 // "?" affordance next to the view→offer rate label. Click flips the
