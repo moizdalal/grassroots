@@ -2927,8 +2927,10 @@
       /* hero italic accent stronger */
       [data-theme="light"] .ld-italic { color: var(--fo-accent); }
 
-      /* hero card chips: subtle cream with accent border */
-      [data-theme="light"] .ld-hero-card {
+      /* hero card chips: subtle cream with accent border. :not(.s-center)
+         keeps this from overriding the solid accent panel on the focused
+         card, which has white text (--fo-accent-on). */
+      [data-theme="light"] .ld-hero-card:not(.s-center) {
         background: var(--fo-surface);
         border-color: var(--fo-line-strong);
         box-shadow: 0 12px 28px rgba(20, 48, 32, 0.10), 0 1px 3px rgba(20, 48, 32, 0.05);
@@ -3161,15 +3163,14 @@
       }
 
       /* hero floating cards: stronger cream surface + a green corner mark */
-      [data-theme="light"] .ld-hero-card {
+      [data-theme="light"] .ld-hero-card:not(.s-center) {
         background: var(--fo-surface);
         border: 1.5px solid color-mix(in srgb, var(--fo-accent) 18%, var(--fo-line-strong));
         box-shadow:
           0 1px 0 rgba(20,32,26,0.04),
           0 22px 44px rgba(14, 51, 36, 0.12);
-        position: relative;
       }
-      [data-theme="light"] .ld-hero-card::before {
+      [data-theme="light"] .ld-hero-card:not(.s-center)::before {
         content: ""; position: absolute;
         top: 0; left: 0;
         width: 0; height: 0;
