@@ -13,6 +13,10 @@ const avatarInput = document.getElementById("avatar-input");
 const avatarStatusEl = document.getElementById("avatar-status");
 
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
+// Matches the portfolio bucket's file_size_limit (supabase/migrations/rls_lockdown.sql).
+const PORTFOLIO_MAX_BYTES = 50 * 1024 * 1024;
+// The bucket rejects types a browser would render as a page.
+const PORTFOLIO_BLOCKED_EXT = /\.(html?|xhtml|svgz?|js|mjs|xml)$/i;
 const AVATAR_ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 // Avatar upload/remove feedback now routes through the app-wide toast
@@ -713,7 +717,7 @@ async function renderResumeCurrentLabel(/* legacy arg ignored */) {
     <label class="pf-toggle-label">
       <input type="checkbox" id="resume-public-toggle" ${isPublic ? "checked" : ""} />
       <span class="pf-toggle-switch"></span>
-      <span>public</span>
+      <span>visible to businesses you've contacted</span>
     </label>
     <button type="button" class="pf-portfolio-item__delete" data-resume-action="remove">remove</button>
   `;
@@ -827,7 +831,7 @@ function renderPortfolioList() {
         <label class="pf-toggle-label">
           <input type="checkbox" class="pf-portfolio-public-cb" data-id="${id}" ${item.is_public ? "checked" : ""} />
           <span class="pf-toggle-switch"></span>
-          <span>public</span>
+          <span>visible to businesses you've contacted</span>
         </label>
         <button type="button" class="pf-portfolio-item__delete" data-id="${id}">remove</button>
       </div>
@@ -881,8 +885,17 @@ async function handlePortfolioUpload() {
     showError("please choose a file first.");
     return;
   }
-  if (file.size > 25 * 1024 * 1024) {
-    showError("file must be 25 mb or smaller.");
+  if (file.size > PORTFOLIO_MAX_BYTES) {
+    const isDeck = /\.(pptx?|key)$/i.test(file.name);
+    showError(
+      isDeck
+        ? "this deck is over 50 mb. export it as a pdf (file → export → pdf) and upload that."
+        : "file must be 50 mb or smaller."
+    );
+    return;
+  }
+  if (PORTFOLIO_BLOCKED_EXT.test(file.name)) {
+    showError("web pages, svgs and scripts can't be uploaded. try a pdf or image instead.");
     return;
   }
 
@@ -1342,7 +1355,7 @@ async function loadProfile() {
   } = await supabase
     .from("profiles")
     .select(
-      "*, consultant_profiles ( * ), business_profiles ( business_name, business_address, website_url, business_details, social_links, instagram_url, facebook_url, company_linkedin_url )"
+      "id, role, full_name, avatar_path, linkedin_url, resume_public, read_receipts_enabled, stripe_account_status, onboarded_at, created_at, consultant_profiles ( * ), business_profiles ( business_name, business_address, website_url, business_details, social_links, instagram_url, facebook_url, company_linkedin_url )"
     )
     .eq("id", userId)
     .single());
@@ -1355,7 +1368,7 @@ async function loadProfile() {
     } = await supabase
       .from("profiles")
       .select(
-        "*, consultant_profiles ( * ), business_profiles ( business_name, website_url, business_details, social_links, instagram_url, facebook_url, company_linkedin_url )"
+        "id, role, full_name, avatar_path, linkedin_url, resume_public, read_receipts_enabled, stripe_account_status, onboarded_at, created_at, consultant_profiles ( * ), business_profiles ( business_name, website_url, business_details, social_links, instagram_url, facebook_url, company_linkedin_url )"
       )
       .eq("id", userId)
       .single());
@@ -1370,6 +1383,11 @@ async function loadProfile() {
     gateEl.className = "gr-status error";
     return;
   }
+
+  // Phone, resume path and stripe ids aren't selectable from the table
+  // (column grants), so the owner's own copy comes from an RPC.
+  const { data: priv } = await supabase.rpc("get_my_private_profile").maybeSingle();
+  if (priv) Object.assign(row, priv);
 
   profileRow = row;
   role = row.role;
@@ -1491,9 +1509,11 @@ form.addEventListener("submit", async (e) => {
     const linkedinUrl =
       role === "consultant" ? document.getElementById("field-linkedin").value.trim() : "";
 
+    const phoneField = document.getElementById("field-phone");
     const profileUpdate = {
       full_name: fullName,
     };
+    if (phoneField) profileUpdate.phone_number = phoneField.value.trim() || null;
     if (role === "consultant") {
       profileUpdate.linkedin_url = linkedinUrl || null;
     }

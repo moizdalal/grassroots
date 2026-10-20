@@ -67,12 +67,14 @@ function publicAvatarUrl(client, path) {
 /* ============================================================== */
 
 async function loadData(client, userId) {
-  const [profileRes, consultantRes, portfolioRes] = await Promise.all([
+  const [profileRes, privateRes, consultantRes, portfolioRes] = await Promise.all([
     client
       .from("profiles")
-      .select("id, full_name, role, avatar_path, linkedin_url, resume_path, stripe_account_status")
+      .select("id, full_name, role, avatar_path, linkedin_url, stripe_account_status")
       .eq("id", userId)
       .single(),
+    // resume_path is private (column grants) — the owner reads it via RPC.
+    client.rpc("get_my_private_profile").maybeSingle(),
     client
       .from("consultant_profiles")
       .select("user_id, headline, bio, major, minor, school")
@@ -91,7 +93,7 @@ async function loadData(client, userId) {
     const e = new Error(profileRes.error.message || "could not load profile.");
     throw e;
   }
-  const profile = profileRes.data;
+  const profile = { ...profileRes.data, resume_path: privateRes.data?.resume_path ?? null };
   const consultant = consultantRes.data;
   const portfolioCount = portfolioRes.count || 0;
 
