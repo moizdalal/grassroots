@@ -80,7 +80,7 @@
           const client = await getSupabaseClient();
           const { data: profile, error: pErr } = await client
             .from("profiles")
-            .select("id, full_name, linkedin_url, resume_path")
+            .select("id, full_name, linkedin_url")
             .eq("id", id)
             .single();
           if (pErr) throw pErr;
@@ -106,13 +106,16 @@
             }
           }
 
-          if (profile?.resume_path) {
-            const url = client.storage.from("resumes").getPublicUrl(profile.resume_path).data?.publicUrl;
-            if (url) {
-              $("cr-resume-link").innerHTML = `<a href="${escape(url)}" target="_blank" rel="noopener" class="gr-btn gr-btn--primary" style="text-decoration:none">view resume PDF →</a>`;
-              $("cr-resume-card").hidden = false;
-              $("cr-placeholder").hidden = true;
-            }
+          // The resumes bucket is private, so the server hands out a short-
+          // lived signed link when the viewer is allowed to see it.
+          const { data: { session } } = await client.auth.getSession();
+          const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+          const resumeRes = await fetch(`/api/consultant-profile/${encodeURIComponent(id)}/resume`, { headers });
+          const resumeBody = await resumeRes.json().catch(() => ({}));
+          if (resumeRes.ok && resumeBody.url) {
+            $("cr-resume-link").innerHTML = `<a href="${escape(resumeBody.url)}" target="_blank" rel="noopener" class="gr-btn gr-btn--primary" style="text-decoration:none">view resume PDF →</a>`;
+            $("cr-resume-card").hidden = false;
+            $("cr-placeholder").hidden = true;
           }
 
           if (profile?.linkedin_url) {
