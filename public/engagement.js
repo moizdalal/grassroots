@@ -480,7 +480,7 @@ async function loadRetainerPeriods(bidId) {
 async function loadRetainerSubscription(bidId) {
   const { data, error } = await supabase
     .from("retainer_subscriptions")
-    .select("id, stripe_subscription_id, cadence, period_count, periods_billed, fee_cents, status, started_at, ends_at, canceled_at, offered_by, offered_at, accepted_at, declined_at, offer_message")
+    .select("id, stripe_subscription_id, cadence, period_count, periods_billed, fee_cents, status, started_at, ends_at, canceled_at, offered_by, offered_at, accepted_at, declined_at, offer_message, auto_release, terminates_at")
     .eq("bid_id", bidId)
     .maybeSingle();
   if (error) {
@@ -866,9 +866,15 @@ function renderRetainerControls() {
   host.classList.remove("hidden");
   const isOwner = viewRole === "owner";
   const auto = !!retainerSub.auto_release;
-  const terminates = retainerSub.terminates_at
-    ? new Date(retainerSub.terminates_at).toISOString().slice(0, 10)
+  const paid = Number(retainerSub.periods_billed) || 0;
+  const minLength = Math.max(1, paid);
+  const length = retainerSub.period_count || "";
+  const endsOn = retainerSub.terminates_at
+    ? new Date(retainerSub.terminates_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
     : "";
+  const lengthHint = length && endsOn
+    ? `billing stops after period ${length}, on ${endsOn}. you can go as low as ${minLength}.`
+    : "no end set. billing continues until you or the consultant end it.";
 
   const settingsBlock = isOwner ? `
     <div class="eg-retainer-controls__settings">
@@ -881,9 +887,10 @@ function renderRetainerControls() {
         <input type="checkbox" id="eg-retainer-auto-release" ${auto ? "checked" : ""} />
         <span class="settings-toggle-switch" aria-hidden="true"></span>
       </label>
-      <label class="gr-label eg-retainer-controls__date">
-        <span>termination date <span class="gr-optional">optional</span></span>
-        <input type="date" id="eg-retainer-terminates-at" value="${terminates}" />
+      <label class="gr-label eg-retainer-controls__length">
+        <span>retainer length (periods)</span>
+        <input type="number" id="eg-retainer-period-count" min="${minLength}" max="120" step="1" inputmode="numeric" value="${length}" />
+        <span class="eg-retainer-controls__hint">${lengthHint}</span>
       </label>
       <div class="eg-retainer-controls__actions">
         <p id="eg-retainer-controls-status" class="gr-status" aria-live="polite"></p>
@@ -916,13 +923,11 @@ async function saveRetainerSettings() {
   if (status) { status.textContent = "saving…"; status.className = "gr-status"; }
   try {
     const autoEl = document.getElementById("eg-retainer-auto-release");
-    const dateEl = document.getElementById("eg-retainer-terminates-at");
+    const lengthEl = document.getElementById("eg-retainer-period-count");
     const body = { bid_id: currentBid.id };
     if (autoEl) body.auto_release = !!autoEl.checked;
-    if (dateEl) {
-      body.terminates_at = dateEl.value
-        ? new Date(`${dateEl.value}T23:59:59Z`).toISOString()
-        : null;
+    if (lengthEl?.value && Number(lengthEl.value) !== Number(retainerSub.period_count)) {
+      body.period_count = Number(lengthEl.value);
     }
     const { data: { session } } = await supabase.auth.getSession();
     const headers = { "Content-Type": "application/json" };
@@ -936,16 +941,24 @@ async function saveRetainerSettings() {
       if (btn) btn.disabled = false;
       return;
     }
-    retainerSub = { ...retainerSub, ...(data.auto_release !== undefined ? { auto_release: data.auto_release } : {}), terminates_at: data.terminates_at };
+    retainerSub = {
+      ...retainerSub,
+      ...(data.auto_release !== undefined ? { auto_release: data.auto_release } : {}),
+      terminates_at: data.terminates_at,
+      period_count: data.period_count ?? retainerSub.period_count,
+    };
     // Catch-up releases (auto_release flipped on) may have changed period rows.
     retainerPeriods = await loadRetainerPeriods(currentBid.id);
     renderRetainerPeriodsPanel();
+    // Re-render so the length hint shows the new end date; that replaces
+    // the status node, so write the message to the fresh one.
+    renderRetainerControls();
     const catchUp = (data.catch_up_released || []).filter((r) => r.ok).length;
     const msg = catchUp > 0
       ? `saved. released ${catchUp} held period${catchUp === 1 ? "" : "s"}.`
       : "saved.";
-    if (status) { status.textContent = msg; status.className = "gr-status success"; }
-    if (btn) btn.disabled = false;
+    const freshStatus = document.getElementById("eg-retainer-controls-status");
+    if (freshStatus) { freshStatus.textContent = msg; freshStatus.className = "gr-status success"; }
   } catch (err) {
     if (status) { status.textContent = err.message || "could not reach the payment server."; status.className = "gr-status error"; }
     if (btn) btn.disabled = false;
@@ -1139,13 +1152,15 @@ function renderRetainerDecisionPanel() {
     retainerTitleEl.textContent = "retainer is live";
     retainerStatusPill.textContent = retainerSub.status === "pending" ? "starting…" : "active";
     retainerStatusPill.className = "gr-pill gr-pill--accepted gr-pill--no-dot";
-    // Open-ended now: subscriptions run until either party cancels at
-    // end of period (or `terminates_at` hits, set in the controls panel
-    // below). Surface the next-bill cadence + how many periods have
-    // settled so far.
-    const periodsLine = retainerSub.periods_billed
-      ? `${retainerSub.periods_billed} period${retainerSub.periods_billed === 1 ? "" : "s"} billed so far.`
-      : "first period bills at the start of the next cycle.";
+    // Billing stops after `period_count` periods (the business can change
+    // the length in the controls panel below), or earlier if either party
+    // ends it after the current period.
+    const billed = retainerSub.periods_billed || 0;
+    const periodsLine = retainerSub.period_count
+      ? `period ${billed} of ${retainerSub.period_count} billed.`
+      : billed
+        ? `${billed} period${billed === 1 ? "" : "s"} billed so far.`
+        : "first period bills at the start of the next cycle.";
     retainerBodyEl.textContent = `billing every ${cadenceLabel(retainerSub.cadence)}. ${periodsLine} each period escrows on payment and releases after you mark the work delivered.`;
     retainerTermsForm.classList.add("hidden");
     // The cancel control moved to the retainer-controls panel under the

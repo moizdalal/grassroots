@@ -7,6 +7,16 @@ const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const fees = require("./lib/fees");
+const {
+  periodEndUnix,
+  idOf,
+  invoiceSubscriptionId,
+  invoiceSubscriptionMetadata,
+  resolveInvoicePayment,
+  idemKey,
+  stableHash,
+  createPaymentIntentOnce,
+} = require("./lib/stripe-compat");
 
 const app = express();
 
@@ -41,6 +51,9 @@ const SUPABASE_ANON_KEY =
 const STRIPE_SECRET_KEY = envTrim("STRIPE_SECRET_KEY");
 const STRIPE_PUBLISHABLE_KEY = envTrim("STRIPE_PUBLISHABLE_KEY");
 const STRIPE_WEBHOOK_SECRET = envTrim("STRIPE_WEBHOOK_SECRET");
+// Stripe signs platform events and connected-account events (account.updated,
+// payout.failed, …) from separate endpoints, each with its own secret.
+const STRIPE_WEBHOOK_SECRET_CONNECT = envTrim("STRIPE_WEBHOOK_SECRET_CONNECT");
 const stripe = STRIPE_SECRET_KEY ? require("stripe")(STRIPE_SECRET_KEY) : null;
 if (!stripe) console.warn("[stripe] STRIPE_SECRET_KEY missing — payment endpoints will 503.");
 if (stripe && !STRIPE_WEBHOOK_SECRET) console.warn("[stripe] STRIPE_WEBHOOK_SECRET missing — webhook endpoint will reject events.");
@@ -78,58 +91,114 @@ const upload = multer({
 
 /* Stripe webhook endpoint — MUST be registered before the global
    express.json() so the raw body is preserved for signature verification.
-   Public route (no auth gate) — Stripe is the caller. */
-app.post(
-  "/webhooks/stripe",
-  express.raw({ type: "application/json" }),
-  async (req, res) => {
-    if (!stripe) return res.status(503).json({ error: "stripe not configured" });
-    if (!STRIPE_WEBHOOK_SECRET) {
-      console.error("[stripe webhook] STRIPE_WEBHOOK_SECRET missing — refusing event.");
-      return res.status(500).json({ error: "webhook secret not configured" });
-    }
-    const sig = req.headers["stripe-signature"];
-    let event;
-    try {
-      event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
-    } catch (err) {
-      console.warn("[stripe webhook] signature verification failed:", err.message);
-      return res.status(400).send(`Webhook Error: ${err.message}`);
-    }
+   Public route (no auth gate) — Stripe is the caller.
 
-    try {
-      await handleStripeEvent(event);
-    } catch (err) {
-      console.error("[stripe webhook] handler failed:", err);
-      // Still 200 — Stripe will retry on 5xx, and we don't want to block
-      // unrelated event types because one handler threw.
-    }
-    res.json({ received: true, type: event.type });
+   Served at both /webhooks/stripe (vercel.json rewrites it to the Express
+   function) and /api/webhooks/stripe (covered by the existing /api/*
+   rewrite). Register the /api/ path in the Stripe dashboard. */
+async function stripeWebhookHandler(req, res) {
+  if (!stripe) return res.status(503).json({ error: "stripe not configured" });
+  if (!STRIPE_WEBHOOK_SECRET) {
+    console.error("[stripe webhook] STRIPE_WEBHOOK_SECRET missing — refusing event.");
+    return res.status(500).json({ error: "webhook secret not configured" });
   }
-);
+  // Signature verification needs the exact bytes Stripe sent. If a host
+  // layer already parsed the body into an object, verification can't work.
+  const rawBody = Buffer.isBuffer(req.body)
+    ? req.body
+    : typeof req.body === "string" ? Buffer.from(req.body) : null;
+  if (!rawBody) {
+    console.error("[stripe webhook] body was not raw — signature cannot be verified.");
+    return res.status(400).send("Webhook Error: raw body unavailable");
+  }
+  const sig = req.headers["stripe-signature"];
+  let event = null;
+  for (const secret of [STRIPE_WEBHOOK_SECRET, STRIPE_WEBHOOK_SECRET_CONNECT].filter(Boolean)) {
+    try {
+      event = stripe.webhooks.constructEvent(rawBody, sig, secret);
+      break;
+    } catch (_) { /* try the next endpoint's secret */ }
+  }
+  if (!event) {
+    console.warn("[stripe webhook] signature verification failed");
+    return res.status(400).send("Webhook Error: invalid signature");
+  }
+
+  try {
+    await handleStripeEvent(event);
+  } catch (err) {
+    // 500 so Stripe retries this event (it backs off for up to 3 days).
+    // Every handler is idempotent, and a failing event doesn't hold up
+    // delivery of other events.
+    console.error(`[stripe webhook] ${event.type} ${event.id} handler failed:`, err);
+    return res.status(500).json({ error: "handler failed" });
+  }
+  res.json({ received: true, type: event.type });
+}
+app.post("/webhooks/stripe", express.raw({ type: "application/json" }), stripeWebhookHandler);
+app.post("/api/webhooks/stripe", express.raw({ type: "application/json" }), stripeWebhookHandler);
 
 async function handleStripeEvent(event) {
+  const obj = event.data.object;
   switch (event.type) {
     case "account.updated":
-      await onConnectAccountUpdated(event.data.object);
+      await onConnectAccountUpdated(obj);
       break;
     case "account.application.deauthorized":
-      await onConnectAccountDeauthorized(event.data.object);
+      // For Connect events the deauthorized account is `event.account`;
+      // `data.object` is the Application.
+      await onConnectAccountDeauthorized({ id: event.account || obj?.id });
       break;
     case "invoice.paid":
     case "invoice.payment_succeeded":
-      await onRetainerInvoicePaid(event.data.object);
+      await onRetainerInvoicePaid(obj);
       break;
     case "invoice.payment_failed":
-      await onRetainerInvoiceFailed(event.data.object);
+      await onRetainerInvoiceFailed(obj);
       break;
     case "customer.subscription.deleted":
-      await onSubscriptionDeleted(event.data.object);
+      await onSubscriptionDeleted(obj);
       break;
     case "customer.subscription.updated":
-      await onSubscriptionUpdated(event.data.object);
+      await onSubscriptionUpdated(obj);
       break;
-    // Future: payment_intent.succeeded, charge.refunded, transfer.created, etc.
+    case "payment_intent.succeeded":
+      await onPaymentIntentSucceeded(obj);
+      break;
+    case "charge.refunded":
+      await onChargeRefunded(obj);
+      break;
+    case "transfer.reversed":
+      await onTransferReversed(obj);
+      break;
+    case "payout.failed":
+      await onPayoutFailed(obj, event.account);
+      break;
+    case "charge.dispute.created":
+      await onDisputeCreated(obj);
+      break;
+    case "charge.dispute.closed":
+      await onDisputeClosed(obj);
+      break;
+  }
+}
+
+/* Ops alerts. Logged with a fixed tag so a Vercel log alert / drain can
+   match on it. Not user-facing. */
+function alertOps(kind, details) {
+  console.error(`[stripe-ops] ${kind}`, JSON.stringify(details));
+}
+
+// Server-side notification insert (service role). Never throws.
+async function notifyUser(userId, { type, title, body, link }) {
+  if (!userId || !supabase) return;
+  try {
+    const { error } = await supabase
+      .from("notifications")
+      .insert({ user_id: userId, type, title, body, link: link || null });
+    if (error) console.warn("[notify] insert failed:", error.message);
+  } catch (err) {
+    console.warn("[notify] insert failed:", err.message);
   }
 }
 
@@ -158,30 +227,73 @@ async function onConnectAccountDeauthorized(account) {
     .eq("stripe_account_id", account.id);
 }
 
-/* Resolve the charge id off an invoice across Stripe API generations.
-   Older versions populated `invoice.charge` at the top level. Current
-   API only exposes the charge through `invoice.payments[].payment` →
-   PaymentIntent → `latest_charge`. Without resolving this, the held
-   row gets `charge_id: null` and `release-period` can't pin the
-   Transfer via `source_transaction` — funds fall back to the platform
-   balance ($0 in test mode) and the transfer fails silently. */
-async function resolveInvoiceCharge(invoice) {
-  if (invoice?.charge) return { chargeId: invoice.charge, paymentIntentId: invoice.payment_intent || null };
-  let paymentIntentId = invoice?.payment_intent || null;
-  if (!paymentIntentId) {
-    const payment = invoice?.payments?.data?.[0]?.payment;
-    if (payment?.payment_intent) paymentIntentId = payment.payment_intent;
+/* Compare-and-set update: applies `updates` only while `statusField` still
+   equals `expected`. Returns the updated row, or null if another request
+   already moved it. Throws on DB error. This is the lock that keeps two
+   concurrent release/refund clicks from both reaching Stripe. */
+async function casUpdate(table, id, expected, updates, statusField = "status") {
+  const { data, error } = await supabase
+    .from(table)
+    .update(updates)
+    .eq("id", id)
+    .eq(statusField, expected)
+    .select("id");
+  if (error) throw new Error(`${table} update failed: ${error.message}`);
+  return data?.[0] || null;
+}
+
+/* Claim a held phase row (status held → released), create the transfer,
+   then stamp transfer_id. If Stripe fails, the claim is rolled back to
+   held so the owner can retry. The transfer's idempotency key is the row
+   id, so a retry after a lost response returns the same transfer instead
+   of paying twice. */
+async function releasePhaseRow(phaseRow, { destination, metadata }) {
+  if (await chargeDisputeHold(phaseRow.charge_id)) {
+    return { ok: false, disputed: true, error: DISPUTE_HOLD_ERROR };
   }
-  let chargeId = null;
-  if (paymentIntentId && stripe) {
-    try {
-      const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-      chargeId = pi?.latest_charge || null;
-    } catch (err) {
-      console.warn("[stripe webhook] charge resolution failed:", err.message);
-    }
+  const releasedAt = new Date().toISOString();
+  const claimed = await casUpdate("bid_phase_payments", phaseRow.id, "held", {
+    status: "released",
+    released_at: releasedAt,
+  });
+  if (!claimed) return { ok: false, conflict: true, error: "payment is no longer held." };
+
+  // Stored consultant payout (offer - estimated Stripe fee); legacy rows
+  // with NULL grandfather to a full-amount transfer.
+  const payoutAmount = phaseRow.consultant_payout_cents ?? phaseRow.amount_cents;
+  let transfer;
+  try {
+    transfer = await stripe.transfers.create(
+      {
+        amount: payoutAmount,
+        currency: "usd",
+        destination,
+        source_transaction: phaseRow.charge_id,
+        metadata,
+      },
+      { idempotencyKey: idemKey("transfer", "phase", phaseRow.id) }
+    );
+  } catch (err) {
+    const { error: revertErr } = await supabase
+      .from("bid_phase_payments")
+      .update({ status: "held", released_at: null })
+      .eq("id", phaseRow.id)
+      .eq("status", "released")
+      .is("transfer_id", null);
+    if (revertErr) alertOps("phase_release_revert_failed", { phase_id: phaseRow.id, error: revertErr.message });
+    throw err;
   }
-  return { chargeId, paymentIntentId };
+
+  const { error: stampErr } = await supabase
+    .from("bid_phase_payments")
+    .update({ transfer_id: transfer.id })
+    .eq("id", phaseRow.id);
+  if (stampErr) {
+    // Money moved and the row already says released, so nothing can pay
+    // twice — but the transfer id is missing from our books.
+    alertOps("phase_transfer_id_not_saved", { phase_id: phaseRow.id, transfer_id: transfer.id, error: stampErr.message });
+  }
+  return { ok: true, transfer_id: transfer.id, payout_cents: payoutAmount };
 }
 
 /* Inline transfer logic shared between the manual release-period endpoint
@@ -219,56 +331,81 @@ async function transferRetainerPeriodFunds({ bidId, periodIndex }) {
   const account = await stripe.accounts.retrieve(consultant.stripe_account_id);
   if (!account.payouts_enabled) return { ok: false, error: "consultant payouts not enabled" };
 
-  // Prefer the stored consultant payout (offer - estimated Stripe fee);
-  // legacy rows with NULL grandfather to a full-amount transfer.
-  const payoutAmount = phase.consultant_payout_cents ?? phase.amount_cents;
-  const transfer = await stripe.transfers.create({
-    amount: payoutAmount,
-    currency: "usd",
-    destination: consultant.stripe_account_id,
-    source_transaction: phase.charge_id,
-    metadata: { bid_id: bidId, period_index: String(periodIndex), source: "retainer_auto_release" },
-  });
-
-  await supabase
-    .from("bid_phase_payments")
-    .update({ status: "released", transfer_id: transfer.id, released_at: new Date().toISOString() })
-    .eq("id", phase.id);
-
-  return { ok: true, transfer_id: transfer.id };
+  try {
+    const result = await releasePhaseRow(phase, {
+      destination: consultant.stripe_account_id,
+      metadata: { bid_id: bidId, phase: "retainer_period", period_index: String(periodIndex) },
+    });
+    if (result.conflict) return { ok: true, alreadyReleased: true };
+    return result;
+  } catch (err) {
+    return { ok: false, error: err.message || "transfer failed" };
+  }
 }
 
 // Retainer subscription invoice paid (recurring period billed successfully).
 // Records the period in `bid_phase_payments` with status='held' so the owner
 // can release it after the consultant delivers that period's work. If
 // `auto_release` is on, fire the transfer inline so the owner doesn't have to
-// click each period. The `period_count` field is no longer enforced — new
-// subscriptions are open-ended and end via `terminates_at` (Stripe's
-// `cancel_at`) or manual cancellation by either party.
+// click each period.
+//
+// Idempotent across redeliveries and across invoice.paid +
+// invoice.payment_succeeded (both fire for the same invoice): a period is
+// keyed by its PaymentIntent, so a second delivery finds the existing row
+// and doesn't bump periods_billed again.
 async function onRetainerInvoicePaid(invoice) {
-  if (!invoice?.subscription || !supabase) return;
-  const subscriptionId = invoice.subscription;
+  if (!supabase) return;
+  const subscriptionId = invoiceSubscriptionId(invoice);
+  if (!subscriptionId) return; // not a subscription invoice
+  if (!invoice.amount_paid) return; // $0 invoice (proration/credit) — nothing escrowed
 
-  const { data: subRow, error: subErr } = await supabase
+  const subCols = "id, bid_id, periods_billed, status, auto_release, fee_cents, stripe_subscription_id";
+  let { data: subRow, error: subErr } = await supabase
     .from("retainer_subscriptions")
-    .select("id, bid_id, periods_billed, status, auto_release, fee_cents")
+    .select(subCols)
     .eq("stripe_subscription_id", subscriptionId)
     .maybeSingle();
+  if (subErr) throw new Error(`invoice.paid sub lookup failed: ${subErr.message}`);
 
-  if (subErr) {
-    console.warn("[stripe webhook] invoice.paid → sub lookup failed:", subErr.message);
-    return;
-  }
   if (!subRow) {
-    // Subscription not yet linked in our db (race between start-subscription
-    // and first invoice). Stripe won't retry on 200 — log and move on. If
-    // this becomes a real problem, queue retries from a cron.
-    console.warn("[stripe webhook] invoice.paid for unknown subscription:", subscriptionId);
+    // The first invoice is paid inside subscriptions.create, so this event
+    // can beat the endpoint's DB write. Fall back to the bid_id we stamp on
+    // the subscription metadata.
+    const bidId = invoiceSubscriptionMetadata(invoice).bid_id;
+    if (!bidId) return; // not one of ours
+    const { data: byBid } = await supabase
+      .from("retainer_subscriptions")
+      .select(subCols)
+      .eq("bid_id", bidId)
+      .maybeSingle();
+    if (byBid && (!byBid.stripe_subscription_id || byBid.stripe_subscription_id === subscriptionId)) {
+      subRow = byBid;
+    } else {
+      // Throw → 500 → Stripe redelivers in a few minutes, by which point
+      // the endpoint has linked the row.
+      throw new Error(`invoice.paid for unlinked subscription ${subscriptionId} (bid ${bidId})`);
+    }
+  }
+
+  const { chargeId, paymentIntentId } = await resolveInvoicePayment(stripe, invoice);
+  if (!paymentIntentId) throw new Error(`invoice ${invoice.id}: could not resolve payment intent`);
+
+  // Redelivery / sibling event: the period for this PI already exists.
+  const { data: existing } = await supabase
+    .from("bid_phase_payments")
+    .select("id, period_index, charge_id")
+    .eq("bid_id", subRow.bid_id)
+    .eq("phase", "retainer_period")
+    .eq("payment_intent_id", paymentIntentId)
+    .maybeSingle();
+  if (existing) {
+    if (!existing.charge_id && chargeId) {
+      await supabase.from("bid_phase_payments").update({ charge_id: chargeId }).eq("id", existing.id);
+    }
     return;
   }
 
   const periodIndex = subRow.periods_billed; // 0-based; first period is 0.
-  const { chargeId, paymentIntentId } = await resolveInvoiceCharge(invoice);
 
   // Per-period fee breakdown: the offer is fee_cents (what the consultant
   // sees as "their" amount), Stripe processing comes out of their payout,
@@ -279,9 +416,7 @@ async function onRetainerInvoicePaid(invoice) {
   const offerCents = Number(subRow.fee_cents) || invoice.amount_paid;
   const breakdown = fees.computeFees(offerCents);
 
-  // Idempotency: invoice.paid can re-fire (Stripe retries on non-200). If a
-  // row already exists for this (bid, phase, period) just update.
-  const phaseRow = {
+  const { error: insertErr } = await supabase.from("bid_phase_payments").insert({
     bid_id: subRow.bid_id,
     phase: "retainer_period",
     period_index: periodIndex,
@@ -293,33 +428,27 @@ async function onRetainerInvoicePaid(invoice) {
     stripe_fee_cents: breakdown.stripeFeeCents,
     platform_fee_cents: breakdown.platformFeeCents,
     consultant_payout_cents: breakdown.consultantPayoutCents,
-  };
-
-  const { data: existing } = await supabase
-    .from("bid_phase_payments")
-    .select("id")
-    .eq("bid_id", subRow.bid_id)
-    .eq("phase", "retainer_period")
-    .eq("period_index", periodIndex)
-    .maybeSingle();
-
-  if (existing?.id) {
-    await supabase.from("bid_phase_payments").update(phaseRow).eq("id", existing.id);
-  } else {
-    await supabase.from("bid_phase_payments").insert(phaseRow);
+  });
+  if (insertErr) {
+    // 23505 = a concurrent delivery of the same invoice inserted this
+    // period first. Anything else is real — let Stripe retry.
+    if (insertErr.code === "23505") return;
+    throw new Error(`invoice.paid period insert failed: ${insertErr.message}`);
   }
 
-  await supabase
+  const { error: bumpErr } = await supabase
     .from("retainer_subscriptions")
     .update({
       periods_billed: periodIndex + 1,
       status: subRow.status === "pending" ? "active" : subRow.status,
     })
-    .eq("id", subRow.id);
+    .eq("id", subRow.id)
+    .eq("periods_billed", periodIndex);
+  if (bumpErr) alertOps("retainer_periods_billed_not_bumped", { sub_id: subRow.id, period_index: periodIndex, error: bumpErr.message });
 
   // Auto-release path: owner has opted in to release each period as it
-  // bills. Skip the consultant payouts-enabled gate failure by logging —
-  // the row stays "held" and the owner can release manually later.
+  // bills. A failure (e.g. consultant payouts disabled) leaves the row
+  // "held" and the owner can release manually later.
   if (subRow.auto_release && chargeId) {
     const result = await transferRetainerPeriodFunds({ bidId: subRow.bid_id, periodIndex });
     if (!result.ok) {
@@ -329,30 +458,38 @@ async function onRetainerInvoicePaid(invoice) {
 }
 
 async function onRetainerInvoiceFailed(invoice) {
-  if (!invoice?.subscription || !supabase) return;
+  const subscriptionId = invoiceSubscriptionId(invoice);
+  if (!subscriptionId || !supabase) return;
   // Don't flip status — Stripe handles its own retry schedule and will fire
   // customer.subscription.updated as the status drifts (past_due → unpaid →
   // canceled). Log so we can surface a "payment failed" notification later.
   console.warn(
     "[stripe webhook] retainer invoice failed",
-    invoice.subscription,
+    subscriptionId,
     invoice.id,
-    invoice.last_payment_error?.message || ""
+    invoice.last_finalization_error?.message || ""
   );
 }
 
 async function onSubscriptionDeleted(subscription) {
   if (!subscription?.id || !supabase) return;
+  const { data: row } = await supabase
+    .from("retainer_subscriptions")
+    .select("id, period_count, periods_billed")
+    .eq("stripe_subscription_id", subscription.id)
+    .maybeSingle();
+  if (!row) return;
+  // Ran its full agreed length → completed; anything earlier → canceled.
+  const finished = row.period_count && Number(row.periods_billed) >= Number(row.period_count);
   const { error } = await supabase
     .from("retainer_subscriptions")
     .update({
-      status: "canceled",
+      status: finished ? "completed" : "canceled",
       canceled_at: new Date().toISOString(),
     })
-    .eq("stripe_subscription_id", subscription.id)
-    // Don't downgrade a row we already marked 'completed' via period_count.
+    .eq("id", row.id)
     .neq("status", "completed");
-  if (error) console.warn("[stripe webhook] subscription.deleted update failed:", error.message);
+  if (error) throw new Error(`subscription.deleted update failed: ${error.message}`);
 }
 
 async function onSubscriptionUpdated(subscription) {
@@ -372,6 +509,365 @@ async function onSubscriptionUpdated(subscription) {
     .update({ status: ourStatus, ...(ourStatus === "canceled" ? { canceled_at: new Date().toISOString() } : {}) })
     .eq("stripe_subscription_id", subscription.id)
     .neq("status", "completed");
+}
+
+/* ================================================================
+   Payment confirmation — shared by the browser-called confirm endpoints
+   and the payment_intent.succeeded webhook, so acceptance no longer
+   depends on the owner's tab surviving until confirm. Whichever arrives
+   first wins; the other sees the row already held and returns ok.
+
+   Each confirm verifies the PaymentIntent against our own rows before
+   flipping anything: right bid(s), right owner, right amount, USD. A
+   mismatch returns { ok:false, mismatch:true } and is alerted, never
+   applied.
+   ================================================================ */
+
+const CONFIRMABLE_PAYMENT_STATUSES = ["unpaid", "authorizing", "failed"];
+
+function intentMismatch(intent, reason, extra = {}) {
+  alertOps("payment_intent_mismatch", { payment_intent: intent.id, reason, ...extra });
+  return { ok: false, mismatch: true, error: "this payment doesn't match the engagement. contact support." };
+}
+
+async function confirmStandardBidPayment(intent, { awaitDefaultPm = false } = {}) {
+  if (intent.status !== "succeeded") {
+    return { ok: false, error: `payment not yet captured (status: ${intent.status}).` };
+  }
+  const bidId = intent.metadata?.bid_id;
+  if (!bidId) return intentMismatch(intent, "no bid_id metadata");
+
+  const { data: bid, error: bidErr } = await supabase
+    .from("bids")
+    .select("id, listing_id, payment_intent_id, payment_status, payment_amount_cents")
+    .eq("id", bidId)
+    .maybeSingle();
+  if (bidErr) throw new Error(`bid lookup failed: ${bidErr.message}`);
+  if (!bid) return intentMismatch(intent, "bid not found", { bid_id: bidId });
+
+  const { data: listing } = await supabase
+    .from("listings")
+    .select("owner_id")
+    .eq("id", bid.listing_id)
+    .maybeSingle();
+
+  if (bid.payment_intent_id !== intent.id) {
+    // The owner paid a PaymentIntent that is no longer the bid's current
+    // one (e.g. two tabs). Money was captured for it — a human needs to
+    // refund one of them.
+    return intentMismatch(intent, "not the bid's current payment intent", { bid_id: bidId, current: bid.payment_intent_id });
+  }
+  if (listing?.owner_id !== intent.metadata?.owner_id) {
+    return intentMismatch(intent, "owner mismatch", { bid_id: bidId });
+  }
+  if (intent.currency !== "usd" || intent.amount !== bid.payment_amount_cents) {
+    return intentMismatch(intent, "amount mismatch", { bid_id: bidId, intent_amount: intent.amount, expected: bid.payment_amount_cents });
+  }
+
+  if (["held", "released", "refunded"].includes(bid.payment_status)) {
+    return { ok: true, alreadyConfirmed: true, bidId };
+  }
+
+  const now = new Date().toISOString();
+  const { data: flipped, error: updErr } = await supabase
+    .from("bids")
+    .update({
+      status: "accepted",
+      accepted_at: now,
+      payment_status: "held",
+      paid_at: now,
+    })
+    .eq("id", bidId)
+    .eq("payment_intent_id", intent.id)
+    .in("payment_status", CONFIRMABLE_PAYMENT_STATUSES)
+    .select("id");
+  if (updErr) throw new Error(`bid confirm failed: ${updErr.message}`);
+  if (!flipped?.length) return { ok: true, alreadyConfirmed: true, bidId };
+
+  // Promote the just-used payment method to the customer's default so any
+  // future subscription (e.g., retainer continuation) can bill it without
+  // re-prompting. The browser path doesn't wait on it — a stripe-side
+  // delay here was adding ~1.5s to acceptance latency. Failure is logged,
+  // not fatal.
+  // TODO(P4): only do this once the owner has ticked the saved-card
+  // consent in the payment modal, and store that consent (timestamp +
+  // terms version). Copy depends on the Terms of Service draft.
+  const paymentMethodId = idOf(intent.payment_method);
+  const customerId = idOf(intent.customer);
+  if (paymentMethodId && customerId) {
+    const pmUpdate = stripe.customers
+      .update(customerId, { invoice_settings: { default_payment_method: paymentMethodId } })
+      .catch((err) => console.warn("[confirm] could not set default pm:", err.message));
+    if (awaitDefaultPm) await pmUpdate;
+  }
+
+  return { ok: true, bidId };
+}
+
+// Gross the business was charged for a phase row: offer + platform fee.
+function phaseRowGross(row) {
+  return Number(row.amount_cents || 0) + Number(row.platform_fee_cents || 0);
+}
+
+async function confirmProposalBatchPayment(intent) {
+  if (intent.status !== "succeeded") {
+    return { ok: false, error: `payment not yet captured (status: ${intent.status}).` };
+  }
+  const ownerId = intent.metadata?.owner_id;
+  const { data: rows, error: rowsErr } = await supabase
+    .from("bid_phase_payments")
+    .select("id, bid_id, status, amount_cents, platform_fee_cents")
+    .eq("payment_intent_id", intent.id)
+    .eq("phase", "proposal");
+  if (rowsErr) throw new Error(`proposal rows lookup failed: ${rowsErr.message}`);
+  if (!rows?.length) return intentMismatch(intent, "no proposal rows");
+
+  const bidIds = rows.map((r) => r.bid_id);
+  const metaIds = String(intent.metadata?.bid_ids || "").split(",").filter(Boolean);
+  if (metaIds.length !== bidIds.length || !metaIds.every((id) => bidIds.includes(id))) {
+    return intentMismatch(intent, "bid_ids mismatch", { metadata: metaIds, rows: bidIds });
+  }
+  const expected = rows.reduce((sum, r) => sum + phaseRowGross(r), 0);
+  if (intent.currency !== "usd" || intent.amount !== expected) {
+    return intentMismatch(intent, "amount mismatch", { intent_amount: intent.amount, expected });
+  }
+  const { data: bids } = await supabase.from("bids").select("id, listing_id").in("id", bidIds);
+  const listingIds = [...new Set((bids || []).map((b) => b.listing_id))];
+  const { data: listings } = await supabase.from("listings").select("id, owner_id").in("id", listingIds);
+  if (!ownerId || (listings || []).length !== listingIds.length || listings.some((l) => l.owner_id !== ownerId)) {
+    return intentMismatch(intent, "owner mismatch");
+  }
+
+  const now = new Date().toISOString();
+  const { error: phaseUpdErr } = await supabase
+    .from("bid_phase_payments")
+    .update({ status: "held", paid_at: now, charge_id: idOf(intent.latest_charge) })
+    .eq("payment_intent_id", intent.id)
+    .eq("phase", "proposal")
+    .in("status", CONFIRMABLE_PAYMENT_STATUSES);
+  if (phaseUpdErr) throw new Error(`proposal rows confirm failed: ${phaseUpdErr.message}`);
+
+  const { error: bidUpdErr } = await supabase
+    .from("bids")
+    .update({ status: "accepted", accepted_at: now })
+    .in("id", bidIds)
+    .neq("status", "accepted");
+  if (bidUpdErr) throw new Error(`proposal bids accept failed: ${bidUpdErr.message}`);
+
+  return { ok: true, bidIds };
+}
+
+async function confirmServicePayment(intent) {
+  if (intent.status !== "succeeded") {
+    return { ok: false, error: `payment not yet captured (status: ${intent.status}).` };
+  }
+  const { data: row, error: rowErr } = await supabase
+    .from("bid_phase_payments")
+    .select("id, bid_id, status, amount_cents, platform_fee_cents")
+    .eq("payment_intent_id", intent.id)
+    .eq("phase", "service")
+    .maybeSingle();
+  if (rowErr) throw new Error(`service row lookup failed: ${rowErr.message}`);
+  if (!row) return intentMismatch(intent, "no service row");
+  if (intent.metadata?.bid_id !== row.bid_id) return intentMismatch(intent, "bid mismatch", { row_bid: row.bid_id });
+
+  const { data: bid } = await supabase.from("bids").select("listing_id").eq("id", row.bid_id).maybeSingle();
+  const { data: listing } = bid
+    ? await supabase.from("listings").select("owner_id").eq("id", bid.listing_id).maybeSingle()
+    : { data: null };
+  if (!listing || listing.owner_id !== intent.metadata?.owner_id) return intentMismatch(intent, "owner mismatch");
+  const expected = phaseRowGross(row);
+  if (intent.currency !== "usd" || intent.amount !== expected) {
+    return intentMismatch(intent, "amount mismatch", { intent_amount: intent.amount, expected });
+  }
+
+  const { error: updErr } = await supabase
+    .from("bid_phase_payments")
+    .update({ status: "held", paid_at: new Date().toISOString(), charge_id: idOf(intent.latest_charge) })
+    .eq("id", row.id)
+    .in("status", CONFIRMABLE_PAYMENT_STATUSES);
+  if (updErr) throw new Error(`service confirm failed: ${updErr.message}`);
+  return { ok: true, bidId: row.bid_id };
+}
+
+async function onPaymentIntentSucceeded(intent) {
+  if (!supabase || !intent?.id) return;
+  const phase = intent.metadata?.phase;
+  let result;
+  if (phase === "proposal_batch") result = await confirmProposalBatchPayment(intent);
+  else if (phase === "service") result = await confirmServicePayment(intent);
+  else if (intent.metadata?.bid_id) result = await confirmStandardBidPayment(intent, { awaitDefaultPm: true });
+  else return; // subscription invoice PIs etc. — handled by invoice.paid
+  if (!result.ok && !result.mismatch) console.warn("[stripe webhook] payment_intent.succeeded:", result.error);
+}
+
+/* ================================================================
+   Disputes (chargebacks) — handled manually by an admin.
+
+   Stripe stays the source of truth: release endpoints ask Stripe whether
+   the charge has an open or lost dispute and refuse to transfer if so
+   (no schema change needed). Webhooks only tell admins; nothing moves
+   money automatically. Respond with evidence in the Stripe dashboard
+   (Payments → Disputes) before the deadline in the notification.
+   ================================================================ */
+
+// Returns the blocking dispute on a charge (anything not won), or null.
+async function chargeDisputeHold(chargeId) {
+  if (!chargeId || !stripe) return null;
+  const list = await stripe.disputes.list({ charge: chargeId, limit: 10 });
+  return (list?.data || []).find((d) => !["won", "warning_closed"].includes(d.status)) || null;
+}
+
+const DISPUTE_HOLD_ERROR = "this payment is under a card dispute, so it can't be released yet. contact support.";
+
+let adminIdsCache = null;
+async function adminUserIds() {
+  if (adminIdsCache) return adminIdsCache;
+  try {
+    const { data } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+    adminIdsCache = (data?.users || [])
+      .filter((u) => ADMIN_EMAILS.has(String(u.email || "").toLowerCase()))
+      .map((u) => u.id);
+  } catch (err) {
+    console.warn("[admin lookup] failed:", err.message);
+    return [];
+  }
+  return adminIdsCache;
+}
+
+async function notifyAdmins(payload) {
+  for (const id of await adminUserIds()) await notifyUser(id, payload);
+}
+
+// Which engagement a dispute belongs to (standard bid or phase row).
+async function disputeContext(dispute) {
+  const paymentIntentId = idOf(dispute?.payment_intent);
+  if (!paymentIntentId || !supabase) return { bidId: null };
+  const { data: bid } = await supabase
+    .from("bids").select("id, payment_status").eq("payment_intent_id", paymentIntentId).maybeSingle();
+  if (bid) return { bidId: bid.id, status: bid.payment_status };
+  const { data: rows } = await supabase
+    .from("bid_phase_payments").select("bid_id, phase, status").eq("payment_intent_id", paymentIntentId);
+  const row = rows?.[0];
+  return row ? { bidId: row.bid_id, status: `${row.phase}:${row.status}` } : { bidId: null };
+}
+
+function dollars(cents) {
+  return `$${(Number(cents || 0) / 100).toFixed(2)}`;
+}
+
+async function onDisputeCreated(dispute) {
+  const ctx = await disputeContext(dispute);
+  const dueBy = dispute?.evidence_details?.due_by
+    ? new Date(dispute.evidence_details.due_by * 1000).toISOString().slice(0, 10)
+    : "see stripe";
+  alertOps("dispute_created", { dispute: dispute?.id, amount: dispute?.amount, reason: dispute?.reason, due_by: dueBy, ...ctx });
+  await notifyAdmins({
+    type: "dispute_opened",
+    title: `card dispute opened · ${dollars(dispute?.amount)}`,
+    body: `reason: ${dispute?.reason || "unknown"}. funds state: ${ctx.status || "not matched"}. respond in stripe by ${dueBy}.`,
+    link: ctx.bidId ? `/engagement.html?bid=${ctx.bidId}` : null,
+  });
+}
+
+async function onDisputeClosed(dispute) {
+  const ctx = await disputeContext(dispute);
+  alertOps("dispute_closed", { dispute: dispute?.id, outcome: dispute?.status, amount: dispute?.amount, ...ctx });
+  await notifyAdmins({
+    type: "dispute_closed",
+    title: `card dispute ${dispute?.status === "won" ? "won" : "closed: " + (dispute?.status || "unknown")} · ${dollars(dispute?.amount)}`,
+    body: dispute?.status === "won"
+      ? "the funds are back on the platform and can be released again."
+      : "the funds were returned to the cardholder. decide whether to recover from the consultant.",
+    link: ctx.bidId ? `/engagement.html?bid=${ctx.bidId}` : null,
+  });
+}
+
+/* charge.refunded — mirrors refunds issued anywhere (our endpoint, the
+   Stripe dashboard by support, Stripe itself) onto our rows so held
+   money that left the platform can't later be "released". */
+async function onChargeRefunded(charge) {
+  if (!supabase) return;
+  const paymentIntentId = idOf(charge?.payment_intent);
+  if (!paymentIntentId) return;
+  const full = charge.refunded === true || charge.amount_refunded >= charge.amount;
+  const now = new Date().toISOString();
+
+  const { data: bid } = await supabase
+    .from("bids")
+    .select("id, payment_status")
+    .eq("payment_intent_id", paymentIntentId)
+    .maybeSingle();
+  const { data: phaseRows } = await supabase
+    .from("bid_phase_payments")
+    .select("id, bid_id, status")
+    .eq("payment_intent_id", paymentIntentId);
+
+  if (!bid && !phaseRows?.length) return;
+
+  if (!full) {
+    // Partial refunds (e.g. one consultant's share of a proposal batch)
+    // can't be mapped to rows automatically.
+    alertOps("partial_refund_needs_review", { payment_intent: paymentIntentId, amount_refunded: charge.amount_refunded, amount: charge.amount });
+    return;
+  }
+
+  if (bid) {
+    if (bid.payment_status === "released") {
+      alertOps("refund_after_release", { bid_id: bid.id, payment_intent: paymentIntentId });
+    } else if (bid.payment_status !== "refunded") {
+      const { error } = await supabase
+        .from("bids")
+        .update({ payment_status: "refunded", status: "rejected" })
+        .eq("id", bid.id)
+        .neq("payment_status", "released");
+      if (error) throw new Error(`bid refund mirror failed: ${error.message}`);
+    }
+  }
+  for (const row of phaseRows || []) {
+    if (row.status === "released") {
+      alertOps("refund_after_release", { bid_id: row.bid_id, phase_id: row.id, payment_intent: paymentIntentId });
+    } else if (row.status !== "refunded") {
+      const { error } = await supabase
+        .from("bid_phase_payments")
+        .update({ status: "refunded", refunded_at: now })
+        .eq("id", row.id)
+        .neq("status", "released");
+      if (error) throw new Error(`phase refund mirror failed: ${error.message}`);
+    }
+  }
+}
+
+/* transfer.reversed — money we paid a consultant was pulled back (by us
+   or support in the dashboard). Our rows keep "released" since the
+   engagement did complete; ops needs to know the books changed. */
+async function onTransferReversed(transfer) {
+  alertOps("transfer_reversed", {
+    transfer: transfer?.id,
+    amount_reversed: transfer?.amount_reversed,
+    destination: idOf(transfer?.destination),
+    bid_id: transfer?.metadata?.bid_id || null,
+  });
+}
+
+/* payout.failed — fires on the consultant's connected account (Connect
+   endpoint) when their bank rejects a payout. Stripe returns the money to
+   their Stripe balance; they need to fix their bank details. */
+async function onPayoutFailed(payout, accountId) {
+  if (!supabase || !accountId) return;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("stripe_account_id", accountId)
+    .maybeSingle();
+  alertOps("payout_failed", { account: accountId, payout: payout?.id, code: payout?.failure_code || null, user_id: profile?.id || null });
+  if (!profile?.id) return;
+  await notifyUser(profile.id, {
+    type: "payout_failed",
+    title: "your payout didn't go through",
+    body: "your bank returned the payout. update your bank details in the payout tab and stripe will retry.",
+    link: "/settings.html#payout",
+  });
 }
 
 app.use(express.json());
@@ -427,6 +923,22 @@ function canViewerAccessResume(viewer, consultantId, profile) {
     )
   );
 }
+
+// CSP violation reports from the Report-Only policy in vercel.json. Logged
+// so the allowlist can be checked against real traffic before enforcing.
+app.post(
+  "/api/csp-report",
+  express.json({ type: ["application/csp-report", "application/reports+json", "application/json"], limit: "16kb" }),
+  (req, res) => {
+    const r = req.body?.["csp-report"] || req.body?.[0]?.body || req.body || {};
+    console.warn("[csp-report]", JSON.stringify({
+      page: r["document-uri"] || r.documentURL,
+      directive: r["violated-directive"] || r.effectiveDirective,
+      blocked: r["blocked-uri"] || r.blockedURL,
+    }));
+    res.status(204).end();
+  }
+);
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true, supabaseConfigured: hasSupabaseAdminConfig });
@@ -1063,7 +1575,7 @@ function requireStripe(res) {
      enough to cover any consulting work on grassroots.
    - PLATFORM_URL: defaults to the deployed grassroots URL; override via env
      for previews / sandbox. */
-const PLATFORM_URL = envTrim("PLATFORM_URL") || "https://grassroots.com";
+const PLATFORM_URL = envTrim("PLATFORM_URL") || "https://www.grassroots-marketplace.com";
 const CONSULTANT_BUSINESS_PROFILE = {
   mcc: "7392",
   url: PLATFORM_URL,
@@ -1110,7 +1622,7 @@ async function ensureConsultantStripeAccount(viewerId) {
     business_type: "individual",
     business_profile: CONSULTANT_BUSINESS_PROFILE,
     metadata: { grassroots_user_id: viewerId },
-  });
+  }, { idempotencyKey: idemKey("account", viewerId) });
 
   await supabase
     .from("profiles")
@@ -1138,7 +1650,7 @@ async function ensureOwnerStripeCustomer(viewerId) {
   const customer = await stripe.customers.create({
     name: profile.full_name || undefined,
     metadata: { grassroots_user_id: viewerId },
-  });
+  }, { idempotencyKey: idemKey("customer", viewerId) });
   await supabase
     .from("profiles")
     .update({ stripe_customer_id: customer.id })
@@ -1347,8 +1859,24 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
     if (bid.payment_intent_id) {
       try {
         intent = await stripe.paymentIntents.retrieve(bid.payment_intent_id);
-        if (["succeeded", "canceled"].includes(intent.status)) intent = null;
       } catch (_) { intent = null; }
+    }
+    if (intent?.status === "succeeded") {
+      // Already paid — the confirm step just never landed. Finish it
+      // instead of minting a second PaymentIntent (a double charge).
+      await confirmStandardBidPayment(intent);
+      return res.status(409).json({ error: "this bid is already paid." });
+    }
+    if (intent && ["processing", "requires_capture"].includes(intent.status)) {
+      return res.status(409).json({ error: "a payment for this bid is already processing." });
+    }
+    if (intent && intent.status !== "canceled" && intent.amount !== amount) {
+      // The offer changed (e.g. a counter was accepted) since this PI was
+      // created. Retire it so the owner can't pay the stale amount.
+      try { await stripe.paymentIntents.cancel(intent.id); } catch (_) {}
+      intent = null;
+    } else if (intent?.status === "canceled") {
+      intent = null;
     }
     // Fee breakdown was computed above off the offer amount and used to
     // derive what we charge the business. release-funds re-uses the
@@ -1361,7 +1889,7 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
       // until `/api/stripe/release-funds` creates a Transfer to the consultant
       // (using `source_transaction: charge_id` so we don't depend on the
       // platform's available balance, which is often $0 in test mode).
-      intent = await stripe.paymentIntents.create({
+      intent = await createPaymentIntentOnce(stripe, {
         amount,
         currency: "usd",
         customer: owner.stripe_customer_id,
@@ -1376,8 +1904,8 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
           owner_id: viewer.id,
           consultant_id: bid.consultant_id,
         },
-      });
-      await supabase
+      }, idemKey("pi", "bid", bidId, bid.payment_intent_id || "none", amount));
+      const { error: linkErr } = await supabase
         .from("bids")
         .update({
           payment_intent_id: intent.id,
@@ -1387,7 +1915,14 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
           platform_fee_cents: feeBreakdown.platformFeeCents,
           consultant_payout_cents: feeBreakdown.consultantPayoutCents,
         })
-        .eq("id", bidId);
+        .eq("id", bidId)
+        .not("payment_status", "in", "(held,released,refunded)");
+      if (linkErr) {
+        // Without the link, confirm can't find this PI — don't let the
+        // owner pay it.
+        try { await stripe.paymentIntents.cancel(intent.id); } catch (_) {}
+        return res.status(500).json({ error: "could not start payment. try again." });
+      }
     }
 
     return res.json({
@@ -1427,40 +1962,131 @@ app.post("/api/stripe/confirm-acceptance", async (req, res) => {
     if (!bid.payment_intent_id) return res.status(400).json({ error: "no payment intent on this bid." });
 
     const intent = await stripe.paymentIntents.retrieve(bid.payment_intent_id);
-    if (intent.status !== "succeeded") {
-      return res.status(400).json({ error: `payment not yet captured (status: ${intent.status}).` });
+    if (intent.metadata?.bid_id !== bidId || intent.metadata?.owner_id !== viewer.id) {
+      return res.status(403).json({ error: "this payment doesn't belong to this engagement." });
     }
-
-    const { error: updErr } = await supabase
-      .from("bids")
-      .update({
-        status: "accepted",
-        accepted_at: new Date().toISOString(),
-        payment_status: "held",
-        paid_at: new Date().toISOString(),
-      })
-      .eq("id", bidId);
-    if (updErr) return res.status(500).json({ error: updErr.message });
-
-    // Promote the just-used payment method to the customer's default so any
-    // future subscription (e.g., retainer continuation) can bill it without
-    // re-prompting. Off the critical path — a stripe-side delay here was
-    // adding ~1.5s to acceptance latency. Failure is logged, not fatal.
-    if (intent.payment_method && intent.customer) {
-      stripe.customers
-        .update(intent.customer, {
-          invoice_settings: { default_payment_method: intent.payment_method },
-        })
-        .catch((err) => {
-          console.warn("[confirm-acceptance] could not set default pm:", err.message);
-        });
-    }
+    // Same path the payment_intent.succeeded webhook runs; verifies amount
+    // and flips authorizing → held exactly once.
+    const result = await confirmStandardBidPayment(intent);
+    if (!result.ok) return res.status(result.mismatch ? 409 : 400).json({ error: result.error });
 
     return res.json({ ok: true });
   } catch (err) {
     return res.status(500).json({ error: err.message || "could not confirm payment." });
   }
 });
+
+/* Release a held standard bid to the consultant: claim held → released,
+   transfer pinned to the original charge, stamp transfer_id. Shared by the
+   owner's release button and the 30-day auto-release job. The caller does
+   authorization (and the review requirement for the manual path).
+   Returns { ok, transfer_id, fundsRouted, payout_cents } or
+   { ok: false, status, error }. */
+async function releaseStandardBid(bid) {
+  const bidId = bid.id;
+  let transferId = null;
+  let fundsRouted = "no-payment-intent";
+  let payoutAmount = bid.payment_amount_cents;
+
+  // Validate everything that can fail without side effects first, then
+  // claim the bid (held → released) before calling Stripe. The claim is
+  // the lock: a concurrent release or refund sees the bid is no longer
+  // held and stops. If the transfer fails, the claim rolls back to held.
+  let intent = null;
+  let consultant = null;
+  if (bid.payment_intent_id) {
+    intent = await stripe.paymentIntents.retrieve(bid.payment_intent_id);
+    if (!intent.transfer_data?.destination) {
+      // Escrow path. Re-verify the consultant is still payout-eligible —
+      // Stripe can restrict an account between charge time and release.
+      ({ data: consultant } = await supabase
+        .from("profiles")
+        .select("stripe_account_id")
+        .eq("id", bid.consultant_id)
+        .maybeSingle());
+      if (!consultant?.stripe_account_id) {
+        return { ok: false, status: 400, error: "consultant hasn't set up payouts yet — they need to finish onboarding before funds can be released." };
+      }
+      const account = await stripe.accounts.retrieve(consultant.stripe_account_id);
+      if (!account.payouts_enabled) {
+        return { ok: false, status: 400, error: "consultant's payout setup is incomplete — they need to finish onboarding first." };
+      }
+    }
+  }
+
+  if (intent && await chargeDisputeHold(idOf(intent.latest_charge))) {
+    return { ok: false, status: 409, disputed: true, error: DISPUTE_HOLD_ERROR };
+  }
+
+  const claimed = await casUpdate("bids", bidId, "held", {
+    payment_status: "released",
+    released_at: new Date().toISOString(),
+  }, "payment_status");
+  if (!claimed) {
+    return { ok: false, status: 409, conflict: true, error: "this payment changed while you were releasing it. reload and try again." };
+  }
+
+  if (intent) {
+    const wasDestinationCharge = Boolean(intent.transfer_data?.destination);
+
+    if (wasDestinationCharge) {
+      // Pre-escrow bid: funds already routed at capture. Bookkeeping flip.
+      fundsRouted = "at-capture (pre-escrow)";
+    } else {
+      // Grandfathering: bids paid before the fee-split rollout have
+      // consultant_payout_cents NULL. Keep transferring the full
+      // payment amount for those — consultants accepted under the old
+      // "you get 100%" promise. New bids transfer the pre-computed
+      // payout (offer - estimated Stripe fee) so the consultant takes
+      // home exactly the number we showed them in the UI; the platform
+      // absorbs any difference between estimated and actual Stripe fee.
+      const hasFeeBreakdown = bid.consultant_payout_cents != null;
+      if (hasFeeBreakdown) {
+        payoutAmount = bid.consultant_payout_cents;
+      }
+
+      let transfer;
+      try {
+        transfer = await stripe.transfers.create(
+          {
+            amount: payoutAmount,
+            currency: "usd",
+            destination: consultant.stripe_account_id,
+            // `source_transaction` pins this transfer to the specific charge so
+            // Stripe draws from that charge — bypasses the platform's available
+            // balance, which is often $0 in test mode.
+            source_transaction: idOf(intent.latest_charge),
+            metadata: { bid_id: bidId },
+          },
+          { idempotencyKey: idemKey("transfer", "bid", bidId, intent.id) }
+        );
+      } catch (err) {
+        const { error: revertErr } = await supabase
+          .from("bids")
+          .update({ payment_status: "held", released_at: null })
+          .eq("id", bidId)
+          .eq("payment_status", "released")
+          .is("transfer_id", null);
+        if (revertErr) alertOps("bid_release_revert_failed", { bid_id: bidId, error: revertErr.message });
+        throw err;
+      }
+      transferId = transfer.id;
+      fundsRouted = hasFeeBreakdown ? "on-release (fee-split)" : "on-release (grandfathered)";
+
+      const { error: stampErr } = await supabase
+        .from("bids")
+        .update({ transfer_id: transferId })
+        .eq("id", bidId);
+      if (stampErr) {
+        // The bid already reads released, so nothing can pay or refund
+        // twice; only the transfer id is missing from our books.
+        alertOps("bid_transfer_id_not_saved", { bid_id: bidId, transfer_id: transferId, error: stampErr.message });
+      }
+    }
+  }
+
+  return { ok: true, transfer_id: transferId, fundsRouted, payout_cents: payoutAmount };
+}
 
 // Owner: release escrowed funds to the consultant after marking work
 // complete + reviewing.
@@ -1506,75 +2132,9 @@ app.post("/api/stripe/release-funds", async (req, res) => {
       .maybeSingle();
     if (!review?.id) return res.status(400).json({ error: "submit your review before releasing payment." });
 
-    let transferId = null;
-    let fundsRouted = "no-payment-intent";
-    let payoutAmount = bid.payment_amount_cents;
-
-    if (bid.payment_intent_id) {
-      const intent = await stripe.paymentIntents.retrieve(bid.payment_intent_id);
-      const wasDestinationCharge = Boolean(intent.transfer_data?.destination);
-
-      if (wasDestinationCharge) {
-        // Pre-escrow bid: funds already routed at capture. Bookkeeping flip.
-        fundsRouted = "at-capture (pre-escrow)";
-      } else {
-        // Escrow path. Re-verify the consultant is still payout-eligible —
-        // Stripe can restrict an account between charge time and release.
-        const { data: consultant } = await supabase
-          .from("profiles")
-          .select("stripe_account_id")
-          .eq("id", bid.consultant_id)
-          .maybeSingle();
-        if (!consultant?.stripe_account_id) {
-          return res.status(400).json({ error: "consultant hasn't set up payouts yet — they need to finish onboarding before funds can be released." });
-        }
-        const account = await stripe.accounts.retrieve(consultant.stripe_account_id);
-        if (!account.payouts_enabled) {
-          return res.status(400).json({ error: "consultant's payout setup is incomplete — they need to finish onboarding first." });
-        }
-
-        // Grandfathering: bids paid before the fee-split rollout have
-        // consultant_payout_cents NULL. Keep transferring the full
-        // payment amount for those — consultants accepted under the old
-        // "you get 100%" promise. New bids transfer the pre-computed
-        // payout (offer - estimated Stripe fee) so the consultant takes
-        // home exactly the number we showed them in the UI; the platform
-        // absorbs any difference between estimated and actual Stripe fee.
-        const hasFeeBreakdown = bid.consultant_payout_cents != null;
-        if (hasFeeBreakdown) {
-          payoutAmount = bid.consultant_payout_cents;
-        }
-
-        const transfer = await stripe.transfers.create({
-          amount: payoutAmount,
-          currency: "usd",
-          destination: consultant.stripe_account_id,
-          // `source_transaction` pins this transfer to the specific charge so
-          // Stripe draws from that charge — bypasses the platform's available
-          // balance, which is often $0 in test mode.
-          source_transaction: intent.latest_charge,
-          metadata: { bid_id: bidId },
-        });
-        transferId = transfer.id;
-        fundsRouted = hasFeeBreakdown ? "on-release (fee-split)" : "on-release (grandfathered)";
-      }
-    }
-
-    await supabase
-      .from("bids")
-      .update({
-        payment_status: "released",
-        transfer_id: transferId,
-        released_at: new Date().toISOString(),
-      })
-      .eq("id", bidId);
-
-    return res.json({
-      ok: true,
-      transfer_id: transferId,
-      fundsRouted,
-      payout_cents: payoutAmount,
-    });
+    const result = await releaseStandardBid(bid);
+    if (!result.ok) return res.status(result.status).json({ error: result.error });
+    return res.json(result);
   } catch (err) {
     return res.status(500).json({ error: err.message || "could not release funds." });
   }
@@ -1650,23 +2210,41 @@ app.post("/api/stripe/refund-payment", async (req, res) => {
     const intent = await stripe.paymentIntents.retrieve(bid.payment_intent_id);
     const wasDestinationCharge = Boolean(intent.transfer_data?.destination);
 
-    const refund = await stripe.refunds.create({
-      payment_intent: bid.payment_intent_id,
-      // Pre-escrow PIs already routed funds to the consultant. `reverse_transfer`
-      // pulls that money back from the consultant's connect balance so the
-      // refund nets to zero across the platform + consultant.
-      ...(wasDestinationCharge ? { reverse_transfer: true } : {}),
-      metadata: { bid_id: bidId, reason: "owner_self_serve_24h" },
-    });
+    // Claim held → refunded before calling Stripe, so a release racing
+    // this refund can't also go through. Rolled back if Stripe fails.
+    const claimed = await casUpdate("bids", bidId, "held", { payment_status: "refunded" }, "payment_status");
+    if (!claimed) {
+      return res.status(409).json({ error: "this payment changed while you were refunding it. reload and try again." });
+    }
+
+    let refund;
+    try {
+      refund = await stripe.refunds.create(
+        {
+          payment_intent: bid.payment_intent_id,
+          // Pre-escrow PIs already routed funds to the consultant. `reverse_transfer`
+          // pulls that money back from the consultant's connect balance so the
+          // refund nets to zero across the platform + consultant.
+          ...(wasDestinationCharge ? { reverse_transfer: true } : {}),
+          metadata: { bid_id: bidId, reason: "owner_self_serve_24h" },
+        },
+        { idempotencyKey: idemKey("refund", "bid", bidId, bid.payment_intent_id) }
+      );
+    } catch (err) {
+      const { error: revertErr } = await supabase
+        .from("bids")
+        .update({ payment_status: "held" })
+        .eq("id", bidId)
+        .eq("payment_status", "refunded");
+      if (revertErr) alertOps("bid_refund_revert_failed", { bid_id: bidId, error: revertErr.message });
+      throw err;
+    }
 
     const { error: updErr } = await supabase
       .from("bids")
-      .update({
-        payment_status: "refunded",
-        status: "rejected",
-      })
+      .update({ status: "rejected" })
       .eq("id", bidId);
-    if (updErr) return res.status(500).json({ error: updErr.message });
+    if (updErr) alertOps("bid_refund_status_not_saved", { bid_id: bidId, refund_id: refund.id, error: updErr.message });
 
     return res.json({ ok: true, refund_id: refund.id });
   } catch (err) {
@@ -1791,7 +2369,13 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
 
     const owner = await ensureOwnerStripeCustomer(viewer.id);
 
-    const intent = await stripe.paymentIntents.create({
+    // Key on the batch + its prior attempts so a double-click returns the
+    // same PI, while a retry after a failed attempt gets a fresh one.
+    const batchKey = stableHash(
+      [...bidIds].sort().join(","),
+      (existingPhases || []).map((r) => `${r.bid_id}=${r.status}`).sort().join(",")
+    );
+    const intent = await createPaymentIntentOnce(stripe, {
       amount: totalCents,
       currency: "usd",
       customer: owner.stripe_customer_id,
@@ -1801,7 +2385,7 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
         owner_id: viewer.id,
         bid_ids: bidIds.join(","),
       },
-    });
+    }, idemKey("pi", "proposals", batchKey, totalCents));
 
     // Pre-create the per-bid phase payment rows so the confirm step has
     // something to flip to 'held'. amount_cents stays the offer (proposal
@@ -1880,6 +2464,16 @@ const CADENCE_INTERVAL = {
   quarterly: { interval: "month", interval_count: 3 },
 };
 
+/* cancel_at for a retainer that should bill exactly `periodCount` times.
+   One minute before the boundary of period N so Stripe can't open
+   invoice N+1 (callers pass proration_behavior: "none", so ending a minute
+   early never credits or refunds). Null when there's no term. */
+function retainerCancelAt(anchorUnix, cadence, periodCount) {
+  const n = Number(periodCount);
+  if (!CADENCE_INTERVAL[cadence] || !Number.isInteger(n) || n < 1) return null;
+  return periodEndUnix(Math.floor(anchorUnix), CADENCE_INTERVAL[cadence], n) - 60;
+}
+
 // Owner: continue the engagement as a recurring retainer after the first
 // period has been released. Creates a Stripe Subscription (no transfer_data
 // — invoices land on the platform balance so each period can be escrowed +
@@ -1931,9 +2525,9 @@ app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
 
     // Resolve cadence + fee. 'fixed' uses listing values; 'tentative'
     // requires the owner to send them in this request.
-    // period_count is preserved as a legacy soft hint (no longer enforced):
-    // subscriptions run open-ended and end via `terminates_at` or manual
-    // cancel from either party.
+    // period_count is the agreed term: Stripe stops billing after that
+    // many periods (cancel_at). Null means open-ended until either party
+    // ends it.
     let cadence = listing.retainer_cadence;
     let periodCount = listing.retainer_period_count;
     let feeCents = listing.retainer_fee_cents;
@@ -1980,55 +2574,64 @@ app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
     if (terminatesAtRaw && (!terminatesAtDate || Number.isNaN(terminatesAtDate.getTime()))) {
       return res.status(400).json({ error: "terminates_at must be an ISO date string." });
     }
-    const cancelAtUnix = terminatesAtDate ? Math.floor(terminatesAtDate.getTime() / 1000) : null;
+    // An explicit termination date wins; otherwise the agreed period count
+    // sets the end. Anchored to the current minute so a double-click sends
+    // identical params under the same idempotency key.
+    const cancelAtUnix = terminatesAtDate
+      ? Math.floor(terminatesAtDate.getTime() / 1000)
+      : retainerCancelAt(Math.floor(Date.now() / 60000) * 60, cadence, periodCount);
 
     // Create a Product + recurring Price tagged to this engagement so the
     // subscription has a clear lineage in the Stripe dashboard. Each
     // period bills the offer + platform fee (= offer today while waived).
     const perPeriodBreakdown = fees.computeFees(feeCents);
+    // One key per (bid, prior retainer row state, terms) so a double-click
+    // replays the same Product/Price/Subscription instead of billing twice.
+    const startKey = idemKey(
+      "retainer-start", bidId, existing?.id || "new", existing?.status || "-",
+      cadence, feeCents, cancelAtUnix || "open"
+    );
     const product = await stripe.products.create({
       name: `retainer · ${listing.title}`,
       metadata: { bid_id: bidId, listing_id: listing.id },
-    });
+    }, { idempotencyKey: `${startKey}:product` });
     const price = await stripe.prices.create({
       product: product.id,
       currency: "usd",
       unit_amount: perPeriodBreakdown.businessTotalCents,
       recurring: CADENCE_INTERVAL[cadence],
       metadata: { bid_id: bidId, offer_cents: String(feeCents) },
-    });
+    }, { idempotencyKey: `${startKey}:price` });
 
     // No `transfer_data` — invoices capture into the platform balance,
     // then each period is released via `release-period` (manual) or via
     // the webhook's auto-release branch when `auto_release` is on.
-    // Subscriptions run open-ended; cancellation happens either via
-    // `cancel_at` (terminates_at) or via the cancel-subscription endpoint
-    // (either party). `period_count` is kept on the row as a soft hint
-    // but no longer enforced as an auto-cancel point.
+    // Billing stops at `cancel_at` (from terminates_at or period_count),
+    // or earlier via the cancel-subscription endpoint (either party).
     const subscription = await stripe.subscriptions.create({
       customer: owner.stripe_customer_id,
       items: [{ price: price.id }],
       collection_method: "charge_automatically",
-      ...(cancelAtUnix ? { cancel_at: cancelAtUnix } : {}),
+      ...(cancelAtUnix ? { cancel_at: cancelAtUnix, proration_behavior: "none" } : {}),
       metadata: {
         bid_id: bidId,
         listing_id: listing.id,
         owner_id: viewer.id,
         consultant_id: bid.consultant_id,
       },
-    });
+    }, { idempotencyKey: `${startKey}:subscription` });
 
     const phaseRow = {
       bid_id: bidId,
       stripe_subscription_id: subscription.id,
       cadence,
-      period_count: periodCount || null, // legacy column; no longer enforced
+      period_count: periodCount || null, // enforced via cancel_at above
       fee_cents: feeCents,
       periods_billed: 0,
       status: subscription.status === "active" || subscription.status === "trialing" ? "active" : "pending",
       started_at: new Date(subscription.start_date * 1000).toISOString(),
       auto_release: autoRelease,
-      terminates_at: terminatesAtDate ? terminatesAtDate.toISOString() : null,
+      terminates_at: cancelAtUnix ? new Date(cancelAtUnix * 1000).toISOString() : null,
     };
 
     let writeErr;
@@ -2179,7 +2782,7 @@ app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
 
     const { data: offerRow } = await supabase
       .from("retainer_subscriptions")
-      .select("id, status, cadence, period_count, fee_cents, offered_by")
+      .select("id, status, cadence, period_count, fee_cents, offered_by, offered_at")
       .eq("bid_id", bidId)
       .maybeSingle();
     if (!offerRow) return res.status(404).json({ error: "no retainer offer on this engagement." });
@@ -2222,50 +2825,77 @@ app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
       return res.status(409).json({ error: "finish payout setup before accepting a retainer." });
     }
 
+    // Claim the offer (offered → pending) before any Stripe call so a
+    // double-click can't start two subscriptions. Rolled back if Stripe fails.
+    const acceptedAt = new Date().toISOString();
+    const claimed = await casUpdate("retainer_subscriptions", offerRow.id, "offered", {
+      status: "pending",
+      accepted_at: acceptedAt,
+    });
+    if (!claimed) return res.status(409).json({ error: "this offer was already accepted." });
+
+    // The agreed term: Stripe stops after `period_count` invoices. The
+    // business can lengthen or shorten it later via update-settings.
+    const cancelAtUnix = retainerCancelAt(Date.parse(acceptedAt) / 1000, offerRow.cadence, offerRow.period_count);
+
     // Each invoice bills offer + platform fee (= offer today while waived).
     const perPeriodBreakdown = fees.computeFees(offerRow.fee_cents);
-    const product = await stripe.products.create({
-      name: `retainer · ${listing.title}`,
-      metadata: { bid_id: bidId, listing_id: listing.id, source: "offer" },
-    });
-    const price = await stripe.prices.create({
-      product: product.id,
-      currency: "usd",
-      unit_amount: perPeriodBreakdown.businessTotalCents,
-      recurring: CADENCE_INTERVAL[offerRow.cadence],
-      metadata: { bid_id: bidId, offer_cents: String(offerRow.fee_cents) },
-    });
+    // accepted_at is fresh per claim, so a retry after a rollback gets new keys.
+    const offerKey = idemKey("retainer-offer", offerRow.id, acceptedAt);
+    let subscription;
+    try {
+      const product = await stripe.products.create({
+        name: `retainer · ${listing.title}`,
+        metadata: { bid_id: bidId, listing_id: listing.id, source: "offer" },
+      }, { idempotencyKey: `${offerKey}:product` });
+      const price = await stripe.prices.create({
+        product: product.id,
+        currency: "usd",
+        unit_amount: perPeriodBreakdown.businessTotalCents,
+        recurring: CADENCE_INTERVAL[offerRow.cadence],
+        metadata: { bid_id: bidId, offer_cents: String(offerRow.fee_cents) },
+      }, { idempotencyKey: `${offerKey}:price` });
 
-    const subscription = await stripe.subscriptions.create({
-      customer: ownerProfile.stripe_customer_id,
-      items: [{ price: price.id }],
-      collection_method: "charge_automatically",
-      metadata: {
-        bid_id: bidId,
-        listing_id: listing.id,
-        owner_id: offerRow.offered_by,
-        consultant_id: viewer.id,
-        period_count: String(offerRow.period_count),
-        source: "offer",
-      },
-    });
+      subscription = await stripe.subscriptions.create({
+        customer: ownerProfile.stripe_customer_id,
+        items: [{ price: price.id }],
+        collection_method: "charge_automatically",
+        ...(cancelAtUnix ? { cancel_at: cancelAtUnix, proration_behavior: "none" } : {}),
+        metadata: {
+          bid_id: bidId,
+          listing_id: listing.id,
+          owner_id: offerRow.offered_by,
+          consultant_id: viewer.id,
+          period_count: String(offerRow.period_count),
+          source: "offer",
+        },
+      }, { idempotencyKey: `${offerKey}:subscription` });
+    } catch (err) {
+      await supabase
+        .from("retainer_subscriptions")
+        .update({ status: "offered", accepted_at: null })
+        .eq("id", offerRow.id)
+        .eq("status", "pending")
+        .is("stripe_subscription_id", null);
+      throw err;
+    }
 
     const newStatus = subscription.status === "active" || subscription.status === "trialing"
       ? "active"
       : "pending";
-    const acceptedAt = new Date().toISOString();
     const { error: updErr } = await supabase
       .from("retainer_subscriptions")
       .update({
         stripe_subscription_id: subscription.id,
         status: newStatus,
-        accepted_at: acceptedAt,
         started_at: new Date(subscription.start_date * 1000).toISOString(),
+        terminates_at: cancelAtUnix ? new Date(cancelAtUnix * 1000).toISOString() : null,
       })
       .eq("id", offerRow.id);
     if (updErr) {
-      try { await stripe.subscriptions.cancel(subscription.id); } catch (_) {}
-      return res.status(500).json({ error: updErr.message });
+      // The first period is already charged; invoice.paid links the row by
+      // bid_id. Don't cancel — flag it for a human instead.
+      alertOps("retainer_accept_link_failed", { bid_id: bidId, subscription: subscription.id, error: updErr.message });
     }
 
     return res.json({ ok: true, subscription_id: subscription.id, status: newStatus });
@@ -2375,7 +3005,13 @@ app.post("/api/stripe/retainer/cancel-subscription", async (req, res) => {
           });
         }
       } catch (err) {
+        // Don't mark the row canceled while Stripe would keep billing —
+        // unless Stripe says it's already gone.
         console.warn("[retainer cancel]", err.message);
+        const alreadyGone = err.code === "resource_missing" || /canceled subscription/i.test(err.message || "");
+        if (!alreadyGone) {
+          return res.status(502).json({ error: "could not end the retainer with our payment processor. try again." });
+        }
       }
     }
 
@@ -2422,13 +3058,13 @@ app.post("/api/stripe/retainer/update-settings", async (req, res) => {
   try {
     const { data: bid } = await supabase
       .from("bids")
-      .select("id, listing_id")
+      .select("id, listing_id, consultant_id")
       .eq("id", bidId)
       .maybeSingle();
     if (!bid) return res.status(404).json({ error: "bid not found." });
     const { data: listing } = await supabase
       .from("listings")
-      .select("owner_id")
+      .select("owner_id, title")
       .eq("id", bid.listing_id)
       .maybeSingle();
     if (listing?.owner_id !== viewer.id) {
@@ -2437,7 +3073,7 @@ app.post("/api/stripe/retainer/update-settings", async (req, res) => {
 
     const { data: subRow } = await supabase
       .from("retainer_subscriptions")
-      .select("id, stripe_subscription_id, auto_release, terminates_at, status")
+      .select("id, stripe_subscription_id, auto_release, terminates_at, status, cadence, period_count, periods_billed")
       .eq("bid_id", bidId)
       .maybeSingle();
     if (!subRow) return res.status(404).json({ error: "no retainer on this engagement." });
@@ -2456,8 +3092,40 @@ app.post("/api/stripe/retainer/update-settings", async (req, res) => {
     }
 
     // terminates_at: null clears, undefined leaves alone, otherwise must parse.
+    // period_count (the retainer length) takes precedence when both are sent:
+    // the business can lengthen or shorten the term at any point, down to
+    // the period already paid for (= end after the current period).
     let nextTerminatesAt = subRow.terminates_at; // unchanged
-    if (req.body?.terminates_at === null) {
+    let lengthChanged = false;
+    if (req.body?.period_count !== undefined && req.body?.period_count !== null && req.body?.period_count !== "") {
+      const n = Number(req.body.period_count);
+      const paid = Number(subRow.periods_billed) || 0;
+      if (!Number.isInteger(n) || n < Math.max(1, paid) || n > 120) {
+        return res.status(400).json({
+          error: `length must be a whole number of periods, at least ${Math.max(1, paid)} (periods already paid).`,
+        });
+      }
+      if (!subRow.stripe_subscription_id) {
+        return res.status(409).json({ error: "the retainer hasn't started billing yet. try again in a moment." });
+      }
+      let sub;
+      try {
+        sub = await stripe.subscriptions.retrieve(subRow.stripe_subscription_id);
+      } catch (err) {
+        return res.status(502).json({ error: "could not reach the payment processor. try again." });
+      }
+      if (sub.cancel_at_period_end) {
+        return res.status(409).json({ error: "this retainer is already set to end after the current period." });
+      }
+      const cancelAt = retainerCancelAt(sub.billing_cycle_anchor, subRow.cadence, n);
+      if (!cancelAt || cancelAt * 1000 <= Date.now()) {
+        return res.status(400).json({ error: "that length has already passed." });
+      }
+      updates.period_count = n;
+      updates.terminates_at = new Date(cancelAt * 1000).toISOString();
+      nextTerminatesAt = updates.terminates_at;
+      lengthChanged = n !== subRow.period_count;
+    } else if (req.body?.terminates_at === null) {
       updates.terminates_at = null;
       nextTerminatesAt = null;
     } else if (req.body?.terminates_at !== undefined) {
@@ -2473,11 +3141,13 @@ app.post("/api/stripe/retainer/update-settings", async (req, res) => {
     }
 
     // Mirror terminates_at change to Stripe so the subscription actually
-    // auto-cancels there. Passing null clears the prior cancel_at.
+    // auto-cancels there. Passing null clears the prior cancel_at. No
+    // prorations: the period in progress is already paid in full.
     if ("terminates_at" in updates && subRow.stripe_subscription_id) {
       try {
         await stripe.subscriptions.update(subRow.stripe_subscription_id, {
-          cancel_at: nextTerminatesAt ? Math.floor(new Date(nextTerminatesAt).getTime() / 1000) : null,
+          cancel_at: nextTerminatesAt ? Math.floor(new Date(nextTerminatesAt).getTime() / 1000) : "",
+          proration_behavior: "none",
         });
       } catch (err) {
         return res.status(502).json({ error: `stripe update failed: ${err.message}` });
@@ -2493,6 +3163,16 @@ app.post("/api/stripe/retainer/update-settings", async (req, res) => {
       .update(updates)
       .eq("id", subRow.id);
     if (updErr) return res.status(500).json({ error: updErr.message });
+
+    if (lengthChanged) {
+      const n = updates.period_count;
+      await notifyUser(bid.consultant_id, {
+        type: "retainer_length_changed",
+        title: "retainer length updated",
+        body: `the business set "${listing.title || "your retainer"}" to ${n} period${n === 1 ? "" : "s"}. billing stops after ${updates.terminates_at.slice(0, 10)}.`,
+        link: `/engagement.html?bid=${bidId}`,
+      });
+    }
 
     // Catch-up: if auto_release flipped on, release any periods currently
     // held. Sequential (not parallel) so a per-period failure doesn't fan
@@ -2516,6 +3196,7 @@ app.post("/api/stripe/retainer/update-settings", async (req, res) => {
       ok: true,
       auto_release: updates.auto_release ?? subRow.auto_release,
       terminates_at: "terminates_at" in updates ? updates.terminates_at : subRow.terminates_at,
+      period_count: updates.period_count ?? subRow.period_count ?? null,
       catch_up_released: released,
     });
   } catch (err) {
@@ -2585,28 +3266,14 @@ app.post("/api/stripe/retainer/release-period", async (req, res) => {
       return res.status(400).json({ error: "consultant's payout setup is incomplete." });
     }
 
-    // Stored consultant payout (offer - estimated Stripe fee); legacy
-    // rows with NULL grandfather to a full-amount transfer.
-    const payoutAmount = phaseRow.consultant_payout_cents ?? phaseRow.amount_cents;
-    const transfer = await stripe.transfers.create({
-      amount: payoutAmount,
-      currency: "usd",
+    const result = await releasePhaseRow(phaseRow, {
       destination: consultant.stripe_account_id,
-      source_transaction: phaseRow.charge_id,
       metadata: { bid_id: bidId, phase: "retainer_period", period_index: String(periodIndex) },
     });
+    if (result.conflict) return res.status(409).json({ error: "this period changed while you were releasing it. reload and try again." });
+    if (result.disputed) return res.status(409).json({ error: result.error });
 
-    const { error: updErr } = await supabase
-      .from("bid_phase_payments")
-      .update({
-        status: "released",
-        released_at: new Date().toISOString(),
-        transfer_id: transfer.id,
-      })
-      .eq("id", phaseRow.id);
-    if (updErr) return res.status(500).json({ error: updErr.message });
-
-    return res.json({ ok: true, transfer_id: transfer.id });
+    return res.json({ ok: true, transfer_id: result.transfer_id });
   } catch (err) {
     return res.status(500).json({ error: err.message || "could not release period." });
   }
@@ -2690,7 +3357,7 @@ app.post("/api/stripe/phased/start-service", async (req, res) => {
 
     const owner = await ensureOwnerStripeCustomer(viewer.id);
 
-    const intent = await stripe.paymentIntents.create({
+    const intent = await createPaymentIntentOnce(stripe, {
       amount: feeBreakdown.businessTotalCents,
       currency: "usd",
       customer: owner.stripe_customer_id,
@@ -2702,7 +3369,7 @@ app.post("/api/stripe/phased/start-service", async (req, res) => {
         consultant_id: bid.consultant_id,
         listing_id: bid.listing_id,
       },
-    });
+    }, idemKey("pi", "service", bidId, existing?.payment_intent_id || "none", feeBreakdown.businessTotalCents));
 
     // Upsert the phase row so a previously-failed attempt can be retried.
     // amount_cents stays the offer (service fee); the fee columns record
@@ -2759,24 +3426,11 @@ app.post("/api/stripe/phased/confirm-service", async (req, res) => {
 
   try {
     const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
-    if (intent.status !== "succeeded") {
-      return res.status(400).json({ error: `payment not yet captured (status: ${intent.status}).` });
-    }
-    if (intent.metadata?.owner_id !== viewer.id) {
+    if (intent.metadata?.owner_id !== viewer.id || intent.metadata?.phase !== "service") {
       return res.status(403).json({ error: "this payment doesn't belong to you." });
     }
-
-    const paidAt = new Date().toISOString();
-    const { error: updErr } = await supabase
-      .from("bid_phase_payments")
-      .update({
-        status: "held",
-        paid_at: paidAt,
-        charge_id: intent.latest_charge,
-      })
-      .eq("payment_intent_id", paymentIntentId)
-      .eq("phase", "service");
-    if (updErr) return res.status(500).json({ error: updErr.message });
+    const result = await confirmServicePayment(intent);
+    if (!result.ok) return res.status(result.mismatch ? 409 : 400).json({ error: result.error });
 
     return res.json({ ok: true });
   } catch (err) {
@@ -2853,30 +3507,16 @@ app.post("/api/stripe/phased/release-service", async (req, res) => {
       return res.status(400).json({ error: "consultant's payout setup is incomplete." });
     }
 
-    // Same fee-split-or-grandfather pattern as proposal release: prefer
-    // the stored consultant payout; fall back to the gross amount for
-    // legacy rows where the column is NULL.
-    const payoutAmount = phaseRow.consultant_payout_cents ?? phaseRow.amount_cents;
-    const transfer = await stripe.transfers.create({
-      amount: payoutAmount,
-      currency: "usd",
+    // Same fee-split-or-grandfather pattern as proposal release (inside
+    // releasePhaseRow): stored consultant payout, else the gross amount.
+    const result = await releasePhaseRow(phaseRow, {
       destination: consultant.stripe_account_id,
-      source_transaction: phaseRow.charge_id,
       metadata: { bid_id: bidId, phase: "service" },
     });
+    if (result.conflict) return res.status(409).json({ error: "this payment changed while you were releasing it. reload and try again." });
+    if (result.disputed) return res.status(409).json({ error: result.error });
 
-    const releasedAt = new Date().toISOString();
-    const { error: updErr } = await supabase
-      .from("bid_phase_payments")
-      .update({
-        status: "released",
-        released_at: releasedAt,
-        transfer_id: transfer.id,
-      })
-      .eq("id", phaseRow.id);
-    if (updErr) return res.status(500).json({ error: updErr.message });
-
-    return res.json({ ok: true, transfer_id: transfer.id });
+    return res.json({ ok: true, transfer_id: result.transfer_id });
   } catch (err) {
     return res.status(500).json({ error: err.message || "could not release service funds." });
   }
@@ -2978,26 +3618,15 @@ app.post("/api/stripe/phased/proposal-decision", async (req, res) => {
     // fee) so the take-home matches what the consultant was shown. Bids
     // paid before the fee-split rollout have NULL consultant_payout_cents
     // — those grandfather to the full-amount transfer.
-    const payoutAmount = phaseRow.consultant_payout_cents ?? phaseRow.amount_cents;
-    const transfer = await stripe.transfers.create({
-      amount: payoutAmount,
-      currency: "usd",
+    const result = await releasePhaseRow(phaseRow, {
       destination: consultant.stripe_account_id,
-      source_transaction: phaseRow.charge_id,
       metadata: { bid_id: bidId, phase: "proposal", decision },
     });
+    if (result.conflict) return res.status(409).json({ error: "this payment changed while you were deciding. reload and try again." });
+    if (result.disputed) return res.status(409).json({ error: result.error });
+    const transfer = { id: result.transfer_id };
 
     const decidedAt = new Date().toISOString();
-    const { error: updPhaseErr } = await supabase
-      .from("bid_phase_payments")
-      .update({
-        status: "released",
-        released_at: decidedAt,
-        transfer_id: transfer.id,
-      })
-      .eq("id", phaseRow.id);
-    if (updPhaseErr) return res.status(500).json({ error: updPhaseErr.message });
-
     const { error: updBidErr } = await supabase
       .from("bids")
       .update({
@@ -3025,46 +3654,170 @@ app.post("/api/stripe/phased/confirm-proposals", async (req, res) => {
 
   try {
     const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
-    if (intent.status !== "succeeded") {
-      return res.status(400).json({ error: `payment not yet captured (status: ${intent.status}).` });
-    }
-    if (intent.metadata?.owner_id !== viewer.id) {
+    if (intent.metadata?.owner_id !== viewer.id || intent.metadata?.phase !== "proposal_batch") {
       return res.status(403).json({ error: "this payment doesn't belong to you." });
     }
+    const result = await confirmProposalBatchPayment(intent);
+    if (!result.ok) return res.status(result.mismatch ? 409 : 400).json({ error: result.error });
 
-    const { data: phaseRows, error: rowsErr } = await supabase
-      .from("bid_phase_payments")
-      .select("id, bid_id")
-      .eq("payment_intent_id", paymentIntentId)
-      .eq("phase", "proposal");
-    if (rowsErr) return res.status(500).json({ error: rowsErr.message });
-    if (!phaseRows?.length) return res.status(404).json({ error: "no proposal rows tied to this payment." });
-
-    const paidAt = new Date().toISOString();
-    const { error: phaseUpdErr } = await supabase
-      .from("bid_phase_payments")
-      .update({
-        status: "held",
-        paid_at: paidAt,
-        charge_id: intent.latest_charge,
-      })
-      .eq("payment_intent_id", paymentIntentId)
-      .eq("phase", "proposal");
-    if (phaseUpdErr) return res.status(500).json({ error: phaseUpdErr.message });
-
-    const bidIds = phaseRows.map((r) => r.bid_id);
-    const { error: bidUpdErr } = await supabase
-      .from("bids")
-      .update({
-        status: "accepted",
-        accepted_at: paidAt,
-      })
-      .in("id", bidIds);
-    if (bidUpdErr) return res.status(500).json({ error: bidUpdErr.message });
-
-    return res.json({ ok: true, bid_ids: bidIds });
+    return res.json({ ok: true, bid_ids: result.bidIds });
   } catch (err) {
     return res.status(500).json({ error: err.message || "could not confirm proposal payment." });
+  }
+});
+
+/* ================================================================
+   30-day auto-release (Terms of Service: held funds release to the
+   consultant 30 days after the business's payment unless the business
+   releases sooner or support refunds it). Runs daily via Vercel Cron.
+
+   - Standard bids: 30 days from bids.paid_at.
+   - Phase rows (proposal, service, each retainer period): 30 days from
+     that row's paid_at (= that period's charge).
+   - Anything under an open or lost card dispute is skipped (stays held).
+   - Refunded rows are no longer "held", so they never auto-release.
+   - The business gets a warning notification 7 days before.
+   ================================================================ */
+const AUTO_RELEASE_DAYS = 30;
+const AUTO_RELEASE_WARN_DAYS = 7;
+const AUTO_RELEASE_BATCH = 50;
+const DAY_MS = 86400000;
+
+async function engagementParties(bidId) {
+  const { data: bid } = await supabase
+    .from("bids").select("id, listing_id, consultant_id").eq("id", bidId).maybeSingle();
+  if (!bid) return null;
+  const { data: listing } = await supabase
+    .from("listings").select("owner_id, title").eq("id", bid.listing_id).maybeSingle();
+  return { bidId, ownerId: listing?.owner_id || null, consultantId: bid.consultant_id, title: listing?.title || "your engagement" };
+}
+
+// One notification per (user, type, link) — the link carries the payment key.
+async function notifyOnce(userId, payload) {
+  if (!userId) return;
+  const { data: prior } = await supabase
+    .from("notifications").select("id")
+    .eq("user_id", userId).eq("type", payload.type).eq("link", payload.link)
+    .limit(1);
+  if (prior?.length) return;
+  await notifyUser(userId, payload);
+}
+
+function shortDate(ms) {
+  return new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+}
+
+// Release a held phase row on the consultant's behalf (no owner click).
+async function autoReleasePhaseRow(row) {
+  const { data: bid } = await supabase
+    .from("bids").select("consultant_id").eq("id", row.bid_id).maybeSingle();
+  const { data: consultant } = bid
+    ? await supabase.from("profiles").select("stripe_account_id").eq("id", bid.consultant_id).maybeSingle()
+    : { data: null };
+  if (!consultant?.stripe_account_id) return { ok: false, error: "consultant has no payout account" };
+  const account = await stripe.accounts.retrieve(consultant.stripe_account_id);
+  if (!account.payouts_enabled) return { ok: false, error: "consultant payouts not enabled" };
+  if (!row.charge_id) return { ok: false, error: "missing charge_id" };
+  return releasePhaseRow(row, {
+    destination: consultant.stripe_account_id,
+    metadata: {
+      bid_id: row.bid_id,
+      phase: row.phase,
+      ...(row.period_index != null ? { period_index: String(row.period_index) } : {}),
+      source: "auto_release_30d",
+    },
+  });
+}
+
+async function runAutoRelease(nowMs = Date.now()) {
+  const cutoff = new Date(nowMs - AUTO_RELEASE_DAYS * DAY_MS).toISOString();
+  const warnFrom = new Date(nowMs - (AUTO_RELEASE_DAYS - AUTO_RELEASE_WARN_DAYS) * DAY_MS).toISOString();
+  const summary = { released: [], skipped: [], failed: [], warned: 0 };
+
+  const { data: bids, error: bidsErr } = await supabase
+    .from("bids")
+    .select("id, listing_id, consultant_id, payment_amount_cents, payment_status, payment_intent_id, transfer_id, consultant_payout_cents, paid_at")
+    .eq("payment_status", "held")
+    .lte("paid_at", warnFrom)
+    .order("paid_at", { ascending: true })
+    .limit(AUTO_RELEASE_BATCH);
+  if (bidsErr) throw new Error(`auto-release bid scan failed: ${bidsErr.message}`);
+
+  const { data: rows, error: rowsErr } = await supabase
+    .from("bid_phase_payments")
+    .select("id, bid_id, phase, period_index, status, amount_cents, charge_id, consultant_payout_cents, paid_at")
+    .eq("status", "held")
+    .lte("paid_at", warnFrom)
+    .order("paid_at", { ascending: true })
+    .limit(AUTO_RELEASE_BATCH);
+  if (rowsErr) throw new Error(`auto-release phase scan failed: ${rowsErr.message}`);
+
+  const items = [
+    ...(bids || []).map((b) => ({ kind: "bid", key: `bid-${b.id}`, bidId: b.id, paidAt: b.paid_at, cents: b.payment_amount_cents, payoutCents: b.consultant_payout_cents ?? b.payment_amount_cents, row: b })),
+    ...(rows || []).map((r) => ({ kind: "phase", key: `pay-${r.id}`, bidId: r.bid_id, paidAt: r.paid_at, cents: r.amount_cents, payoutCents: r.consultant_payout_cents ?? r.amount_cents, row: r })),
+  ];
+
+  for (const item of items) {
+    const parties = await engagementParties(item.bidId);
+    if (!parties) continue;
+    const link = `/engagement.html?bid=${item.bidId}#${item.key}`;
+    const releaseOn = Date.parse(item.paidAt) + AUTO_RELEASE_DAYS * DAY_MS;
+
+    if (Date.parse(item.paidAt) > Date.parse(cutoff)) {
+      // Inside the warning window — tell the business once.
+      await notifyOnce(parties.ownerId, {
+        type: "auto_release_warning",
+        title: `payment auto-releases ${shortDate(releaseOn)}`,
+        body: `the ${dollars(item.cents)} you paid for "${parties.title}" releases to the consultant on ${shortDate(releaseOn)}. release it sooner, or contact support if something's wrong.`,
+        link,
+      });
+      summary.warned++;
+      continue;
+    }
+
+    let result;
+    try {
+      result = item.kind === "bid" ? await releaseStandardBid(item.row) : await autoReleasePhaseRow(item.row);
+    } catch (err) {
+      result = { ok: false, error: err.message };
+    }
+    if (result.ok) {
+      summary.released.push(item.key);
+      await notifyOnce(parties.ownerId, {
+        type: "auto_released",
+        title: "payment released to your consultant",
+        body: `${AUTO_RELEASE_DAYS} days passed since you paid ${dollars(item.cents)} for "${parties.title}", so it was released automatically.`,
+        link,
+      });
+      await notifyOnce(parties.consultantId, {
+        type: "auto_released",
+        title: "payment released",
+        body: `${dollars(item.payoutCents)} from "${parties.title}" is on its way to your stripe balance.`,
+        link,
+      });
+    } else if (result.disputed || result.conflict) {
+      summary.skipped.push({ key: item.key, reason: result.disputed ? "disputed" : "changed" });
+    } else {
+      summary.failed.push({ key: item.key, error: result.error });
+      alertOps("auto_release_failed", { item: item.key, bid_id: item.bidId, error: result.error });
+    }
+  }
+  return summary;
+}
+
+// Vercel Cron calls this daily with `Authorization: Bearer $CRON_SECRET`.
+app.get("/api/cron/auto-release", async (req, res) => {
+  const secret = envTrim("CRON_SECRET");
+  if (!secret) return res.status(503).json({ error: "CRON_SECRET not configured" });
+  if (req.headers.authorization !== `Bearer ${secret}`) return res.status(401).json({ error: "unauthorized" });
+  if (!requireStripe(res)) return;
+  try {
+    const summary = await runAutoRelease();
+    console.log("[auto-release]", JSON.stringify(summary));
+    return res.json({ ok: true, ...summary });
+  } catch (err) {
+    console.error("[auto-release] run failed:", err);
+    return res.status(500).json({ error: "auto-release run failed" });
   }
 });
 

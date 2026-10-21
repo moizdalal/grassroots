@@ -229,8 +229,12 @@
   flex-direction: column;
   gap: 0.75rem;
 }
-.eg-retainer-controls__date input[type="date"] {
-  width: fit-content;
+.eg-retainer-controls__length input[type="number"] {
+  width: 6rem;
+}
+.eg-retainer-controls__hint {
+  font-size: 0.8125rem;
+  color: var(--fo-text-2);
 }
 .eg-retainer-controls__actions {
   display: flex;
