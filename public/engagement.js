@@ -1028,6 +1028,7 @@ async function releaseRetainerPeriod(periodIndex, btnEl) {
       return;
     }
     retainerPeriods = await loadRetainerPeriods(currentBid.id);
+    window.dispatchEvent(new Event("eg:payments-changed"));
     showSuccess(`period ${periodIndex + 1} released.`);
     renderRetainerPeriodsPanel();
   } catch (err) {
@@ -1681,6 +1682,7 @@ async function submitReview() {
       : "gr-status";
   }
   setStatusPill(scheduleState.status);
+  window.dispatchEvent(new Event("eg:payments-changed"));
 }
 
 function bindCalendarInteractions() {
@@ -2279,6 +2281,11 @@ async function init() {
 
     gate.hidden = true;
     detail.hidden = false;
+
+    // Delivery + review panel (mark delivered, 14-day review, holds).
+    import("/delivery-panel.js")
+      .then((m) => m.mountDeliveryPanel({ supabase, bidId, title: listing.title }))
+      .catch((err) => console.warn("delivery panel failed to load", err));
   } catch (err) {
     gate.textContent = err.message || "could not load ongoing work.";
     gate.className = "gr-status error";

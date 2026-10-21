@@ -231,13 +231,14 @@ async function onConnectAccountDeauthorized(account) {
    equals `expected`. Returns the updated row, or null if another request
    already moved it. Throws on DB error. This is the lock that keeps two
    concurrent release/refund clicks from both reaching Stripe. */
-async function casUpdate(table, id, expected, updates, statusField = "status") {
-  const { data, error } = await supabase
+async function casUpdate(table, id, expected, updates, statusField = "status", extraEq = {}) {
+  let query = supabase
     .from(table)
     .update(updates)
     .eq("id", id)
-    .eq(statusField, expected)
-    .select("id");
+    .eq(statusField, expected);
+  for (const [col, val] of Object.entries(extraEq)) query = val === null ? query.is(col, null) : query.eq(col, val);
+  const { data, error } = await query.select("id");
   if (error) throw new Error(`${table} update failed: ${error.message}`);
   return data?.[0] || null;
 }
@@ -247,16 +248,25 @@ async function casUpdate(table, id, expected, updates, statusField = "status") {
    held so the owner can retry. The transfer's idempotency key is the row
    id, so a retry after a lost response returns the same transfer instead
    of paying twice. */
-async function releasePhaseRow(phaseRow, { destination, metadata }) {
+async function releasePhaseRow(phaseRow, { destination, metadata, claimEq = {} }) {
   if (await chargeDisputeHold(phaseRow.charge_id)) {
     return { ok: false, disputed: true, error: DISPUTE_HOLD_ERROR };
   }
   const releasedAt = new Date().toISOString();
+  // refunded_cents = 0 in the claim: a partially refunded payment is never
+  // released for its full amount, even if the refund lands mid-release.
   const claimed = await casUpdate("bid_phase_payments", phaseRow.id, "held", {
     status: "released",
     released_at: releasedAt,
-  });
-  if (!claimed) return { ok: false, conflict: true, error: "payment is no longer held." };
+  }, "status", { ...claimEq, refunded_cents: 0 });
+  if (!claimed) {
+    const { data: now } = await supabase
+      .from("bid_phase_payments").select("status, refunded_cents").eq("id", phaseRow.id).maybeSingle();
+    if (now?.status === "held" && Number(now.refunded_cents) > 0) {
+      return { ok: false, partialRefund: true, error: PARTIAL_REFUND_ERROR };
+    }
+    return { ok: false, conflict: true, error: "payment is no longer held." };
+  }
 
   // Stored consultant payout (offer - estimated Stripe fee); legacy rows
   // with NULL grandfather to a full-amount transfer.
@@ -425,6 +435,8 @@ async function onRetainerInvoicePaid(invoice) {
     charge_id: chargeId,
     status: "held",
     paid_at: new Date().toISOString(),
+    // The 14-day review window opens when this period ends.
+    period_end_at: invoicePeriodEnd(invoice),
     stripe_fee_cents: breakdown.stripeFeeCents,
     platform_fee_cents: breakdown.platformFeeCents,
     consultant_payout_cents: breakdown.consultantPayoutCents,
@@ -455,6 +467,15 @@ async function onRetainerInvoicePaid(invoice) {
       console.warn("[stripe webhook] auto-release failed:", result.error);
     }
   }
+}
+
+// End of the service period an invoice paid for (the subscription line's
+// period), or null if Stripe didn't send it — the release job then falls
+// back to paid_at + one cadence.
+function invoicePeriodEnd(invoice) {
+  const lines = invoice?.lines?.data || [];
+  const end = lines.map((l) => Number(l?.period?.end) || 0).reduce((a, b) => Math.max(a, b), 0);
+  return end ? new Date(end * 1000).toISOString() : null;
 }
 
 async function onRetainerInvoiceFailed(invoice) {
@@ -719,6 +740,7 @@ async function chargeDisputeHold(chargeId) {
 }
 
 const DISPUTE_HOLD_ERROR = "this payment is under a card dispute, so it can't be released yet. contact support.";
+const PARTIAL_REFUND_ERROR = "part of this payment was refunded, so support needs to settle the rest. contact support.";
 
 let adminIdsCache = null;
 async function adminUserIds() {
@@ -807,8 +829,32 @@ async function onChargeRefunded(charge) {
 
   if (!full) {
     // Partial refunds (e.g. one consultant's share of a proposal batch)
-    // can't be mapped to rows automatically.
-    alertOps("partial_refund_needs_review", { payment_intent: paymentIntentId, amount_refunded: charge.amount_refunded, amount: charge.amount });
+    // can't be mapped to a payout automatically. Stamp the charge-level
+    // refunded amount on every row of this payment: the release claim
+    // requires refunded_cents = 0, so nothing on it can be released (by
+    // the owner or the daily job) for the full amount. Support settles
+    // the remainder by hand.
+    const refunded = Number(charge.amount_refunded) || 0;
+    if (bid && bid.payment_status === "held") {
+      const { error } = await supabase.from("bids").update({ refunded_cents: refunded }).eq("id", bid.id).eq("payment_status", "held");
+      if (error) throw new Error(`bid partial refund mirror failed: ${error.message}`);
+    }
+    for (const row of phaseRows || []) {
+      if (row.status !== "held") continue;
+      const { error } = await supabase.from("bid_phase_payments").update({ refunded_cents: refunded }).eq("id", row.id).eq("status", "held");
+      if (error) throw new Error(`phase partial refund mirror failed: ${error.message}`);
+    }
+    const bidId = bid?.id || phaseRows?.[0]?.bid_id || null;
+    const released = (bid?.payment_status === "released") || (phaseRows || []).some((r) => r.status === "released");
+    alertOps("partial_refund_needs_review", { payment_intent: paymentIntentId, bid_id: bidId, amount_refunded: refunded, amount: charge.amount, already_released: released });
+    await notifyAdmins({
+      type: "partial_refund",
+      title: `partial refund · ${dollars(refunded)} of ${dollars(charge.amount)}`,
+      body: released
+        ? "this payment was already released. decide whether to reverse part of the transfer."
+        : "the rest is frozen. it won't release automatically. settle it in stripe, then release or refund it.",
+      link: bidId ? `/engagement.html?bid=${bidId}` : null,
+    });
     return;
   }
 
@@ -818,7 +864,7 @@ async function onChargeRefunded(charge) {
     } else if (bid.payment_status !== "refunded") {
       const { error } = await supabase
         .from("bids")
-        .update({ payment_status: "refunded", status: "rejected" })
+        .update({ payment_status: "refunded", status: "rejected", refunded_cents: Number(charge.amount_refunded) || 0 })
         .eq("id", bid.id)
         .neq("payment_status", "released");
       if (error) throw new Error(`bid refund mirror failed: ${error.message}`);
@@ -830,7 +876,7 @@ async function onChargeRefunded(charge) {
     } else if (row.status !== "refunded") {
       const { error } = await supabase
         .from("bid_phase_payments")
-        .update({ status: "refunded", refunded_at: now })
+        .update({ status: "refunded", refunded_at: now, refunded_cents: Number(charge.amount_refunded) || 0 })
         .eq("id", row.id)
         .neq("status", "released");
       if (error) throw new Error(`phase refund mirror failed: ${error.message}`);
@@ -2005,11 +2051,11 @@ app.post("/api/stripe/confirm-acceptance", async (req, res) => {
 
 /* Release a held standard bid to the consultant: claim held → released,
    transfer pinned to the original charge, stamp transfer_id. Shared by the
-   owner's release button and the 30-day auto-release job. The caller does
+   owner's release button and the daily review-window release job. The caller does
    authorization (and the review requirement for the manual path).
    Returns { ok, transfer_id, fundsRouted, payout_cents } or
    { ok: false, status, error }. */
-async function releaseStandardBid(bid) {
+async function releaseStandardBid(bid, { claimEq = {} } = {}) {
   const bidId = bid.id;
   let transferId = null;
   let fundsRouted = "no-payment-intent";
@@ -2048,8 +2094,13 @@ async function releaseStandardBid(bid) {
   const claimed = await casUpdate("bids", bidId, "held", {
     payment_status: "released",
     released_at: new Date().toISOString(),
-  }, "payment_status");
+  }, "payment_status", { ...claimEq, refunded_cents: 0 });
   if (!claimed) {
+    const { data: now } = await supabase
+      .from("bids").select("payment_status, refunded_cents").eq("id", bidId).maybeSingle();
+    if (now?.payment_status === "held" && Number(now.refunded_cents) > 0) {
+      return { ok: false, status: 409, partialRefund: true, error: PARTIAL_REFUND_ERROR };
+    }
     return { ok: false, status: 409, conflict: true, error: "this payment changed while you were releasing it. reload and try again." };
   }
 
@@ -3298,7 +3349,7 @@ app.post("/api/stripe/retainer/release-period", async (req, res) => {
       metadata: { bid_id: bidId, phase: "retainer_period", period_index: String(periodIndex) },
     });
     if (result.conflict) return res.status(409).json({ error: "this period changed while you were releasing it. reload and try again." });
-    if (result.disputed) return res.status(409).json({ error: result.error });
+    if (!result.ok) return res.status(409).json({ error: result.error });
 
     return res.json({ ok: true, transfer_id: result.transfer_id });
   } catch (err) {
@@ -3541,7 +3592,7 @@ app.post("/api/stripe/phased/release-service", async (req, res) => {
       metadata: { bid_id: bidId, phase: "service" },
     });
     if (result.conflict) return res.status(409).json({ error: "this payment changed while you were releasing it. reload and try again." });
-    if (result.disputed) return res.status(409).json({ error: result.error });
+    if (!result.ok) return res.status(409).json({ error: result.error });
 
     return res.json({ ok: true, transfer_id: result.transfer_id });
   } catch (err) {
@@ -3650,7 +3701,7 @@ app.post("/api/stripe/phased/proposal-decision", async (req, res) => {
       metadata: { bid_id: bidId, phase: "proposal", decision },
     });
     if (result.conflict) return res.status(409).json({ error: "this payment changed while you were deciding. reload and try again." });
-    if (result.disputed) return res.status(409).json({ error: result.error });
+    if (!result.ok) return res.status(409).json({ error: result.error });
     const transfer = { id: result.transfer_id };
 
     const decidedAt = new Date().toISOString();
@@ -3694,48 +3745,143 @@ app.post("/api/stripe/phased/confirm-proposals", async (req, res) => {
 });
 
 /* ================================================================
-   30-day auto-release (Terms of Service: held funds release to the
-   consultant 30 days after the business's payment unless the business
-   releases sooner or support refunds it). Runs daily via Vercel Cron.
+   Delivery-anchored release (Terms §6.4). Replaces the old
+   30-days-from-charge auto-release. Runs daily via Vercel Cron.
 
-   - Standard bids: 30 days from bids.paid_at.
-   - Phase rows (proposal, service, each retainer period): 30 days from
-     that row's paid_at (= that period's charge).
-   - Anything under an open or lost card dispute is skipped (stays held).
-   - Refunded rows are no longer "held", so they never auto-release.
-   - The business gets a warning notification 7 days before.
+   - One-time jobs (standard bids) and phased service fees: the
+     consultant marks the work delivered. The owner has 14 days to
+     release (mark complete + review), request changes, or contact
+     support. Then the payment releases automatically. The owner gets a
+     heads-up on day 7. Request changes clears the delivered mark; the
+     window restarts when the consultant marks delivered again.
+   - Retainer periods (and a retainer listing's first period, paid on
+     the bid): the window opens when the period ends, or sooner if the
+     consultant marks it delivered. Once the owner requests changes on a
+     period, only a new delivered mark reopens it. The owner's
+     auto_release toggle still releases each period at invoice time.
+   - Phased proposal fees: released by the owner's decision only.
+   - Backstop: anything still held 90 days after its charge is flagged
+     for admin (notification + ops alert) and never auto-released.
+   - Support hold (admin): pauses auto-release. Alerted once stale (14
+     days). Open/lost disputes and partial refunds also block release.
    ================================================================ */
-const AUTO_RELEASE_DAYS = 30;
-const AUTO_RELEASE_WARN_DAYS = 7;
-const AUTO_RELEASE_BATCH = 50;
+const REVIEW_WINDOW_DAYS = 14;
+const REVIEW_NOTICE_DAYS = 7;
+const BACKSTOP_DAYS = 90;
+const SUPPORT_HOLD_STALE_DAYS = 14;
+const RELEASE_SCAN_LIMIT = 1000;
 const DAY_MS = 86400000;
 
-async function engagementParties(bidId) {
+const DELIVERY_COLS = "delivered_at, delivery_note, delivery_link, changes_requested_at, changes_request_note, review_reminded_at, support_hold_at, support_hold_reason, backstop_flagged_at, refunded_cents";
+const BID_RELEASE_COLS = `id, listing_id, consultant_id, payment_amount_cents, payment_status, payment_intent_id, transfer_id, consultant_payout_cents, paid_at, ${DELIVERY_COLS}`;
+const PHASE_RELEASE_COLS = `id, bid_id, phase, period_index, status, amount_cents, charge_id, transfer_id, consultant_payout_cents, paid_at, period_end_at, ${DELIVERY_COLS}`;
+
+// What the consultant can mark delivered and what auto-releases.
+const DELIVERABLE_KINDS = new Set(["one_time", "retainer_first", "service", "retainer_period"]);
+
+function addCadence(ms, cadence) {
+  if (cadence === "weekly") return ms + 7 * DAY_MS;
+  if (cadence === "biweekly") return ms + 14 * DAY_MS;
+  const months = cadence === "monthly" ? 1 : cadence === "quarterly" ? 3 : 0;
+  if (!months) return null;
+  const d = new Date(ms);
+  d.setUTCMonth(d.getUTCMonth() + months);
+  return d.getTime();
+}
+
+// Listing + retainer terms for one engagement. `cache` is per job run.
+async function releaseContext(bidId, cache) {
+  if (cache?.has(bidId)) return cache.get(bidId);
   const { data: bid } = await supabase
     .from("bids").select("id, listing_id, consultant_id").eq("id", bidId).maybeSingle();
-  if (!bid) return null;
-  const { data: listing } = await supabase
-    .from("listings").select("owner_id, title").eq("id", bid.listing_id).maybeSingle();
-  return { bidId, ownerId: listing?.owner_id || null, consultantId: bid.consultant_id, title: listing?.title || "your engagement" };
+  let ctx = null;
+  if (bid) {
+    const { data: listing } = await supabase
+      .from("listings").select("owner_id, title, contract_type, retainer_cadence").eq("id", bid.listing_id).maybeSingle();
+    const { data: sub } = await supabase
+      .from("retainer_subscriptions").select("cadence").eq("bid_id", bidId).maybeSingle();
+    ctx = {
+      bidId,
+      ownerId: listing?.owner_id || null,
+      consultantId: bid.consultant_id,
+      title: listing?.title || "your engagement",
+      contractType: listing?.contract_type || "standard",
+      listingCadence: listing?.retainer_cadence || null,
+      subCadence: sub?.cadence || null,
+    };
+  }
+  cache?.set(bidId, ctx);
+  return ctx;
 }
 
-// One notification per (user, type, link) — the link carries the payment key.
-async function notifyOnce(userId, payload) {
-  if (!userId) return;
-  const { data: prior } = await supabase
-    .from("notifications").select("id")
-    .eq("user_id", userId).eq("type", payload.type).eq("link", payload.link)
-    .limit(1);
-  if (prior?.length) return;
-  await notifyUser(userId, payload);
+// one_time | retainer_first | proposal | service | retainer_period | maintenance
+function paymentKind(item, ctx) {
+  if (item.kind === "bid") return ctx?.contractType === "retainer" ? "retainer_first" : "one_time";
+  return item.row.phase;
 }
 
-function shortDate(ms) {
-  return new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+function paymentLabel(kind, row) {
+  // Same numbering as the engagement page's period list.
+  if (kind === "retainer_period") return `period ${Number(row.period_index) + 1}`;
+  if (kind === "retainer_first") return "first period";
+  if (kind === "service") return "service fee";
+  if (kind === "proposal") return "proposal fee";
+  return "payment";
+}
+
+function periodEndMs(item, kind, ctx) {
+  const paid = Date.parse(item.row.paid_at);
+  if (kind === "retainer_period") {
+    return item.row.period_end_at ? Date.parse(item.row.period_end_at) : addCadence(paid, ctx?.subCadence);
+  }
+  if (kind === "retainer_first") return addCadence(paid, ctx?.listingCadence);
+  return null;
+}
+
+/* When the 14-day review window opens, or null if it hasn't been
+   triggered (nothing delivered, or a kind that never auto-releases).
+   For retainers it may be in the future (the period hasn't ended). */
+function reviewWindow(item, kind, ctx) {
+  if (!DELIVERABLE_KINDS.has(kind)) return null;
+  const row = item.row;
+  const delivered = row.delivered_at ? Date.parse(row.delivered_at) : null;
+  // After the owner asks for changes, only a new delivered mark counts.
+  const periodEnd = row.changes_requested_at ? null : periodEndMs(item, kind, ctx);
+  const opens = [delivered, periodEnd].filter((v) => Number.isFinite(v));
+  if (!opens.length) return null;
+  const opensAt = Math.min(...opens);
+  return {
+    opensAt,
+    opensBy: opensAt === delivered ? "delivered" : "period_end",
+    noticeAt: opensAt + REVIEW_NOTICE_DAYS * DAY_MS,
+    releaseAt: opensAt + REVIEW_WINDOW_DAYS * DAY_MS,
+  };
+}
+
+function backstopAt(item) {
+  return Date.parse(item.row.paid_at) + BACKSTOP_DAYS * DAY_MS;
+}
+
+function releaseTable(item) {
+  return item.kind === "bid" ? "bids" : "bid_phase_payments";
+}
+
+function heldStatusField(item) {
+  return item.kind === "bid" ? "payment_status" : "status";
+}
+
+// Server-side gate for "nothing changed since the job read this row":
+// the release claim only wins if delivery / hold state is what we saw.
+function unchangedGuard(row) {
+  return {
+    delivered_at: row.delivered_at ?? null,
+    changes_requested_at: row.changes_requested_at ?? null,
+    support_hold_at: null,
+  };
 }
 
 // Release a held phase row on the consultant's behalf (no owner click).
-async function autoReleasePhaseRow(row) {
+async function autoReleasePhaseRow(row, claimEq) {
   const { data: bid } = await supabase
     .from("bids").select("consultant_id").eq("id", row.bid_id).maybeSingle();
   const { data: consultant } = bid
@@ -3751,82 +3897,159 @@ async function autoReleasePhaseRow(row) {
       bid_id: row.bid_id,
       phase: row.phase,
       ...(row.period_index != null ? { period_index: String(row.period_index) } : {}),
-      source: "auto_release_30d",
+      source: "auto_release_review_window",
     },
+    claimEq,
   });
 }
 
-async function runAutoRelease(nowMs = Date.now()) {
-  const cutoff = new Date(nowMs - AUTO_RELEASE_DAYS * DAY_MS).toISOString();
-  const warnFrom = new Date(nowMs - (AUTO_RELEASE_DAYS - AUTO_RELEASE_WARN_DAYS) * DAY_MS).toISOString();
-  const summary = { released: [], skipped: [], failed: [], warned: 0 };
+function shortDate(ms) {
+  return new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+}
 
+// One notification per (user, type, link) — the link carries the payment key.
+async function notifyOnce(userId, payload) {
+  if (!userId) return;
+  const { data: prior } = await supabase
+    .from("notifications").select("id")
+    .eq("user_id", userId).eq("type", payload.type).eq("link", payload.link)
+    .limit(1);
+  if (prior?.length) return;
+  await notifyUser(userId, payload);
+}
+
+// Stamp a one-shot column (null → now). True only for the caller that won.
+async function stampOnce(item, column, nowIso) {
+  const { data, error } = await supabase
+    .from(releaseTable(item))
+    .update({ [column]: nowIso })
+    .eq("id", item.row.id)
+    .eq(heldStatusField(item), "held")
+    .is(column, null)
+    .select("id");
+  if (error) throw new Error(`${column} stamp failed: ${error.message}`);
+  return Boolean(data?.length);
+}
+
+async function scanHeld(nowMs) {
   const { data: bids, error: bidsErr } = await supabase
     .from("bids")
-    .select("id, listing_id, consultant_id, payment_amount_cents, payment_status, payment_intent_id, transfer_id, consultant_payout_cents, paid_at")
+    .select(BID_RELEASE_COLS)
     .eq("payment_status", "held")
-    .lte("paid_at", warnFrom)
     .order("paid_at", { ascending: true })
-    .limit(AUTO_RELEASE_BATCH);
-  if (bidsErr) throw new Error(`auto-release bid scan failed: ${bidsErr.message}`);
-
+    .limit(RELEASE_SCAN_LIMIT);
+  if (bidsErr) throw new Error(`release bid scan failed: ${bidsErr.message}`);
   const { data: rows, error: rowsErr } = await supabase
     .from("bid_phase_payments")
-    .select("id, bid_id, phase, period_index, status, amount_cents, charge_id, consultant_payout_cents, paid_at")
+    .select(PHASE_RELEASE_COLS)
     .eq("status", "held")
-    .lte("paid_at", warnFrom)
     .order("paid_at", { ascending: true })
-    .limit(AUTO_RELEASE_BATCH);
-  if (rowsErr) throw new Error(`auto-release phase scan failed: ${rowsErr.message}`);
-
-  const items = [
-    ...(bids || []).map((b) => ({ kind: "bid", key: `bid-${b.id}`, bidId: b.id, paidAt: b.paid_at, cents: b.payment_amount_cents, payoutCents: b.consultant_payout_cents ?? b.payment_amount_cents, row: b })),
-    ...(rows || []).map((r) => ({ kind: "phase", key: `pay-${r.id}`, bidId: r.bid_id, paidAt: r.paid_at, cents: r.amount_cents, payoutCents: r.consultant_payout_cents ?? r.amount_cents, row: r })),
+    .limit(RELEASE_SCAN_LIMIT);
+  if (rowsErr) throw new Error(`release phase scan failed: ${rowsErr.message}`);
+  if ((bids || []).length >= RELEASE_SCAN_LIMIT || (rows || []).length >= RELEASE_SCAN_LIMIT) {
+    alertOps("release_scan_truncated", { bids: bids.length, rows: rows.length, at: new Date(nowMs).toISOString() });
+  }
+  return [
+    ...(bids || []).filter((b) => b.paid_at).map((b) => ({
+      kind: "bid", key: `bid-${b.id}`, bidId: b.id, row: b,
+      cents: b.payment_amount_cents, payoutCents: b.consultant_payout_cents ?? b.payment_amount_cents,
+    })),
+    ...(rows || []).filter((r) => r.paid_at).map((r) => ({
+      kind: "phase", key: `pay-${r.id}`, bidId: r.bid_id, row: r,
+      cents: r.amount_cents, payoutCents: r.consultant_payout_cents ?? r.amount_cents,
+    })),
   ];
+}
 
-  for (const item of items) {
-    const parties = await engagementParties(item.bidId);
-    if (!parties) continue;
+async function runReleaseJob(nowMs = Date.now()) {
+  const nowIso = new Date(nowMs).toISOString();
+  const summary = { released: [], noticed: [], flagged: [], skipped: [], failed: [], stale_holds: [] };
+  const cache = new Map();
+
+  for (const item of await scanHeld(nowMs)) {
+    const ctx = await releaseContext(item.bidId, cache);
+    if (!ctx) continue;
+    const row = item.row;
+    const kind = paymentKind(item, ctx);
+    const label = paymentLabel(kind, row);
     const link = `/engagement.html?bid=${item.bidId}#${item.key}`;
-    const releaseOn = Date.parse(item.paidAt) + AUTO_RELEASE_DAYS * DAY_MS;
 
-    if (Date.parse(item.paidAt) > Date.parse(cutoff)) {
-      // Inside the warning window — tell the business once.
-      await notifyOnce(parties.ownerId, {
-        type: "auto_release_warning",
-        title: `payment auto-releases ${shortDate(releaseOn)}`,
-        body: `the ${dollars(item.cents)} you paid for "${parties.title}" releases to the consultant on ${shortDate(releaseOn)}. release it sooner, or contact support if something's wrong.`,
-        link,
-      });
-      summary.warned++;
+    // Support hold gone stale: alert every run until it's resolved.
+    if (row.support_hold_at && nowMs - Date.parse(row.support_hold_at) >= SUPPORT_HOLD_STALE_DAYS * DAY_MS) {
+      summary.stale_holds.push(item.key);
+      alertOps("support_hold_stale", { item: item.key, bid_id: item.bidId, hold_since: row.support_hold_at, reason: row.support_hold_reason || null });
+      for (const adminId of await adminUserIds()) {
+        await notifyOnce(adminId, {
+          type: "support_hold_stale",
+          title: `support hold open ${SUPPORT_HOLD_STALE_DAYS}+ days`,
+          body: `"${ctx.title}" (${label}, ${dollars(item.cents)}) has been on hold since ${shortDate(Date.parse(row.support_hold_at))}. resolve it or clear the hold.`,
+          link: `${link}-hold-${row.support_hold_at}`,
+        });
+      }
+    }
+
+    // 90-day backstop: flag once, never auto-release.
+    if (nowMs >= backstopAt(item)) {
+      if (!row.backstop_flagged_at && await stampOnce(item, "backstop_flagged_at", nowIso)) {
+        summary.flagged.push(item.key);
+        alertOps("held_payment_backstop", { item: item.key, bid_id: item.bidId, kind, amount_cents: item.cents, paid_at: row.paid_at, delivered_at: row.delivered_at || null, on_hold: Boolean(row.support_hold_at) });
+        await notifyAdmins({
+          type: "held_payment_backstop",
+          title: `payment held 90+ days · ${dollars(item.cents)}`,
+          body: `"${ctx.title}" (${label}) has been held since ${shortDate(Date.parse(row.paid_at))}. it won't release on its own. release, refund, or follow up with both sides.`,
+          link,
+        });
+      }
       continue;
     }
 
-    let result;
-    try {
-      result = item.kind === "bid" ? await releaseStandardBid(item.row) : await autoReleasePhaseRow(item.row);
-    } catch (err) {
-      result = { ok: false, error: err.message };
+    if (row.support_hold_at) { summary.skipped.push({ key: item.key, reason: "support_hold" }); continue; }
+    if (Number(row.refunded_cents) > 0) { summary.skipped.push({ key: item.key, reason: "partial_refund" }); continue; }
+
+    const win = reviewWindow(item, kind, ctx);
+    if (!win || nowMs < win.opensAt) continue;
+
+    if (nowMs >= win.releaseAt) {
+      let result;
+      try {
+        result = item.kind === "bid"
+          ? await releaseStandardBid(row, { claimEq: unchangedGuard(row) })
+          : await autoReleasePhaseRow(row, unchangedGuard(row));
+      } catch (err) {
+        result = { ok: false, error: err.message };
+      }
+      if (result.ok) {
+        summary.released.push(item.key);
+        await notifyOnce(ctx.ownerId, {
+          type: "auto_released",
+          title: "payment released to your consultant",
+          body: `your 14-day review window for "${ctx.title}" ended, so grassroots released ${dollars(item.cents)} to the consultant.`,
+          link,
+        });
+        await notifyOnce(ctx.consultantId, {
+          type: "auto_released",
+          title: "payment released",
+          body: `${dollars(item.payoutCents)} from "${ctx.title}" is on its way to your stripe balance.`,
+          link,
+        });
+      } else if (result.disputed || result.conflict || result.partialRefund) {
+        summary.skipped.push({ key: item.key, reason: result.disputed ? "disputed" : result.partialRefund ? "partial_refund" : "changed" });
+      } else {
+        summary.failed.push({ key: item.key, error: result.error });
+        alertOps("auto_release_failed", { item: item.key, bid_id: item.bidId, error: result.error });
+      }
+      continue;
     }
-    if (result.ok) {
-      summary.released.push(item.key);
-      await notifyOnce(parties.ownerId, {
-        type: "auto_released",
-        title: "payment released to your consultant",
-        body: `${AUTO_RELEASE_DAYS} days passed since you paid ${dollars(item.cents)} for "${parties.title}", so it was released automatically.`,
+
+    // Day 7 of the window: heads-up to the business, once per window.
+    if (nowMs >= win.noticeAt && !row.review_reminded_at && await stampOnce(item, "review_reminded_at", nowIso)) {
+      summary.noticed.push(item.key);
+      await notifyUser(ctx.ownerId, {
+        type: "review_window_closing",
+        title: `review closes ${shortDate(win.releaseAt)}`,
+        body: `grassroots is holding ${dollars(item.cents)} for "${ctx.title}" (${label}). release it, request changes, or contact support by ${shortDate(win.releaseAt)}. after that it releases to the consultant.`,
         link,
       });
-      await notifyOnce(parties.consultantId, {
-        type: "auto_released",
-        title: "payment released",
-        body: `${dollars(item.payoutCents)} from "${parties.title}" is on its way to your stripe balance.`,
-        link,
-      });
-    } else if (result.disputed || result.conflict) {
-      summary.skipped.push({ key: item.key, reason: result.disputed ? "disputed" : "changed" });
-    } else {
-      summary.failed.push({ key: item.key, error: result.error });
-      alertOps("auto_release_failed", { item: item.key, bid_id: item.bidId, error: result.error });
     }
   }
   return summary;
@@ -3839,13 +4062,243 @@ app.get("/api/cron/auto-release", async (req, res) => {
   if (req.headers.authorization !== `Bearer ${secret}`) return res.status(401).json({ error: "unauthorized" });
   if (!requireStripe(res)) return;
   try {
-    const summary = await runAutoRelease();
+    const summary = await runReleaseJob();
     console.log("[auto-release]", JSON.stringify(summary));
     return res.json({ ok: true, ...summary });
   } catch (err) {
     console.error("[auto-release] run failed:", err);
     return res.status(500).json({ error: "auto-release run failed" });
   }
+});
+
+/* ── delivery + review endpoints ─────────────────────────────── */
+
+// The held payment a delivery action targets: the bid itself (one-time
+// job, retainer first period) or one of its phase rows (`payment_id`).
+async function loadReleaseTarget(bidId, paymentId) {
+  const ctx = await releaseContext(bidId);
+  if (!ctx) return { error: "engagement not found.", status: 404 };
+  let item;
+  if (paymentId) {
+    const { data: row } = await supabase
+      .from("bid_phase_payments").select(PHASE_RELEASE_COLS).eq("id", paymentId).eq("bid_id", bidId).maybeSingle();
+    if (!row) return { error: "payment not found.", status: 404 };
+    item = { kind: "phase", key: `pay-${row.id}`, bidId, row, cents: row.amount_cents };
+  } else {
+    const { data: row } = await supabase
+      .from("bids").select(BID_RELEASE_COLS).eq("id", bidId).maybeSingle();
+    if (!row) return { error: "engagement not found.", status: 404 };
+    if (ctx.contractType === "phased") return { error: "pick which payment you mean.", status: 400 };
+    item = { kind: "bid", key: `bid-${row.id}`, bidId, row, cents: row.payment_amount_cents };
+  }
+  const kind = paymentKind(item, ctx);
+  const held = item.row[heldStatusField(item)] === "held";
+  return { ctx, item, kind, held };
+}
+
+function cleanText(value, max) {
+  const text = String(value ?? "").trim();
+  return text ? text.slice(0, max) : null;
+}
+
+// Consultant: mark the work (or a retainer period) delivered. Starts the
+// owner's 14-day review window.
+app.post("/api/engagement/mark-delivered", async (req, res) => {
+  const viewer = await getViewerFromRequest(req);
+  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  const bidId = String(req.body?.bid_id || "").trim();
+  const paymentId = String(req.body?.payment_id || "").trim() || null;
+  if (!bidId) return res.status(400).json({ error: "bid_id required." });
+
+  const note = cleanText(req.body?.note, 1000);
+  const link = cleanText(req.body?.link, 500);
+  if (link && !/^https?:\/\/\S+$/i.test(link)) {
+    return res.status(400).json({ error: "the link needs to start with https://." });
+  }
+
+  try {
+    const t = await loadReleaseTarget(bidId, paymentId);
+    if (t.error) return res.status(t.status).json({ error: t.error });
+    if (t.ctx.consultantId !== viewer.id) return res.status(403).json({ error: "only the consultant can mark this delivered." });
+    if (!DELIVERABLE_KINDS.has(t.kind)) return res.status(400).json({ error: "this payment releases when the business decides, not on delivery." });
+    if (!t.held) return res.status(409).json({ error: "this payment isn't being held anymore." });
+    if (t.item.row.delivered_at) return res.status(409).json({ error: "you already marked this delivered." });
+
+    const deliveredAt = new Date().toISOString();
+    const { data: won, error } = await supabase
+      .from(releaseTable(t.item))
+      .update({ delivered_at: deliveredAt, delivery_note: note, delivery_link: link, review_reminded_at: null })
+      .eq("id", t.item.row.id)
+      .eq(heldStatusField(t.item), "held")
+      .is("delivered_at", null)
+      .select("id");
+    if (error) return res.status(500).json({ error: error.message });
+    if (!won?.length) return res.status(409).json({ error: "this payment changed. reload and try again." });
+
+    const win = reviewWindow({ ...t.item, row: { ...t.item.row, delivered_at: deliveredAt } }, t.kind, t.ctx);
+    const label = paymentLabel(t.kind, t.item.row);
+    await notifyUser(t.ctx.ownerId, {
+      type: "work_delivered",
+      title: `${label === "payment" ? "work" : label} marked delivered`,
+      body: `the consultant marked "${t.ctx.title}" delivered. review it by ${shortDate(win.releaseAt)}. after that, grassroots releases the payment to them.`,
+      link: `/engagement.html?bid=${bidId}#${t.item.key}`,
+    });
+    return res.json({ ok: true, delivered_at: deliveredAt, auto_release_at: new Date(win.releaseAt).toISOString() });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "could not mark delivered." });
+  }
+});
+
+// Owner: ask for changes. Clears the delivered mark and stops the review
+// window until the consultant marks delivered again.
+app.post("/api/engagement/request-changes", async (req, res) => {
+  const viewer = await getViewerFromRequest(req);
+  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  const bidId = String(req.body?.bid_id || "").trim();
+  const paymentId = String(req.body?.payment_id || "").trim() || null;
+  if (!bidId) return res.status(400).json({ error: "bid_id required." });
+  const note = cleanText(req.body?.note, 1000);
+
+  try {
+    const t = await loadReleaseTarget(bidId, paymentId);
+    if (t.error) return res.status(t.status).json({ error: t.error });
+    if (t.ctx.ownerId !== viewer.id) return res.status(403).json({ error: "only the business can request changes." });
+    if (!t.held) return res.status(409).json({ error: "this payment isn't being held anymore." });
+    const win = reviewWindow(t.item, t.kind, t.ctx);
+    if (!win || win.opensAt > Date.now()) {
+      return res.status(409).json({ error: "there's nothing delivered to review yet." });
+    }
+
+    const requestedAt = new Date().toISOString();
+    let query = supabase
+      .from(releaseTable(t.item))
+      .update({ delivered_at: null, review_reminded_at: null, changes_requested_at: requestedAt, changes_request_note: note })
+      .eq("id", t.item.row.id)
+      .eq(heldStatusField(t.item), "held");
+    query = t.item.row.delivered_at ? query.eq("delivered_at", t.item.row.delivered_at) : query.is("delivered_at", null);
+    const { data: won, error } = await query.select("id");
+    if (error) return res.status(500).json({ error: error.message });
+    if (!won?.length) return res.status(409).json({ error: "this payment changed. reload and try again." });
+
+    await notifyUser(t.ctx.consultantId, {
+      type: "changes_requested",
+      title: "the business asked for changes",
+      body: `${note ? `"${note.slice(0, 160)}" ` : ""}update "${t.ctx.title}", then mark it delivered again to restart the 14-day review.`,
+      link: `/engagement.html?bid=${bidId}#${t.item.key}`,
+    });
+    return res.json({ ok: true, changes_requested_at: requestedAt });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "could not request changes." });
+  }
+});
+
+// Either party: where each held payment stands in the review cycle.
+app.get("/api/engagement/:bidId/release-status", async (req, res) => {
+  const viewer = await getViewerFromRequest(req);
+  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  const bidId = String(req.params.bidId || "").trim();
+  try {
+    const ctx = await releaseContext(bidId);
+    if (!ctx) return res.status(404).json({ error: "engagement not found." });
+    const role = viewer.id === ctx.ownerId ? "owner" : viewer.id === ctx.consultantId ? "consultant" : null;
+    if (!role) return res.status(403).json({ error: "not your engagement." });
+
+    const { data: bid } = await supabase.from("bids").select(BID_RELEASE_COLS).eq("id", bidId).maybeSingle();
+    const { data: rows } = await supabase.from("bid_phase_payments").select(PHASE_RELEASE_COLS).eq("bid_id", bidId).eq("status", "held");
+    const items = [
+      ...(bid && bid.payment_status === "held" && bid.paid_at ? [{ kind: "bid", key: `bid-${bid.id}`, bidId, row: bid, cents: bid.payment_amount_cents }] : []),
+      ...(rows || []).filter((r) => r.paid_at).map((r) => ({ kind: "phase", key: `pay-${r.id}`, bidId, row: r, cents: r.amount_cents })),
+    ];
+    const nowMs = Date.now();
+    const iso = (ms) => (Number.isFinite(ms) ? new Date(ms).toISOString() : null);
+    const payments = items.map((item) => {
+      const kind = paymentKind(item, ctx);
+      const row = item.row;
+      const win = reviewWindow(item, kind, ctx);
+      const backstop = backstopAt(item);
+      const onHold = Boolean(row.support_hold_at);
+      const partiallyRefunded = Number(row.refunded_cents) > 0;
+      const autoReleaseAt = win && !onHold && !partiallyRefunded && win.releaseAt < backstop ? win.releaseAt : null;
+      return {
+        key: item.key,
+        payment_id: item.kind === "phase" ? row.id : null,
+        kind,
+        label: paymentLabel(kind, row),
+        amount_cents: item.cents,
+        paid_at: row.paid_at,
+        delivered_at: row.delivered_at,
+        delivery_note: row.delivery_note,
+        delivery_link: row.delivery_link,
+        changes_requested_at: row.changes_requested_at,
+        changes_request_note: row.changes_request_note,
+        review_opens_at: iso(win?.opensAt),
+        review_opens_by: win?.opensBy || null,
+        auto_release_at: iso(autoReleaseAt),
+        backstop_at: iso(backstop),
+        on_hold: onHold,
+        partially_refunded: partiallyRefunded,
+        can_mark_delivered: role === "consultant" && DELIVERABLE_KINDS.has(kind) && !row.delivered_at,
+        can_request_changes: role === "owner" && Boolean(win) && win.opensAt <= nowMs && !onHold,
+      };
+    });
+    return res.json({ role, payments });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "could not load payment status." });
+  }
+});
+
+/* ── admin: support hold ─────────────────────────────────────── */
+
+async function setSupportHold(req, res, on) {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "admin only." });
+  const bidId = String(req.body?.bid_id || "").trim();
+  const paymentId = String(req.body?.payment_id || "").trim() || null;
+  if (!bidId) return res.status(400).json({ error: "bid_id required." });
+  const reason = cleanText(req.body?.reason, 500);
+  if (on && !reason) return res.status(400).json({ error: "add a short reason for the hold." });
+  try {
+    const t = await loadReleaseTarget(bidId, paymentId);
+    if (t.error) return res.status(t.status).json({ error: t.error });
+    if (!t.held) return res.status(409).json({ error: "this payment isn't being held anymore." });
+
+    const nowIso = new Date().toISOString();
+    let query = supabase
+      .from(releaseTable(t.item))
+      .update(on
+        ? { support_hold_at: nowIso, support_hold_reason: reason, support_hold_by: admin.id }
+        : { support_hold_at: null, support_hold_reason: null, support_hold_by: null })
+      .eq("id", t.item.row.id)
+      .eq(heldStatusField(t.item), "held");
+    query = on ? query.is("support_hold_at", null) : query.not("support_hold_at", "is", null);
+    const { data: won, error } = await query.select("id");
+    if (error) return res.status(500).json({ error: error.message });
+    if (!won?.length) return res.json({ ok: true, unchanged: true });
+
+    alertOps(on ? "support_hold_set" : "support_hold_cleared", { item: t.item.key, bid_id: bidId, by: admin.email, reason });
+    const link = `/engagement.html?bid=${bidId}#${t.item.key}`;
+    const payload = on
+      ? { type: "support_hold", title: "support is reviewing a payment", body: `grassroots paused the automatic release for "${t.ctx.title}" while support looks into it. we'll reach out if we need anything.`, link }
+      : { type: "support_hold_cleared", title: "support review finished", body: `the payment for "${t.ctx.title}" is back on its normal release schedule.`, link };
+    await notifyUser(t.ctx.ownerId, payload);
+    await notifyUser(t.ctx.consultantId, payload);
+    return res.json({ ok: true, support_hold_at: on ? nowIso : null });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "could not update the hold." });
+  }
+}
+
+app.post("/api/admin/payments/hold", (req, res) => setSupportHold(req, res, true));
+app.post("/api/admin/payments/clear-hold", (req, res) => setSupportHold(req, res, false));
+
+// Admin: every held payment, oldest first, with delivery / hold state.
+app.get("/api/admin/payments/held", async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "admin only." });
+  const minDays = Math.max(0, Math.min(365, Number(req.query.min_days) || 0));
+  const { data, error } = await supabase.rpc("stranded_funds_report", { min_days: minDays });
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ payments: data || [] });
 });
 
 /* ──────────────────────────────────────────────────────────────
