@@ -1852,9 +1852,10 @@ async function showConsultantView(client, session, listing, existingBid) {
 
     submitBtn.disabled = true;
     submitBtn.classList.add("is-loading");
-    const { error } = await client.from("bids").upsert(payload, { onConflict: "listing_id,consultant_id" });
+    // Insert-only: offers can't be edited once submitted (enforced in the DB).
+    const { error } = await client.from("bids").insert(payload);
     if (error) {
-      showError(error.message);
+      showError(error.code === "23505" ? "you already sent an offer on this listing." : error.message);
       submitBtn.disabled = false;
       submitBtn.classList.remove("is-loading");
       return;

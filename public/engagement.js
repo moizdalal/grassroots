@@ -596,13 +596,24 @@ async function loadReview(bidId) {
 
 async function saveReview(payload) {
   if (reviewStore === "remote") {
+    // Reviews can't be edited once posted (no UPDATE grant). If one
+    // already exists — e.g. retrying release after a failed transfer —
+    // keep it instead of re-submitting.
+    if (reviewState?.id) return reviewState;
     const { data, error } = await supabase
       .from("consultant_reviews")
-      .upsert(payload, { onConflict: "bid_id" })
+      .insert(payload)
       .select()
       .single();
 
-    if (error && isMissing(error)) {
+    if (error?.code === "23505") {
+      const existing = await loadReview(payload.bid_id);
+      if (existing) {
+        reviewState = existing;
+        return existing;
+      }
+      throw error;
+    } else if (error && isMissing(error)) {
       reviewStore = "local";
     } else if (error) {
       throw error;

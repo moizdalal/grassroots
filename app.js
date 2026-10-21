@@ -914,6 +914,29 @@ async function createResumeSignedUrl(resumePath, expiresInSeconds = 60 * 30) {
   return data?.signedUrl || null;
 }
 
+// Mirrors public.can_view_consultant(): a business owner sees a consultant
+// only after the consultant sent an offer on one of their listings or a
+// message to them.
+async function viewerCanSeeConsultant(viewer, consultantId) {
+  if (!viewer?.id) return false;
+  if (viewer.id === consultantId) return true;
+  const [bidRes, msgRes] = await Promise.all([
+    supabase
+      .from("bids")
+      .select("id, listings!inner(owner_id)")
+      .eq("consultant_id", consultantId)
+      .eq("listings.owner_id", viewer.id)
+      .limit(1),
+    supabase
+      .from("messages")
+      .select("id")
+      .eq("sender_id", consultantId)
+      .eq("recipient_id", viewer.id)
+      .limit(1),
+  ]);
+  return Boolean(bidRes.data?.length || msgRes.data?.length);
+}
+
 function canViewerAccessResume(viewer, consultantId, profile) {
   return Boolean(
     profile?.resume_path &&
@@ -1385,6 +1408,11 @@ app.get("/api/consultant-profile/:id", async (req, res) => {
   }
 
   try {
+    const viewer = await getViewerFromRequest(req);
+    if (!(await viewerCanSeeConsultant(viewer, consultantId))) {
+      return res.status(404).json({ error: "Consultant profile not found." });
+    }
+
     // Try with resume_public column first; fall back if column doesn't exist yet
     let profile = null;
     {
@@ -1449,7 +1477,6 @@ app.get("/api/consultant-profile/:id", async (req, res) => {
       return { ...item, url: pub?.publicUrl || null };
     });
 
-    const viewer = await getViewerFromRequest(req);
     const canViewResume = canViewerAccessResume(viewer, consultantId, profile);
 
     let rating = null;
@@ -1535,7 +1562,7 @@ app.get("/api/consultant-profile/:id/resume", async (req, res) => {
     }
 
     const viewer = await getViewerFromRequest(req);
-    if (!canViewerAccessResume(viewer, consultantId, profile)) {
+    if (!(await viewerCanSeeConsultant(viewer, consultantId)) || !canViewerAccessResume(viewer, consultantId, profile)) {
       return res.status(403).json({ error: "Resume is not available to this viewer." });
     }
 

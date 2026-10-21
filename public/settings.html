@@ -217,7 +217,7 @@
                     </label>
                     <label class="gr-label">
                       <span>phone number</span>
-                      <input type="text" id="field-phone" readonly />
+                      <input type="tel" name="phoneNumber" id="field-phone" autocomplete="tel" />
                     </label>
                   </div>
                   <label class="gr-label" id="field-linkedin-wrap">
@@ -342,7 +342,7 @@
                       <label class="pf-toggle-label">
                         <input type="checkbox" id="portfolio-public-toggle" />
                         <span class="pf-toggle-switch"></span>
-                        <span>public</span>
+                        <span>visible to businesses you've contacted</span>
                       </label>
                       <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="portfolio-upload-btn">upload</button>
                     </div>
@@ -361,7 +361,7 @@
                     <input type="text" name="businessName" id="field-biz-name" />
                   </label>
                   <label class="gr-label">
-                    <span>business address</span>
+                    <span>business address <span class="gr-optional">public — anyone can see it on your profile and listings</span></span>
                     <input
                       type="text"
                       name="businessAddress"
@@ -900,9 +900,14 @@
 
           const { data: profile, error } = await client
             .from("profiles")
-            .select("role, stripe_account_id, stripe_account_status")
+            .select("role, stripe_account_status")
             .eq("id", session.user.id)
             .single();
+          // stripe_account_id is private (column grants) — read via RPC.
+          if (profile) {
+            const { data: priv } = await client.rpc("get_my_private_profile").maybeSingle();
+            profile.stripe_account_id = priv?.stripe_account_id ?? null;
+          }
 
           // Business owners don't collect payouts — hide the tab + panel
           // entirely and bounce off #payout if that's where they landed
