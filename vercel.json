@@ -6,9 +6,19 @@
       "maxDuration": 60
     }
   },
+  "crons": [
+    {
+      "path": "/api/cron/auto-release",
+      "schedule": "0 14 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/health",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/webhooks/stripe",
       "destination": "/api/index.js"
     },
     {
@@ -22,6 +32,25 @@
     {
       "source": "/",
       "destination": "/home/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=(self \"https://js.stripe.com\")" },
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+        },
+        {
+          "key": "Content-Security-Policy-Report-Only",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://esm.sh https://cdn.jsdelivr.net https://js.stripe.com https://*.js.stripe.com https://connect-js.stripe.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https://*.supabase.co https://*.stripe.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://esm.sh https://api.stripe.com https://*.stripe.com; frame-src https://js.stripe.com https://*.js.stripe.com https://hooks.stripe.com https://connect-js.stripe.com https://*.stripe.com https://*.supabase.co blob:; worker-src 'self' blob:; form-action 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; report-uri /api/csp-report"
+        }
+      ]
     }
   ]
 }
