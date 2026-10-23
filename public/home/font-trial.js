@@ -43,22 +43,24 @@
   document.head.appendChild(link);
 
   var LOGO = ".ld-nav__brand-text, .ld-nav__brand-text *, .ld-foot__brand, .ld-foot__brand *";
-  var HERO = ".ld-hero__title, .ld-hero__title *";
+  // Every title (any heading) uses the logo's serif, whatever font it started in.
+  var TITLES = "h1, h2, h3, h4, h1 *, h2 *, h3 *, h4 *";
 
   function apply() {
     // Read every element's original style first, so a parent's swap can't hide its children's.
     var plan = [];
     document.querySelectorAll("body *").forEach(function (el) {
       var cs = getComputedStyle(el);
+      if (cfg.logo && el.matches(TITLES) && !el.matches(LOGO) && !el.closest("svg")) {
+        plan.push({ el: el, to: cfg.logo, weight: "600", upright: true });
+        return;
+      }
       var first = cs.fontFamily.split(",")[0].replace(/["']/g, "").trim().toLowerCase();
       var rule = cfg.map[first];
       if (!rule) return;
       var italic = cs.fontStyle === "italic";
       if (cfg.logo && el.matches(LOGO)) {
         plan.push({ el: el, to: cfg.logo });
-      } else if (cfg.logo && el.matches(HERO)) {
-        // The hero headline matches the logo's serif, set upright.
-        plan.push({ el: el, to: cfg.logo, weight: "600", upright: true });
       } else if (cfg.label && cs.textTransform === "uppercase" && parseFloat(cs.fontSize) <= 14) {
         // Small uppercase text = labels ("chapter i", "posted 2h ago", stat captions).
         plan.push({ el: el, to: cfg.label });
@@ -81,9 +83,12 @@
     "tallahassee": "Tallahassee", "athens": "Athens", "charleston": "Charleston",
     "chapel hill": "Chapel Hill", "santa fe": "Santa Fe", "uf": "UF", "usa": "USA",
     "stripe": "Stripe", "shopify": "Shopify", "instagram": "Instagram", "linkedin": "LinkedIn",
-    "google": "Google", "doordash": "DoorDash", "etsy": "Etsy", "tiktok": "TikTok", "venmo": "Venmo"
+    "google": "Google", "doordash": "DoorDash", "etsy": "Etsy", "tiktok": "TikTok", "venmo": "Venmo",
+    "moiz": "Moiz", "dalal": "Dalal"
   };
-  var properRe = new RegExp("(^|[^@.\\w])(" + Object.keys(PROPER).join("|") + ")(?![.@\\w])", "gi");
+  // A period right after the word only means a domain ("grassroots.work") when a
+  // letter follows it; "...started grassroots." is still the name.
+  var properRe = new RegExp("(^|[^@.\\w])(" + Object.keys(PROPER).join("|") + ")(?![@\\w]|\\.\\w)", "gi");
   var SKIP = "script, style, svg, textarea, select, code, " + LOGO;
   var NAMES = ".ld-hero-card__name, .ld-peek-card__biz, [class*='__biz'], [class*='biz-name'], [class*='__author']";
 
@@ -134,6 +139,8 @@
       out = out
         .replace(/(^|[^\w'])i(?=['’]|\s|[.,!?]|$)/g, function (m, pre) { return pre + "I"; })
         .replace(properRe, function (m, pre, word) { return pre + PROPER[word.toLowerCase()]; });
+      // Chapter numbers on their own ("ii.", "iv.") are roman numerals: all capitals.
+      if (/^\s*[ivxlc]+\.\s*$/i.test(node.data)) out = node.data.toUpperCase();
       if (out !== node.data) node.data = out;
     }
   }
