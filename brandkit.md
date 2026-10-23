@@ -140,6 +140,8 @@ Pattern for scoping a card's fill to light theme only:
 
 Applies to any container the team would call a "card", "panel", "callout", or "tile" — including `.bza__panel`, `.eng-list`, `.eng-actions`, `.gr-card`, and any new component you add.
 
+**Exception — home page listing cards.** `.ld-peek-card` (the "what's on the field this week" marquee in `public/home/index.css`) keeps a solid fill in every theme: `var(--fo-surface)` in light, `var(--fo-surface-2)` in the dark themes. The marquee scrolls over the dotted page background, and transparent cards let the dots and glow show through the text. Dark themes use `--fo-surface-2` because `--fo-surface` is too close to `--fo-bg` to read as solid. Don't extend this to other cards without a similar reason.
+
 ---
 
 ## Components
