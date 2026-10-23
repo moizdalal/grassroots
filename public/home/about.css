@@ -551,7 +551,7 @@
         display: grid; place-items: center;
       }
       .ab-polaroid__photo::before {
-        content: "[ photo · wes, 04/26 ]";
+        content: "[ photo ]";
         font-family: "JetBrains Mono", monospace;
         font-size: 0.72rem;
         color: rgba(255,255,255,0.5);

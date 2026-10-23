@@ -58,10 +58,11 @@
 
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
-    <link rel="stylesheet" href="/home/nav.css" />
+    <link rel="stylesheet" href="/home/nav.css?v=3" />
     <link rel="stylesheet" href="/home/for-students.css" />
-    <script src="/theme.js"></script>
-    <script src="/home/nav.js" defer></script>
+    <script src="/theme.js?v=2"></script>
+    <script src="/home/theme-default.js"></script>
+    <script src="/home/nav.js?v=3" defer></script>
   </head>
 
   <body class="gr-body">
@@ -125,7 +126,6 @@
           <div>
             <span class="fs-hero__chip fs-reveal">
               <span class="fs-hero__chip-tag">invite only</span>
-              <span><b>~12%</b> acceptance · 14 college towns</span>
             </span>
 
             <h1 class="fs-hero__h1 fs-reveal">
@@ -219,7 +219,6 @@
     <section class="fs-section" aria-labelledby="fs-bento-title">
       <div class="fs-shell">
         <div class="fs-section__head fs-reveal">
-          <p class="fs-eyebrow">what you walk away with</p>
           <h2 class="fs-section__title" id="fs-bento-title">
             money in your account. <span class="fs-italic">work in your portfolio.</span> a name on the door.
           </h2>
@@ -233,23 +232,7 @@
           <div class="fs-bento__cell fs-bento__cell--paid fs-reveal">
             <div class="fs-bento__num">01 / paid</div>
             <h3 class="fs-bento__title">a paycheck, not a pat on the back.</h3>
-            <p class="fs-bento__body">average per-engagement, after fees, across the network in the last 90 days.</p>
-            <div class="fs-bento__big" data-count-to="412"><sup>$</sup><span id="fs-count-paid">412</span></div>
-            <div class="fs-bento__cap">avg paid per project · q1 '26</div>
-            <div class="fs-bento__ticker" aria-hidden="true">
-              <div class="fs-bento__ticker-track">
-                <span>maya r. → <span class="fs-bento__ticker-amt">$331</span> · menu redesign</span>
-                <span>jordan p. → <span class="fs-bento__ticker-amt">$520</span> · market research</span>
-                <span>kai t. → <span class="fs-bento__ticker-amt">$280</span> · social retainer</span>
-                <span>sam d. → <span class="fs-bento__ticker-amt">$640</span> · brand refresh</span>
-                <span>el b. → <span class="fs-bento__ticker-amt">$180</span> · landing page</span>
-                <span>maya r. → <span class="fs-bento__ticker-amt">$331</span> · menu redesign</span>
-                <span>jordan p. → <span class="fs-bento__ticker-amt">$520</span> · market research</span>
-                <span>kai t. → <span class="fs-bento__ticker-amt">$280</span> · social retainer</span>
-                <span>sam d. → <span class="fs-bento__ticker-amt">$640</span> · brand refresh</span>
-                <span>el b. → <span class="fs-bento__ticker-amt">$180</span> · landing page</span>
-              </div>
-            </div>
+            <p class="fs-bento__body">you set the price on every bid. when the owner approves the work, the money lands in your account.</p>
           </div>
 
           <!-- (2) experience -->
@@ -284,7 +267,7 @@
           <div class="fs-bento__cell fs-bento__cell--rel fs-reveal">
             <div class="fs-bento__num">04 / relationships</div>
             <h3 class="fs-bento__title">a real reference, not a linkedin endorsement.</h3>
-            <p class="fs-bento__body">most students get re-hired by the same owner within 60 days. that's a person who picks up your call in two years.</p>
+            <p class="fs-bento__body">do good work for a local owner and they'll call you again. that's a person who picks up your call in two years.</p>
             <div class="fs-bento__pair">
               <span class="fs-bento__avatar">mr</span>
               <div class="fs-bento__pair-link"></div>
@@ -312,10 +295,7 @@
     <section class="fs-section" id="how" aria-labelledby="fs-how-title" style="padding-top: 0;">
       <div class="fs-shell">
         <div class="fs-section__head fs-reveal">
-          <p class="fs-eyebrow">how it works · for you</p>
-          <h2 class="fs-section__title" id="fs-how-title">
-            five things between you and your first <span class="fs-italic">paycheck.</span>
-          </h2>
+          <h2 class="fs-section__title" id="fs-how-title">how it works.</h2>
         </div>
 
         <div class="fs-how" id="fs-how-scrub">
@@ -413,7 +393,6 @@
     <section class="fs-section" id="get-in" aria-labelledby="fs-paths-title">
       <div class="fs-shell">
         <div class="fs-section__head fs-section__head--center fs-reveal">
-          <p class="fs-eyebrow">application or invite only</p>
           <h2 class="fs-section__title" id="fs-paths-title">
             two ways in. <span class="fs-italic">both end the same.</span>
           </h2>
@@ -534,127 +513,10 @@
       </div>
     </section>
 
-    <!-- ── proof: payouts band ── -->
-    <section class="fs-band" aria-labelledby="fs-payouts-title">
-      <div class="fs-shell">
-        <div class="fs-band__inner">
-          <div class="fs-band__head fs-reveal">
-            <p class="fs-eyebrow">live · this week</p>
-            <h3 id="fs-payouts-title">released to students.</h3>
-            <p>every dollar that left a vault and landed in a student's bank this week.</p>
-          </div>
-          <div class="fs-payouts">
-            <div class="fs-payout fs-reveal">
-              <span class="fs-payout__dot"></span>
-              <div>
-                <div class="fs-payout__name">maya r. <span>· state school, design</span></div>
-                <div class="fs-payout__work">menu redesign + window decals · side street coffee</div>
-              </div>
-              <div class="fs-payout__amt">$331</div>
-              <div class="fs-payout__time">02h ago</div>
-            </div>
-            <div class="fs-payout fs-reveal">
-              <span class="fs-payout__dot"></span>
-              <div>
-                <div class="fs-payout__name">jordan p. <span>· marketing junior</span></div>
-                <div class="fs-payout__work">market research deck · split / fix shop</div>
-              </div>
-              <div class="fs-payout__amt">$478</div>
-              <div class="fs-payout__time">yesterday</div>
-            </div>
-            <div class="fs-payout fs-reveal">
-              <span class="fs-payout__dot"></span>
-              <div>
-                <div class="fs-payout__name">kai t. <span>· comm/PR senior</span></div>
-                <div class="fs-payout__work">weekly social posts retainer · rooster &amp; rye</div>
-              </div>
-              <div class="fs-payout__amt">$294</div>
-              <div class="fs-payout__time">2d ago</div>
-            </div>
-            <div class="fs-payout fs-reveal">
-              <span class="fs-payout__dot"></span>
-              <div>
-                <div class="fs-payout__name">el b. <span>· cs sophomore</span></div>
-                <div class="fs-payout__work">shopify cleanup + product photos · north end bikes</div>
-              </div>
-              <div class="fs-payout__amt">$414</div>
-              <div class="fs-payout__time">3d ago</div>
-            </div>
-            <div class="fs-payout fs-reveal">
-              <span class="fs-payout__dot"></span>
-              <div>
-                <div class="fs-payout__name">sam d. <span>· business junior</span></div>
-                <div class="fs-payout__work">brand refresh + new logo · marigold florals</div>
-              </div>
-              <div class="fs-payout__amt">$552</div>
-              <div class="fs-payout__time">4d ago</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── testimonials ── -->
-    <section class="fs-section" aria-labelledby="fs-quotes-title">
-      <div class="fs-shell">
-        <div class="fs-section__head fs-reveal">
-          <p class="fs-eyebrow">in their words</p>
-          <h2 class="fs-section__title" id="fs-quotes-title">
-            students who got in. <span class="fs-italic">what they actually did.</span>
-          </h2>
-        </div>
-        <div class="fs-quotes">
-          <figure class="fs-quote fs-reveal">
-            <div class="fs-quote__mark" aria-hidden="true">&ldquo;</div>
-            <blockquote class="fs-quote__body">
-              i had a 0-line resume in september. by spring, three clients, three real reviews, and a <em>$1,400</em> stripe history. recruiter opened with that. not my gpa.
-            </blockquote>
-            <figcaption class="fs-quote__by">
-              <span class="fs-quote__avatar">jp</span>
-              <div>
-                <div class="fs-quote__name">jordan p.</div>
-                <div class="fs-quote__role">marketing junior · state school</div>
-              </div>
-              <span class="fs-quote__earn">+ $1.4k</span>
-            </figcaption>
-          </figure>
-          <figure class="fs-quote fs-reveal">
-            <div class="fs-quote__mark" aria-hidden="true">&ldquo;</div>
-            <blockquote class="fs-quote__body">
-              the bike shop kept re-hiring me. that's been like a <em>retainer</em> for two semesters now. rent money. real money.
-            </blockquote>
-            <figcaption class="fs-quote__by">
-              <span class="fs-quote__avatar">eb</span>
-              <div>
-                <div class="fs-quote__name">el b.</div>
-                <div class="fs-quote__role">cs sophomore · gainesville</div>
-              </div>
-              <span class="fs-quote__earn">+ $2.1k</span>
-            </figcaption>
-          </figure>
-          <figure class="fs-quote fs-reveal">
-            <div class="fs-quote__mark" aria-hidden="true">&ldquo;</div>
-            <blockquote class="fs-quote__body">
-              referred three. didn't even apply. i was <em>in</em> by week six. the café owner now sends me holiday cards. her words: "you're my designer."
-            </blockquote>
-            <figcaption class="fs-quote__by">
-              <span class="fs-quote__avatar">mr</span>
-              <div>
-                <div class="fs-quote__name">maya r.</div>
-                <div class="fs-quote__role">design senior · referral path</div>
-              </div>
-              <span class="fs-quote__earn">+ $1.8k</span>
-            </figcaption>
-          </figure>
-        </div>
-      </div>
-    </section>
-
     <!-- ── FAQ ── -->
     <section class="fs-section" id="faq" aria-labelledby="fs-faq-title">
       <div class="fs-shell">
         <div class="fs-section__head fs-section__head--center fs-reveal">
-          <p class="fs-eyebrow">questions</p>
           <h2 class="fs-section__title" id="fs-faq-title">
             things students ask before <span class="fs-italic">applying.</span>
           </h2>
@@ -670,7 +532,7 @@
           </details>
           <details>
             <summary>how much can i realistically earn?</summary>
-            <p class="fs-faq__answer">avg paid per project is $412 (q1 '26). most students do 2–4 projects a semester while in school. a few do 8+. retainer clients can run all year. the ceiling is yours.</p>
+            <p class="fs-faq__answer">you set your own price on every bid, and the platform fee is 10% of funded work. how many projects you take on each semester is up to you. retainer clients can run all year. the ceiling is yours.</p>
           </details>
           <details>
             <summary>who owns the work after?</summary>
@@ -752,7 +614,7 @@
             <a href="/terms">terms</a>
             <a href="mailto:students@grassroots.work">contact</a>
           </div>
-          <div>&copy; 2026 grassroots · 14 college towns</div>
+          <div>&copy; 2026 grassroots</div>
         </div>
       </div>
     </footer>
