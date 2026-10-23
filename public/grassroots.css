@@ -1,3 +1,8 @@
+/* Placeholder content (made-up stats, quotes, names) stays hidden until real data exists,
+   even when a component sets its own display. Review on localhost with ?placeholders —
+   see /placeholders.js. */
+[hidden][data-placeholder] { display: none !important; }
+
 :root {
   /* Enable height/width transitions to auto/min/max-content so any
      collapsing component animates smoothly without bespoke max-height
