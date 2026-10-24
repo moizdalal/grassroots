@@ -59,8 +59,8 @@ export function mountGardenStem(container, { roots = [], interactive = true, nav
   container.innerHTML = `
     <div class="gs" data-roots="${roots.length}">
       <div class="gs__header">
-        <p class="gs__eyebrow">your garden</p>
-        <p class="gs__title">grow your grassroots.</p>
+        <p class="gs__eyebrow">Your garden</p>
+        <p class="gs__title">Grow your Grassroots.</p>
       </div>
       <div class="gs__plot">
         <div class="gs__sky">${sproutSvg()}</div>
@@ -71,7 +71,7 @@ export function mountGardenStem(container, { roots = [], interactive = true, nav
       <div class="gs__copy">
         ${
           roots.length === 0
-            ? `<p class="gs__empty">complete an engagement to grow your first root.</p>`
+            ? `<p class="gs__empty">Complete an engagement to grow your first root.</p>`
             : `<p class="gs__count">${roots.length} root${roots.length === 1 ? "" : "s"} grown.</p>`
         }
       </div>
@@ -441,15 +441,15 @@ function hoverCardMarkup() {
       <p class="gs__hover-title" data-hover="title"></p>
       <dl class="gs__hover-meta">
         <div class="gs__hover-row">
-          <dt>consultant</dt>
+          <dt>Consultant</dt>
           <dd data-hover="consultant"></dd>
         </div>
         <div class="gs__hover-row">
-          <dt>released</dt>
+          <dt>Released</dt>
           <dd data-hover="date"></dd>
         </div>
         <div class="gs__hover-row">
-          <dt>paid</dt>
+          <dt>Paid</dt>
           <dd data-hover="amount"></dd>
         </div>
       </dl>
@@ -604,7 +604,7 @@ function formatDate(iso) {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }).toLowerCase();
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 /* ─── Sprout physics (unchanged behaviour) ─────────────────────────

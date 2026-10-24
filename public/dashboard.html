@@ -4,9 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,follow" />
-    <title>grassroots — dashboard</title>
+    <title>Grassroots — dashboard</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="stylesheet" href="/fonts.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <link rel="stylesheet" href="/listing-analytics.css" />
@@ -18,32 +20,32 @@
   </head>
   <body class="gr-body gr-has-side-nav dash-page">
     <main>
-      <p id="dash-gate" class="gr-status" data-loading="true" style="text-align:center;padding:6rem 1rem;">loading…</p>
+      <p id="dash-gate" class="gr-status" data-loading="true" style="text-align:center;padding:6rem 1rem;">Loading…</p>
 
       <div id="dash-shell" class="bza" hidden>
         <!-- ===== sidebar ===== -->
         <aside class="bza__side" id="dash-sidebar">
-          <div class="bza__side-edge" id="dash-side-edge" aria-hidden="true" title="double-click to toggle"></div>
+          <div class="bza__side-edge" id="dash-side-edge" aria-hidden="true" title="Double-click to toggle"></div>
           <div class="bza__side-head">
-            <a class="bza__brand" href="/home/" title="grassroots — home">
+            <a class="bza__brand" href="/home/" title="Grassroots — home">
               <img class="bza__brand-mark" src="/home/assets/grassroots-icon-syne.svg" width="20" height="34" alt="" />
               <span class="bza__brand-text">grassroots</span>
             </a>
-            <button type="button" class="bza__side-toggle" id="dash-side-toggle" aria-label="collapse sidebar" aria-expanded="true" title="collapse sidebar">
+            <button type="button" class="bza__side-toggle" id="dash-side-toggle" aria-label="Collapse sidebar" aria-expanded="true" title="Collapse sidebar">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
             </button>
           </div>
           <div class="bza__nav">
-          <button type="button" class="bza__nav-item active" data-view="dashboard" title="home">
+          <button type="button" class="bza__nav-item active" data-view="dashboard" title="Home">
             <span class="bza__nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M3 11.5 12 4l9 7.5"/>
                 <path d="M5 10v10a1 1 0 0 0 1 1h4v-7h4v7h4a1 1 0 0 0 1-1V10"/>
               </svg>
             </span>
-            <span class="bza__nav-label">home</span>
+            <span class="bza__nav-label">Home</span>
           </button>
-          <button type="button" class="bza__nav-item" data-view="listings" title="my listings">
+          <button type="button" class="bza__nav-item" data-view="listings" title="My listings">
             <span class="bza__nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="4" width="18" height="16" rx="2"/>
@@ -52,27 +54,27 @@
                 <line x1="7" y1="17" x2="13" y2="17"/>
               </svg>
             </span>
-            <span class="bza__nav-label">my listings</span>
+            <span class="bza__nav-label">My listings</span>
             <span class="bza__nav-badge" id="dash-listings-badge" hidden></span>
           </button>
-          <a href="/inbox.html" class="bza__nav-item" title="inbox">
+          <a href="/inbox.html" class="bza__nav-item" title="Inbox">
             <span class="bza__nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M22 12h-6l-2 3h-4l-2-3H2"/>
                 <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/>
               </svg>
             </span>
-            <span class="bza__nav-label">inbox</span>
+            <span class="bza__nav-label">Inbox</span>
             <span class="bza__nav-badge" id="dash-inbox-badge" hidden></span>
           </a>
-          <a href="/notifications.html" class="bza__nav-item" title="notifications">
+          <a href="/notifications.html" class="bza__nav-item" title="Notifications">
             <span class="bza__nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
               </svg>
             </span>
-            <span class="bza__nav-label">notifications</span>
+            <span class="bza__nav-label">Notifications</span>
             <span class="bza__nav-badge" id="dash-notif-badge" hidden></span>
           </a>
 
@@ -80,17 +82,17 @@
                "account / system" (secondary). One rule, no labels. -->
           <hr class="bza__nav-divider" aria-hidden="true" />
 
-          <a href="/settings.html" class="bza__nav-item" title="settings">
+          <a href="/settings.html" class="bza__nav-item" title="Settings">
             <span class="bza__nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </span>
-            <span class="bza__nav-label">settings</span>
+            <span class="bza__nav-label">Settings</span>
           </a>
-          <a href="/help.html" class="bza__nav-item" title="help">
+          <a href="/help.html" class="bza__nav-item" title="Help">
             <span class="bza__nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="4.93" y1="4.93" x2="9.17" y2="9.17"/><line x1="14.83" y1="14.83" x2="19.07" y2="19.07"/><line x1="14.83" y1="9.17" x2="19.07" y2="4.93"/><line x1="4.93" y1="19.07" x2="9.17" y2="14.83"/></svg>
             </span>
-            <span class="bza__nav-label">help</span>
+            <span class="bza__nav-label">Help</span>
           </a>
           </div>
 
@@ -98,32 +100,32 @@
                above the dark-mode toggle. margin-top: auto on .bza__post
                pushes it + everything below it (dark-mode, foot) to the
                bottom of the flex column. -->
-          <a href="/create-listing.html" class="bza__post" title="post a listing">
+          <a href="/create-listing.html" class="bza__post" title="Post a listing">
             <span class="bza__nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"/>
                 <line x1="5" y1="12" x2="19" y2="12"/>
               </svg>
             </span>
-            <span class="bza__nav-label">post a listing</span>
+            <span class="bza__nav-label">Post a listing</span>
           </a>
 
           <!-- Dark-mode toggle: sits just below the post CTA. -->
-          <label class="bza__darkmode-row" title="dark mode">
+          <label class="bza__darkmode-row" title="Dark mode">
             <span class="bza__nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
             </span>
-            <span class="bza__nav-label">dark mode</span>
+            <span class="bza__nav-label">Dark mode</span>
             <input type="checkbox" id="dash-darkmode-toggle" class="bza__darkmode-input" />
             <span class="bza__darkmode-switch" aria-hidden="true"></span>
           </label>
 
           <div class="bza__side-foot">
-            <a class="bza__user" id="dash-user-card" href="/settings.html#personal" title="open profile settings">
+            <a class="bza__user" id="dash-user-card" href="/settings.html#personal" title="Open profile settings">
               <span class="bza__user-avatar" id="dash-user-avatar"></span>
               <span class="bza__user-meta">
-                <span class="bza__user-name" id="dash-user-name">your account</span>
-                <span class="bza__user-role" id="dash-user-role">business owner</span>
+                <span class="bza__user-name" id="dash-user-name">Your account</span>
+                <span class="bza__user-role" id="dash-user-role">Business owner</span>
               </span>
             </a>
 
@@ -135,7 +137,7 @@
                   <line x1="21" y1="12" x2="9" y2="12"/>
                 </svg>
               </span>
-              <span class="bza__nav-label">log out</span>
+              <span class="bza__nav-label">Log out</span>
             </button>
           </div>
         </aside>
@@ -155,7 +157,7 @@
           <section class="dash-view dash-view--home" data-view="dashboard">
             <div class="bza__page-h dash-page-h">
               <div class="dash-page-h__main">
-                <h1 id="dash-welcome">welcome back.</h1>
+                <h1 id="dash-welcome">Welcome back.</h1>
               </div>
               <div class="dash-page-h__side">
                 <span class="dash-page-date" id="dash-page-date"></span>
@@ -172,28 +174,28 @@
               <div class="dash-home-col dash-home-col--main">
                 <div class="bza__panel dash-listings-panel">
                   <div class="bza__panel-h">
-                    <span class="bza__panel-h-title"><strong>your listings</strong> · <span id="dash-listings-count">0</span> total</span>
+                    <span class="bza__panel-h-title"><strong>Your listings</strong> · <span id="dash-listings-count">0</span> total</span>
                     <div class="bza__panel-h-tabs" id="dash-listings-tabs">
-                      <button type="button" class="active" data-state="all">all <span data-count="all">0</span></button>
-                      <button type="button" data-state="draft"><span class="bza__tab-dot" style="background:var(--fo-draft)"></span>drafts <span data-count="draft">0</span></button>
-                      <button type="button" data-state="open"><span class="bza__tab-dot" style="background:var(--fo-accent)"></span>live <span data-count="open">0</span></button>
-                      <button type="button" data-state="hired"><span class="bza__tab-dot" style="background:var(--fo-accent-warm)"></span>in progress <span data-count="hired">0</span></button>
-                      <button type="button" data-state="paused"><span class="bza__tab-dot" style="background:var(--fo-text-3)"></span>paused <span data-count="paused">0</span></button>
-                      <button type="button" data-state="closed"><span class="bza__tab-dot" style="background:var(--fo-status-closed)"></span>closed <span data-count="closed">0</span></button>
+                      <button type="button" class="active" data-state="all">All <span data-count="all">0</span></button>
+                      <button type="button" data-state="draft"><span class="bza__tab-dot" style="background:var(--fo-draft)"></span>Drafts <span data-count="draft">0</span></button>
+                      <button type="button" data-state="open"><span class="bza__tab-dot" style="background:var(--fo-accent)"></span>Live <span data-count="open">0</span></button>
+                      <button type="button" data-state="hired"><span class="bza__tab-dot" style="background:var(--fo-accent-warm)"></span>In progress <span data-count="hired">0</span></button>
+                      <button type="button" data-state="paused"><span class="bza__tab-dot" style="background:var(--fo-text-3)"></span>Paused <span data-count="paused">0</span></button>
+                      <button type="button" data-state="closed"><span class="bza__tab-dot" style="background:var(--fo-status-closed)"></span>Closed <span data-count="closed">0</span></button>
                     </div>
                   </div>
                   <div class="dash-listings-rows-wrap">
                     <div id="dash-listings-rows"></div>
                   </div>
                   <div id="dash-listings-empty" class="gr-empty-state gr-empty-state--hero" hidden>
-                    <h3 class="gr-empty-state__title">post your first listing</h3>
-                    <p class="gr-empty-state__sub">describe what you need help with. students bid. you pick.</p>
+                    <h3 class="gr-empty-state__title">Post your first listing</h3>
+                    <p class="gr-empty-state__sub">Describe what you need help with. Students bid. You pick.</p>
                     <div class="gr-empty-state__chips">
-                      <span class="gr-pill">marketing</span>
-                      <span class="gr-pill">strategy</span>
-                      <span class="gr-pill">operations</span>
+                      <span class="gr-pill">Marketing</span>
+                      <span class="gr-pill">Strategy</span>
+                      <span class="gr-pill">Operations</span>
                     </div>
-                    <a href="/create-listing.html" class="gr-btn gr-btn--primary">post a listing</a>
+                    <a href="/create-listing.html" class="gr-btn gr-btn--primary">Post a listing</a>
                   </div>
                 </div>
 
@@ -205,7 +207,7 @@
                   <div id="dash-analytics"></div>
 
                   <div class="bza__panel bza__health" id="dash-profile-health">
-                    <p class="bza__health-loading">loading…</p>
+                    <p class="bza__health-loading">Loading…</p>
                   </div>
                 </div>
               </div>
@@ -213,7 +215,7 @@
               <!-- RIGHT column: garden — a seedling that grows roots
                    as the owner completes engagements. Module renders
                    into #dash-garden via mountGardenStem(). -->
-              <aside class="dash-home-col dash-home-col--garden" aria-label="your garden">
+              <aside class="dash-home-col dash-home-col--garden" aria-label="Your garden">
                 <div class="bza__panel" id="dash-garden"></div>
               </aside>
             </div>
@@ -228,8 +230,8 @@
                and managing the full set. -->
           <section class="dash-view dash-view--my-listings" data-view="listings" hidden>
             <div class="bza__page-h">
-              <h1>my listings</h1>
-              <span class="bza__page-h-meta" id="dash-listings-meta">browse, search, and manage everything you've posted.</span>
+              <h1>My listings</h1>
+              <span class="bza__page-h-meta" id="dash-listings-meta">Browse, search, and manage everything you've posted.</span>
             </div>
 
             <div class="ml-toolbar">
@@ -238,76 +240,76 @@
                   type="search"
                   id="ml-search"
                   class="ml-search-input"
-                  aria-label="search your listings"
-                  placeholder="search your listings…"
+                  aria-label="Search your listings"
+                  placeholder="Search your listings…"
                   autocomplete="off"
                 />
               </div>
               <div class="ml-toolbar__sort">
-                <label class="ml-sort-label" for="ml-sort">sort</label>
+                <label class="ml-sort-label" for="ml-sort">Sort</label>
                 <select id="ml-sort" class="ml-sort-select">
-                  <option value="newest">newest first</option>
-                  <option value="oldest">oldest first</option>
-                  <option value="offers">most offers</option>
-                  <option value="budget">highest budget</option>
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
+                  <option value="offers">Most offers</option>
+                  <option value="budget">Highest budget</option>
                 </select>
               </div>
             </div>
 
-            <ul class="ml-legend" id="ml-legend" aria-label="filter by status">
+            <ul class="ml-legend" id="ml-legend" aria-label="Filter by status">
               <li>
                 <button type="button" class="ml-legend-chip" data-state="draft" aria-pressed="false">
-                  <span class="ml-legend__dot" style="background:var(--fo-draft)"></span>draft
+                  <span class="ml-legend__dot" style="background:var(--fo-draft)"></span>Draft
                 </button>
               </li>
               <li>
                 <button type="button" class="ml-legend-chip" data-state="open" aria-pressed="false">
-                  <span class="ml-legend__dot" style="background:var(--fo-accent)"></span>live
+                  <span class="ml-legend__dot" style="background:var(--fo-accent)"></span>Live
                 </button>
               </li>
               <li>
                 <button type="button" class="ml-legend-chip" data-state="hired" aria-pressed="false">
-                  <span class="ml-legend__dot" style="background:var(--fo-accent-warm)"></span>in progress
+                  <span class="ml-legend__dot" style="background:var(--fo-accent-warm)"></span>In progress
                 </button>
               </li>
               <li>
                 <button type="button" class="ml-legend-chip" data-state="paused" aria-pressed="false">
-                  <span class="ml-legend__dot" style="background:var(--fo-text-3)"></span>paused
+                  <span class="ml-legend__dot" style="background:var(--fo-text-3)"></span>Paused
                 </button>
               </li>
               <li>
                 <button type="button" class="ml-legend-chip" data-state="closed" aria-pressed="false">
-                  <span class="ml-legend__dot" style="background:var(--fo-status-closed)"></span>closed
+                  <span class="ml-legend__dot" style="background:var(--fo-status-closed)"></span>Closed
                 </button>
               </li>
             </ul>
 
             <p id="ml-result-count" class="ml-result-count"></p>
             <div id="dash-listings-cards" class="ml-card-grid"></div>
-            <p id="ml-empty" class="gr-empty-state ml-empty" hidden>no listings match — try a different search or sort.</p>
+            <p id="ml-empty" class="gr-empty-state ml-empty" hidden>No listings match — try a different search or sort.</p>
           </section>
 
           <!-- ── ENGAGEMENTS VIEW ── -->
           <section class="dash-view" data-view="engagements" hidden>
             <div class="bza__page-h">
-              <h1>in progress</h1>
-              <span class="bza__page-h-meta">consultants you've hired who are working on a project right now.</span>
+              <h1>In progress</h1>
+              <span class="bza__page-h-meta">Consultants you've hired who are working on a project right now.</span>
             </div>
             <div class="bza__panel">
               <div id="dash-engagements-rows"></div>
-              <p id="dash-engagements-empty" class="gr-empty-state" hidden>no active engagements.</p>
+              <p id="dash-engagements-empty" class="gr-empty-state" hidden>No active engagements.</p>
             </div>
           </section>
 
           <!-- ── ARCHIVE VIEW ── -->
           <section class="dash-view" data-view="archive" hidden>
             <div class="bza__page-h">
-              <h1>past hires</h1>
-              <span class="bza__page-h-meta">closed listings and completed engagements.</span>
+              <h1>Past hires</h1>
+              <span class="bza__page-h-meta">Closed listings and completed engagements.</span>
             </div>
             <div class="bza__panel">
               <div id="dash-archive-rows"></div>
-              <p id="dash-archive-empty" class="gr-empty-state" hidden>no past hires yet.</p>
+              <p id="dash-archive-empty" class="gr-empty-state" hidden>No past hires yet.</p>
             </div>
           </section>
 

@@ -6,7 +6,9 @@
     <meta name="robots" content="noindex,follow" />
     <title>card sketch — marketplace v2</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="stylesheet" href="/fonts.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <script src="/theme.js"></script>
@@ -26,14 +28,16 @@
         padding: 0 1.5rem;
       }
       .sketch-h1 {
-        font-family: "Fraunces", serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: 2rem;
         color: var(--fo-text);
         margin: 0 0 0.4rem;
+  font-weight: 600;
+  font-style: normal;
       }
       .sketch-sub {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: 0.85rem;
         color: var(--fo-text-2);
         margin: 0 0 2.5rem;
@@ -44,7 +48,7 @@
         margin-top: 3rem;
       }
       .sketch-section-title {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: 0.7rem;
         font-weight: 700;
         letter-spacing: 0.12em;
@@ -88,7 +92,7 @@
         display: flex;
         justify-content: flex-end;
         align-items: center;
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: 0.7rem;
         font-weight: 700;
         letter-spacing: 0.1em;
@@ -115,7 +119,7 @@
          (e.g. "looking for someone to redo our brand identity"); the
          clamp keeps card height from ballooning. */
       .v2card__title {
-        font-family: "Fraunces", serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: clamp(1.6rem, 3.2vw, 2.1rem);
         line-height: 1.05;
@@ -127,6 +131,8 @@
         -webkit-box-orient: vertical;
         overflow: hidden;
         overflow-wrap: break-word;
+  font-weight: 600;
+  font-style: normal;
       }
 
       /* Identity row — avatar tile + tags wrapping next to it. */
@@ -146,13 +152,15 @@
         overflow: hidden;
         background: var(--fo-accent-soft);
         color: var(--fo-accent);
-        font-family: "Fraunces", serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: 2rem;
         letter-spacing: -0.02em;
         line-height: 1;
         text-transform: lowercase;
         flex-shrink: 0;
+  font-weight: 600;
+  font-style: normal;
       }
       .v2card__tile img {
         width: 100%;
@@ -167,7 +175,7 @@
         padding-top: 0.15rem;
       }
       .v2card__tag {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: 0.78rem;
         font-weight: 500;
         color: var(--fo-text-2);
@@ -190,7 +198,7 @@
         margin-top: 0.25rem;
       }
       .v2card__biz {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-weight: 600;
         font-size: 0.95rem;
         color: var(--fo-text);
@@ -212,23 +220,25 @@
         min-width: 0;
       }
       .v2card__budget {
-        font-family: "Fraunces", serif;
+        font-family: var(--font-display);
         font-style: italic;
         font-weight: 600;
         font-size: 1.25rem;
         color: var(--fo-accent);
         line-height: 1.05;
         letter-spacing: -0.01em;
+  font-weight: 600;
+  font-style: normal;
       }
       .v2card__contract {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: 0.78rem;
         font-weight: 500;
         color: var(--fo-text-2);
         text-transform: lowercase;
       }
       .v2card__view {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: 0.82rem;
         font-weight: 600;
         color: var(--fo-text-2);
@@ -366,7 +376,7 @@
 
       <section class="sketch-section">
         <p class="sketch-section-title">notes</p>
-        <ul style="font-family: 'Manrope', system-ui, sans-serif; font-size: 0.85rem; color: var(--fo-text-2); line-height: 1.6; max-width: 60ch; padding-left: 1.1rem;">
+        <ul style="font-family: var(--font-body); font-size: 0.85rem; color: var(--fo-text-2); line-height: 1.6; max-width: 60ch; padding-left: 1.1rem;">
           <li><strong>Recency placement:</strong> right-aligned eyebrow above the title. Dot prefix (green = fresh, neutral = stale) gives visual freshness without numbers. Stays clear of the title's wrap zone.</li>
           <li><strong>Title scale:</strong> <code>clamp(1.6rem, 3.2vw, 2.1rem)</code>. Bigger than v1 but capped at 2 lines so long titles don't double the card height.</li>
           <li><strong>Avatar tile:</strong> 96×96 to balance against the bigger title. Real avatar fills; fallback shows lowercase initials in moss on accent-soft.</li>

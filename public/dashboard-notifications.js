@@ -48,7 +48,7 @@ function renderCardHtml(n) {
   const cat = categorize(n.type);
   const icon = ICONS[cat] || ICONS.updates;
   const unread = !n.read ? "gr-notification-card--unread" : "";
-  const badge = !n.read ? '<span class="gr-notification-card__badge">new</span>' : "";
+  const badge = !n.read ? '<span class="gr-notification-card__badge">New</span>' : "";
   const linkOpen = n.link ? `<a href="${escapeHtml(n.link)}" class="gr-notification-card gr-notification-card--linked ${unread}" data-id="${escapeHtml(n.id)}">` : `<article class="gr-notification-card ${unread}" data-id="${escapeHtml(n.id)}">`;
   const linkClose = n.link ? "</a>" : "</article>";
   const sep = n.body ? '<span class="gr-notification-card__sep" aria-hidden="true">|</span>' : "";

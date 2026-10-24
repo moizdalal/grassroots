@@ -6,30 +6,29 @@ The single source of truth for how this product looks, sounds, and behaves. New 
 
 ## Voice
 
-Warm-direct. Lowercase always, second person, ~10-word sentences, no exclamation points.
+Warm-direct. Sentence case, second person, ~10-word sentences, no exclamation points.
 
-- "use the email you registered with." — yes
-- "Welcome Back! Sign In With The Email From Registration." — no
-- "thanks for the note. we read all of these." — yes
-- "Thank you for your feedback!" — no
+- "Use the email you registered with." — yes
+- "Welcome Back! Sign In With The Email From Registration." — no (title case, exclamation)
+- "Thanks for the note. We read all of these." — yes
+- "thank you for your feedback!" — no (all lowercase, exclamation)
 
-Headers, page titles, button labels, status messages, empty states, placeholders — all lowercase. The only capitals are proper nouns (school names, brand names like "LinkedIn") and inside user-generated content.
+**Case rule (changed 2026-10-24, replaces the old all-lowercase rule):** headers, page titles, button labels, status messages, empty states, and placeholders use sentence case. Capitalize the first word of each sentence or standalone label, and proper nouns (Stripe, LinkedIn, Gainesville, University of Florida), acronyms (PDF, URL, ID, SEO), months, and days. Don't use title case. Words after a mid-sentence dash or inside parentheses stay lowercase ("Decision saved — moving forward").
+
+**Brand name:** the wordmark/logo is the only lowercase text: `grassroots` in `.gr-nav__wordmark`, `.bza__brand-text`, `.ld-nav__brand-text`, and the other brand lockups. Everywhere else, in copy, titles, meta tags, emails, and legal text, write **Grassroots** or **Grassroots Marketplace** (legal entity: Grassroots Marketplace LLC).
+
+**Stored values:** categories, statuses, and contract types are stored lowercase in the database and used as keys. Don't change the stored values. Sentence-case them at render time with a `capFirst()` helper where they show on their own (tags, pills, filter options). Typed confirmation phrases ("delete my account") stay lowercase because the client lowercases input before it compares.
 
 ---
 
 ## Typography
 
-Two fonts, one rhythm:
+Two fonts, one rhythm. Loaded from Google Fonts in each page head (`Fraunces:opsz,wght@9..144,400..700` and `Figtree:ital,wght@0,300..900;1,300..900`).
 
-- **Fraunces** (serif, weights 400/500/600/700/900, plus italic) — display, headings, hero numbers, italic title accents
-- **Manrope** (sans, weights 400/500/600/700/800) — body, UI, labels, eyebrows
+- **Fraunces** (serif, variable weight + opsz axis) — `--font-display`. All headings (h1-h4, page/section/card titles), hero numbers, and the logo wordmark. Always weight 600, upright, never italic.
+- **Figtree** (sans, variable weight 300-900) — `--font-body`. Body copy, buttons, inputs, nav, labels, eyebrows.
 
-### Marketing-only exceptions
-
-The marketing surface (`/`, `/home/about.html`, `/home/for-students.html`) is allowed two narrowly-scoped extra fonts. Anything outside these surfaces stays Fraunces + Manrope.
-
-- **Caveat** (handwritten, weights 400/500/600/700) — founder signature on `about.html` only. Never use for headings, body, or any UI affordance.
-- **JetBrains Mono** (mono, weights 400/500/600) — monospaced accent labels (e.g. timestamp stamps, "draft" stamps, code-style chips) on the marketing pages. Not for body text.
+Point every `font-family` at the tokens (`var(--font-display)`, `var(--font-body)`); don't hardcode family names. `grassroots.css` also sets h1-h4 to display, 600, upright. Manrope, Inter, Syne, Caveat and JetBrains Mono are retired. For numbers that must align (amounts in tables), use Figtree with `font-variant-numeric: tabular-nums` rather than a monospace.
 
 ### Type scale tokens (defined in `:root` in `grassroots.css`)
 
@@ -140,6 +139,8 @@ Pattern for scoping a card's fill to light theme only:
 
 Applies to any container the team would call a "card", "panel", "callout", or "tile" — including `.bza__panel`, `.eng-list`, `.eng-actions`, `.gr-card`, and any new component you add.
 
+**Exception — home page listing cards.** `.ld-peek-card` (the "what's on the field this week" marquee in `public/home/index.css`) keeps a solid fill in every theme: `var(--fo-surface)` in light, `var(--fo-surface-2)` in the dark themes. The marquee scrolls over the dotted page background, and transparent cards let the dots and glow show through the text. Dark themes use `--fo-surface-2` because `--fo-surface` is too close to `--fo-bg` to read as solid. Don't extend this to other cards without a similar reason.
+
 ---
 
 ## Components
@@ -169,7 +170,7 @@ One container + one img rule + size/shape/tone modifiers.
 
 Aliases (`.bza__user-avatar`, `.gr-bid-avatar`, `.pf-bv__avatar`, `.gr-listing-logo`, etc.) inherit from the same base. Don't add new aliases — pick a modifier instead.
 
-**Fallback when no avatar image exists**: render the user/business's initials, **always lowercase**, via `getInitials(name)` from `/initials.js`. Two-word names → first + last initial (`"Moiz Dalal"` → `md`); single-word → first letter (`"Alice"` → `a`); empty/missing → `?`. Never use a person glyph (`👤`) or single uppercase letter — those patterns are deprecated.
+**Fallback when no avatar image exists**: render the user/business's initials, **always uppercase**, via `getInitials(name)` from `/initials.js`. Two-word names → first + last initial (`"Moiz Dalal"` → `MD`); single-word → first letter (`"Alice"` → `A`); empty/missing → `?`. Never use a person glyph (`👤`).
 
 ### `.gr-btn` — buttons
 
@@ -221,7 +222,7 @@ Don't render the banner on `/region-unavailable.html` (the geo-block page); the 
 - `.gr-page-intro` — eyebrow + title + subtitle stack
 - `.gr-page-eyebrow` — `--type-eyebrow`, uppercase, accent color
 - `.gr-title` — page H1 (Fraunces, sized via `--type-display` in `field-office.css` overrides)
-- `.gr-subtitle` — page subtitle (Fraunces or Manrope per page)
+- `.gr-subtitle` — page subtitle (display or body font per page)
 
 Side nav (`.bza__side`) injects via `side-nav.js` unless the page renders its own `<aside class="bza__side">`. Loading overlay (`loading-overlay.js`) auto-injects on every page that imports it.
 

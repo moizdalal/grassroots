@@ -21,7 +21,7 @@
 
 .gs__eyebrow {
   margin: 0;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);
   font-weight: 700;
   text-transform: uppercase;
@@ -31,11 +31,13 @@
 
 .gs__title {
   margin: 0.2rem 0 0;
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-size: var(--type-h2);
   font-weight: 600;
   color: var(--fo-text);
   letter-spacing: -0.01em;
+  font-weight: 600;
+  font-style: normal;
 }
 
 /* The "plot" — the visible terrain. Vertical stack: sky → soil line
@@ -297,7 +299,7 @@
   background: var(--fo-surface, #15201b);
   border: 1px solid var(--fo-line-strong);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.32);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   /* Smooth appear — start invisible + slightly nudged, fade in with
      a soft ease. visibility toggle is via .is-visible (not the
      `hidden` attribute) so the transition runs each appearance. */

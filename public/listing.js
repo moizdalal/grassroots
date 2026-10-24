@@ -47,10 +47,10 @@ const statusOffersFieldset = document.getElementById("ld-status-offers");
 const workCompletedOption = document.getElementById("ld-status-option-work-completed");
 
 const STATUS_REASON_LABELS = {
-  work_completed: "work completed",
-  found_solution_elsewhere: "found a solution elsewhere",
-  didnt_find_good_offer: "didn't find a good offer",
-  other: "other",
+  work_completed: "Work completed",
+  found_solution_elsewhere: "Found a solution elsewhere",
+  didnt_find_good_offer: "Didn't find a good offer",
+  other: "Other",
 };
 
 // Bid statuses that still represent an offer the owner could decline.
@@ -76,8 +76,8 @@ function formatFileSize(bytes) {
   const value = Number(bytes);
   if (!Number.isFinite(value) || value <= 0) return "";
   if (value < 1024) return `${value} b`;
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} kb`;
-  return `${(value / (1024 * 1024)).toFixed(1)} mb`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function engagementLink(bidId) {
@@ -141,7 +141,7 @@ async function resolveManageLinkLabel(client, bidId, viewerRole) {
   // like it leads somewhere useful.
   const isOwner = viewerRole === "owner";
   if (!scheduleStatus || scheduleStatus === "awaiting_owner") {
-    if (isOwner) return { label: "share kickoff availability" };
+    if (isOwner) return { label: "Share kickoff availability" };
     // Consultant: nothing for them to act on until the owner shares
     // availability. Hide the CTA so it doesn't dead-end, and surface a
     // notice via `awaiting` so the call site can explain the wait.
@@ -153,11 +153,11 @@ async function resolveManageLinkLabel(client, bidId, viewerRole) {
       // consultant's court. Drop the primary-CTA pressure and surface
       // a quieter "manage" link instead. `quiet: true` tells the
       // caller to render the link as a ghost button (no fill).
-      return { label: "manage", quiet: true, awaiting: "consultant" };
+      return { label: "Manage", quiet: true, awaiting: "consultant" };
     }
-    return { label: "pick your kickoff time" };
+    return { label: "Pick your kickoff time" };
   }
-  return { label: "view engagement" };
+  return { label: "View engagement" };
 }
 
 /* ================================================================
@@ -176,7 +176,7 @@ async function resolveManageLinkLabel(client, bidId, viewerRole) {
 function fmtCounterDeadline(iso) {
   if (!iso) return "";
   const ms = new Date(iso).getTime() - Date.now();
-  if (ms <= 0) return "expired";
+  if (ms <= 0) return "Expired";
   const hours = Math.round(ms / 3600000);
   if (hours >= 24) return `${hours} hours left`;
   if (hours >= 1) return `${hours} ${hours === 1 ? "hour" : "hours"} left`;
@@ -192,7 +192,7 @@ function renderConsultantCounterPanel(client, listing, bid) {
   const deadline = fmtCounterDeadline(bid.counter_expires_at);
   root.hidden = false;
   root.innerHTML = `
-    <p class="ld-counter-response__eyebrow">counter from the business</p>
+    <p class="ld-counter-response__eyebrow">Counter from the business</p>
     <p class="ld-counter-response__amount">
       <strong>${formatUsd(counter)}</strong>
       <span class="ld-counter-response__delta">was ${formatUsd(bid.amount_cents)}</span>
@@ -200,12 +200,12 @@ function renderConsultantCounterPanel(client, listing, bid) {
     ${counterMsg ? `<p class="ld-counter-response__msg">"${escapeHtml(counterMsg)}"</p>` : ""}
     <p class="ld-counter-response__deadline">${escapeHtml(deadline)} to respond</p>
     <label class="gr-label full-width">
-      <span>your reply (optional)</span>
-      <textarea class="ld-counter-response__textarea" rows="2" maxlength="500" placeholder="add a note for the business…"></textarea>
+      <span>Your reply (optional)</span>
+      <textarea class="ld-counter-response__textarea" rows="2" maxlength="500" placeholder="Add a note for the business…"></textarea>
     </label>
     <div class="ld-counter-response__actions">
-      <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm ld-counter-response__decline" data-counter-action="decline">decline counter</button>
-      <button type="button" class="gr-btn gr-btn--primary gr-btn--sm" data-counter-action="accept">accept counter</button>
+      <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm ld-counter-response__decline" data-counter-action="decline">Decline counter</button>
+      <button type="button" class="gr-btn gr-btn--primary gr-btn--sm" data-counter-action="accept">Accept counter</button>
     </div>
     <p class="gr-status ld-counter-response__status" aria-live="polite"></p>
   `;
@@ -219,14 +219,14 @@ function renderConsultantCounterPanel(client, listing, bid) {
     // explicit before anything writes.
     if (action === "decline") {
       const choice = await openConfirmModal({
-        title: "decline this counter?",
+        title: "Decline this counter?",
         body: [
-          "you have two options for what happens to your original offer.",
+          "You have two options for what happens to your original offer.",
         ],
         actions: [
-          { label: "cancel", kind: "ghost", value: "cancel" },
-          { label: "rescind offer", kind: "danger", value: "rescind" },
-          { label: `keep at ${formatUsd(bid.amount_cents)}`, kind: "primary", value: "keep" },
+          { label: "Cancel", kind: "ghost", value: "cancel" },
+          { label: "Rescind offer", kind: "danger", value: "rescind" },
+          { label: `Keep at ${formatUsd(bid.amount_cents)}`, kind: "primary", value: "keep" },
         ],
       });
       if (choice === "cancel" || !choice || choice === "confirm") return;
@@ -238,9 +238,9 @@ function renderConsultantCounterPanel(client, listing, bid) {
     const responseMsg = textarea.value.trim() || null;
     const now = new Date().toISOString();
     const loadingCopy =
-      action === "accept" ? "accepting counter…" :
-      action === "rescind" ? "rescinding offer…" :
-      "declining counter…";
+      action === "accept" ? "Accepting counter…" :
+      action === "rescind" ? "Rescinding offer…" :
+      "Declining counter…";
     const loader = showLoading(loadingCopy);
     try {
       if (action === "accept") {
@@ -265,11 +265,11 @@ function renderConsultantCounterPanel(client, listing, bid) {
         await client.from("notifications").insert({
           user_id: listing.owner_id,
           type: "counter_accepted",
-          title: "counter accepted",
-          body: `the consultant accepted your ${formatUsd(counter)} counter on "${listing.title}". you can finalize the deal now.`,
+          title: "Counter accepted",
+          body: `The consultant accepted your ${formatUsd(counter)} counter on "${listing.title}". You can finalize the deal now.`,
           link: `/listing.html?id=${listing.id}`,
         });
-        statusEl.textContent = "accepted. the business can now finalize.";
+        statusEl.textContent = "Accepted. The business can now finalize.";
         statusEl.className = "gr-status ld-counter-response__status success";
       } else if (action === "rescind") {
         // Consultant withdraws their bid entirely. Status flips to
@@ -292,11 +292,11 @@ function renderConsultantCounterPanel(client, listing, bid) {
         await client.from("notifications").insert({
           user_id: listing.owner_id,
           type: "bid_withdrawn",
-          title: "consultant rescinded their offer",
-          body: `the consultant withdrew their offer on "${listing.title}" after your counter.`,
+          title: "Consultant rescinded their offer",
+          body: `The consultant withdrew their offer on "${listing.title}" after your counter.`,
           link: `/listing.html?id=${listing.id}`,
         });
-        statusEl.textContent = "offer rescinded.";
+        statusEl.textContent = "Offer rescinded.";
         statusEl.className = "gr-status ld-counter-response__status success";
       } else {
         // "keep" — drop the counter, keep the original offer on the table.
@@ -315,11 +315,11 @@ function renderConsultantCounterPanel(client, listing, bid) {
         await client.from("notifications").insert({
           user_id: listing.owner_id,
           type: "counter_declined",
-          title: "counter declined",
-          body: `the consultant declined your counter on "${listing.title}". their original ${formatUsd(bid.amount_cents)} offer is back on the table.`,
+          title: "Counter declined",
+          body: `The consultant declined your counter on "${listing.title}". Their original ${formatUsd(bid.amount_cents)} offer is back on the table.`,
           link: `/listing.html?id=${listing.id}`,
         });
-        statusEl.textContent = "counter declined. your original offer is back on the table.";
+        statusEl.textContent = "Counter declined. Your original offer is back on the table.";
         statusEl.className = "gr-status ld-counter-response__status success";
       }
       // Replace the persistent yellow loader with a green confirmation
@@ -327,9 +327,9 @@ function renderConsultantCounterPanel(client, listing, bid) {
       // the page-loader overlay never reappears).
       loader.dismiss();
       const successCopy =
-        action === "accept" ? "counter accepted — the business can finalize now." :
-        action === "rescind" ? "offer rescinded." :
-        "counter declined. your original offer is back on the table.";
+        action === "accept" ? "Counter accepted — the business can finalize now." :
+        action === "rescind" ? "Offer rescinded." :
+        "Counter declined. Your original offer is back on the table.";
       showSuccess(successCopy);
       // Re-render the panel based on the new bid state. The simplest
       // path is to hide the counter response and update the existing-
@@ -348,7 +348,7 @@ function renderConsultantCounterPanel(client, listing, bid) {
             const newAmount = action === "accept" ? counter : bid.amount_cents;
             existingEl.innerHTML = `
               <span class="ld-bid-existing__header">
-                <span class="ld-bid-existing__amount">offer submitted: <strong>${formatUsd(newAmount)}</strong></span>
+                <span class="ld-bid-existing__amount">Offer submitted: <strong>${formatUsd(newAmount)}</strong></span>
               </span>
               ${bid.message ? `<span class="ld-bid-existing__message">${escapeHtml(bid.message)}</span>` : ""}
             `;
@@ -361,8 +361,8 @@ function renderConsultantCounterPanel(client, listing, bid) {
       }
     } catch (err) {
       loader.dismiss();
-      showError(err?.message || "could not send response.");
-      statusEl.textContent = err?.message || "could not send response.";
+      showError(err?.message || "Could not send response.");
+      statusEl.textContent = err?.message || "Could not send response.";
       statusEl.className = "gr-status ld-counter-response__status error";
       buttons.forEach((b) => (b.disabled = false));
     }
@@ -469,8 +469,8 @@ async function sweepExpiredCounters(client, bids, listing) {
         await client.from("notifications").insert({
           user_id: listing.owner_id,
           type: "counter_expired",
-          title: "counter expired",
-          body: `your counter on "${listing.title}" expired without a response — the offer is back to the original price.`,
+          title: "Counter expired",
+          body: `Your counter on "${listing.title}" expired without a response — the offer is back to the original price.`,
           link: `/listing.html?id=${listing.id}`,
         });
       } catch (_) {}
@@ -750,21 +750,21 @@ function renderGuestRail() {
   const rail = document.getElementById("ld-guest-rail");
   if (!rail) return;
   rail.innerHTML = `
-    <section class="ld-guest-rail__card" aria-label="join grassroots">
-      <span class="ld-guest-rail__eyebrow">guest preview</span>
-      <h2 class="ld-guest-rail__title">like what you see?</h2>
+    <section class="ld-guest-rail__card" aria-label="Join Grassroots">
+      <span class="ld-guest-rail__eyebrow">Guest preview</span>
+      <h2 class="ld-guest-rail__title">Like what you see?</h2>
       <p class="ld-guest-rail__body">
-        join grassroots to post your own project and get matched with
+        Join Grassroots to post your own project and get matched with
         local student consultants — or apply to bid on work like this.
       </p>
       <div class="ld-guest-rail__actions">
-        <a class="gr-btn gr-btn--primary" href="/register.html?role=owner">post a project</a>
-        <a class="gr-btn gr-btn--ghost" href="/home/for-students.html">apply as a consultant</a>
+        <a class="gr-btn gr-btn--primary" href="/register.html?role=owner">Post a project</a>
+        <a class="gr-btn gr-btn--ghost" href="/home/for-students.html">Apply as a consultant</a>
       </div>
-      <div class="ld-guest-rail__divider" aria-hidden="true">or</div>
+      <div class="ld-guest-rail__divider" aria-hidden="true">Or</div>
       <div class="ld-guest-rail__secondary">
-        <p>already on grassroots?</p>
-        <a class="ld-guest-rail__signin" href="/signin.html">sign in →</a>
+        <p>Already on Grassroots?</p>
+        <a class="ld-guest-rail__signin" href="/signin.html">Sign in →</a>
       </div>
     </section>
   `;
@@ -803,7 +803,7 @@ function renderListingAttachments(listing) {
           <div class="ld-attachment-card__body">
             <p class="ld-attachment-card__name">${escapeHtml(name)}</p>
             ${detail ? `<p class="ld-attachment-card__detail">${escapeHtml(detail)}</p>` : ""}
-            ${url ? `<a class="ld-attachment-card__link" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">open file</a>` : ""}
+            ${url ? `<a class="ld-attachment-card__link" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">Open file</a>` : ""}
           </div>
         </article>
       `;
@@ -908,7 +908,7 @@ function populateListing(listing) {
   document.title = `grassroots — ${listing.title}`;
 
   /* --- Business bio --- */
-  const ownerName = profile?.full_name || listing.business_display_name || "business owner";
+  const ownerName = profile?.full_name || listing.business_display_name || "Business owner";
   document.getElementById("ld-biz-owner").textContent = ownerName;
 
   const bizName = biz?.business_name || listing.business_display_name || ownerName;
@@ -962,7 +962,7 @@ function populateListing(listing) {
 
   /* --- Opportunity header --- */
   document.getElementById("ld-title").textContent = listing.title;
-  document.getElementById("ld-date").textContent = `posted ${relativeDate(listing.created_at)}`;
+  document.getElementById("ld-date").textContent = `Posted ${relativeDate(listing.created_at)}`;
 
   if (listing.turnaround_days) {
     const el = document.getElementById("ld-turnaround");
@@ -998,7 +998,7 @@ function populateListing(listing) {
 
   if (listing.category) {
     listing.category.split(",").map((c) => c.trim()).filter(Boolean).forEach((cat) => {
-      tagsHtml += `<span class="ld-tag">${escapeHtml(cat)}</span>`;
+      tagsHtml += `<span class="ld-tag">${escapeHtml(capFirst(cat))}</span>`;
     });
   }
   tagsEl.innerHTML = tagsHtml;
@@ -1009,7 +1009,7 @@ function populateListing(listing) {
     contextSectionEl.hidden = false;
   }
 
-  summaryHeadingEl.textContent = parsedDetails.businessProblem ? "business problem" : "the challenge";
+  summaryHeadingEl.textContent = parsedDetails.businessProblem ? "Business problem" : "The challenge";
   summaryEl.textContent = parsedDetails.businessProblem || listing.problem_summary || "No summary provided.";
 
   if (parsedDetails.expectedOutput) {
@@ -1024,7 +1024,7 @@ function populateListing(listing) {
       : "");
 
   if (detailsBody) {
-    detailsHeadingEl.textContent = parsedDetails.additionalDetails ? "additional details" : "details";
+    detailsHeadingEl.textContent = parsedDetails.additionalDetails ? "Additional details" : "Details";
     detailsEl.textContent = detailsBody;
     detailsEl.hidden = false;
   } else {
@@ -1102,7 +1102,7 @@ function resetOwnerStatusForm() {
   statusForm.classList.add("hidden");
   statusOtherWrap.classList.add("hidden");
   statusOtherInput.value = "";
-  statusSubmitBtn.textContent = "confirm";
+  statusSubmitBtn.textContent = "Confirm";
   statusFormTitle.textContent = "";
 }
 
@@ -1121,18 +1121,18 @@ function openOwnerStatusForm(action) {
   ownerActionStatus.className = "gr-status";
   statusFormTitle.textContent =
     action === "paused" ? "Why are you pausing this listing?" : "Why are you closing this listing?";
-  statusSubmitBtn.textContent = action === "paused" ? "pause listing" : "close listing";
+  statusSubmitBtn.textContent = action === "paused" ? "Pause listing" : "Close listing";
 
   // Action-specific intro — explains the consequence in plain language
   // so the owner knows what closing vs pausing actually does.
   if (statusFormIntro) {
     if (action === "closed") {
       statusFormIntro.textContent =
-        "closing stops new offers, but consultants who already submitted can still see this listing. you can decide what happens to their offers below.";
+        "Closing stops new offers, but consultants who already submitted can still see this listing. You can decide what happens to their offers below.";
       statusFormIntro.hidden = false;
     } else if (action === "paused") {
       statusFormIntro.textContent =
-        "pausing hides this listing from marketplace browsing. existing offers stay in place and you can resume any time.";
+        "Pausing hides this listing from marketplace browsing. Existing offers stay in place and you can resume any time.";
       statusFormIntro.hidden = false;
     } else {
       statusFormIntro.hidden = true;
@@ -1196,12 +1196,12 @@ function renderOwnerActionSummary(listing) {
 
   if (status === "paused") {
     showCopy(reasonText
-      ? `this listing is paused because of "${reasonText}". resume it any time or close it permanently.`
-      : "this listing is paused. existing proposals stay in place while it stays out of marketplace browsing.");
+      ? `This listing is paused because of "${reasonText}". Resume it any time or close it permanently.`
+      : "This listing is paused. Existing proposals stay in place while it stays out of marketplace browsing.");
     if (buttonsWrap) buttonsWrap.hidden = false;
-    pauseListingBtn.textContent = "resume listing";
+    pauseListingBtn.textContent = "Resume listing";
     pauseListingBtn.disabled = false;
-    closeListingBtn.textContent = "close listing";
+    closeListingBtn.textContent = "Close listing";
     closeListingBtn.disabled = false;
     return;
   }
@@ -1210,8 +1210,8 @@ function renderOwnerActionSummary(listing) {
     // Closed is terminal — drop the action buttons entirely so the panel
     // reads as a status note rather than a disabled control surface.
     showCopy(reasonText
-      ? `this listing is already closed (reason: "${reasonText}"). existing participants can still refer back to it here.`
-      : "this listing is already closed. existing participants can still refer back to it here.");
+      ? `This listing is already closed (reason: "${reasonText}"). Existing participants can still refer back to it here.`
+      : "This listing is already closed. Existing participants can still refer back to it here.");
     if (buttonsWrap) buttonsWrap.hidden = true;
     resetOwnerStatusForm();
     return;
@@ -1224,8 +1224,8 @@ function renderOwnerActionSummary(listing) {
   ownerActionsCopy.textContent = "";
   ownerActionsCopy.hidden = true;
   if (buttonsWrap) buttonsWrap.hidden = false;
-  pauseListingBtn.textContent = "pause listing";
-  closeListingBtn.textContent = "close listing";
+  pauseListingBtn.textContent = "Pause listing";
+  closeListingBtn.textContent = "Close listing";
   pauseListingBtn.disabled = false;
   closeListingBtn.disabled = false;
 }
@@ -1279,9 +1279,9 @@ function setupOwnerListingActions(client, listing) {
           await persistListingStatus(client, listing, "open", null, null);
           renderOwnerActionSummary(listing);
           resetOwnerStatusForm();
-          showOwnerActionFeedback("listing resumed. it is visible in marketplace browsing again.");
+          showOwnerActionFeedback("Listing resumed. It is visible in marketplace browsing again.");
         } catch (error) {
-          showOwnerActionFeedback(error.message || "could not resume listing.", "error");
+          showOwnerActionFeedback(error.message || "Could not resume listing.", "error");
         } finally {
           renderOwnerActionSummary(listing);
         }
@@ -1305,7 +1305,7 @@ function setupOwnerListingActions(client, listing) {
         if (workCompletedOption.classList.contains("is-disabled")) {
           event.preventDefault();
           showToast(
-            "this reason applies once you've accepted a consultant's offer. close the engagement from the engagement page instead.",
+            "This reason applies once you've accepted a consultant's offer. Close the engagement from the engagement page instead.",
             { kind: "info", duration: 5000 }
           );
         }
@@ -1331,13 +1331,13 @@ function setupOwnerListingActions(client, listing) {
 
       const reason = document.querySelector('input[name="listingStatusReason"]:checked')?.value || "";
       if (!reason) {
-        showOwnerActionFeedback("choose a reason before continuing.", "error");
+        showOwnerActionFeedback("Choose a reason before continuing.", "error");
         return;
       }
 
       const otherReason = reason === "other" ? statusOtherInput?.value.trim() || "" : "";
       if (reason === "other" && !otherReason) {
-        showOwnerActionFeedback("add a short note when you choose other.", "error");
+        showOwnerActionFeedback("Add a short note when you choose other.", "error");
         return;
       }
 
@@ -1380,15 +1380,15 @@ function setupOwnerListingActions(client, listing) {
         renderOwnerActionSummary(listing);
         resetOwnerStatusForm();
         const closedCopy = declinedCount > 0
-          ? `listing closed. ${declinedCount} outstanding offer${declinedCount === 1 ? " was" : "s were"} declined.`
-          : "listing closed. existing offers remain on file. consultants who already submitted can still see this listing.";
+          ? `Listing closed. ${declinedCount} outstanding offer${declinedCount === 1 ? " was" : "s were"} declined.`
+          : "Listing closed. Existing offers remain on file. Consultants who already submitted can still see this listing.";
         showOwnerActionFeedback(
           action === "paused"
-            ? "listing paused. it is now hidden from marketplace browsing, but current proposals remain in place."
+            ? "Listing paused. It is now hidden from marketplace browsing, but current proposals remain in place."
             : closedCopy
         );
       } catch (error) {
-        showOwnerActionFeedback(error.message || "could not update listing status.", "error");
+        showOwnerActionFeedback(error.message || "Could not update listing status.", "error");
       } finally {
         statusSubmitBtn.disabled = false;
       }
@@ -1404,7 +1404,7 @@ function setupOwnerListingActions(client, listing) {
 
 function renderMsgThread(container, messages, myId) {
   if (!messages.length) {
-    container.innerHTML = '<p class="ld-msg-empty">no messages yet.</p>';
+    container.innerHTML = '<p class="ld-msg-empty">No messages yet.</p>';
     return;
   }
   container.innerHTML = messages.map((m) => {
@@ -1429,14 +1429,14 @@ function offerBreakdownHtml(f, opts = {}) {
   // Consultant-only copy. Businesses never see the free option mentioned.
   if (f.amountCents === 0) {
     return opts.allowFree
-      ? `<p class="ld-offer-breakdown__note">${opts.freeNote || "free offer. doing a job free can help build your reputation."}</p>`
-      : `<p class="ld-offer-breakdown__note">this amount must be at least $10.</p>`;
+      ? `<p class="ld-offer-breakdown__note">${opts.freeNote || "Free offer. Doing a job free can help build your reputation."}</p>`
+      : `<p class="ld-offer-breakdown__note">This amount must be at least $10.</p>`;
   }
   if (f.amountCents < MIN_PAID_OFFER_CENTS) {
-    return `<p class="ld-offer-breakdown__note">${opts.allowFree ? "offers are free or at least $10." : "this amount must be at least $10."}</p>`;
+    return `<p class="ld-offer-breakdown__note">${opts.allowFree ? "Offers are free or at least $10." : "This amount must be at least $10."}</p>`;
   }
-  const bizLabel = opts.bizLabel || "business pays";
-  const takeHomeLabel = opts.takeHomeLabel || "you take home";
+  const bizLabel = opts.bizLabel || "Business pays";
+  const takeHomeLabel = opts.takeHomeLabel || "You take home";
   const launchPct = LAUNCH_PLATFORM_FEE_BPS / 100;
   // Show what a flat 10% of the whole offer would cost, struck through,
   // next to what they actually pay after the launch rate and free first $10.
@@ -1445,10 +1445,10 @@ function offerBreakdownHtml(f, opts = {}) {
     ? `<span class="ld-offer-breakdown__strike">−${formatUsd(undiscountedCents)}</span> −${formatUsd(f.platformFeeCents)}`
     : `−${formatUsd(f.platformFeeCents)}`;
   const platformLabel = f.platformFeeDiscounted
-    ? `platform fee <span class="ld-offer-breakdown__strike">10%</span> ${launchPct}%
-       <span class="ld-offer-breakdown__hint">launch rate · none on the first $10</span>`
-    : `platform fee (10%)
-       <span class="ld-offer-breakdown__hint">none on the first $10</span>`;
+    ? `Platform fee <span class="ld-offer-breakdown__strike">10%</span> ${launchPct}%
+       <span class="ld-offer-breakdown__hint">Launch rate · none on the first $10</span>`
+    : `Platform fee (10%)
+       <span class="ld-offer-breakdown__hint">None on the first $10</span>`;
   return `
     <div class="ld-offer-breakdown__line ld-offer-breakdown__line--biz">
       <span>${bizLabel}</span>
@@ -1459,7 +1459,7 @@ function offerBreakdownHtml(f, opts = {}) {
       <span class="ld-offer-breakdown__value">${platformValue}</span>
     </div>
     <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
-      <span>card processing</span>
+      <span>Card processing</span>
       <span class="ld-offer-breakdown__value">−${formatUsd(f.stripeFeeCents)}</span>
     </div>
     <div class="ld-offer-breakdown__line ld-offer-breakdown__line--total">
@@ -1504,19 +1504,19 @@ async function showConsultantView(client, session, listing, existingBid) {
 
   const isRetainerListing = listing?.contract_type === "retainer";
   wireBreakdown(amountInput, "ld-offer-breakdown", isRetainerListing
-    ? { offerLabel: "fee per period", bizLabel: "business pays per period", takeHomeLabel: "you take home per period" }
+    ? { offerLabel: "Fee per period", bizLabel: "Business pays per period", takeHomeLabel: "You take home per period" }
     : { allowFree: true });
   wireBreakdown(proposalFeeInput, "ld-offer-proposal-breakdown", {
     allowFree: true,
-    freeNote: "no proposal fee.",
-    offerLabel: "proposal fee",
-    bizLabel: "business pays for proposal",
-    takeHomeLabel: "you take home (proposal)",
+    freeNote: "No proposal fee.",
+    offerLabel: "Proposal fee",
+    bizLabel: "Business pays for proposal",
+    takeHomeLabel: "You take home (proposal)",
   });
   wireBreakdown(serviceFeeInput, "ld-offer-service-breakdown", {
-    offerLabel: "service fee",
-    bizLabel: "business pays for service",
-    takeHomeLabel: "you take home (service)",
+    offerLabel: "Service fee",
+    bizLabel: "Business pays for service",
+    takeHomeLabel: "You take home (service)",
   });
 
   // The "?" tooltip bubble is portaled to document.body and rendered
@@ -1595,7 +1595,7 @@ async function showConsultantView(client, session, listing, existingBid) {
     standardRow.hidden = true;
     phasedRow.hidden = false;
     if (listing.proposal_budget != null && proposalBudgetHint) {
-      proposalBudgetHint.textContent = `business set a budget of ${formatUsd(Number(listing.proposal_budget) * 100)}`;
+      proposalBudgetHint.textContent = `Business set a budget of ${formatUsd(Number(listing.proposal_budget) * 100)}`;
     }
   } else {
     standardRow.hidden = false;
@@ -1606,7 +1606,7 @@ async function showConsultantView(client, session, listing, existingBid) {
   // and prefill the per-period fee if the business locked it in.
   if (isRetainer) {
     const label = standardRow?.querySelector(".ld-offer-amount-label");
-    if (label) label.textContent = "fee per period";
+    if (label) label.textContent = "Fee per period";
     const fixed = listing.retainer_terms === "fixed";
     if (fixed && listing.retainer_fee_cents != null && amountInput) {
       amountInput.value = (Number(listing.retainer_fee_cents) / 100).toFixed(2);
@@ -1638,23 +1638,23 @@ async function showConsultantView(client, session, listing, existingBid) {
     }
 
     const heading = document.querySelector(".ld-offer-panel__heading");
-    if (heading) heading.textContent = "your offer";
+    if (heading) heading.textContent = "Your offer";
     const el = document.getElementById("ld-bid-existing");
     const isAccepted = existingBid.status === "accepted";
     const isCountered = existingBid.status === "countered" && existingBid.counter_offer_cents != null;
     const stateBadge = isAccepted
-      ? `<span class="ld-accepted-badge">accepted</span>`
+      ? `<span class="ld-accepted-badge">Accepted</span>`
       : isCountered
-      ? `<span class="ld-accepted-badge ld-accepted-badge--countered">countered</span>`
+      ? `<span class="ld-accepted-badge ld-accepted-badge--countered">Countered</span>`
       : "";
     const messageHtml = existingBid.message
       ? `<span class="ld-bid-existing__message">${escapeHtml(existingBid.message)}</span>`
       : "";
     const amountHtml = isPhased && existingBid.proposal_fee_cents != null
-      ? `<span class="ld-bid-existing__amount">offer submitted:
+      ? `<span class="ld-bid-existing__amount">Offer submitted:
            <strong>${formatUsd(existingBid.proposal_fee_cents)}</strong> proposal +
            <strong>${formatUsd(existingBid.service_fee_cents || 0)}</strong> full job</span>`
-      : `<span class="ld-bid-existing__amount">offer submitted: <strong>${formatUsd(existingBid.amount_cents)}</strong></span>`;
+      : `<span class="ld-bid-existing__amount">Offer submitted: <strong>${formatUsd(existingBid.amount_cents)}</strong></span>`;
     el.innerHTML = `<span class="ld-bid-existing__header">${amountHtml}${stateBadge}</span>${messageHtml}`;
     el.hidden = false;
     formWrap.hidden = true;
@@ -1771,7 +1771,7 @@ async function showConsultantView(client, session, listing, existingBid) {
           manageLink.hidden = true;
           if (awaitingNotice) {
             if (awaiting === "owner") {
-              awaitingNotice.textContent = "waiting on the business to share kickoff availability.";
+              awaitingNotice.textContent = "Waiting on the business to share kickoff availability.";
               awaitingNotice.hidden = false;
             } else {
               awaitingNotice.hidden = true;
@@ -1801,8 +1801,8 @@ async function showConsultantView(client, session, listing, existingBid) {
   if (!listingAcceptingOffers) {
     formWrap.hidden = true;
     statusEl.textContent = existingBid
-      ? `this listing is ${listingStatus}. your existing offer stays visible here.`
-      : `this listing is ${listingStatus} and is not accepting new offers right now.`;
+      ? `This listing is ${listingStatus}. Your existing offer stays visible here.`
+      : `This listing is ${listingStatus} and is not accepting new offers right now.`;
     statusEl.className = "gr-status";
   }
 
@@ -1810,12 +1810,12 @@ async function showConsultantView(client, session, listing, existingBid) {
   submitBtn.addEventListener("click", async () => {
     if (payoutsBlocked && !isFreeOffer()) {
       showToast(
-        "set up payouts before you can submit an offer. grassroots can't pay you until your stripe account is verified.",
+        "Set up payouts before you can submit an offer. Grassroots can't pay you until your Stripe account is verified.",
         {
           kind: "error",
           duration: 6000,
           action: {
-            label: "set up payouts",
+            label: "Set up payouts",
             onClick: () => {
               window.location.href = "/payouts.html";
             },
@@ -1825,7 +1825,7 @@ async function showConsultantView(client, session, listing, existingBid) {
       return;
     }
     if (!listingAcceptingOffers) {
-      showError(`this listing is ${listingStatus} and cannot accept offer changes right now.`);
+      showError(`This listing is ${listingStatus} and cannot accept offer changes right now.`);
       return;
     }
 
@@ -1842,16 +1842,16 @@ async function showConsultantView(client, session, listing, existingBid) {
       const proposalCents = Number.isFinite(proposalRaw) ? Math.round(proposalRaw * 100) : 0;
       const serviceCents = Math.round(parseFloat(serviceFeeInput.value) * 100);
       if (!isValidOfferCents(proposalCents)) {
-        showError("the proposal fee must be $0 or at least $10.");
+        showError("The proposal fee must be $0 or at least $10.");
         return;
       }
       if (!Number.isFinite(serviceCents) || serviceCents < MIN_PAID_OFFER_CENTS) {
-        showError("the offer amount must be at least $10.");
+        showError("The offer amount must be at least $10.");
         return;
       }
       // proposal_budget on the listing is a soft ceiling — enforce only if set.
       if (listing.proposal_budget != null && proposalCents > Number(listing.proposal_budget) * 100) {
-        showError(`proposal fee can't exceed the business's budget of ${formatUsd(Number(listing.proposal_budget) * 100)}.`);
+        showError(`Proposal fee can't exceed the business's budget of ${formatUsd(Number(listing.proposal_budget) * 100)}.`);
         return;
       }
       payload.proposal_fee_cents = proposalCents;
@@ -1864,11 +1864,11 @@ async function showConsultantView(client, session, listing, existingBid) {
     } else {
       const cents = Math.round(parseFloat(amountInput.value) * 100);
       if (!Number.isFinite(cents)) {
-        showError("enter a valid amount.");
+        showError("Enter a valid amount.");
         return;
       }
       if (isRetainer ? cents < MIN_PAID_OFFER_CENTS : !isValidOfferCents(cents)) {
-        showError(isRetainer ? "the fee per period must be at least $10." : "offers are free or at least $10.");
+        showError(isRetainer ? "The fee per period must be at least $10." : "Offers are free or at least $10.");
         return;
       }
       payload.amount_cents = cents;
@@ -1879,12 +1879,12 @@ async function showConsultantView(client, session, listing, existingBid) {
     // Insert-only: offers can't be edited once submitted (enforced in the DB).
     const { error } = await client.from("bids").insert(payload);
     if (error) {
-      showError(error.code === "23505" ? "you already sent an offer on this listing." : error.message);
+      showError(error.code === "23505" ? "You already sent an offer on this listing." : error.message);
       submitBtn.disabled = false;
       submitBtn.classList.remove("is-loading");
       return;
     }
-    showSuccess("offer submitted.");
+    showSuccess("Offer submitted.");
     // Offers are immutable once submitted — reload so the form is replaced
     // by the read-only summary on next render. Keep the spinner up until
     // navigation kicks in so the click can't appear "free" mid-network.
@@ -2040,7 +2040,7 @@ async function setupChatDrawer(client, listing, myId, ownerId) {
 /* Render the full thread inside the chat drawer */
 function renderChatThread(container, messages, myId) {
   if (!messages.length) {
-    container.innerHTML = '<p class="ld-msg-empty">no messages yet.</p>';
+    container.innerHTML = '<p class="ld-msg-empty">No messages yet.</p>';
     return;
   }
   container.innerHTML = "";
@@ -2070,7 +2070,7 @@ function appendChatBubble(container, m, myId) {
   bubble.className = `ld-msg-bubble ${mine ? "ld-msg-bubble--mine" : "ld-msg-bubble--theirs"}`;
 
   bubble.innerHTML = `
-    ${hasContext ? `<div class="ld-msg-context-tag"><span class="ld-msg-context-tag__re">re:</span> ${escapeHtml(contextPart)}</div>` : ""}
+    ${hasContext ? `<div class="ld-msg-context-tag"><span class="ld-msg-context-tag__re">Re:</span> ${escapeHtml(contextPart)}</div>` : ""}
     <p class="ld-msg-text">${escapeHtml(bodyPart)}</p>
     <span class="ld-msg-time">${time}</span>
   `;
@@ -2226,7 +2226,7 @@ function openConsultantViewer(index) {
   const resumePanel = document.getElementById("ld-cv-panel-resume");
   const workPanel = document.getElementById("ld-cv-panel-work");
   if (statusEl) {
-    statusEl.textContent = "loading…";
+    statusEl.textContent = "Loading…";
     statusEl.className = "gr-status";
     statusEl.hidden = false;
   }
@@ -2250,7 +2250,7 @@ function openConsultantViewer(index) {
     .catch((err) => {
       if (consultantViewerState.bids[consultantViewerState.index]?.id !== bid.id) return;
       if (statusEl) {
-        statusEl.textContent = err?.message || "could not load consultant profile.";
+        statusEl.textContent = err?.message || "Could not load consultant profile.";
         statusEl.className = "gr-status error";
       }
     });
@@ -2272,7 +2272,7 @@ function closeConsultantViewer() {
 }
 
 async function loadConsultantProfile(consultantId) {
-  if (!consultantId) throw new Error("missing consultant id");
+  if (!consultantId) throw new Error("Missing consultant ID");
   if (consultantViewerState.cache.has(consultantId)) {
     return consultantViewerState.cache.get(consultantId);
   }
@@ -2283,7 +2283,7 @@ async function loadConsultantProfile(consultantId) {
   const res = await fetch(`/api/consultant-profile/${encodeURIComponent(consultantId)}`, { headers });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.profile) {
-    throw new Error(data.error || "consultant profile not found.");
+    throw new Error(data.error || "Consultant profile not found.");
   }
   consultantViewerState.cache.set(consultantId, data);
   return data;
@@ -2299,16 +2299,16 @@ function renderConsultantViewerContent({ profile, education, rating }) {
     : `<div class="pf-bv__avatar-placeholder" aria-hidden="true">${escapeHtml(getInitials(profile.full_name))}</div>`;
 
   const dims = [
-    ["work product", rating?.work_product_quality_avg],
+    ["Work product", rating?.work_product_quality_avg],
     ["communication", rating?.communication_avg],
     ["timeliness", rating?.timeliness_avg],
     ["professionalism", rating?.professionalism_avg],
-    ["cost value", rating?.cost_value_avg],
+    ["Cost value", rating?.cost_value_avg],
   ];
   const ratingBreakdown = rating?.review_count
     ? `
       <div class="pf-bv__section">
-        <p class="pf-bv__section-title">ratings · ${rating.review_count} review${rating.review_count === 1 ? "" : "s"}</p>
+        <p class="pf-bv__section-title">Ratings · ${rating.review_count} review${rating.review_count === 1 ? "" : "s"}</p>
         <div class="ld-cv__rating-grid">
           ${dims.map(([label, val]) => `
             <div class="ld-cv__rating-row">
@@ -2338,18 +2338,18 @@ function renderConsultantViewerContent({ profile, education, rating }) {
       ${ratingBreakdown}
       ${eduEntriesHtml ? `
         <div class="pf-bv__section">
-          <p class="pf-bv__section-title">education</p>
+          <p class="pf-bv__section-title">Education</p>
           ${eduEntriesHtml}
         </div>
       ` : ""}
       ${profile.linkedin_url ? `
         <div class="pf-bv__section">
-          <p class="pf-bv__section-title">linkedin</p>
+          <p class="pf-bv__section-title">LinkedIn</p>
           <p class="pf-bv__detail"><a href="${escapeAttr(profile.linkedin_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(profile.linkedin_url)}</a></p>
         </div>
       ` : ""}
       ${(!profile.linkedin_url && !eduEntriesHtml && !ratingBreakdown) ? `
-        <p class="pf-bv__empty">this consultant hasn't shared any public bio details yet.</p>
+        <p class="pf-bv__empty">This consultant hasn't shared any public bio details yet.</p>
       ` : ""}
     </div>
   `;
@@ -2359,7 +2359,7 @@ async function renderConsultantPastWorkPanel(consultantId, data) {
   const panel = document.getElementById("ld-cv-panel-work");
   if (!panel) return;
   const portfolio = Array.isArray(data?.portfolio) ? data.portfolio : [];
-  panel.innerHTML = `<p class="gr-status" data-cv-loading>loading past work…</p>`;
+  panel.innerHTML = `<p class="gr-status" data-cv-loading>Loading past work…</p>`;
 
   const engagements = await loadConsultantEngagements(consultantId).catch(() => []);
 
@@ -2369,7 +2369,7 @@ async function renderConsultantPastWorkPanel(consultantId, data) {
   if (engagements.length) {
     sections.push(`
       <div class="ld-cv__work-section">
-        <p class="ld-cv__work-section-title">past engagements</p>
+        <p class="ld-cv__work-section-title">Past engagements</p>
         <div class="ld-cv__work-list">
           ${engagements.map((eng) => {
             const title = eng.listings?.title || "engagement";
@@ -2393,7 +2393,7 @@ async function renderConsultantPastWorkPanel(consultantId, data) {
   if (portfolio.length) {
     sections.push(`
       <div class="ld-cv__work-section">
-        <p class="ld-cv__work-section-title">shared files</p>
+        <p class="ld-cv__work-section-title">Shared files</p>
         <div class="ld-cv__work-list">
           ${portfolio.map((item) => {
             const fileName = (item.file_path || "").split("/").pop() || "file";
@@ -2403,7 +2403,7 @@ async function renderConsultantPastWorkPanel(consultantId, data) {
                 <div>
                   <p class="ld-cv__work-row__title">${escapeHtml(fileName)}</p>
                   ${item.description ? `<p class="ld-cv__work-row__scope">${escapeHtml(item.description)}</p>` : ""}
-                  <a class="ld-cv__work-row__file" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">open file ↗</a>
+                  <a class="ld-cv__work-row__file" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">Open file ↗</a>
                 </div>
               </div>
             `;
@@ -2415,7 +2415,7 @@ async function renderConsultantPastWorkPanel(consultantId, data) {
 
   panel.innerHTML = sections.length
     ? sections.join("")
-    : `<p class="ld-cv__panel-empty">no past engagements or shared files yet.</p>`;
+    : `<p class="ld-cv__panel-empty">No past engagements or shared files yet.</p>`;
 }
 
 async function loadConsultantEngagements(consultantId) {
@@ -2456,19 +2456,19 @@ async function loadResumePanel(consultantId) {
   const profile = data?.profile;
 
   if (!profile?.resume_on_file) {
-    const html = `<p class="ld-cv__panel-empty">this consultant has not made a resume publicly visible.</p>`;
+    const html = `<p class="ld-cv__panel-empty">This consultant has not made a resume publicly visible.</p>`;
     panel.innerHTML = html;
     consultantViewerState.resumeCache.set(consultantId, html);
     return;
   }
   if (!profile?.resume_available) {
-    const html = `<p class="ld-cv__panel-empty">resume is not available to your account.</p>`;
+    const html = `<p class="ld-cv__panel-empty">Resume is not available to your account.</p>`;
     panel.innerHTML = html;
     consultantViewerState.resumeCache.set(consultantId, html);
     return;
   }
 
-  panel.innerHTML = `<p class="gr-status">loading resume…</p>`;
+  panel.innerHTML = `<p class="gr-status">Loading resume…</p>`;
 
   try {
     const client = consultantViewerState.client;
@@ -2477,21 +2477,21 @@ async function loadResumePanel(consultantId) {
     if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
     const res = await fetch(`/api/consultant-profile/${encodeURIComponent(consultantId)}/resume`, { headers });
     const body = await res.json().catch(() => ({}));
-    if (!res.ok || !body.url) throw new Error(body.error || "could not open resume.");
+    if (!res.ok || !body.url) throw new Error(body.error || "Could not open resume.");
 
     if (consultantViewerState.bids[consultantViewerState.index]?.consultant_id !== consultantId) return;
     if (consultantViewerState.activeTab !== "resume") return;
 
     const html = `
       <div class="ld-cv__resume-actions">
-        <a class="gr-btn gr-btn--ghost gr-btn--sm" href="${escapeAttr(body.url)}" target="_blank" rel="noopener noreferrer">open in new tab ↗</a>
+        <a class="gr-btn gr-btn--ghost gr-btn--sm" href="${escapeAttr(body.url)}" target="_blank" rel="noopener noreferrer">Open in new tab ↗</a>
       </div>
       <iframe class="ld-cv__resume-frame" src="${escapeAttr(body.url)}" title="${escapeAttr((body.file_name || "resume"))}"></iframe>
     `;
     panel.innerHTML = html;
     consultantViewerState.resumeCache.set(consultantId, html);
   } catch (err) {
-    panel.innerHTML = `<p class="gr-status error">${escapeHtml(err?.message || "could not load resume.")}</p>`;
+    panel.innerHTML = `<p class="gr-status error">${escapeHtml(err?.message || "Could not load resume.")}</p>`;
   }
 }
 
@@ -2505,10 +2505,10 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
   const list = document.getElementById("ld-bids-list");
   const budgetEl = document.getElementById("ld-counter-budget");
   const totalCounters = bids.filter((b) => b.counter_offer_cents != null).length;
-  budgetEl.textContent = `counter-offers used: ${totalCounters} / 3`;
+  budgetEl.textContent = `Counter-offers used: ${totalCounters} / 3`;
 
   if (!bids.length) {
-    list.innerHTML = '<p class="ld-bids-empty">no proposals yet.</p>';
+    list.innerHTML = '<p class="ld-bids-empty">No proposals yet.</p>';
     return;
   }
 
@@ -2538,11 +2538,11 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
     }
     proposalCtaTotalEl.textContent = formatUsd(total);
     if (total === 0) {
-      proposalCtaBtn.textContent = selected.length === 1 ? "accept proposal" : `accept ${selected.length} proposals`;
+      proposalCtaBtn.textContent = selected.length === 1 ? "Accept proposal" : `Accept ${selected.length} proposals`;
     } else {
       proposalCtaBtn.textContent = selected.length === 1
-        ? "pay proposal fee"
-        : `pay ${selected.length} proposal fees`;
+        ? "Pay proposal fee"
+        : `Pay ${selected.length} proposal fees`;
     }
   }
 
@@ -2554,12 +2554,12 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
       const result = await payAndAcceptProposals({ client, bids: selected, listing });
       if (result?.ok) {
         showSuccess(result.free
-          ? `${selected.length === 1 ? "proposal" : "proposals"} accepted.`
-          : `proposal fees held for ${selected.length} consultant${selected.length === 1 ? "" : "s"}.`);
+          ? `${selected.length === 1 ? "Proposal" : "Proposals"} accepted.`
+          : `Proposal fees held for ${selected.length} consultant${selected.length === 1 ? "" : "s"}.`);
         window.location.reload();
       }
     } catch (err) {
-      showError(err?.message || "could not start payment.");
+      showError(err?.message || "Could not start payment.");
     } finally {
       proposalCtaBtn.disabled = false;
     }
@@ -2583,7 +2583,7 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
       ? ` data-cv-open data-cv-bid-id="${escapeAttr(b.id)}"`
       : "";
     const nameHtml = b.consultant_id
-      ? `<button type="button" class="ld-bid-card__name-btn"${cvAttrs} aria-label="view ${name}'s profile">${name}</button>`
+      ? `<button type="button" class="ld-bid-card__name-btn"${cvAttrs} aria-label="View ${name}'s profile">${name}</button>`
       : `<span class="ld-bid-card__name-btn">${name}</span>`;
     const avatar = publicAvatarUrl(client, p?.avatar_path);
     const msg = b.message ? `<p class="ld-bid-card__message">${escapeHtml(b.message)}</p>` : "";
@@ -2611,9 +2611,9 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
 
     // One status pill — pending shows nothing (default state); accepted/countered/declined get a chip.
     const statusPillMap = {
-      accepted: { kind: "accepted", label: "accepted · ongoing" },
-      countered: { kind: "warn", label: "countered" },
-      declined: { kind: "muted", label: "declined" },
+      accepted: { kind: "accepted", label: "Accepted · ongoing" },
+      countered: { kind: "warn", label: "Countered" },
+      declined: { kind: "muted", label: "Declined" },
     };
     const pillInfo = statusPillMap[b.status];
     const statusPill = pillInfo
@@ -2621,7 +2621,7 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
       : "";
 
     const counterInfo = b.counter_offer_cents
-      ? `<p class="ld-bid-card__counter">your counter: <strong>${formatUsd(b.counter_offer_cents)}</strong>${b.counter_offer_message ? ` — "${escapeHtml(b.counter_offer_message)}"` : ""}</p>`
+      ? `<p class="ld-bid-card__counter">Your counter: <strong>${formatUsd(b.counter_offer_cents)}</strong>${b.counter_offer_message ? ` — "${escapeHtml(b.counter_offer_message)}"` : ""}</p>`
       : "";
 
     // Amount stack — phased shows proposal + full-job rows; standard
@@ -2629,18 +2629,18 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
     // visual rhythm is consistent across listing types.
     const amountHtml = isPhasedListing && b.proposal_fee_cents != null
       ? `<div class="ld-bid-card__amounts">
-           <div class="ld-bid-card__amount-row"><strong class="ld-bid-card__amount-value">${formatUsd(b.proposal_fee_cents)}</strong><span class="ld-bid-card__amount-tag">proposal</span></div>
-           <div class="ld-bid-card__amount-row"><strong class="ld-bid-card__amount-value">${formatUsd(b.service_fee_cents || 0)}</strong><span class="ld-bid-card__amount-tag">full job</span></div>
+           <div class="ld-bid-card__amount-row"><strong class="ld-bid-card__amount-value">${formatUsd(b.proposal_fee_cents)}</strong><span class="ld-bid-card__amount-tag">Proposal</span></div>
+           <div class="ld-bid-card__amount-row"><strong class="ld-bid-card__amount-value">${formatUsd(b.service_fee_cents || 0)}</strong><span class="ld-bid-card__amount-tag">Full job</span></div>
          </div>`
       : `<div class="ld-bid-card__amounts">
-           <div class="ld-bid-card__amount-row"><strong class="ld-bid-card__amount-value">${formatUsd(b.amount_cents)}</strong><span class="ld-bid-card__amount-tag">offer</span></div>
+           <div class="ld-bid-card__amount-row"><strong class="ld-bid-card__amount-value">${formatUsd(b.amount_cents)}</strong><span class="ld-bid-card__amount-tag">Offer</span></div>
          </div>`;
 
     // "view profile →" link in the bottom-right of the foot. Uses the
     // same data-cv-open hook as the avatar + name so the consultant
     // viewer opens regardless of which affordance the owner clicks.
     const viewProfileLink = b.consultant_id
-      ? `<button type="button" class="ld-bid-card__view-profile"${cvAttrs}>view profile <span aria-hidden="true">→</span></button>`
+      ? `<button type="button" class="ld-bid-card__view-profile"${cvAttrs}>View profile <span aria-hidden="true">→</span></button>`
       : "";
 
     // Message icon sits absolute top-right of the card (per the
@@ -2679,7 +2679,7 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
         cbWrap.className = "ld-bid-card__select";
         cbWrap.innerHTML = `
           <input type="checkbox" class="ld-bid-card__checkbox" />
-          <span>accept proposal</span>
+          <span>Accept proposal</span>
         `;
         const cb = cbWrap.querySelector("input");
         cb.addEventListener("change", () => {
@@ -2691,7 +2691,7 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
       } else {
         const acceptBtn = document.createElement("button");
         acceptBtn.className = "gr-btn gr-btn--primary gr-btn--sm";
-        acceptBtn.textContent = "accept";
+        acceptBtn.textContent = "Accept";
         acceptBtn.addEventListener("click", async () => {
           // If there's an active counter awaiting a consultant
           // response, accepting now MUST charge the consultant's
@@ -2699,14 +2699,14 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
           // consultant hasn't agreed to). Warn explicitly and confirm.
           if (b.status === "countered" && b.counter_offer_cents != null) {
             const choice = await openConfirmModal({
-              title: "accept the original offer?",
+              title: "Accept the original offer?",
               body: [
                 `${rawName} hasn't decided on your counter yet.`,
-                `accepting now charges their original price of ${formatUsd(b.amount_cents)}, not your counter of ${formatUsd(b.counter_offer_cents)}.`,
+                `Accepting now charges their original price of ${formatUsd(b.amount_cents)}, not your counter of ${formatUsd(b.counter_offer_cents)}.`,
               ],
               actions: [
-                { label: "cancel", kind: "ghost", value: "cancel" },
-                { label: `accept at ${formatUsd(b.amount_cents)}`, kind: "primary", value: "confirm" },
+                { label: "Cancel", kind: "ghost", value: "cancel" },
+                { label: `Accept at ${formatUsd(b.amount_cents)}`, kind: "primary", value: "confirm" },
               ],
             });
             if (choice !== "confirm") return;
@@ -2743,7 +2743,7 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
       // destination.
       manageLink.className = "gr-btn gr-btn--primary gr-btn--sm";
       manageLink.href = engagementLink(b.id);
-      manageLink.textContent = "manage engagement";
+      manageLink.textContent = "Manage engagement";
       resolveManageLinkLabel(client, b.id, "owner")
         .then(({ label, hide, quiet }) => {
           if (hide) { manageLink.remove(); return; }
@@ -2769,25 +2769,25 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
       const declineBtn = document.createElement("button");
       declineBtn.type = "button";
       declineBtn.className = "gr-btn gr-btn--danger gr-btn--sm ld-bid-card__decline";
-      declineBtn.textContent = "decline";
+      declineBtn.textContent = "Decline";
       declineBtn.addEventListener("click", async () => {
         const hasOutstandingCounter = b.status === "countered" && b.counter_offer_cents != null;
         const canCounter = !b.counter_attempted && !b.counter_offer_cents && totalCounters < 3 && b.status === "pending";
         const body = [
-          `declining is permanent — ${rawName}'s offer disappears and they'll be notified.`,
+          `Declining is permanent — ${rawName}'s offer disappears and they'll be notified.`,
         ];
         if (hasOutstandingCounter) {
           body.unshift(`${rawName} hasn't decided on your counter yet.`);
         } else if (canCounter) {
-          body.push(`if the price isn't right, you can counter instead.`);
+          body.push(`If the price isn't right, you can counter instead.`);
         }
-        const actions = [{ label: "cancel", kind: "ghost", value: "cancel" }];
+        const actions = [{ label: "Cancel", kind: "ghost", value: "cancel" }];
         if (canCounter) {
-          actions.push({ label: "counter instead", kind: "secondary", value: "secondary" });
+          actions.push({ label: "Counter instead", kind: "secondary", value: "secondary" });
         }
-        actions.push({ label: "decline forever", kind: "danger", value: "confirm" });
+        actions.push({ label: "Decline forever", kind: "danger", value: "confirm" });
         const choice = await openConfirmModal({
-          title: `decline this offer?`,
+          title: `Decline this offer?`,
           body,
           actions,
         });
@@ -2807,10 +2807,10 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
             .update({ status: "declined", declined_at: new Date().toISOString() })
             .eq("id", b.id);
           if (error) throw error;
-          showSuccess("offer declined.");
+          showSuccess("Offer declined.");
           window.location.reload();
         } catch (err) {
-          showError(err?.message || "could not decline offer.");
+          showError(err?.message || "Could not decline offer.");
           declineBtn.disabled = false;
         }
       });
@@ -2824,7 +2824,7 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
     if (!b.counter_attempted && !b.counter_offer_cents && totalCounters < 3 && (b.status === "pending")) {
       const counterBtn = document.createElement("button");
       counterBtn.className = "gr-btn gr-btn--ghost gr-btn--sm";
-      counterBtn.textContent = "counter";
+      counterBtn.textContent = "Counter";
       counterBtn.addEventListener("click", () => {
         counterFormEl.classList.toggle("hidden");
         if (!counterFormEl.dataset.init) {
@@ -2841,7 +2841,7 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
     const msgBtn = document.createElement("button");
     msgBtn.type = "button";
     msgBtn.className = "ld-bid-card__msg-icon";
-    msgBtn.title = "message";
+    msgBtn.title = "Message";
     msgBtn.setAttribute("aria-label", "message");
     msgBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
     msgBtn.addEventListener("click", () => {
@@ -2869,7 +2869,7 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
         <span class="ld-proposal-cta__label">0 proposals selected</span>
         <strong class="ld-proposal-cta__total">$0.00</strong>
       </div>
-      <button type="button" class="gr-btn gr-btn--primary gr-btn--sm" id="ld-pay-proposals">pay proposal fee</button>
+      <button type="button" class="gr-btn gr-btn--primary gr-btn--sm" id="ld-pay-proposals">Pay proposal fee</button>
     `;
     list.appendChild(proposalCtaEl);
     proposalCtaBtn = proposalCtaEl.querySelector("#ld-pay-proposals");
@@ -2898,8 +2898,8 @@ async function handleAcceptBid(client, session, listing, bid, card) {
   await client.from("notifications").insert({
     user_id: bid.consultant_id,
     type: "bid_accepted",
-    title: "your bid was accepted.",
-    body: `your ${offerLabel} for "${escapeHtml(listing.title)}" was accepted. the business is setting up kickoff availability now.`,
+    title: "Your bid was accepted.",
+    body: `Your ${offerLabel} for "${escapeHtml(listing.title)}" was accepted. The business is setting up kickoff availability now.`,
     link: engagementLink(bid.id),
   });
 
@@ -2910,15 +2910,15 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
   container.innerHTML = `
     <div class="ld-counter-form-inner">
       <p class="ld-counter-form-notice">
-        this is your only counter on this offer. the consultant has 24 hours to accept, decline, or counter back. if they don't respond, the offer reverts to their original price — and you can't counter again.
+        This is your only counter on this offer. The consultant has 24 hours to accept, decline, or counter back. If they don't respond, the offer reverts to their original price — and you can't counter again.
       </p>
-      <label class="gr-label"><span>counter amount (usd)</span>
+      <label class="gr-label"><span>Counter amount (USD)</span>
         <input type="number" class="ld-counter-amount" min="10" step="0.01" placeholder="0.00" />
       </label>
-      <label class="gr-label full-width"><span>message (optional)</span>
-        <textarea class="ld-counter-msg" rows="2" maxlength="500" placeholder="reason for the counter…"></textarea>
+      <label class="gr-label full-width"><span>Message (optional)</span>
+        <textarea class="ld-counter-msg" rows="2" maxlength="500" placeholder="Reason for the counter…"></textarea>
       </label>
-      <button type="button" class="gr-btn gr-btn--primary gr-btn--sm ld-counter-send">send counter</button>
+      <button type="button" class="gr-btn gr-btn--primary gr-btn--sm ld-counter-send">Send counter</button>
       <p class="gr-status ld-counter-status" aria-live="polite"></p>
     </div>
   `;
@@ -2931,12 +2931,12 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
   sendBtn.addEventListener("click", async () => {
     const cents = Math.round(parseFloat(amtInput.value) * 100);
     if (!Number.isFinite(cents) || cents < MIN_PAID_OFFER_CENTS) {
-      showError("a counter must be at least $10.");
+      showError("A counter must be at least $10.");
       return;
     }
     sendBtn.disabled = true;
 
-    const loader = showLoading("sending counter…");
+    const loader = showLoading("Sending counter…");
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const { error } = await client.from("bids").update({
       status: "countered",
@@ -2956,13 +2956,13 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
     await client.from("notifications").insert({
       user_id: bid.consultant_id,
       type: "counter_offer",
-      title: "you received a counter-offer",
-      body: `the owner of "${escapeHtml(listing.title)}" countered your bid with ${formatUsd(cents)}. you have 24 hours to respond.`,
+      title: "You received a counter-offer",
+      body: `The owner of "${escapeHtml(listing.title)}" countered your bid with ${formatUsd(cents)}. You have 24 hours to respond.`,
       link: `/listing.html?id=${listing.id}`,
     });
 
     loader.dismiss();
-    showSuccess("counter offer sent. the consultant has 24 hours to respond.");
+    showSuccess("Counter offer sent. The consultant has 24 hours to respond.");
     // Refresh the bid list in place so the card reflects the new
     // 'countered' status, the counter button hides, and the counter
     // pill renders — all without bouncing through the page loader.
@@ -2983,8 +2983,8 @@ async function buildOwnerMsgThread(client, listingId, myId, consultantId, contai
   container.innerHTML = `
     <div class="ld-msg-thread" id="msg-thread-${consultantId}"></div>
     <div class="ld-msg-compose">
-      <textarea class="ld-msg-input" rows="2" placeholder="type a message…" maxlength="2000"></textarea>
-      <button type="button" class="gr-btn gr-btn--primary gr-btn--sm ld-msg-send-btn">send</button>
+      <textarea class="ld-msg-input" rows="2" placeholder="Type a message…" maxlength="2000"></textarea>
+      <button type="button" class="gr-btn gr-btn--primary gr-btn--sm ld-msg-send-btn">Send</button>
     </div>
   `;
 
@@ -3035,7 +3035,7 @@ function isTutorialMode() {
 const TUTORIAL_FIXTURE_LISTING = {
   id: "tutorial-mock-listing",
   owner_id: "tutorial-mock-owner",
-  title: "weekend farmers market sales push",
+  title: "Weekend farmers market sales push",
   status: "open",
   contract_type: "standard",
   category: "marketing, retail",
@@ -3045,34 +3045,34 @@ const TUTORIAL_FIXTURE_LISTING = {
   // create-listing form writes the same shape, so the fixture mirrors
   // that contract.
   details: [
-    "budget range: $600–$1,200",
+    "Budget range: $600–$1,200",
     "",
     "context:",
-    "we run a small bakery near campus. our weekend booth at the farmers market has the highest foot traffic of the week, but sales have plateaued for three months. menu, pricing, and signage have not changed in that window.",
+    "We run a small bakery near campus. Our weekend booth at the farmers market has the highest foot traffic of the week, but sales have plateaued for three months. Menu, pricing, and signage have not changed in that window.",
     "",
-    "business problem:",
-    "we want to lift saturday booth sales by at least twenty percent over four weeks. budget exists for new menu prints, but staffing is fixed.",
+    "Business problem:",
+    "We want to lift Saturday booth sales by at least twenty percent over four weeks. Budget exists for new menu prints, but staffing is fixed.",
     "",
-    "standards of work:",
-    "a written plan with two or three testable tactics, suggested menu and signage tweaks, and a short script the booth staff can use to upsell. we want it as a google doc or pdf, ready to apply the following saturday.",
+    "Standards of work:",
+    "A written plan with two or three testable tactics, suggested menu and signage tweaks, and a short script the booth staff can use to upsell. We want it as a Google doc or PDF, ready to apply the following Saturday.",
     "",
-    "additional details:",
-    "we mostly sell bread, cookies, and coffee. our regulars are college students and parents with young kids. our instagram has 1,200 followers but engagement is low.",
+    "Additional details:",
+    "We mostly sell bread, cookies, and coffee. Our regulars are college students and parents with young kids. Our Instagram has 1,200 followers but engagement is low.",
   ].join("\n"),
   qualifications_required: [
-    "comfortable working with a small-team retail business",
-    "examples of similar storefront or market activations",
+    "Comfortable working with a small-team retail business",
+    "Examples of similar storefront or market activations",
   ].join("\n"),
   attachments: [],
   profiles: {
-    full_name: "amelia chen",
+    full_name: "Amelia Chen",
     avatar_path: null,
     linkedin_url: "",
   },
   _business: {
-    business_name: "honeycomb bakery",
+    business_name: "Honeycomb Bakery",
     business_details:
-      "neighborhood bakery and coffee shop, two years in. saturday market booth is our highest-volume day.",
+      "Neighborhood bakery and coffee shop, two years in. Saturday market booth is our highest-volume day.",
     website_url: "",
     social_links: [],
   },
@@ -3119,11 +3119,11 @@ function runTutorialListing() {
   const submitBtn = document.getElementById("ld-bid-submit");
   submitBtn?.addEventListener("click", () => {
     showSuccess(
-      "submitted (tutorial). real offers go to the business right away.",
+      "Submitted (tutorial). Real offers go to the business right away.",
       { duration: 4500 }
     );
     submitBtn.disabled = true;
-    submitBtn.textContent = "submitted";
+    submitBtn.textContent = "Submitted";
     // Bump the onboarding state directly so the bubble auto-advances
     // to the garden step on its next render.
     try {
@@ -3147,7 +3147,7 @@ function runTutorialListing() {
   const questionBtn = document.getElementById("ld-question-btn");
   questionBtn?.addEventListener("click", () => {
     showToast(
-      "in real use this opens a chat with the business. tutorial mode keeps it simple.",
+      "In real use this opens a chat with the business. Tutorial mode keeps it simple.",
       { kind: "info", duration: 4500 }
     );
   });
@@ -3162,7 +3162,7 @@ async function init() {
     try { runTutorialListing(); }
     catch (err) {
       console.warn("[tutorial] listing fixture failed", err);
-      gate.textContent = "tutorial preview unavailable. ping support.";
+      gate.textContent = "Tutorial preview unavailable. Ping support.";
       gate.className = "gr-status error";
     }
     return;
@@ -3170,7 +3170,7 @@ async function init() {
 
   const listingId = getListingId();
   if (!listingId) {
-    gate.textContent = "no listing id provided.";
+    gate.textContent = "No listing ID provided.";
     gate.className = "gr-status error";
     return;
   }
@@ -3192,7 +3192,7 @@ async function init() {
     const { listing, error } = await loadListing(client, listingId);
 
     if (error) { gate.textContent = error.message; gate.className = "gr-status error"; return; }
-    if (!listing) { gate.textContent = "listing not found."; gate.className = "gr-status error"; return; }
+    if (!listing) { gate.textContent = "Listing not found."; gate.className = "gr-status error"; return; }
 
     const uid = session?.user?.id ?? null;
     const isOwner = Boolean(uid && listing.owner_id === uid);
@@ -3213,7 +3213,7 @@ async function init() {
     }
 
     if (listingStatus !== "open" && !isOwner && !hasExistingBid) {
-      gate.textContent = "this listing is no longer available from marketplace browsing.";
+      gate.textContent = "This listing is no longer available from marketplace browsing.";
       gate.className = "gr-status error";
       return;
     }
@@ -3222,7 +3222,7 @@ async function init() {
 
     // Drafts are owner-only. Anyone else gets bounced.
     if (isDraft && !isOwner) {
-      gate.textContent = "this listing isn't published yet.";
+      gate.textContent = "This listing isn't published yet.";
       gate.className = "gr-status error";
       return;
     }
@@ -3257,10 +3257,10 @@ async function init() {
         if (bidsAvailable) {
           showConsultantView(client, session, listing, existingBid);
         } else {
-          showHint("run <code>supabase/setup_v2.sql</code> to enable bidding.");
+          showHint("Run <code>supabase/setup_v2.sql</code> to enable bidding.");
         }
       } else {
-        showHint("only consultants can bid on listings.");
+        showHint("Only consultants can bid on listings.");
       }
     } else if (isOwner && !isDraft) {
       setupOwnerListingActions(client, listing);
@@ -3294,8 +3294,8 @@ async function init() {
         loadListingAnalytics(client, listingId, listing.created_at)
           .then((analytics) =>
             renderAnalyticsPanel(analyticsHost, analytics, {
-              title: "performance",
-              subtitle: "what consultants are doing with this listing.",
+              title: "Performance",
+              subtitle: "What consultants are doing with this listing.",
             })
           );
       }
@@ -3307,9 +3307,9 @@ async function init() {
       // CTA that returns to this listing after sign-in.
       const nextUrl = encodeURIComponent(`/listing.html?id=${listingId}`);
       if (uid) {
-        showHint('only consultants can submit a proposal. <a href="/home/for-students.html#apply">apply as a consultant →</a>');
+        showHint('Only consultants can submit a proposal. <a href="/home/for-students.html#apply">Apply as a consultant →</a>');
       } else {
-        showHint(`<strong>sign in to make an offer →</strong> <a href="/signin.html?next=${nextUrl}">sign in</a> · <a href="/home/for-students.html#apply">apply as a consultant</a>`);
+        showHint(`<strong>Sign in to make an offer →</strong> <a href="/signin.html?next=${nextUrl}">sign in</a> · <a href="/home/for-students.html#apply">apply as a consultant</a>`);
         // Hide attachments for guests — the file links may include
         // direct storage URLs the bucket RLS won't gate.
         const attachmentsWrap = document.getElementById("ld-attachments");
@@ -3325,7 +3325,7 @@ async function init() {
     gate.hidden = true;
     detail.hidden = false;
   } catch (err) {
-    gate.textContent = err.message || "could not load listing.";
+    gate.textContent = err.message || "Could not load listing.";
     gate.className = "gr-status error";
   }
 }
@@ -3354,7 +3354,7 @@ function injectListingSeo(listing) {
 
   // Description (fallback when the listing has no summary)
   const descBits = [listing.problem_summary, listing.title].filter(Boolean);
-  const description = String(descBits[0] || "consulting project on grassroots.").slice(0, 200);
+  const description = String(descBits[0] || "Consulting project on Grassroots.").slice(0, 200);
   let metaDesc = document.querySelector('meta[name="description"]');
   if (metaDesc) metaDesc.setAttribute("content", description);
 
@@ -3368,7 +3368,7 @@ function injectListingSeo(listing) {
   const jobPosting = {
     "@context": "https://schema.org",
     "@type": "JobPosting",
-    title: listing.title || "consulting project",
+    title: listing.title || "Consulting project",
     description,
     datePosted: listing.created_at,
     employmentType: "CONTRACTOR",
@@ -3401,3 +3401,9 @@ function injectListingSeo(listing) {
 }
 
 init();
+
+// Categories and statuses are stored lowercase; show them in sentence case.
+function capFirst(value) {
+  const s = String(value || "");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}

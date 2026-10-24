@@ -3,30 +3,30 @@
 // pane in place. Updates the URL hash for deep links + back-button support.
 
 const ARTICLES = [
-  { slug: "README", title: "overview", group: "start" },
-  { slug: "accounts-and-roles", title: "accounts & roles", group: "start" },
-  { slug: "profile-and-portfolio", title: "your profile", group: "start" },
+  { slug: "README", title: "Overview", group: "start" },
+  { slug: "accounts-and-roles", title: "Accounts & roles", group: "start" },
+  { slug: "profile-and-portfolio", title: "Your profile", group: "start" },
 
-  { slug: "listings", title: "listings", group: "businesses" },
-  { slug: "reviews-and-ratings", title: "reviews & ratings", group: "businesses" },
+  { slug: "listings", title: "Listings", group: "businesses" },
+  { slug: "reviews-and-ratings", title: "Reviews & ratings", group: "businesses" },
 
-  { slug: "bids", title: "bids", group: "consultants" },
-  { slug: "stripe-onboarding", title: "stripe onboarding", group: "consultants" },
-  { slug: "stage-progression", title: "stage progression", group: "consultants" },
+  { slug: "bids", title: "Bids", group: "consultants" },
+  { slug: "stripe-onboarding", title: "Stripe onboarding", group: "consultants" },
+  { slug: "stage-progression", title: "Stage progression", group: "consultants" },
 
-  { slug: "engagements", title: "engagements", group: "shared" },
-  { slug: "payments-and-payouts", title: "payments & payouts", group: "shared" },
-  { slug: "messaging", title: "messaging", group: "shared" },
+  { slug: "engagements", title: "Engagements", group: "shared" },
+  { slug: "payments-and-payouts", title: "Payments & payouts", group: "shared" },
+  { slug: "messaging", title: "Messaging", group: "shared" },
 
-  { slug: "policies", title: "policies", group: "reference" },
+  { slug: "policies", title: "Policies", group: "reference" },
 ];
 
 const GROUP_LABELS = {
-  start: "getting started",
-  businesses: "for businesses",
-  consultants: "for consultants",
-  shared: "shared flows",
-  reference: "reference",
+  start: "Getting started",
+  businesses: "For businesses",
+  consultants: "For consultants",
+  shared: "Shared flows",
+  reference: "Reference",
 };
 
 const navListEl = document.getElementById("help-nav-list");
@@ -87,7 +87,7 @@ function renderNav(filter = "") {
     })
     .join("");
 
-  navListEl.innerHTML = html || `<p class="help-nav__empty">no matches</p>`;
+  navListEl.innerHTML = html || `<p class="help-nav__empty">No matches</p>`;
 }
 
 function activeSlug() {
@@ -106,7 +106,7 @@ function escapeHtml(s) {
 async function loadArticle(slug) {
   if (articleCache.has(slug)) return articleCache.get(slug);
   const res = await fetch(`/help/${encodeURIComponent(slug)}.md`, { cache: "no-cache" });
-  if (!res.ok) throw new Error(`couldn't load article: ${res.status}`);
+  if (!res.ok) throw new Error(`Couldn't load article: ${res.status}`);
   const md = await res.text();
   articleCache.set(slug, md);
   return md;
@@ -114,14 +114,14 @@ async function loadArticle(slug) {
 
 async function renderArticle(slug) {
   gateEl.hidden = false;
-  gateEl.textContent = "loading…";
+  gateEl.textContent = "Loading…";
   gateEl.className = "gr-status";
   articleEl.hidden = true;
 
   try {
     const md = await loadArticle(slug);
     if (!window.marked) {
-      gateEl.textContent = "couldn't load markdown renderer. refresh the page.";
+      gateEl.textContent = "Couldn't load markdown renderer. Refresh the page.";
       gateEl.className = "gr-status error";
       return;
     }
@@ -139,14 +139,14 @@ async function renderArticle(slug) {
     document.title = `grassroots — ${articleTitle(slug)}`;
     renderNav(searchEl.value);
   } catch (err) {
-    gateEl.textContent = err.message || "couldn't load this article.";
+    gateEl.textContent = err.message || "Couldn't load this article.";
     gateEl.className = "gr-status error";
   }
 }
 
 function articleTitle(slug) {
   const a = ARTICLES.find((x) => x.slug === slug);
-  return a ? `help — ${a.title}` : "help";
+  return a ? `Help — ${a.title}` : "help";
 }
 
 function onHashChange() {

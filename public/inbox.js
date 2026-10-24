@@ -19,7 +19,7 @@ function relTime(iso) {
   if (!iso) return "";
   const d = new Date(iso);
   const diff = (Date.now() - d.getTime()) / 1000;
-  if (diff < 60) return "just now";
+  if (diff < 60) return "Just now";
   if (diff < 3600) return `${Math.round(diff / 60)}m`;
   if (diff < 86400) return `${Math.round(diff / 3600)}h`;
   if (diff < 604800) return `${Math.round(diff / 86400)}d`;
@@ -90,7 +90,7 @@ function counterpartLabel(thread) {
 }
 
 function listingTitle(thread) {
-  return state.listings.get(thread.listingId)?.title || "(untitled listing)";
+  return state.listings.get(thread.listingId)?.title || "(Untitled listing)";
 }
 
 async function loadProfiles(ids) {
@@ -225,18 +225,18 @@ function renderThreads() {
     root.innerHTML = "";
     empty.hidden = false;
     empty.textContent = state.search
-      ? "no conversations match that search."
+      ? "No conversations match that search."
       : state.filter === "unread"
-        ? "no unread conversations."
-        : "no conversations yet.";
+        ? "No unread conversations."
+        : "No conversations yet.";
   } else {
     empty.hidden = true;
     root.innerHTML = list
       .map((t) => {
         const parsed = parseBody(t.lastBody);
-        const preview = (t.lastFromMe ? "you: " : "") + (parsed.body || "[no text]");
+        const preview = (t.lastFromMe ? "You: " : "") + (parsed.body || "[No text]");
         const action = t.unread ? "mark-read" : "mark-unread";
-        const actionLabel = t.unread ? "mark as read" : "mark as unread";
+        const actionLabel = t.unread ? "Mark as read" : "Mark as unread";
         // Hover-revealed icon: filled-dot when read (click → unread),
         // checkmark when unread (click → read). Stops propagation so
         // it doesn't trigger thread selection.
@@ -334,13 +334,13 @@ function renderConversation() {
     const isMatch = q && (parsed.body || "").toLowerCase().includes(qLc);
     const receipt =
       fromMe && msg.read_at
-        ? `<span class="inbox__msg-receipt" title="read ${fmtTime(msg.read_at)}">✓✓ read</span>`
+        ? `<span class="inbox__msg-receipt" title="Read ${fmtTime(msg.read_at)}">✓✓ Read</span>`
         : fromMe
-          ? `<span class="inbox__msg-receipt inbox__msg-receipt--sent">sent</span>`
+          ? `<span class="inbox__msg-receipt inbox__msg-receipt--sent">Sent</span>`
           : "";
     html.push(`
       <div class="inbox__msg${fromMe ? " is-mine" : ""}${isMatch ? " is-match" : ""}">
-        ${parsed.context ? `<div class="inbox__msg-context">re: ${escape(parsed.context)}</div>` : ""}
+        ${parsed.context ? `<div class="inbox__msg-context">Re: ${escape(parsed.context)}</div>` : ""}
         <div class="inbox__msg-bubble">${escape(parsed.body || "")}</div>
         <div class="inbox__msg-meta"><span>${escape(fmtTime(msg.created_at))}</span>${receipt}</div>
       </div>

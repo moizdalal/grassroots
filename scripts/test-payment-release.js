@@ -511,7 +511,7 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     Object.assign(bid("B1"), { delivered_at: ago(20), paid_at: ago(120) });
     run = await cron();
     ok(bid("B1").payment_status === "released" && calls.length === 0 && !run.flagged.length, "free job closes after review, no transfer, no 90-day flag");
-    ok(notes("auto_released", OWNER).some((n) => n.title === "engagement marked complete"), "free close uses 'marked complete' wording");
+    ok(notes("auto_released", OWNER).some((n) => n.title === "Engagement marked complete"), "free close uses 'marked complete' wording");
 
     seed();
     fo = await api("/api/engagement/accept-free", { bid_id: "B1" }, OWNER);

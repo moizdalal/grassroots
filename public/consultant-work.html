@@ -4,9 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,follow" />
-    <title>grassroots — consultant past work</title>
+    <title>Grassroots — consultant past work</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="stylesheet" href="/fonts.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <script src="/theme.js"></script>
@@ -14,35 +16,35 @@
     <script src="/loading-overlay.js"></script>
   </head>
   <body class="gr-body"><main class="gr-shell gr-shell--wide">
-      <a href="/profile.html" class="ld-back">← back</a>
+      <a href="/profile.html" class="ld-back">← Back</a>
 
-      <p id="cw-gate" class="gr-status" data-loading="true" aria-live="polite">loading…</p>
+      <p id="cw-gate" class="gr-status" data-loading="true" aria-live="polite">Loading…</p>
 
       <div id="cw-shell" hidden>
         <div class="gr-page-intro">
-          <h1 class="gr-title" id="cw-name">past work</h1>
+          <h1 class="gr-title" id="cw-name">Past work</h1>
           <p class="gr-subtitle" id="cw-sub"></p>
         </div>
 
         <div class="cp-placeholder" id="cw-placeholder">
-          <span class="cp-empty-tag">work in progress</span>
-          <h2>past work portfolio coming soon</h2>
-          <p>a full case-study page is on the roadmap. for now, here's what this consultant has shared.</p>
+          <span class="cp-empty-tag">Work in progress</span>
+          <h2>Past work portfolio coming soon</h2>
+          <p>A full case-study page is on the roadmap. For now, here's what this consultant has shared.</p>
         </div>
 
         <div id="cw-portfolio-card" class="bza__panel" hidden>
           <div class="bza__panel-h">
-            <span class="bza__panel-h-title"><strong>portfolio</strong> · <span id="cw-count">0</span> items</span>
+            <span class="bza__panel-h-title"><strong>Portfolio</strong> · <span id="cw-count">0</span> items</span>
           </div>
           <div id="cw-portfolio-list" style="display:grid;gap:0.8rem;padding:0.75rem 0"></div>
         </div>
 
         <div id="cw-bids-card" class="bza__panel" hidden>
           <div class="bza__panel-h">
-            <span class="bza__panel-h-title"><strong>delivered</strong> · projects completed via grassroots</span>
+            <span class="bza__panel-h-title"><strong>Delivered</strong> · projects completed via Grassroots</span>
           </div>
           <div id="cw-bids-list" style="display:grid;gap:0.5rem;padding:0.5rem 0"></div>
-          <p id="cw-bids-empty" class="gr-empty-state" style="padding:1rem" hidden>no completed projects yet on this platform.</p>
+          <p id="cw-bids-empty" class="gr-empty-state" style="padding:1rem" hidden>No completed projects yet on this platform.</p>
         </div>
       </div>
     </main>
@@ -67,7 +69,7 @@
         const gate = $("cw-gate");
         const shell = $("cw-shell");
         if (!id) {
-          gate.textContent = "no consultant specified.";
+          gate.textContent = "No consultant specified.";
           gate.className = "gr-status error";
           return;
         }
@@ -105,9 +107,9 @@
                 (it) => `
               <div class="bza__work-row">
                 <div>
-                  <div class="bza__work-title">${escape(it.name || "untitled")}</div>
+                  <div class="bza__work-title">${escape(it.name || "Untitled")}</div>
                   <div class="bza__work-outcome">${escape(it.description || "")}</div>
-                  ${it.url ? `<a href="${escape(it.url)}" target="_blank" rel="noopener" style="font-size:0.78rem;color:var(--fo-accent);text-decoration:none">view →</a>` : ""}
+                  ${it.url ? `<a href="${escape(it.url)}" target="_blank" rel="noopener" style="font-size:0.78rem;color:var(--fo-accent);text-decoration:none">View →</a>` : ""}
                 </div>
               </div>
             `
@@ -135,13 +137,13 @@
             } else {
               list.innerHTML = bids
                 .map((b) => {
-                  const t = b.listings?.title || "project";
+                  const t = b.listings?.title || "Project";
                   const amt = b.amount_cents != null ? `$${Math.round(b.amount_cents / 100)}` : "";
                   return `
                     <div class="bza__work-row">
                       <div>
                         <div class="bza__work-title">${escape(t)}</div>
-                        <div class="bza__work-outcome">${escape(b.listings?.status || "")}</div>
+                        <div class="bza__work-outcome">${escape(capFirst(b.listings?.status))}</div>
                       </div>
                       <div class="bza__work-date">${escape(amt)}</div>
                     </div>
@@ -154,17 +156,23 @@
 
           $("cw-sub").textContent = items.length
             ? `${items.length} portfolio ${items.length === 1 ? "item" : "items"}`
-            : "limited details available — placeholder while the full page is in progress.";
+            : "Limited details available — placeholder while the full page is in progress.";
 
           gate.hidden = true;
           shell.hidden = false;
         } catch (err) {
-          gate.textContent = err.message || "could not load past work.";
+          gate.textContent = err.message || "Could not load past work.";
           gate.className = "gr-status error";
         }
       }
 
       init();
+
+      // Categories and statuses are stored lowercase; show them in sentence case.
+      function capFirst(value) {
+        const s = String(value || "");
+        return s.charAt(0).toUpperCase() + s.slice(1);
+      }
     </script>
     <script type="module" src="/side-nav.js"></script>
     <script defer src="/perf-beacon.js"></script>

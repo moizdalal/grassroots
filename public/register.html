@@ -4,9 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,follow" />
-    <title>grassroots — register</title>
+    <title>Grassroots — register</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="stylesheet" href="/fonts.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <script src="/theme.js"></script>
@@ -21,18 +23,18 @@
           <span class="gr-nav__wordmark">grassroots</span>
         </a>
         <ul class="gr-nav__links">
-          <li><a href="/signin.html">sign in</a></li>
-          <li><a href="/register.html" class="gr-nav__cta" aria-current="page">register</a></li>
-          <li><a href="/profile.html">profile</a></li>
+          <li><a href="/signin.html">Sign in</a></li>
+          <li><a href="/register.html" class="gr-nav__cta" aria-current="page">Register</a></li>
+          <li><a href="/profile.html">Profile</a></li>
         </ul>
       </div>
     </nav>
 
     <main class="gr-shell">
       <div class="gr-page-intro">
-        <h1 class="gr-title">create your account</h1>
+        <h1 class="gr-title">Create your account</h1>
         <p class="gr-subtitle">
-          pick a role and set up your credentials — you'll fill in the rest on your profile.
+          Pick a role and set up your credentials — you'll fill in the rest on your profile.
         </p>
       </div>
 
@@ -44,7 +46,7 @@
             <div class="reg-progress__seg" aria-hidden="true"></div>
           </div>
           <span class="reg-progress__label" id="reg-progress-label"
-            >pick your path</span
+            >Pick your path</span
           >
         </div>
 
@@ -58,7 +60,7 @@
               id="reg-slide-role"
               role="tabpanel"
             >
-              <p class="gr-section-h">how are you joining?</p>
+              <p class="gr-section-h">How are you joining?</p>
               <div class="reg-role-cards">
                 <label class="reg-role-card">
                   <input type="radio" name="role_choice" value="business_owner" />
@@ -82,9 +84,9 @@
                         </g>
                       </svg>
                     </span>
-                    <span class="reg-role-card__title">business owner</span>
+                    <span class="reg-role-card__title">Business owner</span>
                     <span class="reg-role-card__hint"
-                      >post a project and pick from real student proposals.</span
+                      >Post a project and pick from real student proposals.</span
                     >
                   </span>
                 </label>
@@ -108,9 +110,9 @@
                         </g>
                       </svg>
                     </span>
-                    <span class="reg-role-card__title">consultant</span>
+                    <span class="reg-role-card__title">Consultant</span>
                     <span class="reg-role-card__hint"
-                      >application-only — apply to earn from your skills →</span
+                      >Application-only — apply to earn from your skills →</span
                     >
                   </span>
                 </a>
@@ -124,27 +126,27 @@
               role="tabpanel"
               aria-hidden="true"
             >
-              <p class="gr-section-h">account</p>
+              <p class="gr-section-h">Account</p>
               <div class="gr-field-grid reg-field-grid--2">
                 <label class="gr-label" data-oauth-hide="true">
-                  <span>first name</span>
+                  <span>First name</span>
                   <input type="text" name="firstName" autocomplete="given-name" required />
                 </label>
                 <label class="gr-label" data-oauth-hide="true">
-                  <span>last name</span>
+                  <span>Last name</span>
                   <input type="text" name="lastName" autocomplete="family-name" required />
                 </label>
                 <label class="gr-label full-width" data-oauth-hide="true">
-                  <span>email</span>
+                  <span>Email</span>
                   <input type="email" name="email" autocomplete="email" required />
                 </label>
                 <label class="gr-label full-width">
-                  <span>phone number</span>
+                  <span>Phone number</span>
                   <input type="tel" name="phoneNumber" autocomplete="tel" inputmode="tel" required />
-                  <span class="gr-field-hint">we text you when an offer changes status. no spam.</span>
+                  <span class="gr-field-hint">We text you when an offer changes status. No spam.</span>
                 </label>
                 <label class="gr-label" data-oauth-hide="true">
-                  <span>password</span>
+                  <span>Password</span>
                   <div class="gr-pw-field">
                     <input
                       type="password"
@@ -158,7 +160,7 @@
                       type="button"
                       class="gr-pw-toggle"
                       data-pw-toggle="reg-password"
-                      aria-label="show password"
+                      aria-label="Show password"
                       aria-pressed="false"
                     >
                       <svg class="gr-pw-toggle__eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -167,14 +169,14 @@
                   </div>
                   <ul class="reg-pw-rules" id="reg-pw-rules" aria-live="polite">
                     <li data-rule="length">8+ chars</li>
-                    <li data-rule="uppercase">uppercase</li>
-                    <li data-rule="lowercase">lowercase</li>
-                    <li data-rule="number">number</li>
-                    <li data-rule="special">symbol</li>
+                    <li data-rule="uppercase">Uppercase</li>
+                    <li data-rule="lowercase">Lowercase</li>
+                    <li data-rule="number">Number</li>
+                    <li data-rule="special">Symbol</li>
                   </ul>
                 </label>
                 <label class="gr-label" data-oauth-hide="true">
-                  <span>confirm password</span>
+                  <span>Confirm password</span>
                   <div class="gr-pw-field">
                     <input
                       type="password"
@@ -188,7 +190,7 @@
                       type="button"
                       class="gr-pw-toggle"
                       data-pw-toggle="reg-password-confirm"
-                      aria-label="show password"
+                      aria-label="Show password"
                       aria-pressed="false"
                     >
                       <svg class="gr-pw-toggle__eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -206,31 +208,31 @@
               role="tabpanel"
               aria-hidden="true"
             >
-              <p class="gr-section-h">education</p>
+              <p class="gr-section-h">Education</p>
               <p class="gr-subtitle gr-subtitle--compact">
-                help business owners understand your background. add multiple degrees if you have them.
+                Help business owners understand your background. Add multiple degrees if you have them.
               </p>
 
               <div class="reg-edu-list" id="reg-edu-list"></div>
 
               <button type="button" class="reg-edu-add" id="reg-add-edu">
-                <span aria-hidden="true">+</span> add another degree
+                <span aria-hidden="true">+</span> Add another degree
               </button>
 
               <!-- City: powers the marketplace "local" row. Required so
                    every new consultant has a home base before they
                    browse. Strict autocomplete from /data/us-cities.json. -->
               <div class="reg-city-wrap" id="reg-city-wrap" data-city-autocomplete>
-                <p class="gr-section-h" style="margin-top: 1.5rem">where you're based</p>
+                <p class="gr-section-h" style="margin-top: 1.5rem">Where you're based</p>
                 <p class="gr-subtitle gr-subtitle--compact">
-                  used to show you opportunities near you. you can change this any time in settings.
+                  Used to show you opportunities near you. You can change this any time in settings.
                 </p>
                 <div class="reg-city-ac">
                   <input
                     type="text"
                     class="reg-city-search"
                     id="reg-city-search"
-                    placeholder="start typing your city…"
+                    placeholder="Start typing your city…"
                     autocomplete="off"
                     autocapitalize="words"
                   />
@@ -253,7 +255,7 @@
               value="1"
             />
             <span class="reg-consent__text">
-              i agree to the
+              I agree to the
               <a href="/privacy.html" target="_blank" rel="noopener">privacy policy</a>
               and
               <a href="/terms.html" target="_blank" rel="noopener">terms of service</a>.
@@ -262,23 +264,23 @@
 
           <div class="reg-nav">
             <button type="button" class="gr-btn gr-btn--ghost hidden" id="reg-back">
-              back
+              Back
             </button>
             <div class="gr-action-spacer" aria-hidden="true"></div>
             <button type="button" class="gr-btn gr-btn--primary" id="reg-next">
-              continue
+              Continue
             </button>
             <button
               type="submit"
               class="gr-btn gr-btn--primary hidden"
               id="reg-submit"
             >
-              create account
+              Create account
             </button>
           </div>
 
           <p class="reg-disclosure" id="reg-disclosure">
-            by creating an account, you agree to our
+            By creating an account, you agree to our
             <a href="/privacy.html" target="_blank" rel="noopener">privacy policy</a>
             and
             <a href="/terms.html" target="_blank" rel="noopener">terms of service</a>.

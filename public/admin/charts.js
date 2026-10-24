@@ -71,7 +71,7 @@ export function renderLineChart(host, points, opts = {}) {
   area += `L ${xAt(points.length - 1).toFixed(1)} ${yAt(0).toFixed(1)} Z`;
 
   host.innerHTML = `
-    <svg class="chart chart--line" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="${esc(opts.ariaLabel || "line chart")}">
+    <svg class="chart chart--line" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="${esc(opts.ariaLabel || "Line chart")}">
       <defs>
         <linearGradient id="lnFill" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="var(--fo-accent)" stop-opacity="0.32"/>
@@ -132,7 +132,7 @@ export function renderBarChart(host, rows, opts = {}) {
   }
 
   host.innerHTML = `
-    <svg class="chart chart--bar" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="${esc(opts.ariaLabel || "bar chart")}">
+    <svg class="chart chart--bar" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="${esc(opts.ariaLabel || "Bar chart")}">
       ${grid}
       ${bars}
     </svg>
@@ -188,7 +188,7 @@ export function renderDonut(host, segments, opts = {}) {
 
   host.innerHTML = `
     <div class="donut-wrap">
-      <svg class="chart chart--donut" viewBox="0 0 ${W} ${H}" aria-label="${esc(opts.ariaLabel || "donut chart")}">
+      <svg class="chart chart--donut" viewBox="0 0 ${W} ${H}" aria-label="${esc(opts.ariaLabel || "Donut chart")}">
         ${arcs}
         <text class="donut-total" x="${cx}" y="${cy - 4}" text-anchor="middle">${esc(opts.centerLabel || total)}</text>
         <text class="donut-sub" x="${cx}" y="${cy + 14}" text-anchor="middle">${esc(opts.centerSub || "total")}</text>
@@ -257,20 +257,20 @@ export function renderGroupedBars(host, rows) {
     const hC = (rows[i].consultants / niceMax) * innerH;
     const hO = (rows[i].owners / niceMax) * innerH;
     bars += `<rect class="bar bar--consultant" x="${(cx - barW - 1).toFixed(1)}" y="${(PAD_T + innerH - hC).toFixed(1)}" width="${barW.toFixed(1)}" height="${hC.toFixed(1)}" rx="3">
-               <title>consultants joined — ${rows[i].consultants}</title>
+               <title>Consultants joined — ${rows[i].consultants}</title>
              </rect>`;
     bars += `<rect class="bar bar--owner" x="${(cx + 1).toFixed(1)}" y="${(PAD_T + innerH - hO).toFixed(1)}" width="${barW.toFixed(1)}" height="${hO.toFixed(1)}" rx="3">
-               <title>business owners joined — ${rows[i].owners}</title>
+               <title>Business owners joined — ${rows[i].owners}</title>
              </rect>`;
     bars += `<text class="ax-label" x="${cx.toFixed(1)}" y="${H - PAD_B + 18}" text-anchor="middle">${esc(rows[i].label)}</text>`;
   }
 
   host.innerHTML = `
     <div class="legend-inline">
-      <span class="legend-row"><span class="legend-swatch" style="background:var(--fo-accent)"></span>consultants</span>
+      <span class="legend-row"><span class="legend-swatch" style="background:var(--fo-accent)"></span>Consultants</span>
       <span class="legend-row"><span class="legend-swatch" style="background:var(--fo-accent-warm)"></span>business owners</span>
     </div>
-    <svg class="chart chart--grouped" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="new users per week">
+    <svg class="chart chart--grouped" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="New users per week">
       ${grid}
       ${bars}
     </svg>

@@ -61,14 +61,16 @@
       .fs-nav__brand {
         display: inline-flex; align-items: center; gap: 0.55rem;
         text-decoration: none; color: var(--fo-text);
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600; font-size: 1.2rem;
         letter-spacing: -0.02em;
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-nav__brand .ld-sprout { height: 1.5rem; color: var(--fo-accent); transition: transform 0.4s cubic-bezier(0.22,1,0.36,1); }
       .fs-nav__brand:hover .ld-sprout { transform: rotate(-8deg) scale(1.08); }
       .fs-nav__brand sup {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: 0.6rem; letter-spacing: 0.18em;
         color: var(--fo-accent); font-weight: 700;
         margin-left: 0.45rem; text-transform: uppercase;
@@ -82,7 +84,7 @@
       }
       .fs-nav__link {
         color: var(--fo-text-2); text-decoration: none;
-        font-family: "Manrope", sans-serif;
+        font-family: var(--font-body);
         font-size: 0.95rem; font-weight: 500;
         position: relative; padding: 0.5rem 0.1rem;
         transition: color 0.2s ease;
@@ -103,7 +105,7 @@
         padding: var(--pad-y) var(--pad-x);
         background: var(--fo-text); color: var(--fo-bg);
         text-decoration: none; border-radius: 999px;
-        font-family: "Manrope", sans-serif; font-weight: 700; font-size: 0.95rem;
+        font-family: var(--font-body); font-weight: 700; font-size: 0.95rem;
         overflow: hidden; isolation: isolate;
         transition: transform 0.3s cubic-bezier(0.22,1,0.36,1), background 0.25s ease, color 0.25s ease;
       }
@@ -122,7 +124,7 @@
       /* ───────────────── shell + utilities ───────────────── */
       .fs-shell { max-width: 1240px; margin: 0 auto; padding-inline: clamp(20px, 4vw, 40px); }
       .fs-eyebrow {
-        font-family: "Manrope", sans-serif;
+        font-family: var(--font-body);
         font-size: 0.75rem; font-weight: 700;
         letter-spacing: 0.18em;
         text-transform: uppercase;
@@ -142,10 +144,12 @@
       }
 
       .fs-italic {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-style: italic;
         font-weight: inherit;
         color: var(--fo-accent);
+  font-weight: 600;
+  font-style: normal;
       }
 
       /* reveal-on-scroll */
@@ -174,12 +178,13 @@
         background: color-mix(in srgb, var(--fo-text) 6%, transparent);
         border: 1px solid var(--fo-line-strong);
         border-radius: 999px;
-        font-family: "Manrope", sans-serif; font-size: 0.78rem;
+        font-family: var(--font-body); font-size: 0.78rem;
         color: var(--fo-text-2);
         margin-bottom: 1.1rem;
       }
       .fs-hero__chip-tag {
-        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-family: var(--font-body);
+        font-variant-numeric: tabular-nums;
         background: var(--fo-accent);
         color: var(--fo-accent-on);
         padding: 0.18rem 0.55rem;
@@ -191,7 +196,7 @@
       .fs-hero__chip b { color: var(--fo-text); font-weight: 600; }
 
       .fs-hero__h1 {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 500;
         font-size: clamp(2.6rem, 6.6vw, 5.4rem);
         line-height: 0.95;
@@ -199,6 +204,8 @@
         color: var(--fo-text);
         margin: 0 0 1.1rem;
         text-wrap: balance;
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-hero__h1 .fs-italic { font-weight: 500; }
 
@@ -210,8 +217,10 @@
         position: relative;
         color: var(--fo-accent);
         font-style: italic;
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 500;
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-rotator__sizer {
         visibility: hidden;
@@ -256,7 +265,7 @@
       }
 
       .fs-hero__sub {
-        font-family: "Manrope", sans-serif;
+        font-family: var(--font-body);
         font-size: clamp(1rem, 1.3vw, 1.15rem);
         line-height: 1.5;
         color: var(--fo-text-2);
@@ -271,7 +280,7 @@
         display: inline-flex; align-items: center; gap: 0.55rem;
         padding: 1.05rem 1.6rem;
         border-radius: 999px;
-        font-family: "Manrope", sans-serif;
+        font-family: var(--font-body);
         font-weight: 700; font-size: 1rem;
         text-decoration: none;
         border: none; cursor: pointer;
@@ -332,13 +341,16 @@
       }
       .fs-receipt__head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1rem; }
       .fs-receipt__brand {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600; font-size: 1rem; color: var(--fo-text);
         letter-spacing: -0.02em;
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-receipt__brand .fs-italic { font-size: 0.85rem; opacity: 0.8; }
       .fs-receipt__meta {
-        font-family: "JetBrains Mono", monospace;
+        font-family: var(--font-body);
+        font-variant-numeric: tabular-nums;
         font-size: 0.7rem; color: var(--fo-text-3);
         text-align: right; line-height: 1.4;
       }
@@ -353,26 +365,29 @@
       .fs-receipt__line {
         display: flex; justify-content: space-between; align-items: baseline;
         padding: 0.42rem 0;
-        font-family: "JetBrains Mono", monospace;
+        font-family: var(--font-body);
+        font-variant-numeric: tabular-nums;
         font-size: 0.82rem;
         color: var(--fo-text-2);
       }
       .fs-receipt__line b { color: var(--fo-text); font-weight: 600; }
       .fs-receipt__line--total {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-style: italic; font-weight: 600;
         font-size: 1.6rem;
         color: var(--fo-accent);
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-receipt__line--total span:first-child {
         font-style: normal; font-weight: 600; font-size: 1rem;
-        color: var(--fo-text); font-family: "Manrope", sans-serif;
+        color: var(--fo-text); font-family: var(--font-body);
         text-transform: uppercase; letter-spacing: 0.14em;
       }
       .fs-receipt__stamp {
         position: absolute;
         bottom: 22px; right: 18px;
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-style: italic; font-weight: 600;
         color: var(--fo-accent);
         font-size: 1rem;
@@ -382,9 +397,12 @@
         transform: rotate(-8deg);
         background: color-mix(in srgb, var(--fo-accent) 8%, transparent);
         letter-spacing: 0.04em;
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-receipt__foot {
-        font-family: "JetBrains Mono", monospace;
+        font-family: var(--font-body);
+        font-variant-numeric: tabular-nums;
         font-size: 0.65rem;
         text-align: center;
         color: var(--fo-text-3);
@@ -410,10 +428,12 @@
         display: flex; gap: 3rem; align-items: center;
         width: max-content;
         animation: fs-marquee-l 38s linear infinite;
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-size: clamp(1.4rem, 2.4vw, 1.9rem);
         color: var(--fo-text);
         letter-spacing: -0.01em;
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-marquee__track span:nth-child(odd) { font-style: italic; color: var(--fo-accent); font-weight: 500; }
       .fs-marquee__track .fs-marquee__bullet {
@@ -434,7 +454,7 @@
       .fs-section__head { max-width: 880px; margin-bottom: clamp(50px, 6vw, 80px); }
       .fs-section__head--center { margin-inline: auto; text-align: center; }
       .fs-section__title {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 500;
         font-size: clamp(2.2rem, 5vw, 4.2rem);
         line-height: 0.98;
@@ -442,9 +462,11 @@
         color: var(--fo-text);
         margin: 1.2rem 0 1.2rem;
         text-wrap: balance;
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-section__sub {
-        font-family: "Manrope", sans-serif;
+        font-family: var(--font-body);
         font-size: clamp(1rem, 1.3vw, 1.18rem);
         line-height: 1.55;
         color: var(--fo-text-2);
@@ -494,22 +516,25 @@
         }
       }
       .fs-bento__num {
-        font-family: "JetBrains Mono", monospace;
+        font-family: var(--font-body);
+        font-variant-numeric: tabular-nums;
         font-size: 0.75rem;
         color: var(--fo-text-3);
         letter-spacing: 0.14em;
       }
       .fs-bento__title {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 500;
         font-size: clamp(1.6rem, 2.4vw, 2.2rem);
         line-height: 1.05;
         letter-spacing: -0.02em;
         color: var(--fo-text);
         margin: 0.6rem 0 0.8rem;
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-bento__body {
-        font-family: "Manrope", sans-serif;
+        font-family: var(--font-body);
         font-size: 0.97rem;
         line-height: 1.55;
         color: var(--fo-text-2);
@@ -519,7 +544,7 @@
 
       /* big number cell content (earnings ticker) */
       .fs-bento__big {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 500;
         font-size: clamp(4rem, 7vw, 6.4rem);
         line-height: 0.85;
@@ -527,6 +552,8 @@
         color: var(--fo-accent);
         margin: 1.4rem 0 0.6rem;
         font-feature-settings: "tnum";
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-bento__big sup {
         font-size: 0.4em;
@@ -537,7 +564,8 @@
         color: var(--fo-accent);
       }
       .fs-bento__cap {
-        font-family: "JetBrains Mono", monospace;
+        font-family: var(--font-body);
+        font-variant-numeric: tabular-nums;
         font-size: 0.7rem;
         color: var(--fo-text-3);
         letter-spacing: 0.12em;
@@ -549,7 +577,8 @@
       .fs-bento__ticker {
         position: absolute; left: 0; right: 0; bottom: 0;
         padding: 12px clamp(20px, 2.2vw, 32px);
-        font-family: "JetBrains Mono", monospace;
+        font-family: var(--font-body);
+        font-variant-numeric: tabular-nums;
         font-size: 0.78rem;
         color: var(--fo-text-3);
         border-top: 1px dashed var(--fo-line-strong);
@@ -570,7 +599,7 @@
       /* experience cell — stacked tags */
       .fs-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1.4rem; }
       .fs-tag {
-        font-family: "Manrope", sans-serif;
+        font-family: var(--font-body);
         font-size: 0.78rem; font-weight: 500;
         padding: 0.4rem 0.75rem;
         border: 1px solid var(--fo-line-strong);
@@ -624,11 +653,13 @@
       .fs-bento__avatar {
         width: 48px; height: 48px; border-radius: 50%;
         display: inline-flex; align-items: center; justify-content: center;
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600; font-size: 1.1rem;
         background: color-mix(in srgb, var(--fo-accent) 22%, transparent);
         color: var(--fo-accent);
         border: 2px solid var(--fo-bg);
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-bento__avatar:not(:first-child) { margin-left: -10px; }
       .fs-bento__pair-link {
@@ -647,9 +678,11 @@
       }
       .fs-bento__list li::before {
         content: "✓"; color: var(--fo-accent);
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600; font-style: italic;
         flex-shrink: 0;
+  font-weight: 600;
+  font-style: normal;
       }
 
       /* ───────────────── how it works (deck-shuffle scroll scrub) ─────────────────
@@ -719,32 +752,37 @@
       .fs-how__icon svg { width: 1rem; height: 1rem; }
 
       .fs-how__num {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-style: italic; font-weight: 500;
         font-size: clamp(2.4rem, 4vw, 3.4rem);
         line-height: 0.85;
         color: var(--fo-accent);
         margin: 0 0 0.4rem;
         letter-spacing: -0.04em;
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-how__title {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 500;
         font-size: clamp(1.4rem, 1.9vw, 1.8rem);
         line-height: 1.1;
         letter-spacing: -0.02em;
         color: var(--fo-text);
         margin: 0 0 0.6rem;
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-how__body {
-        font-family: "Manrope", sans-serif;
+        font-family: var(--font-body);
         font-size: 0.94rem; line-height: 1.5;
         color: var(--fo-text-2);
         max-width: 52ch;
         margin: 0;
       }
       .fs-how__tag {
-        font-family: "JetBrains Mono", monospace;
+        font-family: var(--font-body);
+        font-variant-numeric: tabular-nums;
         font-size: 0.66rem; font-weight: 600;
         color: var(--fo-accent);
         letter-spacing: 0.14em;
@@ -865,7 +903,8 @@
         background: color-mix(in srgb, var(--fo-text) 6%, transparent);
         border: 1px solid var(--fo-line-strong);
         border-radius: 999px;
-        font-family: "JetBrains Mono", monospace;
+        font-family: var(--font-body);
+        font-variant-numeric: tabular-nums;
         font-size: 0.7rem;
         color: var(--fo-text-2);
         letter-spacing: 0.14em;
@@ -878,18 +917,20 @@
       }
       body.gr-body .fs-path__label { text-transform: uppercase; }
       .fs-path__head {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 500;
         font-size: clamp(2rem, 3.4vw, 2.8rem);
         line-height: 1.02;
         letter-spacing: -0.025em;
         margin: 1.2rem 0 1rem;
         color: var(--fo-text);
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-path--refer .fs-path__head { color: var(--fo-accent-on); }
       .fs-path--refer .fs-italic { color: color-mix(in srgb, var(--fo-accent-on) 80%, transparent); }
       .fs-path__sub {
-        font-family: "Manrope", sans-serif;
+        font-family: var(--font-body);
         font-size: 1rem;
         color: var(--fo-text-2);
         line-height: 1.55;
@@ -911,7 +952,8 @@
         display: grid; gap: 6px;
       }
       .fs-field__label {
-        font-family: "JetBrains Mono", monospace;
+        font-family: var(--font-body);
+        font-variant-numeric: tabular-nums;
         font-size: 0.7rem;
         color: var(--fo-text-3);
         letter-spacing: 0.12em;
@@ -924,7 +966,7 @@
         background: color-mix(in srgb, var(--fo-bg) 60%, transparent);
         border: 1.5px solid var(--fo-line-strong);
         border-radius: 12px;
-        font-family: "Manrope", sans-serif;
+        font-family: var(--font-body);
         font-size: 0.95rem;
         color: var(--fo-text);
         transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
@@ -945,15 +987,17 @@
         margin: 0.5rem 0 1.2rem;
       }
       .fs-refer__counter-num {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-style: italic; font-weight: 500;
         font-size: clamp(5rem, 9vw, 7.5rem);
         line-height: 0.85;
         color: var(--fo-accent-on);
         letter-spacing: -0.04em;
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-refer__counter-of {
-        font-family: "Manrope", sans-serif;
+        font-family: var(--font-body);
         font-size: 0.95rem;
         color: color-mix(in srgb, var(--fo-accent-on) 75%, transparent);
         letter-spacing: 0.08em;
@@ -973,7 +1017,7 @@
         border: 1.5px dashed color-mix(in srgb, var(--fo-accent-on) 35%, transparent);
         min-height: 110px;
         display: flex; flex-direction: column; justify-content: space-between;
-        font-family: "Manrope", sans-serif;
+        font-family: var(--font-body);
         transition: all 0.4s cubic-bezier(0.22,1,0.36,1);
         cursor: pointer;
       }
@@ -989,18 +1033,21 @@
         color: var(--fo-accent);
       }
       .fs-refer__slot-num {
-        font-family: "JetBrains Mono", monospace;
+        font-family: var(--font-body);
+        font-variant-numeric: tabular-nums;
         font-size: 0.7rem;
         letter-spacing: 0.12em;
         color: color-mix(in srgb, var(--fo-accent-on) 70%, transparent);
       }
       .fs-refer__slot.is-filled .fs-refer__slot-num { color: var(--fo-accent); }
       .fs-refer__slot-state {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-style: italic; font-weight: 500;
         font-size: 1rem;
         color: var(--fo-accent-on);
         line-height: 1.1;
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-refer__slot.is-filled .fs-refer__slot-state { color: var(--fo-accent); font-style: normal; font-weight: 600; }
       .fs-refer__slot-step {
@@ -1032,7 +1079,8 @@
       }
       .fs-refer__link-input {
         flex: 1;
-        font-family: "JetBrains Mono", monospace;
+        font-family: var(--font-body);
+        font-variant-numeric: tabular-nums;
         font-size: 0.85rem;
         color: var(--fo-accent-on);
         background: transparent;
@@ -1043,7 +1091,7 @@
         background: var(--fo-accent-on);
         color: var(--fo-accent);
         border: none; cursor: pointer;
-        font-family: "Manrope", sans-serif;
+        font-family: var(--font-body);
         font-weight: 700; font-size: 0.85rem;
         padding: 0.6rem 1rem;
         border-radius: 8px;
@@ -1058,7 +1106,7 @@
         background: var(--fo-accent-on); color: var(--fo-accent);
         padding: 0.95rem 1.4rem;
         border-radius: 999px;
-        font-family: "Manrope", sans-serif;
+        font-family: var(--font-body);
         font-weight: 700; font-size: 0.95rem;
         text-decoration: none;
         transition: transform 0.2s, box-shadow 0.2s;
@@ -1067,7 +1115,8 @@
       .fs-refer__cta:hover { transform: translateY(-3px); box-shadow: 0 14px 30px rgba(0,0,0,0.2); }
 
       .fs-refer__fine {
-        font-family: "JetBrains Mono", monospace;
+        font-family: var(--font-body);
+        font-variant-numeric: tabular-nums;
         font-size: 0.72rem;
         color: color-mix(in srgb, var(--fo-accent-on) 65%, transparent);
         margin: 0.9rem 0 0;
@@ -1098,12 +1147,14 @@
       }
       @media (max-width: 900px) { .fs-band__inner { grid-template-columns: 1fr; } }
       .fs-band__head h3 {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 500;
         font-size: clamp(1.8rem, 2.8vw, 2.4rem);
         line-height: 1.05; letter-spacing: -0.025em;
         color: var(--fo-text);
         margin: 0.4rem 0 0.8rem;
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-band__head p {
         font-size: 0.97rem; color: var(--fo-text-2);
@@ -1120,7 +1171,7 @@
         background: var(--fo-surface);
         border: 1px solid var(--fo-line);
         border-radius: 14px;
-        font-family: "Manrope", sans-serif;
+        font-family: var(--font-body);
         font-size: 0.92rem;
         transition: transform 0.3s cubic-bezier(0.22,1,0.36,1), border-color 0.3s;
       }
@@ -1141,13 +1192,16 @@
       .fs-payout__name span { color: var(--fo-text-3); font-weight: 500; }
       .fs-payout__work { color: var(--fo-text-2); font-size: 0.88rem; }
       .fs-payout__amt {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-style: italic; font-weight: 600;
         font-size: 1.2rem;
         color: var(--fo-accent);
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-payout__time {
-        font-family: "JetBrains Mono", monospace;
+        font-family: var(--font-body);
+        font-variant-numeric: tabular-nums;
         font-size: 0.74rem;
         color: var(--fo-text-3);
         text-align: right;
@@ -1185,21 +1239,25 @@
         transform: translateY(-4px);
       }
       .fs-quote__mark {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-style: italic;
         font-size: 4rem;
         line-height: 0.5;
         color: var(--fo-accent);
         opacity: 0.6;
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-quote__body {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 500;
         font-size: 1.18rem;
         line-height: 1.35;
         letter-spacing: -0.01em;
         color: var(--fo-text);
         margin: 0;
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-quote__body em {
         font-style: italic;
@@ -1216,26 +1274,31 @@
         background: color-mix(in srgb, var(--fo-accent) 25%, transparent);
         color: var(--fo-accent);
         display: inline-flex; align-items: center; justify-content: center;
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600; font-size: 0.95rem;
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-quote__name {
-        font-family: "Manrope", sans-serif;
+        font-family: var(--font-body);
         font-weight: 600; font-size: 0.92rem;
         color: var(--fo-text);
       }
       .fs-quote__role {
-        font-family: "JetBrains Mono", monospace;
+        font-family: var(--font-body);
+        font-variant-numeric: tabular-nums;
         font-size: 0.72rem;
         color: var(--fo-text-3);
         letter-spacing: 0.04em;
       }
       .fs-quote__earn {
         margin-left: auto;
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-style: italic; font-weight: 600;
         font-size: 1.1rem;
         color: var(--fo-accent);
+  font-weight: 600;
+  font-style: normal;
       }
 
       /* ───────────────── FAQ ───────────────── */
@@ -1250,28 +1313,32 @@
         list-style: none; cursor: pointer;
         display: flex; align-items: center; justify-content: space-between;
         gap: 1rem;
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 500;
         font-size: clamp(1.2rem, 1.8vw, 1.5rem);
         line-height: 1.25;
         letter-spacing: -0.01em;
         color: var(--fo-text);
         transition: color 0.25s ease;
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-faq summary::-webkit-details-marker { display: none; }
       .fs-faq summary:hover { color: var(--fo-accent); }
       .fs-faq summary::after {
         content: "+";
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 400; font-size: 1.6rem;
         color: var(--fo-accent);
         line-height: 1; flex-shrink: 0;
         transition: transform 0.3s cubic-bezier(0.22,1,0.36,1);
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-faq details[open] summary { color: var(--fo-accent); }
       .fs-faq details[open] summary::after { transform: rotate(45deg); }
       .fs-faq__answer {
-        font-family: "Manrope", sans-serif;
+        font-family: var(--font-body);
         font-size: 0.97rem; line-height: 1.6;
         color: var(--fo-text-2);
         margin: 1rem 0 0; max-width: 60ch;
@@ -1284,7 +1351,7 @@
         position: relative;
       }
       .fs-final__title {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 500;
         font-size: clamp(3rem, 9vw, 8rem);
         line-height: 0.92;
@@ -1292,13 +1359,16 @@
         color: var(--fo-text);
         margin: 0 0 2rem;
         text-wrap: balance;
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-final__ctas {
         display: inline-flex; flex-wrap: wrap; gap: 14px; justify-content: center;
       }
       .fs-final__fine {
         margin-top: 2rem;
-        font-family: "JetBrains Mono", monospace;
+        font-family: var(--font-body);
+        font-variant-numeric: tabular-nums;
         font-size: 0.78rem;
         color: var(--fo-text-3);
         letter-spacing: 0.08em;
@@ -1319,9 +1389,11 @@
       .fs-foot__brand {
         display: inline-flex; align-items: center; gap: 0.55rem;
         text-decoration: none; color: var(--fo-text);
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600; font-size: 1.3rem;
         margin-bottom: 1rem;
+  font-weight: 600;
+  font-style: normal;
       }
       .fs-foot__brand .ld-sprout { height: 1.6rem; color: var(--fo-accent); }
       .fs-foot__mission {
@@ -1332,7 +1404,7 @@
         font-size: 0.92rem;
       }
       .fs-foot__col h4 {
-        font-family: "Manrope", sans-serif;
+        font-family: var(--font-body);
         font-size: 0.74rem;
         font-weight: 700;
         color: var(--fo-text-3);
@@ -1354,7 +1426,8 @@
         flex-wrap: wrap; gap: 16px;
         padding-top: 20px;
         border-top: 1px solid var(--fo-line);
-        font-family: "JetBrains Mono", monospace;
+        font-family: var(--font-body);
+        font-variant-numeric: tabular-nums;
         font-size: 0.72rem;
         color: var(--fo-text-3);
         letter-spacing: 0.04em;
