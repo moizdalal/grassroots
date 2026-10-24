@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,follow" />
-    <title>grassroots — your ratings & reviews</title>
+    <title>Grassroots — your ratings & reviews</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/fonts.css" />
     <link rel="stylesheet" href="/grassroots.css" />
@@ -15,19 +15,19 @@
   </head>
   <body class="gr-body gr-has-side-nav">
     <main class="gr-shell gr-shell--wide">
-      <a href="/consultant-dashboard.html" class="ld-back">← back</a>
+      <a href="/consultant-dashboard.html" class="ld-back">← Back</a>
 
       <div class="gr-page-intro">
-        <h1 class="gr-title">ratings <span class="fo-title-italic">& reviews</span></h1>
-        <p class="gr-subtitle">how businesses you've worked with rate you across every dimension that matters.</p>
+        <h1 class="gr-title">Ratings <span class="fo-title-italic">& reviews</span></h1>
+        <p class="gr-subtitle">How businesses you've worked with rate you across every dimension that matters.</p>
       </div>
 
-      <p id="mr-gate" class="gr-status" aria-live="polite">loading…</p>
+      <p id="mr-gate" class="gr-status" aria-live="polite">Loading…</p>
 
       <section id="mr-shell" hidden>
         <div class="mr-overall">
           <div class="mr-overall__primary">
-            <span class="mr-overall__eyebrow">overall</span>
+            <span class="mr-overall__eyebrow">Overall</span>
             <span class="mr-overall__value" id="mr-overall-value">—</span>
             <span class="mr-overall__stars" id="mr-overall-stars"></span>
             <span class="mr-overall__count" id="mr-overall-count"></span>
@@ -37,12 +37,12 @@
 
         <div class="mr-section">
           <div class="mr-section__head">
-            <h2>testimonials</h2>
+            <h2>Testimonials</h2>
             <span class="mr-section__count" id="mr-reviews-count"></span>
           </div>
           <div id="mr-reviews-list"></div>
           <p id="mr-reviews-empty" class="gr-empty-state" hidden>
-            no written endorsements yet — once a business writes one, it'll appear here.
+            No written endorsements yet — once a business writes one, it'll appear here.
           </p>
         </div>
       </section>
@@ -62,11 +62,11 @@
           .replace(/"/g, "&quot;");
 
       const DIM_LABELS = [
-        ["work_product_quality", "work product"],
+        ["work_product_quality", "Work product"],
         ["communication", "communication"],
         ["timeliness", "timeliness"],
         ["professionalism", "professionalism"],
-        ["cost_value", "cost value"],
+        ["cost_value", "Cost value"],
       ];
 
       function fmtDate(iso) {
@@ -98,7 +98,7 @@
             .maybeSingle();
 
           if (profile?.role && profile.role !== "consultant") {
-            gate.textContent = "ratings & reviews are a consultant feature.";
+            gate.textContent = "Ratings & reviews are a consultant feature.";
             gate.className = "gr-status";
             return;
           }
@@ -131,7 +131,7 @@
           } else {
             $("mr-overall-value").textContent = "—";
             $("mr-overall-stars").innerHTML = renderRatingMarkup(null, { size: "lg", showCount: false });
-            $("mr-overall-count").textContent = "no ratings yet";
+            $("mr-overall-count").textContent = "No ratings yet";
           }
 
           // Per-dimension breakdown
@@ -167,7 +167,7 @@
               const title = r.listings?.title ? `re: ${escape(r.listings.title)}` : "";
               const endorsement = r.endorsement
                 ? `<blockquote class="mr-card__quote">${escape(r.endorsement)}</blockquote>`
-                : `<p class="mr-card__no-quote">no written endorsement.</p>`;
+                : `<p class="mr-card__no-quote">No written endorsement.</p>`;
               return `
                 <article class="mr-card">
                   <header class="mr-card__head">
@@ -180,13 +180,13 @@
                   ${title ? `<p class="mr-card__title">${title}</p>` : ""}
                   ${endorsement}
                   <div class="mr-card__dims">${dimChips}</div>
-                  <p class="mr-card__author">${r.is_anonymous ? "anonymous review" : "from the business"}</p>
+                  <p class="mr-card__author">${r.is_anonymous ? "Anonymous review" : "From the business"}</p>
                 </article>`;
             }).join("");
           }
         } catch (err) {
           console.error(err);
-          gate.textContent = err.message || "could not load your reviews.";
+          gate.textContent = err.message || "Could not load your reviews.";
           gate.className = "gr-status error";
         }
       }

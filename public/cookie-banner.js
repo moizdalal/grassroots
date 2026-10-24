@@ -45,15 +45,15 @@
     banner.className = "gr-cookie-banner";
     banner.id = "gr-cookie-banner";
     banner.setAttribute("role", "region");
-    banner.setAttribute("aria-label", "cookie notice");
+    banner.setAttribute("aria-label", "Cookie notice");
 
     banner.innerHTML =
       '<p class="gr-cookie-banner__msg">' +
-        "we use cookies to keep you signed in and to process payments. " +
-        '<a class="gr-cookie-banner__link" href="/privacy#cookies">learn more</a>' +
+        "We use cookies to keep you signed in and to process payments. " +
+        '<a class="gr-cookie-banner__link" href="/privacy#cookies">Learn more</a>' +
       "</p>" +
-      '<button class="gr-cookie-banner__dismiss" type="button" aria-label="dismiss cookie notice">' +
-        "got it" +
+      '<button class="gr-cookie-banner__dismiss" type="button" aria-label="Dismiss cookie notice">' +
+        "Got it" +
       "</button>";
 
     document.body.appendChild(banner);

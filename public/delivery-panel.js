@@ -32,12 +32,12 @@ async function authHeaders() {
 async function post(path, body) {
   const res = await fetch(path, { method: "POST", headers: await authHeaders(), body: JSON.stringify(body) });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "something went wrong. try again.");
+  if (!res.ok) throw new Error(data.error || "Something went wrong. Try again.");
   return data;
 }
 
 function supportHref(p) {
-  const subject = `question about a held payment · ${ctx.title || "engagement"}`;
+  const subject = `Question about a held payment · ${ctx.title || "engagement"}`;
   const body = `engagement: ${location.origin}/engagement.html?bid=${ctx.bidId}\npayment: ${p.label} (${fmtUsd(p.amount_cents)})\n\nwhat's going on:\n`;
   return `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
@@ -50,52 +50,52 @@ function describe(p, role) {
   const releaseOn = fmtDate(p.auto_release_at);
 
   if (p.on_hold) {
-    return { pill: ["on hold", "muted"], lines: ["support is reviewing this payment. it won't release on its own until that's done."] };
+    return { pill: ["On hold", "muted"], lines: ["Support is reviewing this payment. It won't release on its own until that's done."] };
   }
   if (p.partially_refunded) {
-    return { pill: ["needs support", "muted"], lines: ["part of this payment was refunded. support will settle the rest with you both."] };
+    return { pill: ["Needs support", "muted"], lines: ["Part of this payment was refunded. Support will settle the rest with you both."] };
   }
   if (Date.parse(p.backstop_at) <= now) {
-    return { pill: ["with support", "muted"], lines: ["this payment has been held a long time. support is following up with you both."] };
+    return { pill: ["With support", "muted"], lines: ["This payment has been held a long time. Support is following up with you both."] };
   }
   if (p.kind === "proposal") {
     return {
       pill: ["held", "warn"],
       lines: [role === "owner"
-        ? "this releases when you decide whether to move forward."
-        : "this releases when the business decides whether to move forward."],
+        ? "This releases when you decide whether to move forward."
+        : "This releases when the business decides whether to move forward."],
     };
   }
   if (windowOpen) {
-    const by = p.review_opens_by === "period_end" ? `the period ended ${fmtDate(p.review_opens_at)}.` : `marked delivered ${fmtDate(p.delivered_at)}.`;
+    const by = p.review_opens_by === "period_end" ? `The period ended ${fmtDate(p.review_opens_at)}.` : `Marked delivered ${fmtDate(p.delivered_at)}.`;
     return {
-      pill: ["in review", "warn"],
+      pill: ["In review", "warn"],
       lines: role === "owner"
-        ? [by, `review it by ${releaseOn}. after that, grassroots releases it to the consultant.`]
-        : [by, `the business has until ${releaseOn} to review. then it releases to you.`],
+        ? [by, `Review it by ${releaseOn}. After that, Grassroots releases it to the consultant.`]
+        : [by, `The business has until ${releaseOn} to review. Then it releases to you.`],
     };
   }
   if (opens && p.review_opens_by === "period_end") {
     return {
-      pill: ["period running", "muted"],
+      pill: ["Period running", "muted"],
       lines: role === "owner"
-        ? [`this period ends ${fmtDate(p.review_opens_at)}. you'll have 14 days after that to review.`]
-        : [`this period ends ${fmtDate(p.review_opens_at)}. done early? mark it delivered to start the review now.`],
+        ? [`This period ends ${fmtDate(p.review_opens_at)}. You'll have 14 days after that to review.`]
+        : [`This period ends ${fmtDate(p.review_opens_at)}. Done early? Mark it delivered to start the review now.`],
     };
   }
   if (p.changes_requested_at) {
     return {
-      pill: ["changes requested", "warn"],
+      pill: ["Changes requested", "warn"],
       lines: role === "owner"
-        ? ["you asked for changes. the 14-day review restarts when the consultant marks it delivered again."]
-        : ["the business asked for changes. update the work, then mark it delivered again."],
+        ? ["You asked for changes. The 14-day review restarts when the consultant marks it delivered again."]
+        : ["The business asked for changes. Update the work, then mark it delivered again."],
     };
   }
   return {
     pill: ["held", "warn"],
     lines: role === "owner"
-      ? ["grassroots is holding this until the consultant marks the work delivered."]
-      : ["grassroots is holding this for you. mark the work delivered when it's done."],
+      ? ["Grassroots is holding this until the consultant marks the work delivered."]
+      : ["Grassroots is holding this for you. Mark the work delivered when it's done."],
   };
 }
 
@@ -107,7 +107,7 @@ function renderItem(p, role) {
   const deliveryBits = [];
   if (p.delivered_at && (p.delivery_note || p.delivery_link)) {
     if (p.delivery_note) deliveryBits.push(`<p class="eg-delivery__quote">“${esc(p.delivery_note)}”</p>`);
-    if (p.delivery_link) deliveryBits.push(`<a class="eg-delivery__link" href="${esc(p.delivery_link)}" target="_blank" rel="noopener noreferrer nofollow">open the delivered work</a>`);
+    if (p.delivery_link) deliveryBits.push(`<a class="eg-delivery__link" href="${esc(p.delivery_link)}" target="_blank" rel="noopener noreferrer nofollow">Open the delivered work</a>`);
   }
   if (!p.delivered_at && p.changes_requested_at && p.changes_request_note) {
     deliveryBits.push(`<p class="eg-delivery__quote">“${esc(p.changes_request_note)}”</p>`);
@@ -129,16 +129,16 @@ function renderItem(p, role) {
   const form = li.querySelector(".eg-delivery__form");
 
   if (p.can_mark_delivered && !p.on_hold) {
-    actions.appendChild(button("mark delivered", "primary", () => openDeliverForm(p, form, actions)));
+    actions.appendChild(button("Mark delivered", "primary", () => openDeliverForm(p, form, actions)));
   }
   if (p.can_request_changes) {
-    actions.appendChild(button("request changes", "ghost", () => openChangesForm(p, form, actions)));
+    actions.appendChild(button("Request changes", "ghost", () => openChangesForm(p, form, actions)));
   }
   if (role === "owner" && p.kind !== "proposal") {
     const a = document.createElement("a");
     a.className = "gr-btn gr-btn--ghost gr-btn--sm";
     a.href = supportHref(p);
-    a.textContent = "contact support";
+    a.textContent = "Contact support";
     actions.appendChild(a);
   }
   if (!actions.children.length) actions.remove();
@@ -157,20 +157,20 @@ function button(label, kind, onClick) {
 function openDeliverForm(p, form, actions) {
   form.innerHTML = `
     <label class="gr-label">
-      <span>note for the business (optional)</span>
-      <textarea rows="2" maxlength="1000" data-field="note" placeholder="what you delivered, where to find it"></textarea>
+      <span>Note for the business (optional)</span>
+      <textarea rows="2" maxlength="1000" data-field="note" placeholder="What you delivered, where to find it"></textarea>
     </label>
     <label class="gr-label">
-      <span>link to the work (optional)</span>
+      <span>Link to the work (optional)</span>
       <input type="url" maxlength="500" data-field="link" placeholder="https://" />
     </label>
-    <p class="eg-delivery__line">the business gets 14 days to review. then grassroots releases your payment.</p>
+    <p class="eg-delivery__line">The business gets 14 days to review. Then Grassroots releases your payment.</p>
   `;
   const row = document.createElement("div");
   row.className = "eg-delivery__actions";
   row.append(
     button("cancel", "ghost", () => closeForm(form, actions)),
-    button("send for review", "primary", async (e) => {
+    button("Send for review", "primary", async (e) => {
       const btn = e.currentTarget;
       btn.disabled = true;
       try {
@@ -180,7 +180,7 @@ function openDeliverForm(p, form, actions) {
           note: form.querySelector("[data-field=note]").value,
           link: form.querySelector("[data-field=link]").value,
         });
-        showSuccess(`sent for review. it releases ${fmtDate(data.auto_release_at)} unless the business asks for changes.`, { duration: 5000 });
+        showSuccess(`Sent for review. It releases ${fmtDate(data.auto_release_at)} unless the business asks for changes.`, { duration: 5000 });
         await refreshDeliveryPanel();
       } catch (err) {
         showError(err.message);
@@ -197,23 +197,23 @@ function openDeliverForm(p, form, actions) {
 function openChangesForm(p, form, actions) {
   form.innerHTML = `
     <label class="gr-label">
-      <span>what needs to change?</span>
-      <textarea rows="3" maxlength="1000" data-field="note" placeholder="be specific so the consultant can fix it fast"></textarea>
+      <span>What needs to change?</span>
+      <textarea rows="3" maxlength="1000" data-field="note" placeholder="Be specific so the consultant can fix it fast"></textarea>
     </label>
-    <p class="eg-delivery__line">this pauses the automatic release. the 14-day review restarts when they deliver again.</p>
+    <p class="eg-delivery__line">This pauses the automatic release. The 14-day review restarts when they deliver again.</p>
   `;
   const row = document.createElement("div");
   row.className = "eg-delivery__actions";
   row.append(
     button("cancel", "ghost", () => closeForm(form, actions)),
-    button("send request", "primary", async (e) => {
+    button("Send request", "primary", async (e) => {
       const note = form.querySelector("[data-field=note]").value.trim();
-      if (!note) { showError("tell the consultant what needs to change."); return; }
+      if (!note) { showError("Tell the consultant what needs to change."); return; }
       const btn = e.currentTarget;
       btn.disabled = true;
       try {
         await post("/api/engagement/request-changes", { bid_id: ctx.bidId, payment_id: p.payment_id, note });
-        showSuccess("request sent. we let the consultant know.");
+        showSuccess("Request sent. We let the consultant know.");
         await refreshDeliveryPanel();
       } catch (err) {
         showError(err.message);
@@ -242,7 +242,7 @@ export async function refreshDeliveryPanel() {
   try {
     const res = await fetch(`/api/engagement/${encodeURIComponent(ctx.bidId)}/release-status`, { headers: await authHeaders() });
     data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || "could not load payment status.");
+    if (!res.ok) throw new Error(data.error || "Could not load payment status.");
   } catch (err) {
     console.warn("delivery panel:", err.message);
     panel.classList.add("hidden");
@@ -254,8 +254,8 @@ export async function refreshDeliveryPanel() {
     return;
   }
   intro.textContent = data.role === "owner"
-    ? "grassroots holds each payment until the work is in. you get 14 days to review before it releases."
-    : "grassroots holds each payment until you deliver. the business gets 14 days to review, then it's yours.";
+    ? "Grassroots holds each payment until the work is in. You get 14 days to review before it releases."
+    : "Grassroots holds each payment until you deliver. The business gets 14 days to review, then it's yours.";
   list.innerHTML = "";
   for (const p of payments) list.appendChild(renderItem(p, data.role));
   panel.classList.remove("hidden");

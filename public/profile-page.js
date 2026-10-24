@@ -10,11 +10,11 @@ import { renderRatingMarkup } from "/rating.js";
 const $ = (id) => document.getElementById(id);
 
 const DIM_LABELS = [
-  ["work_product_quality", "work product"],
+  ["work_product_quality", "Work product"],
   ["communication", "communication"],
   ["timeliness", "timeliness"],
   ["professionalism", "professionalism"],
-  ["cost_value", "cost value"],
+  ["cost_value", "Cost value"],
 ];
 
 function escapeHtml(s) {
@@ -119,9 +119,9 @@ function renderAvatar(client, avatarPath, fullName) {
 }
 
 function renderHeader(profile) {
-  $("pp-name").textContent = profile?.full_name || "your account";
+  $("pp-name").textContent = profile?.full_name || "Your account";
   const role = profile?.role;
-  const roleLabel = role === "consultant" ? "consultant" : role === "business_owner" ? "business owner" : "";
+  const roleLabel = role === "consultant" ? "Consultant" : role === "business_owner" ? "Business owner" : "";
   $("pp-role").textContent = roleLabel;
 
   // Headline (consultants) — pulled from consultant_profiles when present.
@@ -225,7 +225,7 @@ function renderReviews(rating, recentReviews) {
             ${title ? `<span class="pp-review-card__listing">${title}</span>` : ""}
           </header>
           <blockquote class="pp-review-card__quote">${escapeHtml(r.endorsement)}</blockquote>
-          <p class="pp-review-card__author">${r.is_anonymous ? "anonymous review" : "from the business"}</p>
+          <p class="pp-review-card__author">${r.is_anonymous ? "Anonymous review" : "From the business"}</p>
         </article>
       `;
     })
@@ -290,7 +290,7 @@ async function mountConsultantGarden(supabase, userId) {
     await mountGarden(container, { client: supabase, userId });
   } catch (err) {
     console.warn("garden mount failed", err);
-    container.innerHTML = `<p class="pp-garden__empty">couldn't load your garden.</p>`;
+    container.innerHTML = `<p class="pp-garden__empty">Couldn't load your garden.</p>`;
   }
 }
 
@@ -326,7 +326,7 @@ async function init() {
     $("pp-page").hidden = false;
   } catch (err) {
     console.error(err);
-    gate.textContent = err?.message || "could not load your profile.";
+    gate.textContent = err?.message || "Could not load your profile.";
     gate.className = "gr-status error";
   }
 }

@@ -149,7 +149,6 @@ img.gr-listing-logo {
     ),
     var(--sky);
   color: var(--ink);
-  text-transform: lowercase;
   -webkit-font-smoothing: antialiased;
   line-height: 1.5;
 }
@@ -530,7 +529,6 @@ img.gr-listing-logo {
   margin-bottom: 1.25rem;
   font-size: var(--type-meta);  font-weight: 500;
   color: var(--tagline-body);
-  text-transform: lowercase;
 }
 
 .gr-oauth__divider::before,
@@ -3192,7 +3190,6 @@ summary:focus-visible,
   margin: 0 0 0.5rem;
   font-size: var(--type-meta);  font-weight: 700;
   letter-spacing: 0.06em;
-  text-transform: lowercase;
   color: var(--green-mid);
 }
 
@@ -3759,7 +3756,6 @@ button.gr-bid-link {
 .ld-biz-card__heading {
   font-size: var(--type-eyebrow);  font-weight: 700;
   letter-spacing: 0.06em;
-  text-transform: lowercase;
   color: var(--tagline-body);
   margin: 0;
 }
@@ -3949,7 +3945,7 @@ button.gr-bid-link {
   font-weight: 600;
   font-size: 1.6rem;
   color: var(--fo-accent, var(--green-mid));
-  text-transform: lowercase;
+  text-transform: uppercase;
 }
 
 .ld-bid-card__id {
@@ -4270,7 +4266,6 @@ button.gr-bid-link {
   font-size: var(--type-eyebrow);  font-weight: 700;
   letter-spacing: 0.04em;
   white-space: nowrap;
-  text-transform: lowercase;
 }
 
 .gr-pill::before {
@@ -4836,7 +4831,7 @@ button.gr-bid-link {
 /* "suggestion box" label that floats to the left of the floating
    button on hover/focus — clarifies what the icon-only chip is. */
 .gr-suggest-btn::after {
-  content: "suggestion box";
+  content: "Suggestion box";
   position: absolute;
   top: 50%;
   right: calc(100% + 10px);

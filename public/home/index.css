@@ -723,7 +723,7 @@
         line-height: 1.2;
       }
       .ld-hero__garden .gs__hover-title::before {
-        content: "completed work";
+        content: "Completed work";
         display: block;
         font-family: "Manrope", system-ui, sans-serif;
         font-size: 0.62rem;
@@ -1048,7 +1048,7 @@
         font-weight: 600;
         font-size: 0.85rem;
         letter-spacing: -0.01em;
-        text-transform: lowercase;
+        text-transform: uppercase;
       }
       .ld-hero-card__name-block { min-width: 0; }
       .ld-hero-card__name {
@@ -1892,7 +1892,6 @@
         font-weight: 500;
         font-size: 0.72rem;
         opacity: 0.9;
-        text-transform: lowercase;
         pointer-events: none;
       }
       .ld-where-card__yours-heart {
@@ -1924,7 +1923,7 @@
         font-family: "Fraunces", Georgia, serif;
         font-weight: 600;
         font-size: 1.1rem;
-        text-transform: lowercase;
+        text-transform: uppercase;
         letter-spacing: -0.01em;
       }
       .ld-where-card__name {

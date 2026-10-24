@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,follow" />
-    <title>grassroots — inbox</title>
+    <title>Grassroots — inbox</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/fonts.css" />
     <link rel="stylesheet" href="/grassroots.css" />
@@ -15,30 +15,30 @@
   </head>
   <body class="gr-body gr-has-side-nav inbox-page">
     <main class="inbox-shell">
-      <p id="inbox-gate" class="gr-status" aria-live="polite" style="padding:3rem 1.5rem;">loading…</p>
+      <p id="inbox-gate" class="gr-status" aria-live="polite" style="padding:3rem 1.5rem;">Loading…</p>
 
       <div class="inbox" id="inbox-shell" hidden>
-        <aside class="inbox__list" aria-label="conversations">
+        <aside class="inbox__list" aria-label="Conversations">
           <div class="inbox__list-head">
             <div class="inbox__title-row">
-              <h1 class="inbox__title">inbox</h1>
-              <button type="button" class="inbox__mark-all" id="inbox-mark-all" hidden>mark all read</button>
+              <h1 class="inbox__title">Inbox</h1>
+              <button type="button" class="inbox__mark-all" id="inbox-mark-all" hidden>Mark all read</button>
             </div>
             <div class="inbox__filters">
-              <button type="button" class="inbox__filter active" data-filter="all">all</button>
-              <button type="button" class="inbox__filter" data-filter="unread">unread <span class="inbox__filter-count" id="inbox-unread-pill" hidden>0</span></button>
+              <button type="button" class="inbox__filter active" data-filter="all">All</button>
+              <button type="button" class="inbox__filter" data-filter="unread">Unread <span class="inbox__filter-count" id="inbox-unread-pill" hidden>0</span></button>
             </div>
-            <input class="inbox__search" type="search" id="inbox-search" aria-label="search messages" placeholder="search messages…" />
+            <input class="inbox__search" type="search" id="inbox-search" aria-label="Search messages" placeholder="Search messages…" />
           </div>
           <div class="inbox__threads" id="inbox-threads" role="list"></div>
-          <p class="inbox__empty" id="inbox-list-empty" hidden>no conversations yet.</p>
+          <p class="inbox__empty" id="inbox-list-empty" hidden>No conversations yet.</p>
         </aside>
 
         <section class="inbox__pane" id="inbox-pane" aria-live="polite">
           <div class="inbox__placeholder" id="inbox-placeholder">
             <div class="inbox__placeholder-glyph" aria-hidden="true"></div>
-            <p class="inbox__placeholder-title">select a conversation</p>
-            <p class="inbox__placeholder-sub">your active threads, grouped by listing, show here.</p>
+            <p class="inbox__placeholder-title">Select a conversation</p>
+            <p class="inbox__placeholder-sub">Your active threads, grouped by listing, show here.</p>
           </div>
 
           <div class="inbox__conversation" id="inbox-conversation" hidden>
@@ -51,19 +51,19 @@
                 </div>
               </div>
               <span class="inbox__conv-matches" id="inbox-conv-matches" aria-live="polite" hidden></span>
-              <button type="button" class="inbox__conv-close" id="inbox-conv-close" aria-label="close conversation">×</button>
+              <button type="button" class="inbox__conv-close" id="inbox-conv-close" aria-label="Close conversation">×</button>
             </header>
             <div class="inbox__conv-body" id="inbox-conv-body" role="log"></div>
             <form class="inbox__composer" id="inbox-composer" autocomplete="off">
               <textarea
                 class="inbox__composer-input"
                 id="inbox-composer-input"
-                placeholder="write a message…"
+                placeholder="Write a message…"
                 rows="1"
                 maxlength="4000"
                 required
               ></textarea>
-              <button type="submit" class="inbox__composer-send" id="inbox-composer-send">send</button>
+              <button type="submit" class="inbox__composer-send" id="inbox-composer-send">Send</button>
             </form>
           </div>
         </section>
@@ -80,7 +80,7 @@
           document.getElementById("inbox-shell").hidden = false;
         } catch (err) {
           const gate = document.getElementById("inbox-gate");
-          gate.textContent = err?.message || "could not load inbox.";
+          gate.textContent = err?.message || "Could not load inbox.";
           gate.className = "gr-status error";
         }
       })();

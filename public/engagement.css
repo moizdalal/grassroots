@@ -58,7 +58,6 @@
   color: var(--green-deep);
   font-size: var(--type-meta);
   font-weight: 700;
-  text-transform: lowercase;
   white-space: nowrap;
 }
 

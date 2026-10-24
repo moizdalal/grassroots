@@ -16,7 +16,7 @@ form.addEventListener("submit", async (event) => {
     const supabase = await getSupabaseClient();
     const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    showSuccess("signed in — redirecting…");
+    showSuccess("Signed in — redirecting…");
 
     const params = new URLSearchParams(window.location.search);
     const nextParam = params.get("next");
@@ -62,6 +62,6 @@ document.addEventListener("click", (event) => {
   const reveal = input.type === "password";
   input.type = reveal ? "text" : "password";
   btn.setAttribute("aria-pressed", String(reveal));
-  btn.setAttribute("aria-label", reveal ? "hide password" : "show password");
+  btn.setAttribute("aria-label", reveal ? "Hide password" : "Show password");
   btn.classList.toggle("gr-pw-toggle--shown", reveal);
 });

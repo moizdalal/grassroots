@@ -27,7 +27,7 @@ Use these to verify role-specific UI flows (owner-only action items on `dashboar
 - The user prefers concrete code changes over vague advice; they review at the end.
 - They iterate on the spec ("scale this 5% smaller", "remove this border", "do XYZ instead") — don't over-engineer the first attempt.
 - They're sensitive to: contrast issues in dark theme, off-theme colors (any red/orange that isn't `--fo-accent-warm` or `--fo-plan`), redundancy, orphaned spacing.
-- Voice rule: **lowercase always, second person, ~10-word sentences, no exclamation points.** See brandkit.md for the full breakdown.
+- Voice rule: **sentence case, second person, ~10-word sentences, no exclamation points.** Only the `grassroots` wordmark/logo stays lowercase; in copy it's "Grassroots" / "Grassroots Marketplace". (The all-lowercase rule was retired 2026-10-24.) See brandkit.md for the full breakdown.
 - Verify UI changes in the browser preview. Reload, take a screenshot, probe `getBoundingClientRect()` on key elements.
 
 ## In-flight state (sensitive to changes)

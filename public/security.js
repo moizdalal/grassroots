@@ -43,27 +43,27 @@ async function handlePasswordSubmit(event) {
   const confirmPw = confirmEl?.value || "";
 
   if (nextPw.length < 8) {
-    setStatus(status, "new password must be at least 8 characters.", "error");
+    setStatus(status, "New password must be at least 8 characters.", "error");
     return;
   }
   if (nextPw !== confirmPw) {
-    setStatus(status, "passwords don't match. retype the new one.", "error");
+    setStatus(status, "Passwords don't match. Retype the new one.", "error");
     return;
   }
   if (nextPw === currentPw) {
-    setStatus(status, "new password matches the current one. pick something different.", "error");
+    setStatus(status, "New password matches the current one. Pick something different.", "error");
     return;
   }
 
   setButtonLoading(saveBtn, true);
-  setStatus(status, "updating password…");
+  setStatus(status, "Updating password…");
 
   try {
     const supabase = await getSupabaseClient();
     const { data: { session } } = await supabase.auth.getSession();
     const email = session?.user?.email;
     if (!email) {
-      setStatus(status, "you're signed out. refresh and sign back in.", "error");
+      setStatus(status, "You're signed out. Refresh and sign back in.", "error");
       return;
     }
 
@@ -71,13 +71,13 @@ async function handlePasswordSubmit(event) {
     // updateUser on a re-auth, so we have to do it ourselves.
     const reauth = await supabase.auth.signInWithPassword({ email, password: currentPw });
     if (reauth.error) {
-      setStatus(status, "current password is incorrect.", "error");
+      setStatus(status, "Current password is incorrect.", "error");
       return;
     }
 
     const { error: updateErr } = await supabase.auth.updateUser({ password: nextPw });
     if (updateErr) {
-      setStatus(status, updateErr.message || "could not update password. try again.", "error");
+      setStatus(status, updateErr.message || "Could not update password. Try again.", "error");
       return;
     }
 
@@ -85,9 +85,9 @@ async function handlePasswordSubmit(event) {
     if (currentEl) currentEl.value = "";
     if (nextEl) nextEl.value = "";
     if (confirmEl) confirmEl.value = "";
-    setStatus(status, "password updated.", "success");
+    setStatus(status, "Password updated.", "success");
   } catch (err) {
-    setStatus(status, err?.message || "something went wrong. try again.", "error");
+    setStatus(status, err?.message || "Something went wrong. Try again.", "error");
   } finally {
     setButtonLoading(saveBtn, false);
   }
@@ -99,23 +99,23 @@ async function handleSignOutOthers() {
   const status = $("sec-signout-status");
   const btn = $("sec-signout-others");
 
-  if (!window.confirm("sign out of every other session? this browser stays signed in.")) {
+  if (!window.confirm("Sign out of every other session? This browser stays signed in.")) {
     return;
   }
 
   setButtonLoading(btn, true);
-  setStatus(status, "signing out other sessions…");
+  setStatus(status, "Signing out other sessions…");
 
   try {
     const supabase = await getSupabaseClient();
     const { error } = await supabase.auth.signOut({ scope: "others" });
     if (error) {
-      setStatus(status, error.message || "could not sign out other sessions.", "error");
+      setStatus(status, error.message || "Could not sign out other sessions.", "error");
       return;
     }
-    setStatus(status, "other sessions signed out.", "success");
+    setStatus(status, "Other sessions signed out.", "success");
   } catch (err) {
-    setStatus(status, err?.message || "something went wrong. try again.", "error");
+    setStatus(status, err?.message || "Something went wrong. Try again.", "error");
   } finally {
     setButtonLoading(btn, false);
   }
@@ -133,16 +133,16 @@ async function handleDeleteRequest(event) {
   const phrase = (phraseEl?.value || "").trim().toLowerCase();
 
   if (phrase !== DELETE_PHRASE) {
-    setStatus(status, `type "${DELETE_PHRASE}" exactly to confirm.`, "error");
+    setStatus(status, `Type "${DELETE_PHRASE}" exactly to confirm.`, "error");
     return;
   }
 
-  if (!window.confirm("submit a deletion request? we'll email you to confirm before anything is removed.")) {
+  if (!window.confirm("Submit a deletion request? We'll email you to confirm before anything is removed.")) {
     return;
   }
 
   setButtonLoading(btn, true);
-  setStatus(status, "submitting request…");
+  setStatus(status, "Submitting request…");
 
   try {
     const supabase = await getSupabaseClient();
@@ -158,12 +158,12 @@ async function handleDeleteRequest(event) {
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      throw new Error(body?.error || `server returned ${res.status}`);
+      throw new Error(body?.error || `Server returned ${res.status}`);
     }
     if (phraseEl) phraseEl.value = "";
-    setStatus(status, "request received. we'll email you to confirm before deleting anything.", "success");
+    setStatus(status, "Request received. We'll email you to confirm before deleting anything.", "success");
   } catch (err) {
-    setStatus(status, err?.message || "could not submit request. try again later.", "error");
+    setStatus(status, err?.message || "Could not submit request. Try again later.", "error");
   } finally {
     setButtonLoading(btn, false);
   }
@@ -181,12 +181,12 @@ async function handleExportRequest(event) {
   const phrase = (phraseEl?.value || "").trim().toLowerCase();
 
   if (phrase !== EXPORT_PHRASE) {
-    setStatus(status, `type "${EXPORT_PHRASE}" exactly to confirm.`, "error");
+    setStatus(status, `Type "${EXPORT_PHRASE}" exactly to confirm.`, "error");
     return;
   }
 
   setButtonLoading(btn, true);
-  setStatus(status, "submitting request…");
+  setStatus(status, "Submitting request…");
 
   try {
     const supabase = await getSupabaseClient();
@@ -202,16 +202,16 @@ async function handleExportRequest(event) {
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      throw new Error(body?.error || `server returned ${res.status}`);
+      throw new Error(body?.error || `Server returned ${res.status}`);
     }
     if (phraseEl) phraseEl.value = "";
     setStatus(
       status,
-      "request received. we'll email you a download link within 30 days.",
+      "Request received. We'll email you a download link within 30 days.",
       "success"
     );
   } catch (err) {
-    setStatus(status, err?.message || "could not submit request. try again later.", "error");
+    setStatus(status, err?.message || "Could not submit request. Try again later.", "error");
   } finally {
     setButtonLoading(btn, false);
   }
