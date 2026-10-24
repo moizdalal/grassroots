@@ -1314,6 +1314,27 @@ function renderProposalDecisionPanel() {
   const decided = currentBid?.move_forward_status && currentBid.move_forward_status !== "pending";
   const phaseStatus = proposalPhase.status;
 
+  // $0 proposal: nothing is held, so skip the payment language.
+  if (Number(proposalPhase.amount_cents) === 0) {
+    proposalStatusPill.textContent = decided ? "Decided" : "Pending";
+    proposalStatusPill.className = `gr-pill gr-pill--${decided ? "accepted" : "muted"} gr-pill--no-dot`;
+    if (decided) {
+      proposalActionsEl.classList.add("hidden");
+      proposalBodyEl.textContent = currentBid.move_forward_status === "selected"
+        ? "You moved forward with this consultant. The service phase is up next."
+        : "You closed out at the proposal phase. No further charges.";
+      return;
+    }
+    if (viewRole !== "owner") {
+      proposalActionsEl.classList.add("hidden");
+      proposalBodyEl.textContent = "Once you've met, the business decides whether to move forward with the full job.";
+      return;
+    }
+    proposalActionsEl.classList.remove("hidden");
+    proposalBodyEl.textContent = "Once you've met, decide whether to continue with the full job.";
+    return;
+  }
+
   // Render the status pill based on where we are in the lifecycle.
   if (phaseStatus === "released") {
     proposalStatusPill.textContent = "Released";
@@ -1353,7 +1374,7 @@ function renderProposalDecisionPanel() {
 
 function renderRefundCta() {
   if (!refundBtn || !refundHelper) return;
-  const paymentStatus = currentBid?.payment_status;
+  const paymentStatus = Number(currentBid?.payment_amount_cents) === 0 ? null : currentBid?.payment_status;
   const paidAt = currentBid?.paid_at ? new Date(currentBid.paid_at).getTime() : null;
   const inWindow = paidAt && Date.now() - paidAt < REFUND_WINDOW_MS;
 
@@ -1661,10 +1682,13 @@ async function submitReview() {
       body: JSON.stringify({ bid_id: currentBid.id }),
     });
     const data = await res.json().catch(() => ({}));
+    const freeJob = !isPhased && Number(currentBid.payment_amount_cents) === 0;
     if (!res.ok) {
-      releaseMessage = ` Payout pending: ${data.error || "could not release the payment yet."}`;
+      releaseMessage = freeJob
+        ? ` Couldn't mark it complete yet: ${data.error || "try again shortly."}`
+        : ` Payout pending: ${data.error || "could not release the payment yet."}`;
     } else {
-      releaseMessage = " Payment released to the consultant.";
+      releaseMessage = freeJob ? " The engagement is marked complete." : " Payment released to the consultant.";
     }
   } catch (err) {
     releaseMessage = " Payment release will retry — couldn't reach the payment server.";
@@ -1677,7 +1701,7 @@ async function submitReview() {
   // too — toast disappears in 5s, the status row sticks around.
   if (reviewStatusEl && releaseMessage) {
     reviewStatusEl.textContent = `Thank you from Grassroots. Your review has been saved.${releaseMessage}`;
-    reviewStatusEl.className = releaseMessage.includes("released to the consultant")
+    reviewStatusEl.className = /released to the consultant|marked complete\./.test(releaseMessage)
       ? "gr-status success"
       : "gr-status";
   }
@@ -1888,8 +1912,8 @@ function bindReviewInteractions() {
         offerStatusEl.className = "gr-status error";
         return;
       }
-      if (!Number.isFinite(fee) || fee < 1) {
-        offerStatusEl.textContent = "Enter the fee per period.";
+      if (!Number.isFinite(fee) || fee < 10) {
+        offerStatusEl.textContent = "The fee per period must be at least $10.";
         offerStatusEl.className = "gr-status error";
         return;
       }
@@ -2049,8 +2073,8 @@ function bindReviewInteractions() {
         retainerOneoffBtn.disabled = false;
         return;
       }
-      if (!Number.isFinite(fee) || fee < 1) {
-        retainerStatusEl.textContent = "Enter the fee per period.";
+      if (!Number.isFinite(fee) || fee < 10) {
+        retainerStatusEl.textContent = "The fee per period must be at least $10.";
         retainerStatusEl.className = "gr-status error";
         retainerContinueBtn.disabled = false;
         retainerOneoffBtn.disabled = false;

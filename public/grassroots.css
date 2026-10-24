@@ -5262,9 +5262,8 @@ button.gr-bid-link {
   font-style: normal;
 }
 
-/* Itemized checkout: offer + Stripe fee (strikethrough, absorbed by
-   consultant) + platform fee (strikethrough, waived during launch) +
-   final total. Same visual frame as .pay-modal__amount. */
+/* Checkout total. Pricing is all-in, so it's a single line. Same
+   visual frame as .pay-modal__amount. */
 .pay-modal__breakdown {
   display: flex;
   flex-direction: column;
@@ -5301,13 +5300,6 @@ button.gr-bid-link {
   font-variant-numeric: tabular-nums;
   color: var(--fo-text);
   font-weight: 600;
-}
-
-.pay-modal__line-value--strike {
-  color: var(--fo-text-3);
-  text-decoration: line-through;
-  text-decoration-thickness: 1.5px;
-  font-weight: 500;
 }
 
 .pay-modal__line--passthrough .pay-modal__line-label {

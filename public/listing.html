@@ -254,10 +254,10 @@
                   <label class="ld-offer-amount-label" for="ld-bid-amount">Offer amount</label>
                   <div class="ld-offer-amount-input">
                     <span class="ld-offer-dollar" aria-hidden="true">$</span>
-                    <input id="ld-bid-amount" type="number" min="0.01" step="0.01" placeholder="0.00" />
+                    <input id="ld-bid-amount" type="number" min="0" step="0.01" placeholder="0.00" />
                   </div>
-                  <!-- Live breakdown: appears once a non-zero amount is typed.
-                       Same fee math the server runs at PI creation. -->
+                  <!-- Live breakdown: appears once an amount is typed. $0 shows
+                       the free-offer note. Same fee math the server runs. -->
                   <div class="ld-offer-breakdown" id="ld-offer-breakdown" hidden></div>
                 </div>
 
@@ -268,7 +268,7 @@
                         Proposal fee
                         <button type="button" class="ld-offer-info" aria-label="About proposal fee" aria-describedby="ld-bid-proposal-fee-tip">
                           ?
-                          <span class="ld-offer-info__bubble" id="ld-bid-proposal-fee-tip" role="tooltip">This is what you charge upfront when the business accepts your proposal. You keep it even if they don't move forward. Set it to $0 if you'd rather skip the proposal fee.</span>
+                          <span class="ld-offer-info__bubble" id="ld-bid-proposal-fee-tip" role="tooltip">This is what you charge upfront when the business accepts your proposal. You keep it even if they don't move forward. Set it to $0 to skip it, or charge at least $10.</span>
                         </button>
                       </span>
                       <span class="ld-offer-amount-sub" id="ld-bid-proposal-budget-hint"></span>
@@ -286,7 +286,7 @@
                     </label>
                     <div class="ld-offer-amount-input">
                       <span class="ld-offer-dollar" aria-hidden="true">$</span>
-                      <input id="ld-bid-service-fee" type="number" min="0.01" step="0.01" placeholder="0.00" />
+                      <input id="ld-bid-service-fee" type="number" min="10" step="0.01" placeholder="0.00" />
                     </div>
                     <div class="ld-offer-breakdown" id="ld-offer-service-breakdown" hidden></div>
                   </div>

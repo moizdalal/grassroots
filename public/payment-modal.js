@@ -7,6 +7,8 @@
    ================================================================ */
 
 import { computeFees, formatUsd } from "/fees.js";
+import { confirmDialog } from "/confirm-modal.js";
+import { showError } from "/toast.js";
 
 let stripePromise;
 
@@ -19,33 +21,36 @@ function escapeHtml(s) {
 }
 
 function renderFeeBreakdown(fees) {
-  // What the business sees: offer + platform fee (strikethrough today,
-  // becomes real when waiver lifts) = total. Stripe processing fee
-  // never shows up here — it's the consultant's cost to receive money
-  // and never lands on the business's bill.
-  const platformValueStr = formatUsd(fees.platformFeeFullCents);
-  const platformLineClass = fees.platformFeeWaived
-    ? "pay-modal__line-value pay-modal__line-value--strike"
-    : "pay-modal__line-value";
+  // All-in pricing: the business pays the offer and nothing on top. The
+  // platform and card fees come out of the consultant's side, so no fee
+  // lines here.
   return `
     <div class="pay-modal__breakdown" role="group" aria-label="Payment breakdown">
-      <div class="pay-modal__line">
-        <span class="pay-modal__line-label">Offer amount</span>
-        <span class="pay-modal__line-value">${escapeHtml(formatUsd(fees.amountCents))}</span>
-      </div>
-      <div class="pay-modal__line">
-        <span class="pay-modal__line-label">
-          Platform fee (10%)
-          ${fees.platformFeeWaived ? `<span class="pay-modal__line-hint">Waived during launch</span>` : ""}
-        </span>
-        <span class="${platformLineClass}">${escapeHtml(platformValueStr)}</span>
-      </div>
       <div class="pay-modal__line pay-modal__line--total">
-        <span class="pay-modal__line-label">You'll be charged</span>
+        <span class="pay-modal__line-label">
+          You'll be charged
+          <span class="pay-modal__line-hint">No fees added</span>
+        </span>
         <span class="pay-modal__line-value">${escapeHtml(formatUsd(fees.businessTotalCents))}</span>
       </div>
     </div>
   `;
+}
+
+// $0 offers skip Stripe entirely: confirm, then hit the free endpoint.
+async function acceptWithoutPayment({ client, endpoint, payload, title, body, confirmLabel }) {
+  const ok = await confirmDialog({ title, body, confirmLabel });
+  if (!ok) return { ok: false, reason: "cancelled" };
+  const { data: { session } } = await client.auth.getSession();
+  const headers = { "Content-Type": "application/json" };
+  if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+  const res = await fetch(endpoint, { method: "POST", headers, body: JSON.stringify(payload) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    showError(data.error || "Could not accept the offer.");
+    return { ok: false, reason: "error" };
+  }
+  return { ok: true, free: true };
 }
 
 // Injects https://js.stripe.com/v3/ once and resolves when window.Stripe
@@ -151,6 +156,16 @@ function closeModal(overlay) {
  */
 export async function payAndAcceptBid({ client, bid, listing }) {
   const amount = bid.counter_offer_cents != null ? bid.counter_offer_cents : bid.amount_cents;
+  if (Number(amount) === 0) {
+    return acceptWithoutPayment({
+      client,
+      endpoint: "/api/engagement/accept-free",
+      payload: { bid_id: bid.id },
+      title: "Accept this offer?",
+      body: "This offer is $0, so there's no payment step. You'll go straight to kickoff.",
+      confirmLabel: "Accept offer",
+    });
+  }
   const feeBreakdown = computeFees(amount);
   const overlay = buildModal({ amount, title: listing?.title, feeBreakdown });
   const submitBtn = overlay.querySelector("#pay-submit");
@@ -331,6 +346,16 @@ export async function payAndAcceptBid({ client, bid, listing }) {
  */
 export async function payAndAcceptProposals({ client, bids, listing }) {
   const totalAmount = bids.reduce((sum, b) => sum + Number(b.proposal_fee_cents || 0), 0);
+  if (totalAmount === 0) {
+    return acceptWithoutPayment({
+      client,
+      endpoint: "/api/stripe/phased/accept-proposals",
+      payload: { bid_ids: bids.map((b) => b.id) },
+      title: bids.length === 1 ? "Accept this proposal?" : `Accept ${bids.length} proposals?`,
+      body: "The proposal fee is $0, so there's no payment step.",
+      confirmLabel: bids.length === 1 ? "Accept proposal" : "Accept proposals",
+    });
+  }
   const titleLabel = bids.length === 1
     ? `Proposal fee · ${listing?.title || "engagement"}`
     : `${bids.length} proposal fees · ${listing?.title || "engagement"}`;
