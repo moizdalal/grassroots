@@ -27,11 +27,13 @@
       .ld-nav__brand {
         display: inline-flex; align-items: center; gap: 0.55rem;
         text-decoration: none; color: var(--fo-text);
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600; font-size: 1.2rem;
         letter-spacing: -0.02em;
         position: relative;
         padding: 0.2rem 0;
+  font-weight: 600;
+  font-style: normal;
       }
       .ld-nav__brand-mark {
         position: relative;
@@ -124,7 +126,7 @@
       .ld-nav__link {
         position: relative;
         color: var(--fo-text-2); text-decoration: none;
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: var(--type-body); font-weight: 500;
         padding: 0.6rem 0.2rem;
         transition: color 0.22s ease;
@@ -184,7 +186,7 @@
         color: var(--fo-accent-on);
         text-decoration: none;
         border-radius: 999px;
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: var(--type-body);
         font-weight: 700;
         letter-spacing: 0;

@@ -410,7 +410,7 @@
    subtitle on the button — not a warning chip. */
 .cl-publish-note {
   margin: 0.6rem 0 0;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);
   color: var(--fo-text-3, var(--muted));
   letter-spacing: 0;

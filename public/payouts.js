@@ -25,7 +25,7 @@ function buildStripeAppearance() {
     overlays: "dialog",
     variables: {
       // Type
-      fontFamily: "Manrope, system-ui, sans-serif",
+      fontFamily: "Figtree, system-ui, sans-serif",
       fontSizeBase: "15px",
       // Surfaces — match the page bg so the iframe blends in.
       colorBackground: bg,
@@ -318,11 +318,11 @@ async function init() {
     stripeConnect = StripeConnect.init({
       publishableKey: sessionData.publishable_key,
       fetchClientSecret: async () => sessionData.client_secret,
-      // Inject Manrope into the iframe so Stripe's UI uses our type
+      // Inject Figtree into the iframe so Stripe's UI uses our type
       // family (the iframe is cross-origin — it can't reach the parent
       // page's loaded fonts, so we have to declare them here too).
       fonts: [{
-        cssSrc: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap",
+        cssSrc: "https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap",
       }],
       appearance: buildStripeAppearance(),
     });

@@ -18,12 +18,12 @@
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="grassroots — the local consulting marketplace" />
+    <meta property="og:image:alt" content="Grassroots — the local consulting marketplace" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Grassroots for students — real work, real money, real reviews" />
     <meta name="twitter:description" content="Invite-only consultancy work for local students. Get paid. Own your work. Build a portfolio." />
     <meta name="twitter:image" content="https://www.grassroots-marketplace.com/og-image.png" />
-    <meta name="twitter:image:alt" content="grassroots — the local consulting marketplace" />
+    <meta name="twitter:image:alt" content="Grassroots — the local consulting marketplace" />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
     <link rel="alternate icon" href="/favicon.svg?v=2" />
@@ -54,15 +54,18 @@
       ]
     }
     </script>
-    <link rel="stylesheet" href="/fonts.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
 
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
-    <link rel="stylesheet" href="/home/nav.css" />
+    <link rel="stylesheet" href="/home/nav.css?v=3" />
     <link rel="stylesheet" href="/home/for-students.css" />
-    <script src="/theme.js"></script>
+    <script src="/theme.js?v=2"></script>
     <script src="/cookie-banner.js" defer></script>
-    <script src="/home/nav.js" defer></script>
+    <script src="/home/theme-default.js"></script>
+    <script src="/home/nav.js?v=3" defer></script>
   </head>
 
   <body class="gr-body">
@@ -126,7 +129,6 @@
           <div>
             <span class="fs-hero__chip fs-reveal">
               <span class="fs-hero__chip-tag">Invite only</span>
-              <span><b>~12%</b> acceptance · 14 college towns</span>
             </span>
 
             <h1 class="fs-hero__h1 fs-reveal">
@@ -156,7 +158,7 @@
                 </span>
               </a>
               <a class="fs-btn fs-btn--ghost fs-btn--lg" href="#refer">
-                <span>or — refer 3 to skip the line</span>
+                <span>Or — refer 3 to skip the line</span>
               </a>
             </div>
           </div>
@@ -170,7 +172,7 @@
                 </div>
                 <div class="fs-receipt__meta">
                   Job #4821<br/>
-                  Apr 02, 2026
+                  apr 02, 2026
                 </div>
               </div>
               <div class="fs-receipt__line"><span>Menu redesign</span><b>$240.00</b></div>
@@ -220,7 +222,6 @@
     <section class="fs-section" aria-labelledby="fs-bento-title">
       <div class="fs-shell">
         <div class="fs-section__head fs-reveal">
-          <p class="fs-eyebrow">What you walk away with</p>
           <h2 class="fs-section__title" id="fs-bento-title">
             Money in your account. <span class="fs-italic">Work in your portfolio.</span> A name on the door.
           </h2>
@@ -234,38 +235,22 @@
           <div class="fs-bento__cell fs-bento__cell--paid fs-reveal">
             <div class="fs-bento__num">01 / paid</div>
             <h3 class="fs-bento__title">A paycheck, not a pat on the back.</h3>
-            <p class="fs-bento__body">Average per-engagement, after fees, across the network in the last 90 days.</p>
-            <div class="fs-bento__big" data-count-to="412"><sup>$</sup><span id="fs-count-paid">412</span></div>
-            <div class="fs-bento__cap">Avg paid per project · Q1 '26</div>
-            <div class="fs-bento__ticker" aria-hidden="true">
-              <div class="fs-bento__ticker-track">
-                <span>Maya R. → <span class="fs-bento__ticker-amt">$331</span> · menu redesign</span>
-                <span>jordan p. → <span class="fs-bento__ticker-amt">$520</span> · market research</span>
-                <span>kai t. → <span class="fs-bento__ticker-amt">$280</span> · social retainer</span>
-                <span>sam d. → <span class="fs-bento__ticker-amt">$640</span> · brand refresh</span>
-                <span>el b. → <span class="fs-bento__ticker-amt">$180</span> · landing page</span>
-                <span>maya r. → <span class="fs-bento__ticker-amt">$331</span> · menu redesign</span>
-                <span>jordan p. → <span class="fs-bento__ticker-amt">$520</span> · market research</span>
-                <span>kai t. → <span class="fs-bento__ticker-amt">$280</span> · social retainer</span>
-                <span>sam d. → <span class="fs-bento__ticker-amt">$640</span> · brand refresh</span>
-                <span>el b. → <span class="fs-bento__ticker-amt">$180</span> · landing page</span>
-              </div>
-            </div>
+            <p class="fs-bento__body">You set the price on every bid. When the owner approves the work, the money lands in your account.</p>
           </div>
 
           <!-- (2) experience -->
           <div class="fs-bento__cell fs-bento__cell--exp fs-reveal">
             <div class="fs-bento__num">02 / experience</div>
             <h3 class="fs-bento__title">The kind recruiters actually ask about.</h3>
-            <p class="fs-bento__body">Not "I did the Slack onboarding deck for an intern cohort." You ran the engagement. You talked to the owner. You shipped the thing.</p>
+            <p class="fs-bento__body">Not "I did the Slack onboarding deck for an intern cohort." you ran the engagement. You talked to the owner. You shipped the thing.</p>
             <div class="fs-tags">
               <span class="fs-tag fs-tag--accent">Client-facing</span>
-              <span class="fs-tag">Scoped delivery</span>
-              <span class="fs-tag">Written brief</span>
-              <span class="fs-tag">On-budget</span>
+              <span class="fs-tag">scoped delivery</span>
+              <span class="fs-tag">written brief</span>
+              <span class="fs-tag">on-budget</span>
               <span class="fs-tag">6-dim review</span>
-              <span class="fs-tag">Verified payout</span>
-              <span class="fs-tag">Live revisions</span>
+              <span class="fs-tag">verified payout</span>
+              <span class="fs-tag">live revisions</span>
             </div>
           </div>
 
@@ -285,7 +270,7 @@
           <div class="fs-bento__cell fs-bento__cell--rel fs-reveal">
             <div class="fs-bento__num">04 / relationships</div>
             <h3 class="fs-bento__title">A real reference, not a LinkedIn endorsement.</h3>
-            <p class="fs-bento__body">Most students get re-hired by the same owner within 60 days. That's a person who picks up your call in two years.</p>
+            <p class="fs-bento__body">Do good work for a local owner and they'll call you again. That's a person who picks up your call in two years.</p>
             <div class="fs-bento__pair">
               <span class="fs-bento__avatar">MR</span>
               <div class="fs-bento__pair-link"></div>
@@ -313,10 +298,7 @@
     <section class="fs-section" id="how" aria-labelledby="fs-how-title" style="padding-top: 0;">
       <div class="fs-shell">
         <div class="fs-section__head fs-reveal">
-          <p class="fs-eyebrow">How it works · for you</p>
-          <h2 class="fs-section__title" id="fs-how-title">
-            Five things between you and your first <span class="fs-italic">paycheck.</span>
-          </h2>
+          <h2 class="fs-section__title" id="fs-how-title">How it works.</h2>
         </div>
 
         <div class="fs-how" id="fs-how-scrub">
@@ -414,7 +396,6 @@
     <section class="fs-section" id="get-in" aria-labelledby="fs-paths-title">
       <div class="fs-shell">
         <div class="fs-section__head fs-section__head--center fs-reveal">
-          <p class="fs-eyebrow">Application or invite only</p>
           <h2 class="fs-section__title" id="fs-paths-title">
             Two ways in. <span class="fs-italic">Both end the same.</span>
           </h2>
@@ -459,7 +440,7 @@
               </label>
               <label class="fs-field">
                 <span class="fs-field__label">Why Grassroots? (60 words is plenty)</span>
-                <textarea name="why" rows="3" placeholder="Tell us about a small business in your town and what you'd want to build for them."></textarea>
+                <textarea name="why" rows="3" placeholder="tell us about a small business in your town and what you'd want to build for them."></textarea>
               </label>
               <button type="submit" class="fs-btn fs-btn--primary" id="fs-apply-submit" style="margin-top: 8px; justify-content: center;">
                 <span>Send application</span>
@@ -535,127 +516,10 @@
       </div>
     </section>
 
-    <!-- ── proof: payouts band ── -->
-    <section class="fs-band" aria-labelledby="fs-payouts-title">
-      <div class="fs-shell">
-        <div class="fs-band__inner">
-          <div class="fs-band__head fs-reveal">
-            <p class="fs-eyebrow">Live · this week</p>
-            <h3 id="fs-payouts-title">Released to students.</h3>
-            <p>Every dollar that left a vault and landed in a student's bank this week.</p>
-          </div>
-          <div class="fs-payouts">
-            <div class="fs-payout fs-reveal">
-              <span class="fs-payout__dot"></span>
-              <div>
-                <div class="fs-payout__name">Maya R. <span>· state school, design</span></div>
-                <div class="fs-payout__work">Menu redesign + window decals · Side Street Coffee</div>
-              </div>
-              <div class="fs-payout__amt">$331</div>
-              <div class="fs-payout__time">02h ago</div>
-            </div>
-            <div class="fs-payout fs-reveal">
-              <span class="fs-payout__dot"></span>
-              <div>
-                <div class="fs-payout__name">Jordan P. <span>· marketing junior</span></div>
-                <div class="fs-payout__work">Market research deck · Split / Fix Shop</div>
-              </div>
-              <div class="fs-payout__amt">$478</div>
-              <div class="fs-payout__time">Yesterday</div>
-            </div>
-            <div class="fs-payout fs-reveal">
-              <span class="fs-payout__dot"></span>
-              <div>
-                <div class="fs-payout__name">Kai T. <span>· comm/PR senior</span></div>
-                <div class="fs-payout__work">Weekly social posts retainer · rooster &amp; rye</div>
-              </div>
-              <div class="fs-payout__amt">$294</div>
-              <div class="fs-payout__time">2d ago</div>
-            </div>
-            <div class="fs-payout fs-reveal">
-              <span class="fs-payout__dot"></span>
-              <div>
-                <div class="fs-payout__name">El B. <span>· CS sophomore</span></div>
-                <div class="fs-payout__work">Shopify cleanup + product photos · North End Bikes</div>
-              </div>
-              <div class="fs-payout__amt">$414</div>
-              <div class="fs-payout__time">3d ago</div>
-            </div>
-            <div class="fs-payout fs-reveal">
-              <span class="fs-payout__dot"></span>
-              <div>
-                <div class="fs-payout__name">Sam D. <span>· business junior</span></div>
-                <div class="fs-payout__work">Brand refresh + new logo · Marigold Florals</div>
-              </div>
-              <div class="fs-payout__amt">$552</div>
-              <div class="fs-payout__time">4d ago</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── testimonials ── -->
-    <section class="fs-section" aria-labelledby="fs-quotes-title">
-      <div class="fs-shell">
-        <div class="fs-section__head fs-reveal">
-          <p class="fs-eyebrow">In their words</p>
-          <h2 class="fs-section__title" id="fs-quotes-title">
-            Students who got in. <span class="fs-italic">What they actually did.</span>
-          </h2>
-        </div>
-        <div class="fs-quotes">
-          <figure class="fs-quote fs-reveal">
-            <div class="fs-quote__mark" aria-hidden="true">&ldquo;</div>
-            <blockquote class="fs-quote__body">
-              I had a 0-line resume in September. By spring, three clients, three real reviews, and a <em>$1,400</em> Stripe history. Recruiter opened with that. Not my GPA.
-            </blockquote>
-            <figcaption class="fs-quote__by">
-              <span class="fs-quote__avatar">JP</span>
-              <div>
-                <div class="fs-quote__name">Jordan P.</div>
-                <div class="fs-quote__role">Marketing junior · state school</div>
-              </div>
-              <span class="fs-quote__earn">+ $1.4k</span>
-            </figcaption>
-          </figure>
-          <figure class="fs-quote fs-reveal">
-            <div class="fs-quote__mark" aria-hidden="true">&ldquo;</div>
-            <blockquote class="fs-quote__body">
-              The bike shop kept re-hiring me. That's been like a <em>retainer</em> for two semesters now. Rent money. Real money.
-            </blockquote>
-            <figcaption class="fs-quote__by">
-              <span class="fs-quote__avatar">EB</span>
-              <div>
-                <div class="fs-quote__name">El B.</div>
-                <div class="fs-quote__role">CS sophomore · Gainesville</div>
-              </div>
-              <span class="fs-quote__earn">+ $2.1k</span>
-            </figcaption>
-          </figure>
-          <figure class="fs-quote fs-reveal">
-            <div class="fs-quote__mark" aria-hidden="true">&ldquo;</div>
-            <blockquote class="fs-quote__body">
-              Referred three. Didn't even apply. I was <em>in</em> by week six. The café owner now sends me holiday cards. Her words: "you're my designer."
-            </blockquote>
-            <figcaption class="fs-quote__by">
-              <span class="fs-quote__avatar">MR</span>
-              <div>
-                <div class="fs-quote__name">Maya R.</div>
-                <div class="fs-quote__role">Design senior · referral path</div>
-              </div>
-              <span class="fs-quote__earn">+ $1.8k</span>
-            </figcaption>
-          </figure>
-        </div>
-      </div>
-    </section>
-
     <!-- ── FAQ ── -->
     <section class="fs-section" id="faq" aria-labelledby="fs-faq-title">
       <div class="fs-shell">
         <div class="fs-section__head fs-section__head--center fs-reveal">
-          <p class="fs-eyebrow">Questions</p>
           <h2 class="fs-section__title" id="fs-faq-title">
             Things students ask before <span class="fs-italic">applying.</span>
           </h2>
@@ -667,11 +531,11 @@
           </details>
           <details>
             <summary>Do I need an "impressive" portfolio to get in?</summary>
-            <p class="fs-faq__answer">No. we want students with taste, hustle, and care — not students with a 200-page Behance. One thing you made and a paragraph about why you'd be great for Grassroots is enough. People on the referral path get in with zero portfolio.</p>
+            <p class="fs-faq__answer">No. We want students with taste, hustle, and care — not students with a 200-page Behance. One thing you made and a paragraph about why you'd be great for Grassroots is enough. People on the referral path get in with zero portfolio.</p>
           </details>
           <details>
             <summary>How much can I realistically earn?</summary>
-            <p class="fs-faq__answer">Avg paid per project is $412 (Q1 '26). Most students do 2–4 projects a semester while in school. A few do 8+. Retainer clients can run all year. The ceiling is yours.</p>
+            <p class="fs-faq__answer">You set your own price on every bid, and the platform fee is 10% of funded work. How many projects you take on each semester is up to you. Retainer clients can run all year. The ceiling is yours.</p>
           </details>
           <details>
             <summary>Who owns the work after?</summary>
@@ -706,8 +570,8 @@
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 9h10M10 5l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </span>
           </a>
-          <a class="fs-btn fs-btn--ghost fs-btn--lg" href="#refer">refer 3 instead</a>
-          <a class="fs-btn fs-btn--ghost fs-btn--lg" href="mailto:moiz@grassroots-marketplace.com">or just email us</a>
+          <a class="fs-btn fs-btn--ghost fs-btn--lg" href="#refer">Refer 3 instead</a>
+          <a class="fs-btn fs-btn--ghost fs-btn--lg" href="mailto:moiz@grassroots-marketplace.com">Or just email us</a>
         </div>
         <p class="fs-final__fine fs-reveal">We read every application. No auto-rejects. Promise.</p>
       </div>
@@ -750,10 +614,10 @@
         <div class="fs-foot__bottom">
           <div>
             <a href="/privacy.html">Privacy</a>
-            <a href="/terms.html">terms</a>
-            <a href="mailto:moiz@grassroots-marketplace.com">contact</a>
+            <a href="/terms.html">Terms</a>
+            <a href="mailto:moiz@grassroots-marketplace.com">Contact</a>
           </div>
-          <div>&copy; 2026 Grassroots · 14 college towns</div>
+          <div>&copy; 2026 Grassroots</div>
         </div>
       </div>
     </footer>
@@ -950,8 +814,8 @@
             s.classList.add('is-filled');
             var state = s.querySelector('.fs-refer__slot-state');
             var step = s.querySelector('.fs-refer__slot-step');
-            if (state) state.textContent = 'Completed!';
-            if (step) step.textContent = '$' + (240 + Math.floor(Math.random() * 380)) + ' Engagement closed';
+            if (state) state.textContent = 'completed!';
+            if (step) step.textContent = '$' + (240 + Math.floor(Math.random() * 380)) + ' engagement closed';
             updateCount();
           });
         });
@@ -963,7 +827,7 @@
             count.style.color = '#fff';
             count.style.textShadow = '0 0 24px rgba(255,255,255,0.45)';
             setTimeout(function () {
-              live.textContent = "You're in. Check your edu inbox.";
+              live.textContent = "you're in. check your edu inbox.";
             }, 350);
           }
         }
@@ -973,7 +837,7 @@
             var code = makeCode();
             input.value = 'grassroots.work/r/' + code;
             hasLink = true;
-            label.textContent = 'Copy';
+            label.textContent = 'copy';
             // pulse the slots
             slots.forEach(function (s, i) {
               s.style.transition = 'all 0.4s cubic-bezier(0.22,1,0.36,1)';
@@ -981,7 +845,7 @@
               s.style.borderColor = 'rgba(255,255,255,0.55)';
               setTimeout(function () { s.style.borderColor = ''; }, 700 + i * 80);
             });
-            live.textContent = 'Referral link generated. Tap a slot to preview a completion.';
+            live.textContent = 'referral link generated. tap a slot to preview a completion.';
             return;
           }
           try {
@@ -989,17 +853,17 @@
             input.setSelectionRange(0, input.value.length);
             navigator.clipboard.writeText(input.value).then(function () {
               btn.classList.add('is-copied');
-              label.textContent = 'Copied';
-              live.textContent = 'Link copied to clipboard.';
+              label.textContent = 'copied';
+              live.textContent = 'link copied to clipboard.';
               setTimeout(function () {
                 btn.classList.remove('is-copied');
-                label.textContent = 'Copy';
+                label.textContent = 'copy';
               }, 1600);
             });
           } catch (e) {
             // fallback for older
             document.execCommand && document.execCommand('copy');
-            label.textContent = 'Copied';
+            label.textContent = 'copied';
           }
         });
       })();
@@ -1012,7 +876,7 @@
         btn.addEventListener('click', function (e) {
           e.preventDefault();
           if (!f.checkValidity()) { f.reportValidity(); return; }
-          btn.innerHTML = '<span>✓ Sent — we\'ll be in touch</span>';
+          btn.innerHTML = '<span>✓ sent — we\'ll be in touch</span>';
           btn.style.background = 'var(--fo-accent)';
           btn.style.color = 'var(--fo-accent-on)';
           btn.disabled = true;
