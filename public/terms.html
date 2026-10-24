@@ -70,17 +70,17 @@
       Page chrome (nav, title, headings, footer) keeps the lowercase brand voice.
     -->
     <style>
-      .pp-page {
+      .lg-page {
         max-width: 760px;
         margin: 0 auto;
         padding: 5rem 1.5rem 5rem;
         color: var(--fo-text);
       }
 
-      .pp-header {
+      .lg-header {
         margin-bottom: var(--space-6);
       }
-      .pp-eyebrow {
+      .lg-eyebrow {
         font-size: var(--type-eyebrow);
         text-transform: uppercase;
         letter-spacing: 0.12em;
@@ -88,20 +88,20 @@
         font-weight: 600;
         margin: 0 0 var(--space-3);
       }
-      .pp-title {
+      .lg-title {
         font-family: "Fraunces", serif;
         font-size: var(--type-display);
         font-weight: 600;
         line-height: 1.1;
         margin: 0 0 var(--space-4);
       }
-      .pp-lede {
+      .lg-lede {
         font-size: var(--type-body);
         color: var(--fo-text-2);
         line-height: 1.5;
         margin: 0 0 var(--space-4);
       }
-      .pp-updated {
+      .lg-updated {
         display: inline-block;
         font-size: var(--type-meta);
         color: var(--fo-text-3);
@@ -110,19 +110,19 @@
         border-radius: 999px;
       }
 
-      .pp-toc {
+      .lg-toc {
         margin: var(--space-6) 0;
         padding: var(--space-4) var(--space-5);
         border: 1px solid var(--fo-line);
         border-radius: 14px;
       }
-      :root:not([data-theme="light"]) .pp-toc {
+      :root:not([data-theme="light"]) .lg-toc {
         background: transparent;
       }
-      :root[data-theme="light"] .pp-toc {
+      :root[data-theme="light"] .lg-toc {
         background: var(--fo-surface);
       }
-      .pp-toc__title {
+      .lg-toc__title {
         font-size: var(--type-eyebrow);
         text-transform: uppercase;
         letter-spacing: 0.12em;
@@ -130,7 +130,7 @@
         font-weight: 600;
         margin: 0 0 var(--space-3);
       }
-      .pp-toc__list {
+      .lg-toc__list {
         margin: 0;
         padding: 0;
         list-style: none;
@@ -139,51 +139,51 @@
         gap: var(--space-2) var(--space-5);
       }
       @media (max-width: 560px) {
-        .pp-toc__list { grid-template-columns: 1fr; }
+        .lg-toc__list { grid-template-columns: 1fr; }
       }
-      .pp-toc__list a {
+      .lg-toc__list a {
         font-size: var(--type-meta);
         color: var(--fo-text-2);
         text-decoration: none;
       }
-      .pp-toc__list a:hover { color: var(--fo-accent); text-decoration: underline; }
+      .lg-toc__list a:hover { color: var(--fo-accent); text-decoration: underline; }
 
-      .pp-section {
+      .lg-section {
         margin: var(--space-7) 0;
         scroll-margin-top: 80px;
       }
-      .pp-section h2 {
+      .lg-section h2 {
         font-family: "Fraunces", serif;
         font-size: var(--type-h1);
         font-weight: 600;
         margin: 0 0 var(--space-4);
       }
-      .pp-section h3 {
+      .lg-section h3 {
         font-size: var(--type-h3);
         font-weight: 600;
         margin: var(--space-5) 0 var(--space-2);
       }
-      .pp-section p,
-      .pp-section li {
+      .lg-section p,
+      .lg-section li {
         font-size: var(--type-body);
         line-height: 1.6;
         color: var(--fo-text);
       }
-      .pp-section p { margin: 0 0 var(--space-4); }
-      .pp-section ul,
-      .pp-section ol {
+      .lg-section p { margin: 0 0 var(--space-4); }
+      .lg-section ul,
+      .lg-section ol {
         margin: 0 0 var(--space-4);
         padding-left: 1.25rem;
       }
-      .pp-section li { margin-bottom: var(--space-2); }
-      .pp-section a {
+      .lg-section li { margin-bottom: var(--space-2); }
+      .lg-section a {
         color: var(--fo-accent);
         text-decoration: underline;
         text-underline-offset: 2px;
       }
-      .pp-section a:hover { text-decoration: none; }
+      .lg-section a:hover { text-decoration: none; }
 
-      .pp-callout {
+      .lg-callout {
         padding: var(--space-4) var(--space-5);
         border-left: 3px solid var(--fo-accent);
         border-radius: 6px;
@@ -191,40 +191,40 @@
         font-size: var(--type-meta);
         color: var(--fo-text-2);
       }
-      :root[data-theme="light"] .pp-callout {
+      :root[data-theme="light"] .lg-callout {
         background: var(--fo-surface-2);
       }
 
-      .pp-table {
+      .lg-table {
         width: 100%;
         border-collapse: collapse;
         margin: var(--space-3) 0 var(--space-5);
         font-size: var(--type-meta);
       }
-      .pp-table th,
-      .pp-table td {
+      .lg-table th,
+      .lg-table td {
         padding: var(--space-2) var(--space-3);
         border: 1px solid var(--fo-line);
         text-align: left;
         vertical-align: top;
       }
-      .pp-table th {
+      .lg-table th {
         font-weight: 600;
         background: var(--fo-surface-2);
         color: var(--fo-text);
       }
-      :root:not([data-theme="light"]) .pp-table th {
+      :root:not([data-theme="light"]) .lg-table th {
         background: transparent;
       }
 
-      .pp-placeholder {
+      .lg-placeholder {
         background: var(--fo-accent-soft);
         padding: 0 var(--space-1);
         border-radius: 3px;
         font-style: italic;
       }
 
-      .pp-foot {
+      .lg-foot {
         margin-top: var(--space-7);
         padding-top: var(--space-5);
         border-top: 1px solid var(--fo-line);
@@ -235,13 +235,13 @@
         gap: var(--space-4);
         justify-content: space-between;
       }
-      .pp-foot a {
+      .lg-foot a {
         color: var(--fo-text-3);
         text-decoration: none;
       }
-      .pp-foot a:hover { color: var(--fo-accent); }
+      .lg-foot a:hover { color: var(--fo-accent); }
       /* [counsel] markers — loud on purpose so nothing ships unreviewed. */
-      .pp-counsel {
+      .lg-counsel {
         font-style: italic;
         font-weight: 600;
         color: var(--fo-accent-warm);
@@ -249,9 +249,9 @@
         border-radius: 3px;
         padding: 0 var(--space-1);
       }
-      .pp-callout--draft { border-left-color: var(--fo-accent-warm); }
+      .lg-callout--draft { border-left-color: var(--fo-accent-warm); }
       /* disclaimers and liability limits must be conspicuous */
-      .pp-section p.pp-conspicuous { font-weight: 600; }
+      .lg-section p.lg-conspicuous { font-weight: 600; }
     </style>
   </head>
 
@@ -277,21 +277,21 @@
       </div>
     </nav>
 
-    <main class="pp-page">
-      <header class="pp-header">
-        <p class="pp-eyebrow">legal</p>
-        <h1 class="pp-title">terms of service</h1>
-        <p class="pp-lede">the agreement between you and grassroots for using the marketplace — accounts, payments, refunds, who owns the work, and what happens when things go wrong.</p>
-        <span class="pp-updated">draft v0.1 · october 21, 2026 · not yet in effect</span>
+    <main class="lg-page">
+      <header class="lg-header">
+        <p class="lg-eyebrow">legal</p>
+        <h1 class="lg-title">terms of service</h1>
+        <p class="lg-lede">the agreement between you and grassroots for using the marketplace — accounts, payments, refunds, who owns the work, and what happens when things go wrong.</p>
+        <span class="lg-updated">draft v0.1 · october 21, 2026 · not yet in effect</span>
       </header>
 
-      <div class="pp-callout pp-callout--draft">
-        <p style="margin: 0;"><strong>Draft for counsel review.</strong> This document has not been reviewed by a lawyer and is not in effect. Every <span class="pp-counsel">[counsel]</span> marker is a point a licensed attorney must confirm or fill in before publication.</p>
+      <div class="lg-callout lg-callout--draft">
+        <p style="margin: 0;"><strong>Draft for counsel review.</strong> This document has not been reviewed by a lawyer and is not in effect. Every <span class="lg-counsel">[counsel]</span> marker is a point a licensed attorney must confirm or fill in before publication.</p>
       </div>
 
-      <nav class="pp-toc" aria-label="on this page">
-        <p class="pp-toc__title">on this page</p>
-        <ul class="pp-toc__list">
+      <nav class="lg-toc" aria-label="on this page">
+        <p class="lg-toc__title">on this page</p>
+        <ul class="lg-toc__list">
           <li><a href="#about">1. about these terms</a></li>
           <li><a href="#eligibility">2. eligibility and accounts</a></li>
           <li><a href="#our-role">3. what grassroots is (and isn't)</a></li>
@@ -319,15 +319,15 @@
         </ul>
       </nav>
 
-      <section class="pp-section" id="about">
+      <section class="lg-section" id="about">
         <h2>1. About these terms</h2>
-        <p>These Terms of Service ("Terms") are a binding agreement between you and grassroots marketplace LLC, a <span class="pp-counsel">[counsel: state of formation]</span> limited liability company ("grassroots," "we," "us," or "our"), with its principal address at <span class="pp-counsel">[counsel: business mailing address]</span>. They govern your use of <a href="https://www.grassroots-marketplace.com">grassroots-marketplace.com</a> and any related services we operate (the "Service").</p>
+        <p>These Terms of Service ("Terms") are a binding agreement between you and grassroots marketplace LLC, a <span class="lg-counsel">[counsel: state of formation]</span> limited liability company ("grassroots," "we," "us," or "our"), with its principal address at <span class="lg-counsel">[counsel: business mailing address]</span>. They govern your use of <a href="https://www.grassroots-marketplace.com">grassroots-marketplace.com</a> and any related services we operate (the "Service").</p>
         <p>By creating an account, checking the box at sign-up, or using the Service, you agree to these Terms and to our <a href="/privacy.html">Privacy Policy</a>. If you do not agree, do not use the Service.</p>
         <p>In these Terms, a "business" is a user who posts listings and pays for work. A "consultant" is a student user who submits offers and performs work. An "engagement" is the agreement between a business and a consultant that forms when the business accepts and pays for a consultant's offer.</p>
-        <p><strong>Section 22 contains an arbitration agreement and class-action waiver.</strong> It affects how disputes between you and grassroots are resolved. <span class="pp-counsel">[counsel: confirm arbitration is wanted and enforceable as drafted]</span></p>
+        <p><strong>Section 22 contains an arbitration agreement and class-action waiver.</strong> It affects how disputes between you and grassroots are resolved. <span class="lg-counsel">[counsel: confirm arbitration is wanted and enforceable as drafted]</span></p>
       </section>
 
-      <section class="pp-section" id="eligibility">
+      <section class="lg-section" id="eligibility">
         <h2>2. Eligibility and accounts</h2>
         <h3>2.1 Who can use grassroots</h3>
         <ul>
@@ -339,12 +339,12 @@
         </ul>
         <h3>2.2 Consultants must be students</h3>
         <p>Only students currently enrolled at an accredited college or university in the United States may register as consultants. By registering as a consultant, you confirm that you are currently enrolled, and you agree to tell us promptly if you stop being enrolled.</p>
-        <p>We may require you to confirm your enrollment, for example by verifying a school-issued (.edu) email address, and we may suspend consultant features until you do. Until that check is in place, enrollment is self-reported and grassroots does not independently verify it. <span class="pp-counsel">[counsel: update this paragraph when .edu verification goes live; decide how long a graduated consultant may finish open engagements]</span></p>
+        <p>We may require you to confirm your enrollment, for example by verifying a school-issued (.edu) email address, and we may suspend consultant features until you do. Until that check is in place, enrollment is self-reported and grassroots does not independently verify it. <span class="lg-counsel">[counsel: update this paragraph when .edu verification goes live; decide how long a graduated consultant may finish open engagements]</span></p>
         <h3>2.3 Account security</h3>
         <p>You are responsible for activity under your account and for keeping your password confidential. Tell us right away at <a href="mailto:moiz@grassroots-marketplace.com">moiz@grassroots-marketplace.com</a> if you believe your account has been used without your permission.</p>
       </section>
 
-      <section class="pp-section" id="our-role">
+      <section class="lg-section" id="our-role">
         <h2>3. What grassroots is (and isn't)</h2>
         <p>Grassroots is a venue. We provide tools that let businesses post work, let consultants offer to do it, and let both sides communicate, schedule, and pay. Grassroots is not a party to any engagement. The engagement is a contract between the business and the consultant only.</p>
         <ul>
@@ -355,16 +355,16 @@
         </ul>
       </section>
 
-      <section class="pp-section" id="work-authorization">
+      <section class="lg-section" id="work-authorization">
         <h2>4. Work authorization</h2>
         <p>Consultants are responsible for making sure they are legally allowed to perform paid work in the United States. Grassroots does not verify work authorization or immigration status.</p>
-        <div class="pp-callout">
+        <div class="lg-callout">
           <p style="margin: 0;"><strong>International students:</strong> if you hold an F-1, J-1, or other nonimmigrant visa, paid freelance or self-employed work, including work found through grassroots, is generally treated as employment and may require specific authorization (for example CPT, OPT, or academic training). Working without authorization can put your status at risk. Talk to your school's international student office (your DSO or responsible officer) before accepting paid work.</p>
         </div>
-        <p>By submitting an offer, you confirm that you are authorized to perform and be paid for that work in the United States. <span class="pp-counsel">[counsel: confirm grassroots has no verification duty as a venue that does not itself obtain the labor (8 U.S.C. § 1324a(a)(4)); consider adding a sign-up attestation checkbox]</span></p>
+        <p>By submitting an offer, you confirm that you are authorized to perform and be paid for that work in the United States. <span class="lg-counsel">[counsel: confirm grassroots has no verification duty as a venue that does not itself obtain the labor (8 U.S.C. § 1324a(a)(4)); consider adding a sign-up attestation checkbox]</span></p>
       </section>
 
-      <section class="pp-section" id="engagements">
+      <section class="lg-section" id="engagements">
         <h2>5. Listings, offers, and engagements</h2>
         <ul>
           <li><strong>Listings.</strong> A business's listing must describe real work the business intends to pay for, with an honest scope, budget, and timeline.</li>
@@ -375,14 +375,14 @@
         </ul>
       </section>
 
-      <section class="pp-section" id="payments">
+      <section class="lg-section" id="payments">
         <h2>6. Payments and fees</h2>
 
         <h3>6.1 Stripe</h3>
-        <p>Payments are processed by Stripe, Inc. Businesses pay by card through Stripe. Consultants receive payouts through a Stripe connected account. By setting up payouts, consultants agree to the <a href="https://stripe.com/connect-account/legal" target="_blank" rel="noopener">Stripe Connected Account Agreement</a>, which includes the <a href="https://stripe.com/legal" target="_blank" rel="noopener">Stripe Services Agreement</a> (together, the "Stripe Terms"), as Stripe may modify them. Consultants authorize grassroots to share information about them and their transactions with Stripe, and to manage their connected account as needed to provide the Service. <span class="pp-counsel">[counsel: confirm required Stripe pass-through language for Custom connected accounts]</span></p>
+        <p>Payments are processed by Stripe, Inc. Businesses pay by card through Stripe. Consultants receive payouts through a Stripe connected account. By setting up payouts, consultants agree to the <a href="https://stripe.com/connect-account/legal" target="_blank" rel="noopener">Stripe Connected Account Agreement</a>, which includes the <a href="https://stripe.com/legal" target="_blank" rel="noopener">Stripe Services Agreement</a> (together, the "Stripe Terms"), as Stripe may modify them. Consultants authorize grassroots to share information about them and their transactions with Stripe, and to manage their connected account as needed to provide the Service. <span class="lg-counsel">[counsel: confirm required Stripe pass-through language for Custom connected accounts]</span></p>
 
         <h3>6.2 Grassroots as merchant of record and limited payment agent</h3>
-        <p>Card charges on grassroots are made by grassroots, and grassroots appears as the merchant on the business's card statement. Each consultant appoints grassroots as its limited agent for the sole purpose of receiving payments from businesses on the consultant's behalf. A business's payment to grassroots for an engagement satisfies the business's obligation to pay the consultant for that payment, even if grassroots has not yet paid out the funds to the consultant. Grassroots then pays the consultant as described in these Terms. <span class="pp-counsel">[counsel: confirm agent-of-payee treatment under Florida Ch. 560 and other states where users are located]</span></p>
+        <p>Card charges on grassroots are made by grassroots, and grassroots appears as the merchant on the business's card statement. Each consultant appoints grassroots as its limited agent for the sole purpose of receiving payments from businesses on the consultant's behalf. A business's payment to grassroots for an engagement satisfies the business's obligation to pay the consultant for that payment, even if grassroots has not yet paid out the funds to the consultant. Grassroots then pays the consultant as described in these Terms. <span class="lg-counsel">[counsel: confirm agent-of-payee treatment under Florida Ch. 560 and other states where users are located]</span></p>
         <p>Grassroots is not a bank, escrow agent, or trustee. Funds waiting to be released are held in grassroots' account with Stripe, are not segregated per user, and do not earn interest for users.</p>
 
         <h3>6.3 How payments are held and released</h3>
@@ -406,7 +406,7 @@
 
       </section>
 
-      <section class="pp-section" id="refunds">
+      <section class="lg-section" id="refunds">
         <h2>7. Refunds</h2>
         <p>This is grassroots' only refund policy. Help articles and other pages summarize it, and if anything conflicts, this section controls.</p>
         <ol>
@@ -423,22 +423,22 @@
           <li><strong>The work falls short of the agreed scope but can be fixed.</strong> The consultant chooses, within 5 days, to either (i) redo the work, in which case a new 14-day review window starts when the consultant marks it delivered again, or (ii) return the payment, in which case the business is refunded the payment amount less card-processing fees (the platform fee is refunded in full). If the consultant does not choose within 5 days, the payment is returned as in (ii). A consultant may redo the work once per payment. If the business reports a problem again after a redo, grassroots decides only between outcomes A and C.</li>
           <li><strong>The agreed scope was breached.</strong> Grassroots refunds the business in full, including the platform fee, and the consultant receives nothing for that payment. Grassroots absorbs the card-processing fee.</li>
         </ol>
-        <p>Grassroots aims to decide within 14 days of the report and notifies both parties of the outcome. This decision applies only to the held payment (Section 21). <span class="pp-counsel">[counsel: confirm the processing-fee deduction in outcome B is enforceable and clearly disclosed]</span></p>
-        <p><span class="pp-counsel">[counsel: confirm the 24-hour window and "final after release" are enforceable for business customers, and whether any state consumer law applies to sole-proprietor businesses]</span></p>
+        <p>Grassroots aims to decide within 14 days of the report and notifies both parties of the outcome. This decision applies only to the held payment (Section 21). <span class="lg-counsel">[counsel: confirm the processing-fee deduction in outcome B is enforceable and clearly disclosed]</span></p>
+        <p><span class="lg-counsel">[counsel: confirm the 24-hour window and "final after release" are enforceable for business customers, and whether any state consumer law applies to sole-proprietor businesses]</span></p>
       </section>
 
-      <section class="pp-section" id="chargebacks">
+      <section class="lg-section" id="chargebacks">
         <h2>8. Chargebacks</h2>
         <p>Please contact us before disputing a grassroots charge with your card issuer. A chargeback does not replace the refund process in Section 7.</p>
         <ul>
           <li>While a card dispute is open on a payment, grassroots will not release that payment to the consultant.</li>
           <li>Grassroots may respond to a dispute using the engagement record, including messages, deliverables, review timestamps, and these Terms.</li>
-          <li><strong>Recovery from consultants.</strong> If a dispute is decided against grassroots for a payment that was already released, the consultant authorizes grassroots to recover the disputed amount (and any related dispute fee) by reversing the transfer to the consultant's Stripe account, by deducting it from the consultant's future payouts, or by invoicing the consultant. <span class="pp-counsel">[counsel: confirm recovery of dispute fees and the invoice remedy; consider a cap or exception when grassroots lost the dispute through its own error]</span></li>
+          <li><strong>Recovery from consultants.</strong> If a dispute is decided against grassroots for a payment that was already released, the consultant authorizes grassroots to recover the disputed amount (and any related dispute fee) by reversing the transfer to the consultant's Stripe account, by deducting it from the consultant's future payouts, or by invoicing the consultant. <span class="lg-counsel">[counsel: confirm recovery of dispute fees and the invoice remedy; consider a cap or exception when grassroots lost the dispute through its own error]</span></li>
           <li>A business that files a chargeback in bad faith after receiving the work may be suspended, and grassroots may seek to recover its losses.</li>
         </ul>
       </section>
 
-      <section class="pp-section" id="retainers">
+      <section class="lg-section" id="retainers">
         <h2>9. Retainers and saved cards</h2>
         <h3>9.1 Retainer terms</h3>
         <ul>
@@ -449,19 +449,19 @@
           <li>The business may turn on auto-release, which releases each period to the consultant without a manual release.</li>
         </ul>
         <h3>9.2 Saved card and recurring-charge authorization</h3>
-        <p>When a business pays on grassroots, its card is saved with Stripe for future grassroots payments. By paying, the business authorizes grassroots to charge that card, without asking again each time, for: (a) each retainer period it has agreed to, on the schedule and at the amount shown in the accepted retainer offer, until the retainer ends; and (b) any other grassroots payment the business approves in the product. The business can remove the saved card or end a retainer from its account at any time. Doing so does not affect charges already made. <span class="pp-counsel">[counsel: confirm this meets card-network stored-credential rules; checkout must show this text and record consent with a timestamp before saving the card]</span></p>
+        <p>When a business pays on grassroots, its card is saved with Stripe for future grassroots payments. By paying, the business authorizes grassroots to charge that card, without asking again each time, for: (a) each retainer period it has agreed to, on the schedule and at the amount shown in the accepted retainer offer, until the retainer ends; and (b) any other grassroots payment the business approves in the product. The business can remove the saved card or end a retainer from its account at any time. Doing so does not affect charges already made. <span class="lg-counsel">[counsel: confirm this meets card-network stored-credential rules; checkout must show this text and record consent with a timestamp before saving the card]</span></p>
       </section>
 
-      <section class="pp-section" id="taxes">
+      <section class="lg-section" id="taxes">
         <h2>10. Taxes</h2>
         <ul>
           <li>Consultants are responsible for their own income and self-employment taxes on what they earn through grassroots. Businesses are responsible for their own tax treatment of what they pay.</li>
           <li>Consultants must provide accurate tax information (including a taxpayer ID) during Stripe payout setup. Grassroots, through Stripe, may issue information returns (such as Form 1099-K or 1099-NEC) when required by law, and may withhold payouts if required tax information is missing.</li>
-          <li>Grassroots does not give tax advice. <span class="pp-counsel">[CPA: confirm which 1099 form applies and that Stripe tax forms for Connect is enabled before live payments]</span></li>
+          <li>Grassroots does not give tax advice. <span class="lg-counsel">[CPA: confirm which 1099 form applies and that Stripe tax forms for Connect is enabled before live payments]</span></li>
         </ul>
       </section>
 
-      <section class="pp-section" id="non-circumvention">
+      <section class="lg-section" id="non-circumvention">
         <h2>11. Non-circumvention</h2>
         <p>Grassroots is how businesses and consultants find each other. In return, you agree that for 12 months after you first connect with another user through grassroots (by a listing, offer, or message), you will not:</p>
         <ul>
@@ -469,10 +469,10 @@
           <li>ask or encourage that user to move payment or work off grassroots; or</li>
           <li>use contact details obtained through grassroots to arrange paid work with that user outside grassroots.</li>
         </ul>
-        <p>This applies to businesses and consultants equally. If you violate this section, grassroots may suspend or close your account. <span class="pp-counsel">[counsel: confirm the 12-month period is enforceable under Florida law (Fla. Stat. § 542.335); decide whether to offer a paid opt-out fee instead of only suspension]</span></p>
+        <p>This applies to businesses and consultants equally. If you violate this section, grassroots may suspend or close your account. <span class="lg-counsel">[counsel: confirm the 12-month period is enforceable under Florida law (Fla. Stat. § 542.335); decide whether to offer a paid opt-out fee instead of only suspension]</span></p>
       </section>
 
-      <section class="pp-section" id="work-product">
+      <section class="lg-section" id="work-product">
         <h2>12. Work product and intellectual property</h2>
         <p>Unless the business and the consultant agree otherwise in writing through grassroots before work starts:</p>
         <ol>
@@ -482,36 +482,36 @@
           <li><strong>Portfolio use.</strong> The consultant may show the deliverables in their portfolio and on their grassroots profile, unless the business opts out in writing before the payment is released, or the deliverable contains the business's confidential information.</li>
           <li><strong>Original work.</strong> The consultant confirms that deliverables are their own original work (or properly licensed) and do not, to their knowledge, infringe anyone else's rights.</li>
         </ol>
-        <p>Grassroots claims no ownership of deliverables. <span class="pp-counsel">[counsel: confirm assignment language; consider moral-rights waiver and work-made-for-hire treatment]</span></p>
+        <p>Grassroots claims no ownership of deliverables. <span class="lg-counsel">[counsel: confirm assignment language; consider moral-rights waiver and work-made-for-hire treatment]</span></p>
       </section>
 
-      <section class="pp-section" id="confidentiality">
+      <section class="lg-section" id="confidentiality">
         <h2>13. Confidentiality between users</h2>
-        <p>A business may share non-public information with a consultant to get work done, such as customer data, financials, or plans. The consultant must use it only for the engagement, must not disclose it to anyone else, and must return or delete it when the engagement ends or the business asks. This does not cover information that is already public, that the consultant already knew, or that the law requires them to disclose. These duties last for 2 years after the engagement ends, and indefinitely for trade secrets and personal information about the business's customers. <span class="pp-counsel">[counsel: confirm duration and whether businesses may attach their own NDA]</span></p>
+        <p>A business may share non-public information with a consultant to get work done, such as customer data, financials, or plans. The consultant must use it only for the engagement, must not disclose it to anyone else, and must return or delete it when the engagement ends or the business asks. This does not cover information that is already public, that the consultant already knew, or that the law requires them to disclose. These duties last for 2 years after the engagement ends, and indefinitely for trade secrets and personal information about the business's customers. <span class="lg-counsel">[counsel: confirm duration and whether businesses may attach their own NDA]</span></p>
         <p>Businesses must not share information with a consultant that the business is not allowed to share, such as personal data it has no right to disclose.</p>
       </section>
 
-      <section class="pp-section" id="your-content">
+      <section class="lg-section" id="your-content">
         <h2>14. Your content and copyright</h2>
         <h3>14.1 License to grassroots</h3>
         <p>You keep ownership of what you post on grassroots, including profiles, listings, offers, portfolio items, messages, and reviews ("your content"). You give grassroots a worldwide, non-exclusive, royalty-free license to host, store, copy, display, format, and distribute your content, only to operate, promote, and improve the Service. This license ends when you delete the content or your account. It does not end for content that other users rely on, such as messages and reviews, which may be kept as described in our <a href="/privacy.html">Privacy Policy</a>. It also does not end for promotional materials already distributed.</p>
         <p>You are responsible for your content and confirm you have the rights to post it.</p>
         <h3>14.2 Copyright complaints (DMCA)</h3>
         <p>If you believe content on grassroots infringes your copyright, send a notice to our designated agent with: your signature; the work you claim is infringed; the material on grassroots and where it is; your contact details; a statement that you believe in good faith the use is not authorized; and a statement, under penalty of perjury, that your notice is accurate and you are authorized to act for the owner. We may remove the material and notify the user who posted it, who may send a counter-notice. We close the accounts of repeat infringers in appropriate circumstances.</p>
-        <p>Designated agent: <span class="pp-counsel">[counsel: register a DMCA agent with the U.S. Copyright Office and insert name, address, and email]</span></p>
+        <p>Designated agent: <span class="lg-counsel">[counsel: register a DMCA agent with the U.S. Copyright Office and insert name, address, and email]</span></p>
       </section>
 
-      <section class="pp-section" id="reviews">
+      <section class="lg-section" id="reviews">
         <h2>15. Reviews</h2>
         <ul>
           <li>Reviews must reflect your real experience of a real engagement. Only parties to a paid engagement can review it, once per engagement.</li>
           <li>You may not offer or accept anything of value for a review, write reviews of yourself, or pressure anyone to change a review.</li>
           <li>Reviews cannot be edited after posting. Grassroots does not remove reviews because they are negative.</li>
-          <li>Grassroots may remove a review only if it: contains harassment, hate speech, threats, or sexual content; reveals private information; is unrelated to the engagement; is spam or fake; was written in exchange for something of value; or is clearly retaliation for the other party's review with no substance about the engagement. <span class="pp-counsel">[counsel: confirm criteria comply with the FTC consumer review rule, 16 C.F.R. Part 465]</span></li>
+          <li>Grassroots may remove a review only if it: contains harassment, hate speech, threats, or sexual content; reveals private information; is unrelated to the engagement; is spam or fake; was written in exchange for something of value; or is clearly retaliation for the other party's review with no substance about the engagement. <span class="lg-counsel">[counsel: confirm criteria comply with the FTC consumer review rule, 16 C.F.R. Part 465]</span></li>
         </ul>
       </section>
 
-      <section class="pp-section" id="conduct">
+      <section class="lg-section" id="conduct">
         <h2>16. Prohibited conduct</h2>
         <p>You may not use grassroots to:</p>
         <ul>
@@ -529,34 +529,34 @@
         </ul>
       </section>
 
-      <section class="pp-section" id="termination">
+      <section class="lg-section" id="termination">
         <h2>17. Suspension and termination</h2>
         <ul>
           <li>You may close your account at any time from your settings. Closing your account does not cancel engagements already in progress or payments already owed.</li>
           <li>We may warn you, limit features, suspend, or close your account if you violate these Terms, if required by law or by Stripe, or to protect users or grassroots. Where reasonable, we will tell you why and give you a chance to respond, except where doing so would create a legal or safety risk.</li>
-          <li>If an account is suspended or closed while payments are held, grassroots will handle those payments under Sections 6 through 8. We will not hold a consultant's earned, undisputed payments as a penalty, except to recover amounts owed under Section 8. <span class="pp-counsel">[counsel: confirm]</span></li>
+          <li>If an account is suspended or closed while payments are held, grassroots will handle those payments under Sections 6 through 8. We will not hold a consultant's earned, undisputed payments as a penalty, except to recover amounts owed under Section 8. <span class="lg-counsel">[counsel: confirm]</span></li>
           <li>Sections that by their nature should survive termination do so, including Sections 7, 8, 10 through 14, and 18 through 24.</li>
         </ul>
       </section>
 
-      <section class="pp-section" id="disclaimers">
+      <section class="lg-section" id="disclaimers">
         <h2>18. Disclaimers</h2>
-        <p class="pp-conspicuous">The Service is provided "as is" and "as available." To the fullest extent permitted by law, grassroots disclaims all warranties, express or implied, including warranties of merchantability, fitness for a particular purpose, title, and non-infringement. Grassroots does not warrant that the Service will be uninterrupted, secure, or error-free. Grassroots makes no warranty about any user, any listing, or the quality, legality, or results of any work, and is not responsible for the acts or omissions of any user, on or off the Service.</p>
+        <p class="lg-conspicuous">The Service is provided "as is" and "as available." To the fullest extent permitted by law, grassroots disclaims all warranties, express or implied, including warranties of merchantability, fitness for a particular purpose, title, and non-infringement. Grassroots does not warrant that the Service will be uninterrupted, secure, or error-free. Grassroots makes no warranty about any user, any listing, or the quality, legality, or results of any work, and is not responsible for the acts or omissions of any user, on or off the Service.</p>
       </section>
 
-      <section class="pp-section" id="liability">
+      <section class="lg-section" id="liability">
         <h2>19. Limitation of liability</h2>
-        <p class="pp-conspicuous">To the fullest extent permitted by law, grassroots and its members, managers, employees, and agents will not be liable for any indirect, incidental, special, consequential, exemplary, or punitive damages, or for lost profits, revenue, data, or goodwill, arising out of or relating to these Terms or the Service, even if advised of the possibility.</p>
-        <p class="pp-conspicuous">To the fullest extent permitted by law, grassroots' total liability for all claims arising out of or relating to these Terms or the Service is limited to the greater of (a) the fees you paid to grassroots in the 12 months before the event giving rise to the claim, and (b) one hundred U.S. dollars ($100). Amounts grassroots holds for you and owes you under Sections 6 through 9 are not limited by this cap.</p>
-        <p>Some jurisdictions do not allow certain of these limits, so they apply only as far as the law allows. <span class="pp-counsel">[counsel: confirm the $100 floor and the carve-out for held funds]</span></p>
+        <p class="lg-conspicuous">To the fullest extent permitted by law, grassroots and its members, managers, employees, and agents will not be liable for any indirect, incidental, special, consequential, exemplary, or punitive damages, or for lost profits, revenue, data, or goodwill, arising out of or relating to these Terms or the Service, even if advised of the possibility.</p>
+        <p class="lg-conspicuous">To the fullest extent permitted by law, grassroots' total liability for all claims arising out of or relating to these Terms or the Service is limited to the greater of (a) the fees you paid to grassroots in the 12 months before the event giving rise to the claim, and (b) one hundred U.S. dollars ($100). Amounts grassroots holds for you and owes you under Sections 6 through 9 are not limited by this cap.</p>
+        <p>Some jurisdictions do not allow certain of these limits, so they apply only as far as the law allows. <span class="lg-counsel">[counsel: confirm the $100 floor and the carve-out for held funds]</span></p>
       </section>
 
-      <section class="pp-section" id="indemnity">
+      <section class="lg-section" id="indemnity">
         <h2>20. Indemnity</h2>
-        <p>You will defend, indemnify, and hold harmless grassroots and its members, managers, employees, and agents from any claims, losses, damages, and expenses (including reasonable attorneys' fees) arising out of: your content; your engagements and the work performed or received under them; your violation of these Terms or of law; or your violation of anyone else's rights. Grassroots may take control of the defense of any claim at its own expense, and you will cooperate. <span class="pp-counsel">[counsel]</span></p>
+        <p>You will defend, indemnify, and hold harmless grassroots and its members, managers, employees, and agents from any claims, losses, damages, and expenses (including reasonable attorneys' fees) arising out of: your content; your engagements and the work performed or received under them; your violation of these Terms or of law; or your violation of anyone else's rights. Grassroots may take control of the defense of any claim at its own expense, and you will cooperate. <span class="lg-counsel">[counsel]</span></p>
       </section>
 
-      <section class="pp-section" id="user-disputes">
+      <section class="lg-section" id="user-disputes">
         <h2>21. Disputes between users</h2>
         <ol>
           <li>If a business and consultant disagree about an engagement, they should first try to resolve it directly through grassroots messaging.</li>
@@ -566,29 +566,29 @@
         </ol>
       </section>
 
-      <section class="pp-section" id="disputes">
+      <section class="lg-section" id="disputes">
         <h2>22. Disputes with grassroots</h2>
-        <p><span class="pp-counsel">[counsel: this entire section needs attorney drafting and review]</span></p>
+        <p><span class="lg-counsel">[counsel: this entire section needs attorney drafting and review]</span></p>
         <h3>22.1 Informal resolution first</h3>
         <p>Before filing a claim against grassroots, you agree to email <a href="mailto:moiz@grassroots-marketplace.com">moiz@grassroots-marketplace.com</a> with a description of the dispute and to try to resolve it informally for at least 30 days.</p>
         <h3>22.2 Governing law</h3>
         <p>These Terms are governed by the laws of the State of Florida and applicable U.S. federal law, without regard to conflict-of-law rules.</p>
         <h3>22.3 Arbitration</h3>
-        <p>Any dispute between you and grassroots arising out of or relating to these Terms or the Service that is not resolved informally will be resolved by final, binding arbitration administered by <span class="pp-counsel">[counsel: AAA or JAMS, and rules]</span>, before a single arbitrator, in <span class="pp-counsel">[counsel: county]</span> County, Florida or by video. The Federal Arbitration Act governs this section. Either party may instead bring an individual claim in small-claims court if it qualifies. Either party may seek an injunction in court for infringement or misuse of intellectual property.</p>
+        <p>Any dispute between you and grassroots arising out of or relating to these Terms or the Service that is not resolved informally will be resolved by final, binding arbitration administered by <span class="lg-counsel">[counsel: AAA or JAMS, and rules]</span>, before a single arbitrator, in <span class="lg-counsel">[counsel: county]</span> County, Florida or by video. The Federal Arbitration Act governs this section. Either party may instead bring an individual claim in small-claims court if it qualifies. Either party may seek an injunction in court for infringement or misuse of intellectual property.</p>
         <h3>22.4 Class-action waiver</h3>
         <p>You and grassroots each agree to bring claims only in an individual capacity, and not as a plaintiff or class member in any class, collective, or representative proceeding.</p>
         <h3>22.5 Opting out</h3>
         <p>You may opt out of this arbitration agreement by emailing <a href="mailto:moiz@grassroots-marketplace.com">moiz@grassroots-marketplace.com</a> within 30 days after you first accept these Terms, stating your name, your account email, and that you opt out of arbitration.</p>
         <h3>22.6 Courts</h3>
-        <p>For any dispute not subject to arbitration, you and grassroots agree to the exclusive jurisdiction of the state and federal courts located in <span class="pp-counsel">[counsel: county]</span> County, Florida.</p>
+        <p>For any dispute not subject to arbitration, you and grassroots agree to the exclusive jurisdiction of the state and federal courts located in <span class="lg-counsel">[counsel: county]</span> County, Florida.</p>
       </section>
 
-      <section class="pp-section" id="changes">
+      <section class="lg-section" id="changes">
         <h2>23. Changes to these terms</h2>
         <p>We may update these Terms. For material changes, we will notify you by email or in-product notice at least 30 days before they take effect, and may ask you to accept the new version. Changes do not apply to engagements formed or disputes that arose before they take effect. If you keep using the Service after a change takes effect, you accept the updated Terms. If you do not agree, close your account. We record which version of these Terms you accepted and when.</p>
       </section>
 
-      <section class="pp-section" id="general">
+      <section class="lg-section" id="general">
         <h2>24. General terms and contact</h2>
         <ul>
           <li><strong>Electronic notices.</strong> You agree to receive notices from us electronically, by email to your account address or in the Service. We will send legal notices to you the same way.</li>
@@ -598,15 +598,15 @@
           <li><strong>Assignment.</strong> You may not transfer these Terms without our written consent. We may assign them in connection with a merger, acquisition, or sale of assets.</li>
           <li><strong>Force majeure.</strong> We are not liable for delays or failures caused by events beyond our reasonable control, including outages at Stripe, Supabase, or Vercel.</li>
         </ul>
-        <div class="pp-callout">
+        <div class="lg-callout">
           <p style="margin: 0;">
             <strong>Email:</strong> <a href="mailto:moiz@grassroots-marketplace.com">moiz@grassroots-marketplace.com</a><br/>
-            <strong>Postal mail:</strong> grassroots marketplace LLC, <span class="pp-counsel">[counsel: business mailing address]</span>
+            <strong>Postal mail:</strong> grassroots marketplace LLC, <span class="lg-counsel">[counsel: business mailing address]</span>
           </p>
         </div>
       </section>
 
-      <div class="pp-foot">
+      <div class="lg-foot">
         <span>&copy; 2026 grassroots marketplace LLC</span>
         <span>
           <a href="/">home</a>
