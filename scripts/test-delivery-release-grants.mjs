@@ -100,7 +100,7 @@ await t("service sets outcome + report on bid", "service", ub("problem_reported_
 await t("consultant marks themselves responded on the bid", consultant, ub("consultant_response_at=now()"), "block");
 await t("consultant extends their response window", consultant, ub("response_due_at=now() + interval '30 days'"), "block");
 await t("owner reads response columns on the bid", owner, `select consultant_response_at, response_due_at from bids where id='${PAID}'`, "allow");
-await t("support_outcome only takes known values", "service", ub("support_outcome='split'"), "block");
+await t("support_outcome only takes known values", "service", ub("support_outcome='partial_payout'"), "block");
 await t("consultant_choice only takes known values", "service", ub("consultant_choice='half'"), "block");
 await t("problem link must be http(s)", "service", ub("problem_report_link='javascript:alert(1)'"), "block");
 await db.exec(`insert into payment_audit(payment_table, payment_id, bid_id, action) values ('bids', '${PAID}', '${PAID}', 'seed')`);

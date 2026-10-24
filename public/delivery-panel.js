@@ -69,6 +69,17 @@ function responseLines(p, role) {
 function describeSupport(p, role) {
   const owner = role === "owner";
   const m = p.money || {};
+  if (p.support_outcome === "split") {
+    return {
+      pill: ["split by support", "muted"],
+      lines: [owner
+        ? "support reviewed the work and split the payment between you and the consultant."
+        : "support reviewed the work and split the payment between you and the business."],
+      breakdown: owner
+        ? [["refunded to you", fmtUsd(m.split_refund_cents)], ["paid to the consultant", fmtUsd(m.split_transfer_cents)]]
+        : [["refunded to the business", fmtUsd(m.split_refund_cents)], ["paid to you", fmtUsd(m.split_transfer_cents)]],
+    };
+  }
   if (p.status === "released") {
     return {
       pill: ["released", "accepted"],
@@ -83,14 +94,8 @@ function describeSupport(p, role) {
       ? {
           pill: ["refunded", "muted"],
           lines: [timedOut
-            ? `the consultant didn't choose in 5 days, so you were refunded ${fmtUsd(p.refunded_cents)}.`
-            : `the consultant gave the payment back. you were refunded ${fmtUsd(p.refunded_cents)}.`],
-          breakdown: [
-            ["payment", fmtUsd(m.gross_cents)],
-            ["card processing fee kept", `−${fmtUsd(m.card_fee_cents)}`],
-            ["refunded to your card", fmtUsd(p.refunded_cents)],
-          ],
-          feeNote: m.card_fee_note,
+            ? `the consultant didn't choose in 5 days, so you were refunded ${fmtUsd(p.refunded_cents)} in full.`
+            : `the consultant gave the payment back. you were refunded ${fmtUsd(p.refunded_cents)} in full.`],
         }
       : {
           pill: ["given back", "muted"],
@@ -247,7 +252,6 @@ function renderItem(p, role) {
   }
   if (d.breakdown) {
     deliveryBits.push(`<dl class="eg-delivery__breakdown">${d.breakdown.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>`);
-    if (d.feeNote) deliveryBits.push(`<p class="eg-delivery__line">${esc(d.feeNote)}</p>`);
   }
   li.innerHTML = `
     <div class="eg-period__head">
@@ -467,7 +471,7 @@ function openChoiceForm(p, choice, form, actions) {
   const m = p.money || {};
   form.innerHTML = choice === "redo"
     ? `<p class="eg-delivery__line">you can redo the work once for this payment. when you mark it delivered again, the business gets a new 14-day review.</p>`
-    : `<p class="eg-delivery__line">the business gets ${esc(fmtUsd(m.give_back_cents))} back (the payment minus the ${esc(fmtUsd(m.card_fee_cents))} card fee), and you get nothing for this payment. this can't be undone.</p>${m.card_fee_note ? `<p class="eg-delivery__line">${esc(m.card_fee_note)}</p>` : ""}`;
+    : `<p class="eg-delivery__line">the business gets the full ${esc(fmtUsd(m.give_back_cents))} back, and you get nothing for this payment. this can't be undone.</p>`;
   const row = document.createElement("div");
   row.className = "eg-delivery__actions";
   row.append(

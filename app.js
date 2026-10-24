@@ -830,8 +830,10 @@ async function onChargeRefunded(charge) {
 
   // Refunds grassroots issued itself (support outcomes, give-backs) are
   // already on the refunded rows. Only the rest is unexplained.
+  // Refunded rows and released rows support split both carry the amount
+  // that was refunded on purpose.
   const knownRefunded = [bid, ...(phaseRows || [])]
-    .filter((r) => r && (r.payment_status || r.status) === "refunded")
+    .filter((r) => r && ["refunded", "released"].includes(r.payment_status || r.status))
     .reduce((sum, r) => sum + Number(r.refunded_cents || 0), 0);
   if (!full && Number(charge.amount_refunded || 0) <= knownRefunded) return;
 
@@ -3783,7 +3785,7 @@ const DAY_MS = 86400000;
 
 const DELIVERY_COLS = "delivered_at, delivery_note, delivery_link, changes_requested_at, changes_request_note, review_reminded_at, support_hold_at, support_hold_reason, backstop_flagged_at, refunded_cents, stripe_fee_cents, platform_fee_cents, " +
   // add_support_outcomes.sql: reported problems + support outcomes A/B/C.
-  "problem_reported_at, problem_report_note, problem_report_link, problem_report_count, support_outcome, support_outcome_at, redo_offered_at, redo_deadline_at, redo_reminded_at, redo_used, consultant_choice, consultant_choice_at, give_back_fee_cents, give_back_fee_note, response_due_at, consultant_response_at";
+  "problem_reported_at, problem_report_note, problem_report_link, problem_report_count, support_outcome, support_outcome_at, redo_offered_at, redo_deadline_at, redo_reminded_at, redo_used, consultant_choice, consultant_choice_at, response_due_at, consultant_response_at";
 const BID_RELEASE_COLS = `id, listing_id, consultant_id, payment_amount_cents, payment_status, payment_intent_id, transfer_id, consultant_payout_cents, paid_at, released_at, ${DELIVERY_COLS}`;
 const PHASE_RELEASE_COLS = `id, bid_id, phase, period_index, status, amount_cents, payment_intent_id, charge_id, transfer_id, consultant_payout_cents, paid_at, released_at, refunded_at, period_end_at, ${DELIVERY_COLS}`;
 
@@ -4249,11 +4251,6 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
       const autoReleaseAt = held && win && !onHold && !partiallyRefunded && win.releaseAt < backstop ? win.releaseAt : null;
       const money = paymentMoney(item);
       const waiting = held && waitingOnConsultant(row);
-      // Card fee shown to both sides: Stripe's actual fee while the
-      // consultant is choosing; the fee actually kept after a give-back.
-      let fee = { card_fee_cents: money.card_fee_cents, note: null };
-      if (waiting) fee = await cardFeeFor(item);
-      else if (row.give_back_fee_cents != null) fee = { card_fee_cents: row.give_back_fee_cents, note: row.give_back_fee_note };
       return {
         key: item.key,
         payment_id: item.kind === "phase" ? row.id : null,
@@ -4299,11 +4296,10 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
         can_choose: waiting && role === "consultant" && nowMs < Date.parse(row.redo_deadline_at),
         money: {
           gross_cents: money.gross_cents,
-          card_fee_cents: fee.card_fee_cents,
-          card_fee_note: fee.note,
-          platform_fee_cents: money.platform_fee_cents,
-          give_back_cents: Math.max(0, money.gross_cents - fee.card_fee_cents - money.refunded_cents),
+          give_back_cents: money.give_back_cents,
           payout_cents: money.payout_cents,
+          // Custom split: what went where (refunded_cents is the business's part).
+          ...(row.support_outcome === "split" ? { split_refund_cents: Number(row.refunded_cents || 0), split_transfer_cents: Number(row.consultant_payout_cents || 0) } : {}),
         },
       };
     }));
@@ -4336,7 +4332,7 @@ const REDO_CHOICE_DAYS = 5;
 const REDO_REMINDER_DAYS = 3;
 // The consultant's window to tell support their side, from the hold.
 const RESPONSE_WINDOW_MS = 48 * 60 * 60 * 1000;
-const SUPPORT_OUTCOMES = new Set(["meets_scope", "fixable", "scope_breached"]);
+const SUPPORT_OUTCOMES = new Set(["meets_scope", "fixable", "scope_breached", "split"]);
 const SYSTEM_ACTOR = { id: null, email: "system:auto-release" };
 const WAITING_ERROR = "this payment is waiting on the consultant's choice.";
 
@@ -4357,8 +4353,10 @@ function paymentMoney(item) {
     refunded_cents: refunded,
     remaining_cents: remaining,
     payout_cents: payout,
-    // Outcome B (ii): the platform keeps only the card-processing fee.
-    give_back_cents: Math.max(0, gross - cardFee - refunded),
+    // Outcome B (ii): everything still on the charge. Every support-driven
+    // refund is in full; grassroots absorbs Stripe's card fee (moiz,
+    // 2026-10-24).
+    give_back_cents: remaining,
     // Outcome C: everything still on the charge.
     full_refund_cents: remaining,
     // Partly refunded payment: what the consultant gets for the rest.
@@ -4374,14 +4372,13 @@ async function chargeIdFor(item) {
   return idOf(intent.latest_charge);
 }
 
-/* Stripe's actual card-processing fee on this payment (outcome B give-back
-   keeps exactly this). Standard US pricing is 2.9% + 30¢ of the charge;
-   when Stripe charged something else, `note` says why in plain words
-   (international card, currency conversion). A phase row on a combined
-   charge (proposal batch) takes its share of the fee.
-   strict: throw instead of falling back to the checkout estimate — a
-   refund must never be computed from a guess. */
-async function cardFeeFor(item, { strict = false } = {}) {
+/* Stripe's actual card-processing fee on this payment — what grassroots
+   absorbs when support refunds it. Internal record only (audit rows, admin
+   screen); never deducted from a refund and never shown to either party.
+   Standard US pricing is 2.9% + 30¢ of the charge; `note` says why when
+   Stripe charged something else. A phase row on a combined charge
+   (proposal batch) takes its share. Falls back to the checkout estimate. */
+async function cardFeeFor(item) {
   const money = paymentMoney(item);
   const estimate = { card_fee_cents: money.card_fee_cents, standard_fee_cents: money.card_fee_cents, source: "estimate", note: null };
   try {
@@ -4411,8 +4408,7 @@ async function cardFeeFor(item, { strict = false } = {}) {
       if (share < 1) note += " this payment's share of a combined charge.";
     }
     return { card_fee_cents: fee, standard_fee_cents: standard, source: "stripe", note };
-  } catch (err) {
-    if (strict) throw new Error(`couldn't get the card fee from stripe: ${err.message}`);
+  } catch {
     return estimate;
   }
 }
@@ -4576,32 +4572,139 @@ async function notifyBoth(ctx, owner, consultant, link) {
 // Outcome B (ii), by the consultant's choice or after 5 days with none.
 async function giveBackPayment(item, ctx, choice, actor) {
   const money = paymentMoney(item);
-  const fee = await cardFeeFor(item, { strict: true });
-  const giveBack = Math.max(0, money.gross_cents - fee.card_fee_cents - money.refunded_cents);
   const nowIso = new Date().toISOString();
-  const result = await refundHeldPayment(item, giveBack, {
-    updates: { consultant_choice: choice, consultant_choice_at: nowIso, give_back_fee_cents: fee.card_fee_cents, give_back_fee_note: fee.note },
+  const result = await refundHeldPayment(item, money.give_back_cents, {
+    updates: { consultant_choice: choice, consultant_choice_at: nowIso },
     claimEq: { support_outcome: "fixable", consultant_choice: null },
     reason: choice,
   });
   if (!result.ok) return result;
+  const fee = await cardFeeFor(item);
   await writeAudit(item, choice === "give_back" ? "consultant_give_back" : "give_back_timeout", actor, {
     amountCents: result.amount_cents,
     stripeId: result.refund_id,
-    details: { gross_cents: money.gross_cents, card_fee_cents: fee.card_fee_cents, standard_fee_cents: fee.standard_fee_cents, fee_note: fee.note, platform_fee_cents: money.platform_fee_cents },
+    details: { gross_cents: money.gross_cents, ...absorbedDetails(fee) },
   });
   const timedOut = choice === "give_back_timeout";
-  const feeLine = `the ${dollars(fee.card_fee_cents)} card processing fee isn't refunded.${fee.note ? ` ${fee.note}` : ""}${money.platform_fee_cents > 0 ? " the platform fee is refunded in full." : ""}`;
   await notifyBoth(ctx, {
     type: "payment_returned",
-    title: `you were refunded ${dollars(result.amount_cents)}`,
-    body: `${timedOut ? `the consultant didn't choose within ${REDO_CHOICE_DAYS} days, so the payment for "${ctx.title}" went back to you.` : `the consultant gave the payment back for "${ctx.title}".`} ${feeLine}`,
+    title: `you were refunded ${dollars(result.amount_cents)} in full`,
+    body: `${timedOut ? `the consultant didn't choose within ${REDO_CHOICE_DAYS} days, so the payment for "${ctx.title}" went back to you.` : `the consultant gave the payment back for "${ctx.title}".`} cards can take 5–10 business days to show it.`,
   }, {
     type: "payment_returned",
     title: timedOut ? "the payment went back to the business" : "you gave the payment back",
     body: `${timedOut ? `you didn't choose within ${REDO_CHOICE_DAYS} days, so ` : ""}the business was refunded for "${ctx.title}". you won't be paid for this payment.`,
   }, paymentLink(item));
-  return { ...result, money, fee };
+  return { ...result, money };
+}
+
+// Audit fields for the card fee grassroots absorbs on a support refund.
+function absorbedDetails(fee) {
+  return { card_fee_absorbed_cents: fee.card_fee_cents, fee_source: fee.source, ...(fee.note ? { fee_note: fee.note } : {}) };
+}
+
+// The consultant's connected account, if it can take a payout now.
+async function consultantDestination(consultantId) {
+  const { data: profile } = await supabase.from("profiles").select("stripe_account_id").eq("id", consultantId).maybeSingle();
+  if (!profile?.stripe_account_id) return { error: "the consultant hasn't set up payouts yet." };
+  const account = await stripe.accounts.retrieve(profile.stripe_account_id);
+  if (!account.payouts_enabled) return { error: "the consultant's payout setup is incomplete." };
+  return { destination: profile.stripe_account_id };
+}
+
+// The consultant's part of a split. Idempotent per row + amount, so a
+// retry after a lost response returns the same transfer.
+async function transferSplit(item, chargeId, destination, amountCents) {
+  const table = releaseTable(item);
+  try {
+    const transfer = await stripe.transfers.create(
+      {
+        amount: amountCents,
+        currency: "usd",
+        destination,
+        source_transaction: chargeId,
+        metadata: { bid_id: item.bidId, payment_table: table, payment_id: item.row.id, source: "support_split" },
+      },
+      { idempotencyKey: idemKey("transfer", "split", table, item.row.id, amountCents) }
+    );
+    const { error } = await supabase.from(table).update({ transfer_id: transfer.id }).eq("id", item.row.id);
+    if (error) alertOps("split_transfer_id_not_saved", { item: item.key, transfer_id: transfer.id, error: error.message });
+    return { transfer_id: transfer.id };
+  } catch (err) {
+    alertOps("split_transfer_failed", { item: item.key, bid_id: item.bidId, amount_cents: amountCents, error: err.message });
+    return { error: err.message };
+  }
+}
+
+/* Custom split (support): part refunded to the business, the rest (up to
+   what's left on the charge) transferred to the consultant; grassroots
+   absorbs the card fee. Claims held → released first (compare-and-set on
+   refunded_cents + `claimEq`), then refunds, then transfers, each with an
+   idempotency key. A failed refund rolls the claim back. A failed transfer
+   after the refund went through leaves the row released with no
+   transfer_id; ops is alerted and support retries from the admin screen. */
+async function splitHeldPayment(item, ctx, refundCents, transferCents, { claimEq = {} } = {}) {
+  const row = item.row;
+  const table = releaseTable(item);
+  const field = heldStatusField(item);
+  const money = paymentMoney(item);
+  if (!Number.isInteger(refundCents) || !Number.isInteger(transferCents) || refundCents <= 0 || transferCents <= 0) {
+    return { ok: false, status: 400, error: "a split needs a refund and a payout above $0. use meets scope or scope breached for all or nothing." };
+  }
+  if (refundCents + transferCents > money.remaining_cents) {
+    return { ok: false, status: 400, error: `the refund and payout can't add up to more than the ${dollars(money.remaining_cents)} left on this payment.` };
+  }
+  let chargeId = row.charge_id || null;
+  if (item.kind === "bid") {
+    if (!row.payment_intent_id) return { ok: false, status: 400, error: "no payment on this bid." };
+    const intent = await stripe.paymentIntents.retrieve(row.payment_intent_id);
+    if (intent.transfer_data?.destination) {
+      return { ok: false, status: 409, error: "this payment went to the consultant at checkout. split it in stripe with a partial transfer reversal." };
+    }
+    chargeId = idOf(intent.latest_charge);
+  }
+  if (!chargeId) return { ok: false, status: 400, error: "no charge on this payment." };
+  const dest = await consultantDestination(ctx.consultantId);
+  if (dest.error) return { ok: false, status: 400, error: dest.error };
+  if (await chargeDisputeHold(chargeId)) {
+    return { ok: false, status: 409, disputed: true, error: "this payment is under a card dispute. settle the dispute in stripe first." };
+  }
+
+  const nowIso = new Date().toISOString();
+  const before = Number(row.refunded_cents || 0);
+  const claimed = await casUpdate(table, row.id, "held", {
+    [field]: "released",
+    released_at: nowIso,
+    refunded_cents: before + refundCents,
+    consultant_payout_cents: transferCents,
+    support_outcome: "split",
+    support_outcome_at: nowIso,
+    ...(item.kind === "phase" ? { refunded_at: nowIso } : {}),
+  }, field, { refunded_cents: before, ...claimEq });
+  if (!claimed) return { ok: false, status: 409, conflict: true, error: "this payment changed. reload and try again." };
+
+  let refund;
+  try {
+    refund = await stripe.refunds.create(
+      { charge: chargeId, amount: refundCents, metadata: { bid_id: item.bidId, payment_table: table, payment_id: row.id, reason: "split" } },
+      { idempotencyKey: idemKey("refund", "split", table, row.id, refundCents) }
+    );
+  } catch (err) {
+    const revert = {
+      [field]: "held",
+      released_at: null,
+      refunded_cents: before,
+      consultant_payout_cents: row.consultant_payout_cents ?? null,
+      support_outcome: null,
+      support_outcome_at: null,
+      ...(item.kind === "phase" ? { refunded_at: row.refunded_at ?? null } : {}),
+    };
+    const { error: revertErr } = await supabase.from(table).update(revert).eq("id", row.id).eq(field, "released").is("transfer_id", null);
+    if (revertErr) alertOps("split_revert_failed", { item: item.key, error: revertErr.message });
+    throw err;
+  }
+  const transfer = await transferSplit(item, chargeId, dest.destination, transferCents);
+  return { ok: true, refund_id: refund.id, transfer_id: transfer.transfer_id || null, transfer_error: transfer.error || null };
 }
 
 // Daily job, outcome B: 5-day deadline and the day-3 reminder.
@@ -4922,6 +5025,31 @@ app.post("/api/admin/payments/outcome", async (req, res) => {
     const nowIso = new Date().toISOString();
     const link = paymentLink(item);
 
+    if (outcome === "split") {
+      const reason = cleanText(req.body?.reason ?? note, 500);
+      if (!reason) return res.status(400).json({ error: "add a reason for the split. it's kept in the record." });
+      if (money.refunded_cents > 0) return res.status(409).json({ error: "part of this payment was already refunded. settle the rest instead." });
+      const refundCents = Math.round(Number(req.body?.refund_cents));
+      const transferCents = Math.round(Number(req.body?.transfer_cents));
+      const result = await splitHeldPayment(item, ctx, refundCents, transferCents, { claimEq: { support_outcome: null } });
+      if (!result.ok) return res.status(result.status).json({ error: result.error });
+      await writeAudit(item, "outcome_split", admin, {
+        amountCents: refundCents + transferCents,
+        stripeId: result.refund_id,
+        details: { reason, early, refund_cents: refundCents, transfer_cents: transferCents, transfer_id: result.transfer_id, transfer_error: result.transfer_error, ...absorbedDetails(await cardFeeFor(item)) },
+      });
+      await notifyBoth(ctx, {
+        type: "support_outcome",
+        title: `support split the payment · ${dollars(refundCents)} back to you`,
+        body: `support reviewed "${ctx.title}" and split the payment: ${dollars(refundCents)} refunded to you, ${dollars(transferCents)} to the consultant. cards can take 5–10 business days to show the refund.`,
+      }, {
+        type: "support_outcome",
+        title: `support split the payment · ${dollars(transferCents)} to you`,
+        body: `support reviewed "${ctx.title}" and split the payment: ${dollars(transferCents)} to you, ${dollars(refundCents)} refunded to the business.${result.transfer_error ? " your part is delayed. support is on it." : ""}`,
+      }, link);
+      return res.json({ ok: true, outcome, refund_id: result.refund_id, transfer_id: result.transfer_id, transfer_error: result.transfer_error });
+    }
+
     if (outcome === "fixable") {
       if (!DELIVERABLE_KINDS.has(t.kind)) return res.status(400).json({ error: "there's no delivery to redo on this payment. pick meets scope or scope breached." });
       if (row.redo_used) return res.status(409).json({ error: "the consultant already used their one redo. pick meets scope or scope breached." });
@@ -4986,8 +5114,7 @@ app.post("/api/admin/payments/outcome", async (req, res) => {
       reason: "scope_breached",
     });
     if (!result.ok) return res.status(result.status).json({ error: result.error });
-    const absorbed = await cardFeeFor(item);
-    await writeAudit(item, "outcome_scope_breached", admin, { amountCents: result.amount_cents, stripeId: result.refund_id, details: { note, early, card_fee_absorbed_cents: absorbed.card_fee_cents, fee_source: absorbed.source } });
+    await writeAudit(item, "outcome_scope_breached", admin, { amountCents: result.amount_cents, stripeId: result.refund_id, details: { note, early, ...absorbedDetails(await cardFeeFor(item)) } });
     await notifyBoth(ctx, {
       type: "support_outcome",
       title: `you were refunded ${dollars(result.amount_cents)} in full`,
@@ -5049,7 +5176,7 @@ app.post("/api/admin/payments/settle-remainder", async (req, res) => {
       reason: "refund_remainder",
     });
     if (!result.ok) return res.status(result.status).json({ error: result.error });
-    await writeAudit(item, "refund_remainder", admin, { amountCents: result.amount_cents, stripeId: result.refund_id, details: money });
+    await writeAudit(item, "refund_remainder", admin, { amountCents: result.amount_cents, stripeId: result.refund_id, details: { ...money, ...absorbedDetails(await cardFeeFor(item)) } });
     await notifyBoth(ctx, {
       type: "support_outcome",
       title: `you were refunded the rest · ${dollars(result.amount_cents)}`,
@@ -5064,6 +5191,52 @@ app.post("/api/admin/payments/settle-remainder", async (req, res) => {
     return res.status(500).json({ error: err.message || "could not settle the payment." });
   }
 });
+
+// Admin: retry the consultant's part of a split whose transfer failed
+// after the refund went through. Same idempotency key, same amount.
+app.post("/api/admin/payments/retry-split-transfer", async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "admin only." });
+  if (!requireStripe(res)) return;
+  const bidId = String(req.body?.bid_id || "").trim();
+  const paymentId = String(req.body?.payment_id || "").trim() || null;
+  if (!bidId) return res.status(400).json({ error: "bid_id required." });
+  try {
+    const t = await loadReleaseTarget(bidId, paymentId);
+    if (t.error) return res.status(t.status).json({ error: t.error });
+    const row = t.item.row;
+    if (row.support_outcome !== "split" || row[heldStatusField(t.item)] !== "released" || row.transfer_id) {
+      return res.status(409).json({ error: "there's no split payout to retry on this payment." });
+    }
+    const chargeId = await chargeIdFor(t.item);
+    const dest = await consultantDestination(t.ctx.consultantId);
+    if (dest.error) return res.status(400).json({ error: dest.error });
+    const result = await transferSplit(t.item, chargeId, dest.destination, Number(row.consultant_payout_cents));
+    if (result.error) return res.status(502).json({ error: result.error });
+    await writeAudit(t.item, "split_transfer_retry", admin, { amountCents: Number(row.consultant_payout_cents), stripeId: result.transfer_id });
+    await notifyUser(t.ctx.consultantId, {
+      type: "support_outcome",
+      title: "your part of the split is on its way",
+      body: `${dollars(row.consultant_payout_cents)} from "${t.ctx.title}" is on its way to your stripe balance.`,
+      link: paymentLink(t.item),
+    });
+    return res.json({ ok: true, transfer_id: result.transfer_id });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "could not retry the payout." });
+  }
+});
+
+// Released splits whose consultant transfer still needs a retry.
+async function stuckSplits() {
+  const [{ data: bids }, { data: rows }] = await Promise.all([
+    supabase.from("bids").select(BID_RELEASE_COLS).eq("payment_status", "released").eq("support_outcome", "split").is("transfer_id", null),
+    supabase.from("bid_phase_payments").select(PHASE_RELEASE_COLS).eq("status", "released").eq("support_outcome", "split").is("transfer_id", null),
+  ]);
+  return [
+    ...(bids || []).map((b) => ({ kind: "bid", key: `bid-${b.id}`, bidId: b.id, row: b, cents: b.payment_amount_cents })),
+    ...(rows || []).map((r) => ({ kind: "phase", key: `pay-${r.id}`, bidId: r.bid_id, row: r, cents: r.amount_cents })),
+  ];
+}
 
 // Open or lost card dispute on a payment, or null.
 async function paymentDispute(item) {
@@ -5104,10 +5277,11 @@ app.get("/api/admin/payments/held", async (req, res) => {
       return names.get(id);
     };
     const payments = [];
-    for (const item of await scanHeld(nowMs)) {
+    for (const item of [...await scanHeld(nowMs), ...await stuckSplits()]) {
       const ctx = await releaseContext(item.bidId, cache);
       if (!ctx) continue;
       const row = item.row;
+      const stuckSplit = row[heldStatusField(item)] === "released";
       const kind = paymentKind(item, ctx);
       const money = paymentMoney(item);
       const dispute = await paymentDispute(item);
@@ -5121,8 +5295,9 @@ app.get("/api/admin/payments/held", async (req, res) => {
         disputed: Boolean(dispute),
         stale: Boolean(row.support_hold_at) && !row.support_outcome && nowMs - Date.parse(row.support_hold_at) >= SUPPORT_HOLD_STALE_DAYS * DAY_MS,
         awaiting_response: responsePending(row, nowMs) && !row.support_outcome,
+        split_transfer_failed: stuckSplit,
       };
-      if (!flags.on_hold && !flags.partly_refunded && !flags.backstop && !flags.disputed && req.query.all !== "1") continue;
+      if (!stuckSplit && !flags.on_hold && !flags.partly_refunded && !flags.backstop && !flags.disputed && req.query.all !== "1") continue;
 
       // What the screen offers. The endpoints re-check all of this.
       const actions = [];
@@ -5131,21 +5306,17 @@ app.get("/api/admin/payments/held", async (req, res) => {
         else {
           actions.push("meets_scope");
           if (DELIVERABLE_KINDS.has(kind) && !row.redo_used) actions.push("fixable");
-          actions.push("scope_breached");
+          actions.push("scope_breached", "split");
         }
       }
-      if (!flags.on_hold && !waiting && !businessCanReport({ item, kind, ctx }, nowMs)) actions.push("hold");
+      if (!flags.on_hold && !waiting && !stuckSplit && !businessCanReport({ item, kind, ctx }, nowMs)) actions.push("hold");
+      if (stuckSplit) actions.splice(0, actions.length, "retry_split_transfer");
 
-      // Give-back math with Stripe's actual card fee, when B is in play.
-      if (actions.includes("fixable") || waiting) {
+      // Stripe's actual card fee: what grassroots absorbs on a support
+      // refund or split. Internal to the admin screen.
+      if (actions.some((a) => ["fixable", "scope_breached", "refund_remainder", "split"].includes(a)) || waiting) {
         const fee = await cardFeeFor(item);
-        Object.assign(money, {
-          card_fee_cents: fee.card_fee_cents,
-          card_fee_source: fee.source,
-          card_fee_note: fee.note,
-          standard_fee_cents: fee.standard_fee_cents,
-          give_back_cents: Math.max(0, money.gross_cents - fee.card_fee_cents - money.refunded_cents),
-        });
+        Object.assign(money, { card_fee_absorbed_cents: fee.card_fee_cents, card_fee_source: fee.source, card_fee_note: fee.note });
       }
       const win = reviewWindow(item, kind, ctx);
       payments.push({
