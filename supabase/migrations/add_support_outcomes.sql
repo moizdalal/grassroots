@@ -8,8 +8,9 @@
 --       A meets scope        → release to the consultant.
 --       B fixable            → consultant chooses within 5 days: redo (once
 --                              per payment, clears the delivered mark) or
---                              give back (refund = payment − card fee,
---                              platform fee refunded in full). No answer =
+--                              give back (refund = payment − Stripe's
+--                              actual card fee, platform fee refunded in
+--                              full). No answer =
 --                              give back. After a redo, a second report
 --                              allows only A or C.
 --       C scope breached     → full refund incl. platform fee; consultant
@@ -44,7 +45,11 @@ begin
         add column if not exists redo_reminded_at timestamptz,
         add column if not exists redo_used boolean not null default false,
         add column if not exists consultant_choice text,
-        add column if not exists consultant_choice_at timestamptz
+        add column if not exists consultant_choice_at timestamptz,
+        -- Give-back: Stripe's actual card fee kept, and why it differs
+        -- from the standard US rate (international card, etc.).
+        add column if not exists give_back_fee_cents integer,
+        add column if not exists give_back_fee_note text
     $c$, t);
     execute format('alter table public.%I drop constraint if exists %I', t, t || '_problem_note_len');
     execute format('alter table public.%I add constraint %I check (problem_report_note is null or char_length(problem_report_note) <= 1000)', t, t || '_problem_note_len');
@@ -54,6 +59,8 @@ begin
     execute format($c$alter table public.%I add constraint %I check (support_outcome is null or support_outcome in ('meets_scope', 'fixable', 'scope_breached', 'release_remainder', 'refund_remainder'))$c$, t, t || '_support_outcome_vals');
     execute format('alter table public.%I drop constraint if exists %I', t, t || '_consultant_choice_vals');
     execute format($c$alter table public.%I add constraint %I check (consultant_choice is null or consultant_choice in ('redo', 'give_back', 'give_back_timeout'))$c$, t, t || '_consultant_choice_vals');
+    execute format('alter table public.%I drop constraint if exists %I', t, t || '_give_back_fee_note_len');
+    execute format('alter table public.%I add constraint %I check (give_back_fee_note is null or char_length(give_back_fee_note) <= 500)', t, t || '_give_back_fee_note_len');
     execute format('alter table public.%I drop constraint if exists %I', t, t || '_report_count_nonneg');
     execute format('alter table public.%I add constraint %I check (problem_report_count >= 0)', t, t || '_report_count_nonneg');
   end loop;

@@ -113,7 +113,7 @@ function actionSpec(p, action) {
   const m = p.money;
   return {
     meets_scope: { label: `A · meets scope — release`, kind: "primary", title: "release to the consultant?", body: `the consultant gets ${usd(m.payout_cents)}. both sides are notified. this can't be undone.`, path: "/api/admin/payments/outcome", body2: { outcome: "meets_scope" }, note: true },
-    fixable: { label: "B · fixable — consultant chooses", kind: "ghost", title: "offer a redo or give-back?", body: `the consultant has 5 days to redo the work once, or give the payment back (${usd(m.give_back_cents)} to the business, ${usd(m.card_fee_cents)} card fee kept). no answer means give back.`, path: "/api/admin/payments/outcome", body2: { outcome: "fixable" }, note: true },
+    fixable: { label: "B · fixable — consultant chooses", kind: "ghost", title: "offer a redo or give-back?", body: `the consultant has 5 days to redo the work once, or give the payment back (${usd(m.give_back_cents)} to the business, ${usd(m.card_fee_cents)} card fee kept${m.card_fee_note ? `: ${m.card_fee_note}` : ""}). no answer means give back.`, path: "/api/admin/payments/outcome", body2: { outcome: "fixable" }, note: true },
     scope_breached: { label: `C · scope breached — refund in full`, kind: "danger", title: "refund the business in full?", body: `the business gets ${usd(m.full_refund_cents)} back, including the platform fee. the consultant gets nothing. grassroots absorbs the ${usd(m.card_fee_cents)} card fee.`, path: "/api/admin/payments/outcome", body2: { outcome: "scope_breached" }, note: true },
     release_remainder: { label: `release the rest — ${usd(m.remainder_payout_cents)}`, kind: "primary", title: "release the rest?", body: `${usd(m.refunded_cents)} was already refunded. the consultant gets ${usd(m.remainder_payout_cents)} of the remaining ${usd(m.remaining_cents)}.`, path: "/api/admin/payments/settle-remainder", body2: { action: "release" } },
     refund_remainder: { label: `refund the rest — ${usd(m.remaining_cents)}`, kind: "danger", title: "refund the rest?", body: `the business gets the remaining ${usd(m.remaining_cents)} back. the consultant gets nothing for this payment.`, path: "/api/admin/payments/settle-remainder", body2: { action: "refund" } },
@@ -203,7 +203,8 @@ async function openPayment(key) {
     ${kv([
       ["charged", usd(m.gross_cents)],
       ["platform fee", usd(m.platform_fee_cents)],
-      ["card fee (estimate)", usd(m.card_fee_cents)],
+      [m.card_fee_source === "stripe" ? "card fee (from stripe)" : "card fee (estimate)", usd(m.card_fee_cents)],
+      ["why it differs", esc(m.card_fee_note)],
       ["refunded so far", m.refunded_cents ? usd(m.refunded_cents) : null],
       ["consultant payout", usd(m.payout_cents)],
       ["B give-back refund", p.actions.includes("fixable") ? usd(m.give_back_cents) : null],

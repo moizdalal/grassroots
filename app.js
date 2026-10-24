@@ -3783,7 +3783,7 @@ const DAY_MS = 86400000;
 
 const DELIVERY_COLS = "delivered_at, delivery_note, delivery_link, changes_requested_at, changes_request_note, review_reminded_at, support_hold_at, support_hold_reason, backstop_flagged_at, refunded_cents, stripe_fee_cents, platform_fee_cents, " +
   // add_support_outcomes.sql: reported problems + support outcomes A/B/C.
-  "problem_reported_at, problem_report_note, problem_report_link, problem_report_count, support_outcome, support_outcome_at, redo_offered_at, redo_deadline_at, redo_reminded_at, redo_used, consultant_choice, consultant_choice_at";
+  "problem_reported_at, problem_report_note, problem_report_link, problem_report_count, support_outcome, support_outcome_at, redo_offered_at, redo_deadline_at, redo_reminded_at, redo_used, consultant_choice, consultant_choice_at, give_back_fee_cents, give_back_fee_note";
 const BID_RELEASE_COLS = `id, listing_id, consultant_id, payment_amount_cents, payment_status, payment_intent_id, transfer_id, consultant_payout_cents, paid_at, released_at, ${DELIVERY_COLS}`;
 const PHASE_RELEASE_COLS = `id, bid_id, phase, period_index, status, amount_cents, payment_intent_id, charge_id, transfer_id, consultant_payout_cents, paid_at, released_at, refunded_at, period_end_at, ${DELIVERY_COLS}`;
 
@@ -4237,7 +4237,7 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
     ];
     const nowMs = Date.now();
     const iso = (ms) => (Number.isFinite(ms) ? new Date(ms).toISOString() : null);
-    const payments = items.map((item) => {
+    const payments = await Promise.all(items.map(async (item) => {
       const kind = paymentKind(item, ctx);
       const row = item.row;
       const win = reviewWindow(item, kind, ctx);
@@ -4249,6 +4249,11 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
       const autoReleaseAt = held && win && !onHold && !partiallyRefunded && win.releaseAt < backstop ? win.releaseAt : null;
       const money = paymentMoney(item);
       const waiting = held && waitingOnConsultant(row);
+      // Card fee shown to both sides: Stripe's actual fee while the
+      // consultant is choosing; the fee actually kept after a give-back.
+      let fee = { card_fee_cents: money.card_fee_cents, note: null };
+      if (waiting) fee = await cardFeeFor(item);
+      else if (row.give_back_fee_cents != null) fee = { card_fee_cents: row.give_back_fee_cents, note: row.give_back_fee_note };
       return {
         key: item.key,
         payment_id: item.kind === "phase" ? row.id : null,
@@ -4286,13 +4291,14 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
         can_choose: waiting && role === "consultant" && nowMs < Date.parse(row.redo_deadline_at),
         money: {
           gross_cents: money.gross_cents,
-          card_fee_cents: money.card_fee_cents,
+          card_fee_cents: fee.card_fee_cents,
+          card_fee_note: fee.note,
           platform_fee_cents: money.platform_fee_cents,
-          give_back_cents: money.give_back_cents,
+          give_back_cents: Math.max(0, money.gross_cents - fee.card_fee_cents - money.refunded_cents),
           payout_cents: money.payout_cents,
         },
       };
-    });
+    }));
     return res.json({ role, payments });
   } catch (err) {
     return res.status(500).json({ error: err.message || "could not load payment status." });
@@ -4348,6 +4354,57 @@ function paymentMoney(item) {
     // Partly refunded payment: what the consultant gets for the rest.
     remainder_payout_cents: Math.max(0, Math.min(payout, remaining - cardFee - platformFee)),
   };
+}
+
+// The charge behind a held payment (bids keep only the PaymentIntent).
+async function chargeIdFor(item) {
+  if (item.kind === "phase") return item.row.charge_id || null;
+  if (!item.row.payment_intent_id) return null;
+  const intent = await stripe.paymentIntents.retrieve(item.row.payment_intent_id);
+  return idOf(intent.latest_charge);
+}
+
+/* Stripe's actual card-processing fee on this payment (outcome B give-back
+   keeps exactly this). Standard US pricing is 2.9% + 30¢ of the charge;
+   when Stripe charged something else, `note` says why in plain words
+   (international card, currency conversion). A phase row on a combined
+   charge (proposal batch) takes its share of the fee.
+   strict: throw instead of falling back to the checkout estimate — a
+   refund must never be computed from a guess. */
+async function cardFeeFor(item, { strict = false } = {}) {
+  const money = paymentMoney(item);
+  const estimate = { card_fee_cents: money.card_fee_cents, standard_fee_cents: money.card_fee_cents, source: "estimate", note: null };
+  try {
+    const chargeId = await chargeIdFor(item);
+    if (!chargeId) throw new Error("no charge on this payment");
+    const charge = await stripe.charges.retrieve(chargeId, { expand: ["balance_transaction"] });
+    const bt = charge?.balance_transaction;
+    if (!bt || typeof bt !== "object") throw new Error("stripe hasn't settled this charge's fee yet");
+    const stripeFees = (bt.fee_details || []).filter((f) => f.type === "stripe_fee");
+    const totalFee = stripeFees.length ? stripeFees.reduce((sum, f) => sum + Number(f.amount || 0), 0) : Number(bt.fee);
+    if (!Number.isFinite(totalFee)) throw new Error("no fee on the balance transaction");
+    const chargeAmount = Number(charge.amount) || money.gross_cents;
+    const share = chargeAmount > 0 ? Math.min(1, money.gross_cents / chargeAmount) : 1;
+    const fee = Math.round(totalFee * share);
+    const standard = Math.round(fees.estimateStripeFeeCents(chargeAmount) * share);
+
+    let note = null;
+    if (Math.abs(fee - standard) > 1) {
+      const card = charge.payment_method_details?.card || {};
+      const why = [];
+      if (card.country && card.country !== "US") why.push(`an international card (issued in ${card.country})`);
+      if ((charge.currency && charge.currency !== "usd") || bt.exchange_rate) why.push("paid in another currency");
+      const usual = `${dollars(standard)} (2.9% + 30¢)`;
+      note = why.length
+        ? `the card fee was ${dollars(fee)}, ${fee > standard ? "more than" : "not"} the usual ${usual}, because this was ${why.join(" and ")}.`
+        : `stripe charged ${dollars(fee)} to process this card, not the usual ${usual}.`;
+      if (share < 1) note += " this payment's share of a combined charge.";
+    }
+    return { card_fee_cents: fee, standard_fee_cents: standard, source: "stripe", note };
+  } catch (err) {
+    if (strict) throw new Error(`couldn't get the card fee from stripe: ${err.message}`);
+    return estimate;
+  }
 }
 
 function waitingOnConsultant(row) {
@@ -4464,9 +4521,11 @@ async function notifyBoth(ctx, owner, consultant, link) {
 // Outcome B (ii), by the consultant's choice or after 5 days with none.
 async function giveBackPayment(item, ctx, choice, actor) {
   const money = paymentMoney(item);
+  const fee = await cardFeeFor(item, { strict: true });
+  const giveBack = Math.max(0, money.gross_cents - fee.card_fee_cents - money.refunded_cents);
   const nowIso = new Date().toISOString();
-  const result = await refundHeldPayment(item, money.give_back_cents, {
-    updates: { consultant_choice: choice, consultant_choice_at: nowIso },
+  const result = await refundHeldPayment(item, giveBack, {
+    updates: { consultant_choice: choice, consultant_choice_at: nowIso, give_back_fee_cents: fee.card_fee_cents, give_back_fee_note: fee.note },
     claimEq: { support_outcome: "fixable", consultant_choice: null },
     reason: choice,
   });
@@ -4474,10 +4533,10 @@ async function giveBackPayment(item, ctx, choice, actor) {
   await writeAudit(item, choice === "give_back" ? "consultant_give_back" : "give_back_timeout", actor, {
     amountCents: result.amount_cents,
     stripeId: result.refund_id,
-    details: { gross_cents: money.gross_cents, card_fee_cents: money.card_fee_cents, platform_fee_cents: money.platform_fee_cents },
+    details: { gross_cents: money.gross_cents, card_fee_cents: fee.card_fee_cents, standard_fee_cents: fee.standard_fee_cents, fee_note: fee.note, platform_fee_cents: money.platform_fee_cents },
   });
   const timedOut = choice === "give_back_timeout";
-  const feeLine = `the ${dollars(money.card_fee_cents)} card processing fee isn't refunded.${money.platform_fee_cents > 0 ? " the platform fee is refunded in full." : ""}`;
+  const feeLine = `the ${dollars(fee.card_fee_cents)} card processing fee isn't refunded.${fee.note ? ` ${fee.note}` : ""}${money.platform_fee_cents > 0 ? " the platform fee is refunded in full." : ""}`;
   await notifyBoth(ctx, {
     type: "payment_returned",
     title: `you were refunded ${dollars(result.amount_cents)}`,
@@ -4487,7 +4546,7 @@ async function giveBackPayment(item, ctx, choice, actor) {
     title: timedOut ? "the payment went back to the business" : "you gave the payment back",
     body: `${timedOut ? `you didn't choose within ${REDO_CHOICE_DAYS} days, so ` : ""}the business was refunded for "${ctx.title}". you won't be paid for this payment.`,
   }, paymentLink(item));
-  return { ...result, money };
+  return { ...result, money, fee };
 }
 
 // Daily job, outcome B: 5-day deadline and the day-3 reminder.
@@ -4800,7 +4859,8 @@ app.post("/api/admin/payments/outcome", async (req, res) => {
       reason: "scope_breached",
     });
     if (!result.ok) return res.status(result.status).json({ error: result.error });
-    await writeAudit(item, "outcome_scope_breached", admin, { amountCents: result.amount_cents, stripeId: result.refund_id, details: { note, card_fee_absorbed_cents: money.card_fee_cents } });
+    const absorbed = await cardFeeFor(item);
+    await writeAudit(item, "outcome_scope_breached", admin, { amountCents: result.amount_cents, stripeId: result.refund_id, details: { note, card_fee_absorbed_cents: absorbed.card_fee_cents, fee_source: absorbed.source } });
     await notifyBoth(ctx, {
       type: "support_outcome",
       title: `you were refunded ${dollars(result.amount_cents)} in full`,
@@ -4945,6 +5005,17 @@ app.get("/api/admin/payments/held", async (req, res) => {
       }
       if (!flags.on_hold && !waiting) actions.push("hold");
 
+      // Give-back math with Stripe's actual card fee, when B is in play.
+      if (actions.includes("fixable") || waiting) {
+        const fee = await cardFeeFor(item);
+        Object.assign(money, {
+          card_fee_cents: fee.card_fee_cents,
+          card_fee_source: fee.source,
+          card_fee_note: fee.note,
+          standard_fee_cents: fee.standard_fee_cents,
+          give_back_cents: Math.max(0, money.gross_cents - fee.card_fee_cents - money.refunded_cents),
+        });
+      }
       const win = reviewWindow(item, kind, ctx);
       payments.push({
         key: item.key,

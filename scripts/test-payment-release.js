@@ -88,6 +88,10 @@ let failTransfers = false;
 const disputes = [];
 const subs = new Map();
 const transferLog = [];
+// Charges with their settled balance transaction (Stripe's actual fee).
+const charges = new Map();
+const setCharge = (id, amount, fee, card = { country: "US", brand: "visa" }, extra = {}) =>
+  charges.set(id, { id, amount, currency: "usd", payment_method_details: { card }, balance_transaction: { fee, fee_details: [{ type: "stripe_fee", amount: fee }] }, ...extra });
 const refundLog = [];
 function keyed(kind, opts, make) {
   calls.push({ kind, key: opts?.idempotencyKey });
@@ -116,6 +120,7 @@ const fakeStripe = {
     retrieve: async (id) => ({ ...subs.get(id) }),
     update: async (id, p) => { calls.push({ kind: "sub.update", p }); Object.assign(subs.get(id), p); return subs.get(id); },
   },
+  charges: { retrieve: async (id) => ({ ...(charges.get(id) || { id, amount: 0, balance_transaction: null }) }) },
   disputes: { list: async ({ charge, payment_intent }) => ({ data: disputes.filter((d) => (charge && d.charge === charge) || (payment_intent && d.payment_intent === payment_intent)) }) },
   invoicePayments: { list: async ({ invoice }) => ({ data: [{ status: "paid", payment: { type: "payment_intent", payment_intent: `pi_inv_${invoice}` } }] }) },
 };
@@ -504,11 +509,13 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     const report = (who = OWNER, extra = {}) => api("/api/engagement/report-problem", { bid_id: "B1", note: "the deck is missing the pricing section", link: "https://docs.example.com/notes", ...extra }, who);
     const outcome = (o, who = "admin1", extra = {}) => api("/api/admin/payments/outcome", { bid_id: "B1", outcome: o, ...extra }, who);
     const choose = (choice, who = CONS) => api("/api/engagement/redo-choice", { bid_id: "B1", choice }, who);
-    // $100 offer + $10 platform fee = $110 charged; $3.20 card fee; $96.80 payout.
+    // $100 offer + $10 platform fee = $110 charged; $96.80 payout ($3.20
+    // checkout estimate). Stripe's actual fee on the $110 charge: $3.49.
     const FEES = { payment_amount_cents: 11000, platform_fee_cents: 1000, stripe_fee_cents: 320, consultant_payout_cents: 9680 };
     const reported = async (extra = {}) => {
       seed();
       heldBid({ delivered_at: ago(2), ...FEES, ...extra });
+      setCharge("ch_rel", 11000, 349);
       const r = await report();
       assert.strictEqual(r.status, 200, `report failed: ${JSON.stringify(r.body)}`);
       calls.length = 0; transferLog.length = 0; refundLog.length = 0;
@@ -565,7 +572,7 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     ok(notes("support_outcome", CONS).length === 1 && notes("support_outcome", OWNER).length === 1, "B: both parties notified");
     st = await apiGet("/api/engagement/B1/release-status", CONS);
     let p0 = st.body.payments[0];
-    ok(p0.can_choose && p0.waiting_on_consultant && p0.money.give_back_cents === 10680 && !p0.can_mark_delivered, "status: consultant gets the choice, give-back amount shown");
+    ok(p0.can_choose && p0.waiting_on_consultant && p0.money.give_back_cents === 10651 && p0.money.card_fee_cents === 349 && !p0.money.card_fee_note && !p0.can_mark_delivered, "status: consultant gets the choice, give-back amount shown");
     ok((await outcome("meets_scope")).status === 409, "B: no other outcome while waiting on the consultant");
     ok((await choose("redo", OWNER)).status === 403, "B: business can't choose for the consultant");
     ok((await choose("maybe")).status === 400, "B: only redo or give_back");
@@ -595,16 +602,16 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     await outcome("fixable");
     ch = await choose("give_back");
     ok(ch.status === 200 && bid("B1").payment_status === "refunded" && bid("B1").consultant_choice === "give_back", "B give back: payment refunded");
-    ok(refundLog.length === 1 && refundLog[0].amount === 10680 && refundLog[0].charge === "ch_rel" && bid("B1").refunded_cents === 10680, "B give back: $110 − $3.20 card fee = $106.80 refunded (platform fee back in full)");
+    ok(refundLog.length === 1 && refundLog[0].amount === 10651 && refundLog[0].charge === "ch_rel" && bid("B1").refunded_cents === 10651 && bid("B1").give_back_fee_cents === 349, "B give back: $110 − Stripe's actual $3.49 fee = $106.51 refunded (platform fee back in full)");
     ok(transfers() === 0, "B give back: consultant gets nothing");
     const ret = notes("payment_returned", OWNER)[0];
-    ok(ret && ret.title.includes("$106.80") && ret.body.includes("$3.20") && notes("payment_returned", CONS).length === 1, "B give back: business told the amount and the kept fee; consultant notified");
-    ok(audits("consultant_give_back")[0]?.amount_cents === 10680 && audits("consultant_give_back")[0].stripe_object_id?.startsWith("re_"), "B give back: audit row with refund id");
+    ok(ret && ret.title.includes("$106.51") && ret.body.includes("$3.49") && !ret.body.includes("usual") && notes("payment_returned", CONS).length === 1, "B give back: business told the amount and the kept fee; consultant notified");
+    ok(audits("consultant_give_back")[0]?.amount_cents === 10651 && audits("consultant_give_back")[0].stripe_object_id?.startsWith("re_"), "B give back: audit row with refund id");
     logs.length = 0;
-    await hook("charge.refunded", { id: "ch_rel", payment_intent: "pi_rel", refunded: false, amount: 11000, amount_refunded: 10680 });
+    await hook("charge.refunded", { id: "ch_rel", payment_intent: "pi_rel", refunded: false, amount: 11000, amount_refunded: 10651 });
     ok(!logs.some((l) => l.includes("partial_refund_needs_review")) && notes("partial_refund", "admin1").length === 0, "webhook for grassroots' own give-back isn't flagged as an unexplained partial refund");
     st = await apiGet("/api/engagement/B1/release-status", OWNER);
-    ok(st.body.payments[0]?.status === "refunded" && st.body.payments[0].consultant_choice === "give_back" && st.body.payments[0].refunded_cents === 10680, "status: give-back shown to the business after refund");
+    ok(st.body.payments[0]?.status === "refunded" && st.body.payments[0].consultant_choice === "give_back" && st.body.payments[0].refunded_cents === 10651 && st.body.payments[0].money.card_fee_cents === 349, "status: give-back shown to the business after refund");
 
     // --- outcome B: day-3 reminder, then 5-day timeout → give back ---
     await reported();
@@ -618,7 +625,7 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     bid("B1").redo_deadline_at = ago(0.01);
     ok((await choose("redo")).status === 409, "B: can't redo after the 5 days");
     run = await cron();
-    ok(run.returned.includes("bid-B1") && bid("B1").payment_status === "refunded" && bid("B1").consultant_choice === "give_back_timeout" && refundLog[0]?.amount === 10680, "B: no answer in 5 days → payment goes back (less card fee)");
+    ok(run.returned.includes("bid-B1") && bid("B1").payment_status === "refunded" && bid("B1").consultant_choice === "give_back_timeout" && refundLog[0]?.amount === 10651, "B: no answer in 5 days → payment goes back (less Stripe's fee)");
     ok(audits("give_back_timeout")[0]?.actor_email === "system:auto-release" && notes("payment_returned", OWNER)[0].body.includes("didn't choose within 5 days"), "B timeout: audit row by the system, business told why");
     await cron();
     ok(refundLog.length === 1, "B timeout: rerun doesn't refund twice");
@@ -628,8 +635,43 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     oc = await outcome("scope_breached");
     ok(oc.status === 200 && bid("B1").payment_status === "refunded" && bid("B1").support_outcome === "scope_breached" && refundLog[0].amount === 11000 && transfers() === 0, "C: full $110 refunded incl. platform fee, consultant gets nothing");
     ok(notes("support_outcome", OWNER)[0].title.includes("$110.00 in full") && notes("support_outcome", CONS).length === 1, "C: both notified");
-    ok(audits("outcome_scope_breached")[0]?.details.card_fee_absorbed_cents === 320, "C: audit row records the card fee grassroots absorbs");
+    ok(audits("outcome_scope_breached")[0]?.details.card_fee_absorbed_cents === 349, "C: audit row records Stripe's actual fee, which grassroots absorbs");
     ok((await outcome("meets_scope")).status === 409, "C: refunded payment can't be released afterwards");
+
+    // --- give back on an international card: actual fee + plain reason ---
+    await reported();
+    setCharge("ch_rel", 11000, 514, { country: "GB", brand: "visa" });
+    await outcome("fixable");
+    st = await apiGet("/api/engagement/B1/release-status", CONS);
+    p0 = st.body.payments[0];
+    ok(p0.money.card_fee_cents === 514 && p0.money.give_back_cents === 10486 && /international card \(issued in GB\)/.test(p0.money.card_fee_note) && p0.money.card_fee_note.includes("$3.49 (2.9% + 30¢)"), "international card: consultant sees the $5.14 fee and why it's more than the usual $3.49");
+    list = await apiGet("/api/admin/payments/held", "admin1");
+    lp = list.body.payments.find((x) => x.key === "bid-B1");
+    ok(lp.money.card_fee_source === "stripe" && lp.money.give_back_cents === 10486 && lp.money.card_fee_note, "admin screen shows Stripe's fee and the reason");
+    ch = await choose("give_back");
+    ok(ch.status === 200 && refundLog[0]?.amount === 10486 && bid("B1").give_back_fee_cents === 514 && bid("B1").give_back_fee_note.includes("international"), "international card: $110 − $5.14 = $104.86 refunded, reason stored");
+    ok(notes("payment_returned", OWNER)[0].body.includes("international card"), "business told why the fee was higher");
+    st = await apiGet("/api/engagement/B1/release-status", OWNER);
+    ok(st.body.payments[0].money.card_fee_note.includes("international"), "status: reason shown with the refund breakdown");
+    await reported();
+    setCharge("ch_rel", 11000, 679, { country: "MX", brand: "visa" }, { currency: "mxn", balance_transaction: { fee: 679, exchange_rate: 0.054, fee_details: [{ type: "stripe_fee", amount: 679 }] } });
+    await outcome("fixable");
+    st = await apiGet("/api/engagement/B1/release-status", CONS);
+    ok(/international card \(issued in MX\) and paid in another currency/.test(st.body.payments[0].money.card_fee_note), "currency conversion named as a reason too");
+
+    // --- fee lookup fails: no refund from a guess ---
+    await reported();
+    charges.delete("ch_rel");
+    await outcome("fixable");
+    ch = await choose("give_back");
+    ok(ch.status === 500 && bid("B1").payment_status === "held" && refundLog.length === 0 && /card fee/.test(ch.body.error), "no fee from stripe → give back refused, nothing refunded");
+    bid("B1").redo_deadline_at = ago(0.01);
+    logs.length = 0;
+    run = await cron();
+    ok(bid("B1").payment_status === "held" && refundLog.length === 0 && run.failed.some((x) => x.key === "bid-B1") && logs.some((l) => l.includes("give_back_timeout_failed")), "timeout with no fee from stripe → ops alert, retried next run");
+    setCharge("ch_rel", 11000, 349);
+    run = await cron();
+    ok(bid("B1").payment_status === "refunded" && refundLog[0]?.amount === 10651, "next run gives it back once stripe has the fee");
 
     // --- stale report alert ---
     await reported();
@@ -680,6 +722,7 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     // --- phase rows: give back on a service fee; shared charge stays clean ---
     seed();
     db.bids.push({ id: "B6", listing_id: "L2", consultant_id: CONS, payment_status: "unpaid", move_forward_status: "selected", refunded_cents: 0 });
+    setCharge("ch_sv2", 80000, 2350);
     db.bid_phase_payments.push({ id: "SV2", bid_id: "B6", phase: "service", status: "held", amount_cents: 80000, platform_fee_cents: 0, stripe_fee_cents: 2350, consultant_payout_cents: 77650, payment_intent_id: "pi_sv2", charge_id: "ch_sv2", paid_at: ago(5), delivered_at: ago(2), refunded_cents: 0 });
     rpt = await api("/api/engagement/report-problem", { bid_id: "B6", payment_id: "SV2", note: "no slides" }, OWNER);
     await api("/api/admin/payments/outcome", { bid_id: "B6", payment_id: "SV2", outcome: "fixable" }, "admin1");

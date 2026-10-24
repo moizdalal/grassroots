@@ -78,6 +78,7 @@ function describeSupport(p, role) {
             ["card processing fee kept", `−${fmtUsd(m.card_fee_cents)}`],
             ["refunded to your card", fmtUsd(p.refunded_cents)],
           ],
+          feeNote: m.card_fee_note,
         }
       : {
           pill: ["given back", "muted"],
@@ -218,6 +219,7 @@ function renderItem(p, role) {
   }
   if (d.breakdown) {
     deliveryBits.push(`<dl class="eg-delivery__breakdown">${d.breakdown.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>`);
+    if (d.feeNote) deliveryBits.push(`<p class="eg-delivery__line">${esc(d.feeNote)}</p>`);
   }
   li.innerHTML = `
     <div class="eg-period__head">
@@ -389,7 +391,7 @@ function openChoiceForm(p, choice, form, actions) {
   const m = p.money || {};
   form.innerHTML = choice === "redo"
     ? `<p class="eg-delivery__line">you can redo the work once for this payment. when you mark it delivered again, the business gets a new 14-day review.</p>`
-    : `<p class="eg-delivery__line">the business gets ${esc(fmtUsd(m.give_back_cents))}, and you get nothing for this payment. this can't be undone.</p>`;
+    : `<p class="eg-delivery__line">the business gets ${esc(fmtUsd(m.give_back_cents))} back (the payment minus the ${esc(fmtUsd(m.card_fee_cents))} card fee), and you get nothing for this payment. this can't be undone.</p>${m.card_fee_note ? `<p class="eg-delivery__line">${esc(m.card_fee_note)}</p>` : ""}`;
   const row = document.createElement("div");
   row.className = "eg-delivery__actions";
   row.append(
