@@ -20,7 +20,7 @@ function escapeHtml(s) {
  * @param {{ size?: "sm"|"md"|"lg", showCount?: boolean, emptyLabel?: string }} options
  */
 export function renderRatingMarkup(rating, options = {}) {
-  const { size = "md", showCount = true, emptyLabel = "no ratings yet" } = options;
+  const { size = "md", showCount = true, emptyLabel = "No ratings yet" } = options;
   const sizeClass = size === "sm" ? "gr-rating--sm" : size === "lg" ? "gr-rating--lg" : "";
 
   if (!rating || !rating.review_count || rating.rating_average == null) {

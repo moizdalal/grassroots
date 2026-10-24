@@ -1,8 +1,8 @@
 const ROTATING_WORDS = [
-  { text: "strategy", color: "#9fc7ff", icon: "✧" },
-  { text: "finance", color: "#e6c39a", icon: "$" },
-  { text: "development", color: "#8fd7b4", icon: "</>" },
-  { text: "marketing", color: "#ffb38a", icon: "↗" },
+  { text: "Strategy", color: "#9fc7ff", icon: "✧" },
+  { text: "Finance", color: "#e6c39a", icon: "$" },
+  { text: "Development", color: "#8fd7b4", icon: "</>" },
+  { text: "Marketing", color: "#ffb38a", icon: "↗" },
 ];
 
 const NIGHT_SCENE = {
@@ -905,11 +905,11 @@ function setAudience(mode) {
   const flipBtn = document.getElementById("audience-flip-button");
   if (flipQ && flipBtn) {
     if (mode === "business") {
-      flipQ.textContent = "explore the consultant view?";
-      flipBtn.textContent = "switch to student experience";
+      flipQ.textContent = "Explore the consultant view?";
+      flipBtn.textContent = "Switch to student experience";
     } else {
-      flipQ.textContent = "explore the business view?";
-      flipBtn.textContent = "switch to shop experience";
+      flipQ.textContent = "Explore the business view?";
+      flipBtn.textContent = "Switch to shop experience";
     }
   }
 }
@@ -966,114 +966,114 @@ function initHeroParallax() {
 const MARKETPLACE_SIM_OPPORTUNITIES = [
   {
     id: "northside-cafe",
-    business: "northside cafe",
-    owner: "leah p. · owner",
-    title: "spring drink rollout + student lunch promos",
+    business: "Northside Cafe",
+    owner: "Leah P. · owner",
+    title: "Spring drink rollout + student lunch promos",
     type: "do",
     budget: "$220-$320",
-    categories: ["marketing", "food & beverage"],
-    posted: "posted today",
+    categories: ["marketing", "Food & beverage"],
+    posted: "Posted today",
     turnaround: "7 day turnaround",
     summary:
       "Need a simple launch push for seasonal drinks that can work across in-store chalkboards, Instagram, and lunch-hour specials.",
     details:
       "Looking for someone who can keep the scope tight, organize a one-week rollout, and make the cafe feel more consistent online and in person.",
-    qualifications: ["content planning", "basic design sense", "comfortable with small-business pacing"],
+    qualifications: ["Content planning", "Basic design sense", "Comfortable with small-business pacing"],
     about:
       "Neighborhood cafe near campus with a steady lunch crowd, weekend regulars, and a small team that wants a cleaner marketing rhythm.",
     logo: { kind: "icon", icon: "mug", colors: ["#4d7c66", "#9fd4c1"] },
   },
   {
     id: "elm-street-bakery",
-    business: "elm street bakery",
-    owner: "sofia r. · founder",
-    title: "square inventory cleanup + promo calendar",
+    business: "Elm Street Bakery",
+    owner: "Sofia R. · founder",
+    title: "Square inventory cleanup + promo calendar",
     type: "develop",
     budget: "$300-$400",
     categories: ["operations", "marketing"],
-    posted: "posted today",
+    posted: "Posted today",
     turnaround: "10 day turnaround",
     summary:
       "We need help cleaning up inventory across Square and spreadsheets, then turning that into a simple four-week promotional plan.",
     details:
       "The ideal outcome is one opportunity-sized cleanup: clear SKU naming, slower-moving item notes, and a lightweight promo calendar the team can actually keep up with.",
-    qualifications: ["square familiarity", "comfortable in spreadsheets", "can simplify a messy handoff"],
+    qualifications: ["Square familiarity", "Comfortable in spreadsheets", "Can simplify a messy handoff"],
     about:
       "Small bakery doing strong weekend traffic and seasonal specials, but the back office still leans on a mix of Square exports and ad hoc sheets.",
     logo: { kind: "icon", icon: "bread", colors: ["#b56749", "#f0c2a7"] },
   },
   {
     id: "cedar-bike-shop",
-    business: "cedar bike shop",
-    owner: "matt d. · manager",
-    title: "spring tune-up campaign landing page",
+    business: "Cedar Bike Shop",
+    owner: "Matt D. · manager",
+    title: "Spring tune-up campaign landing page",
     type: "plan",
     budget: "$280-$360",
     categories: ["web", "marketing"],
-    posted: "posted yesterday",
+    posted: "Posted yesterday",
     turnaround: "12 day turnaround",
     summary:
       "Want a focused landing page outline and campaign plan for tune-up season without turning it into a full redesign project.",
     details:
       "This is a one-off push around spring service demand. Copy structure, page sections, and a paid-social handoff would be enough.",
-    qualifications: ["landing page planning", "copy structure", "marketing basics"],
+    qualifications: ["Landing page planning", "Copy structure", "Marketing basics"],
     about:
       "Independent bike shop with seasonal spikes and a lean team that wants a page they can move on quickly before demand peaks.",
     logo: { kind: "icon", icon: "bike", colors: ["#435f8f", "#9fb7e3"] },
   },
   {
     id: "ridge-legal",
-    business: "ridge legal",
-    owner: "dana w. · operations",
-    title: "client intake automation for new inquiries",
+    business: "Ridge Legal",
+    owner: "Dana W. · operations",
+    title: "Client intake automation for new inquiries",
     type: "develop",
     budget: "$320-$420",
     categories: ["systems", "operations"],
-    posted: "posted 2 days ago",
+    posted: "Posted 2 days ago",
     turnaround: "14 day turnaround",
     summary:
       "Looking for someone to simplify the intake flow between our website form, internal spreadsheet, and first-response email process.",
     details:
       "We do not need a full software build. A clean intake handoff, obvious automations, and a documented workflow would be enough.",
-    qualifications: ["workflow thinking", "automation basics", "good documentation habits"],
+    qualifications: ["Workflow thinking", "Automation basics", "Good documentation habits"],
     about:
       "Small legal office with recurring intake tasks that are still being handled manually across forms, email, and spreadsheets.",
     logo: { kind: "icon", icon: "scales", colors: ["#5b4a7e", "#b7a8db"] },
   },
   {
     id: "harbor-ceramics",
-    business: "harbor ceramics",
-    owner: "maya t. · studio lead",
-    title: "weekend workshop pricing refresh",
+    business: "Harbor Ceramics",
+    owner: "Maya T. · studio lead",
+    title: "Weekend workshop pricing refresh",
     type: "plan",
     budget: "$180-$240",
     categories: ["finance", "operations"],
-    posted: "posted 3 days ago",
+    posted: "Posted 3 days ago",
     turnaround: "6 day turnaround",
     summary:
       "Need help pressure-testing pricing for beginner workshops and making the schedule feel profitable without getting complicated.",
     details:
       "This should end in one pricing recommendation, a simple model we can revisit, and guidance for how many seats we need per class.",
-    qualifications: ["light modeling", "clear communication", "comfortable with one-off pricing work"],
+    qualifications: ["Light modeling", "Clear communication", "Comfortable with one-off pricing work"],
     about:
       "Community ceramics studio running more workshops than before and trying to price them more intentionally without losing accessibility.",
     logo: { kind: "icon", icon: "vase", colors: ["#a86157", "#e6b5ab"] },
   },
   {
     id: "summit-tutoring",
-    business: "summit tutoring",
-    owner: "ana k. · director",
-    title: "parent follow-up email refresh",
+    business: "Summit Tutoring",
+    owner: "Ana K. · director",
+    title: "Parent follow-up email refresh",
     type: "do",
     budget: "$190-$260",
     categories: ["marketing", "communications"],
-    posted: "posted 4 days ago",
+    posted: "Posted 4 days ago",
     turnaround: "5 day turnaround",
     summary:
       "We want tighter follow-up emails after inquiry calls so parents understand next steps, scheduling, and package options.",
     details:
       "This is not a broad CRM project. We just need a cleaner email sequence and better wording for the handoff after the first conversation.",
-    qualifications: ["copywriting", "customer communication", "good with concise systems"],
+    qualifications: ["copywriting", "Customer communication", "Good with concise systems"],
     about:
       "Small tutoring group with a strong referral base and a lot of one-off parent questions after the first consultation call.",
     logo: { kind: "icon", icon: "book", colors: ["#8e6b34", "#dcc08b"] },
@@ -1164,57 +1164,57 @@ const MARKETPLACE_SIM_BUSINESS_LOOKUP = new Map(
 );
 
 const COMMUNITY_MAP_BUSINESSES = [
-  { sourceId: "northside-cafe", kind: "cafe", label: "student lunch rush", pulseDuration: 2.9 },
-  { sourceId: "elm-street-bakery", kind: "bakery", label: "morning pastry line", pulseDuration: 3.2 },
-  { sourceId: "cedar-bike-shop", kind: "retail", label: "repair + tune-up shop", pulseDuration: 2.7 },
-  { sourceId: "harbor-ceramics", kind: "studio", label: "workshop studio", pulseDuration: 3.5 },
-  { sourceId: "ridge-legal", kind: "office", label: "client intake office", pulseDuration: 3.1 },
-  { sourceId: "summit-tutoring", kind: "education", label: "family support hub", pulseDuration: 2.85 },
+  { sourceId: "northside-cafe", kind: "cafe", label: "Student lunch rush", pulseDuration: 2.9 },
+  { sourceId: "elm-street-bakery", kind: "bakery", label: "Morning pastry line", pulseDuration: 3.2 },
+  { sourceId: "cedar-bike-shop", kind: "retail", label: "Repair + tune-up shop", pulseDuration: 2.7 },
+  { sourceId: "harbor-ceramics", kind: "studio", label: "Workshop studio", pulseDuration: 3.5 },
+  { sourceId: "ridge-legal", kind: "office", label: "Client intake office", pulseDuration: 3.1 },
+  { sourceId: "summit-tutoring", kind: "education", label: "Family support hub", pulseDuration: 2.85 },
   {
     id: "lantern-copy-house",
-    business: "lantern copy house",
+    business: "Lantern Copy House",
     kind: "print shop",
-    label: "printing + take-home kits",
+    label: "Printing + take-home kits",
     pulseDuration: 3.25,
     logo: { kind: "icon", icon: "print", colors: ["#5369d8", "#b9c6ff"] },
   },
   {
     id: "moss-and-mortar-florals",
-    business: "moss & mortar florals",
+    business: "Moss & Mortar Florals",
     kind: "florist",
-    label: "events + walk-in bouquets",
+    label: "Events + walk-in bouquets",
     pulseDuration: 3.45,
     logo: { kind: "icon", icon: "sprout", colors: ["#4e8f63", "#c4e8c7"] },
   },
   {
     id: "signal-photo-lab",
-    business: "signal photo lab",
+    business: "Signal Photo Lab",
     kind: "photo studio",
-    label: "portraits + product shoots",
+    label: "Portraits + product shoots",
     pulseDuration: 2.95,
     logo: { kind: "icon", icon: "camera", colors: ["#7b5a4a", "#dfbba4"] },
   },
   {
     id: "stitchline-alterations",
-    business: "stitchline alterations",
+    business: "Stitchline Alterations",
     kind: "tailor",
-    label: "rush hems + fittings",
+    label: "Rush hems + fittings",
     pulseDuration: 3.3,
     logo: { kind: "icon", icon: "needle", colors: ["#8f527e", "#ddbcdf"] },
   },
   {
     id: "daybreak-records",
-    business: "daybreak records",
+    business: "Daybreak Records",
     kind: "record shop",
-    label: "listening room + merch wall",
+    label: "Listening room + merch wall",
     pulseDuration: 3.55,
     logo: { kind: "icon", icon: "record", colors: ["#d08f3c", "#f5d596"] },
   },
   {
     id: "juniper-study-hall",
-    business: "juniper study hall",
+    business: "Juniper Study Hall",
     kind: "study cafe",
-    label: "late-night study tables",
+    label: "Late-night study tables",
     pulseDuration: 2.75,
     logo: { kind: "mark", colors: ["#3e6c7c", "#b7dae3"] },
   },
@@ -1379,15 +1379,15 @@ function initMarketplaceSimulation() {
               <h4 class="marketplace-card__title">${item.title}</h4>
               <div class="marketplace-card__meta">
                 <div class="marketplace-card__meta-row">
-                  <span class="marketplace-card__detail-label">budget</span>
+                  <span class="marketplace-card__detail-label">Budget</span>
                   <span class="marketplace-card__budget">${displayBudget}</span>
                 </div>
                 <div class="marketplace-card__meta-row">
-                  <span class="marketplace-card__detail-label">category</span>
-                  <span class="marketplace-card__tag">${item.categories[0]}</span>
+                  <span class="marketplace-card__detail-label">Category</span>
+                  <span class="marketplace-card__tag">${capFirst(item.categories[0])}</span>
                 </div>
               </div>
-              <span class="marketplace-card__cta">view opportunity →</span>
+              <span class="marketplace-card__cta">View opportunity →</span>
             </div>
           </div>
         </button>
@@ -1446,12 +1446,12 @@ function initMarketplaceSimulation() {
     const amount = offerInput.value.trim();
 
     if (!amount) {
-      offerStatus.textContent = "enter an offer amount to continue.";
+      offerStatus.textContent = "Enter an offer amount to continue.";
       return;
     }
 
-    offerStatus.textContent = `submitted ${formatSimOffer(amount)} for this opportunity in the simulation.`;
-    showToast("offer submitted");
+    offerStatus.textContent = `Submitted ${formatSimOffer(amount)} for this opportunity in the simulation.`;
+    showToast("Offer submitted");
     offerInput.value = "";
     offerNote.value = "";
   }
@@ -1847,11 +1847,11 @@ function initCommunityMap() {
 }
 
 const CON_SIM_STEP_DESCS = [
-  "scan tiles and tags until something matches your skills and schedule.",
-  "open it: business context, task scope, and pay band in one view.",
-  "message the lister with a quick clarifying question if you need it.",
-  "submit your floor (min) and your opening number (initial offer).",
-  "wait—your bid sits in the queue while the shop reviews and awards.",
+  "Scan tiles and tags until something matches your skills and schedule.",
+  "Open it: business context, task scope, and pay band in one view.",
+  "Message the lister with a quick clarifying question if you need it.",
+  "Submit your floor (min) and your opening number (initial offer).",
+  "Wait—your bid sits in the queue while the shop reviews and awards.",
 ];
 
 const BIZ_WORKFLOW_TIMING = {
@@ -1950,10 +1950,10 @@ function initBizWorkflowDemo() {
 
   function fillFormStatic() {
     const map = {
-      business: "lotus wok & grill",
-      build: "instagram campaign for lunch + dinner specials",
+      business: "Lotus Wok & Grill",
+      build: "Instagram campaign for lunch + dinner specials",
       budget: "$300–$400",
-      quals: "instagram planning, short-form creative, local ad basics",
+      quals: "Instagram planning, short-form creative, local ad basics",
     };
     root.querySelectorAll(".biz-flow__value").forEach((el) => {
       const k = el.dataset.field;
@@ -2024,10 +2024,10 @@ function initBizWorkflowDemo() {
       if (pillBuild) pillBuild.classList.add("is-selected");
       await sleepWithSignal(T.betweenFields, signal);
       const fields = [
-        { sel: '[data-field="business"]', text: "lotus wok & grill" },
-        { sel: '[data-field="build"]', text: "instagram campaign for lunch + dinner specials" },
+        { sel: '[data-field="business"]', text: "Lotus Wok & Grill" },
+        { sel: '[data-field="build"]', text: "Instagram campaign for lunch + dinner specials" },
         { sel: '[data-field="budget"]', text: "$300–$400" },
-        { sel: '[data-field="quals"]', text: "instagram planning, short-form creative, local ad basics" },
+        { sel: '[data-field="quals"]', text: "Instagram planning, short-form creative, local ad basics" },
       ];
       for (const f of fields) {
         const el = root.querySelector(f.sel);
@@ -2439,3 +2439,9 @@ function boot() {
 }
 
 boot();
+
+// Categories and statuses are stored lowercase; show them in sentence case.
+function capFirst(value) {
+  const s = String(value || "");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}

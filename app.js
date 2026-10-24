@@ -161,10 +161,10 @@ const upload = multer({
    function) and /api/webhooks/stripe (covered by the existing /api/*
    rewrite). Register the /api/ path in the Stripe dashboard. */
 async function stripeWebhookHandler(req, res) {
-  if (!stripe) return res.status(503).json({ error: "stripe not configured" });
+  if (!stripe) return res.status(503).json({ error: "Stripe not configured" });
   if (!STRIPE_WEBHOOK_SECRET) {
     console.error("[stripe webhook] STRIPE_WEBHOOK_SECRET missing — refusing event.");
-    return res.status(500).json({ error: "webhook secret not configured" });
+    return res.status(500).json({ error: "Webhook secret not configured" });
   }
   // Signature verification needs the exact bytes Stripe sent. If a host
   // layer already parsed the body into an object, verification can't work.
@@ -195,7 +195,7 @@ async function stripeWebhookHandler(req, res) {
     // Every handler is idempotent, and a failing event doesn't hold up
     // delivery of other events.
     console.error(`[stripe webhook] ${event.type} ${event.id} handler failed:`, err);
-    return res.status(500).json({ error: "handler failed" });
+    return res.status(500).json({ error: "Handler failed" });
   }
   res.json({ received: true, type: event.type });
 }
@@ -329,7 +329,7 @@ async function releasePhaseRow(phaseRow, { destination, metadata, claimEq = {} }
     if (now?.status === "held" && Number(now.refunded_cents) > 0) {
       return { ok: false, partialRefund: true, error: PARTIAL_REFUND_ERROR };
     }
-    return { ok: false, conflict: true, error: "payment is no longer held." };
+    return { ok: false, conflict: true, error: "Payment is no longer held." };
   }
 
   // Stored consultant payout (offer - estimated Stripe fee); legacy rows
@@ -373,7 +373,7 @@ async function releasePhaseRow(phaseRow, { destination, metadata, claimEq = {} }
 /* Inline transfer logic shared between the manual release-period endpoint
    and the auto-release webhook branch. Returns { ok, transfer_id, error }. */
 async function transferRetainerPeriodFunds({ bidId, periodIndex }) {
-  if (!stripe || !supabase) return { ok: false, error: "stripe or db not configured" };
+  if (!stripe || !supabase) return { ok: false, error: "Stripe or DB not configured" };
 
   const { data: phase } = await supabase
     .from("bid_phase_payments")
@@ -382,17 +382,17 @@ async function transferRetainerPeriodFunds({ bidId, periodIndex }) {
     .eq("phase", "retainer_period")
     .eq("period_index", periodIndex)
     .maybeSingle();
-  if (!phase) return { ok: false, error: "period row not found" };
+  if (!phase) return { ok: false, error: "Period row not found" };
   if (phase.status === "released") return { ok: true, transfer_id: phase.transfer_id, alreadyReleased: true };
   if (phase.status !== "held") return { ok: false, error: `cannot release (status=${phase.status})` };
-  if (!phase.charge_id) return { ok: false, error: "missing charge_id — cannot pin transfer" };
+  if (!phase.charge_id) return { ok: false, error: "Missing charge_id — cannot pin transfer" };
 
   const { data: bid } = await supabase
     .from("bids")
     .select("consultant_id")
     .eq("id", bidId)
     .maybeSingle();
-  if (!bid) return { ok: false, error: "bid not found" };
+  if (!bid) return { ok: false, error: "Bid not found" };
 
   const { data: consultant } = await supabase
     .from("profiles")
@@ -400,10 +400,10 @@ async function transferRetainerPeriodFunds({ bidId, periodIndex }) {
     .eq("id", bid.consultant_id)
     .maybeSingle();
   if (!consultant?.stripe_account_id) {
-    return { ok: false, error: "consultant has no stripe connect account" };
+    return { ok: false, error: "Consultant has no Stripe Connect account" };
   }
   const account = await stripe.accounts.retrieve(consultant.stripe_account_id);
-  if (!account.payouts_enabled) return { ok: false, error: "consultant payouts not enabled" };
+  if (!account.payouts_enabled) return { ok: false, error: "Consultant payouts not enabled" };
 
   try {
     const result = await releasePhaseRow(phase, {
@@ -413,7 +413,7 @@ async function transferRetainerPeriodFunds({ bidId, periodIndex }) {
     if (result.conflict) return { ok: true, alreadyReleased: true };
     return result;
   } catch (err) {
-    return { ok: false, error: err.message || "transfer failed" };
+    return { ok: false, error: err.message || "Transfer failed" };
   }
 }
 
@@ -462,7 +462,7 @@ async function onRetainerInvoicePaid(invoice) {
   }
 
   const { chargeId, paymentIntentId } = await resolveInvoicePayment(stripe, invoice);
-  if (!paymentIntentId) throw new Error(`invoice ${invoice.id}: could not resolve payment intent`);
+  if (!paymentIntentId) throw new Error(`Invoice ${invoice.id}: could not resolve payment intent`);
 
   // Redelivery / sibling event: the period for this PI already exists.
   const { data: existing } = await supabase
@@ -612,23 +612,23 @@ const CONFIRMABLE_PAYMENT_STATUSES = ["unpaid", "authorizing", "failed"];
 
 function intentMismatch(intent, reason, extra = {}) {
   alertOps("payment_intent_mismatch", { payment_intent: intent.id, reason, ...extra });
-  return { ok: false, mismatch: true, error: "this payment doesn't match the engagement. contact support." };
+  return { ok: false, mismatch: true, error: "This payment doesn't match the engagement. Contact support." };
 }
 
 async function confirmStandardBidPayment(intent, { awaitDefaultPm = false } = {}) {
   if (intent.status !== "succeeded") {
-    return { ok: false, error: `payment not yet captured (status: ${intent.status}).` };
+    return { ok: false, error: `Payment not yet captured (status: ${intent.status}).` };
   }
   const bidId = intent.metadata?.bid_id;
-  if (!bidId) return intentMismatch(intent, "no bid_id metadata");
+  if (!bidId) return intentMismatch(intent, "No bid_id metadata");
 
   const { data: bid, error: bidErr } = await supabase
     .from("bids")
     .select("id, listing_id, payment_intent_id, payment_status, payment_amount_cents")
     .eq("id", bidId)
     .maybeSingle();
-  if (bidErr) throw new Error(`bid lookup failed: ${bidErr.message}`);
-  if (!bid) return intentMismatch(intent, "bid not found", { bid_id: bidId });
+  if (bidErr) throw new Error(`Bid lookup failed: ${bidErr.message}`);
+  if (!bid) return intentMismatch(intent, "Bid not found", { bid_id: bidId });
 
   const { data: listing } = await supabase
     .from("listings")
@@ -640,13 +640,13 @@ async function confirmStandardBidPayment(intent, { awaitDefaultPm = false } = {}
     // The owner paid a PaymentIntent that is no longer the bid's current
     // one (e.g. two tabs). Money was captured for it — a human needs to
     // refund one of them.
-    return intentMismatch(intent, "not the bid's current payment intent", { bid_id: bidId, current: bid.payment_intent_id });
+    return intentMismatch(intent, "Not the bid's current payment intent", { bid_id: bidId, current: bid.payment_intent_id });
   }
   if (listing?.owner_id !== intent.metadata?.owner_id) {
-    return intentMismatch(intent, "owner mismatch", { bid_id: bidId });
+    return intentMismatch(intent, "Owner mismatch", { bid_id: bidId });
   }
   if (intent.currency !== "usd" || intent.amount !== bid.payment_amount_cents) {
-    return intentMismatch(intent, "amount mismatch", { bid_id: bidId, intent_amount: intent.amount, expected: bid.payment_amount_cents });
+    return intentMismatch(intent, "Amount mismatch", { bid_id: bidId, intent_amount: intent.amount, expected: bid.payment_amount_cents });
   }
 
   if (["held", "released", "refunded"].includes(bid.payment_status)) {
@@ -666,7 +666,7 @@ async function confirmStandardBidPayment(intent, { awaitDefaultPm = false } = {}
     .eq("payment_intent_id", intent.id)
     .in("payment_status", CONFIRMABLE_PAYMENT_STATUSES)
     .select("id");
-  if (updErr) throw new Error(`bid confirm failed: ${updErr.message}`);
+  if (updErr) throw new Error(`Bid confirm failed: ${updErr.message}`);
   if (!flipped?.length) return { ok: true, alreadyConfirmed: true, bidId };
 
   // Promote the just-used payment method to the customer's default so any
@@ -696,7 +696,7 @@ function phaseRowGross(row) {
 
 async function confirmProposalBatchPayment(intent) {
   if (intent.status !== "succeeded") {
-    return { ok: false, error: `payment not yet captured (status: ${intent.status}).` };
+    return { ok: false, error: `Payment not yet captured (status: ${intent.status}).` };
   }
   const ownerId = intent.metadata?.owner_id;
   const { data: rows, error: rowsErr } = await supabase
@@ -704,8 +704,8 @@ async function confirmProposalBatchPayment(intent) {
     .select("id, bid_id, status, amount_cents, platform_fee_cents")
     .eq("payment_intent_id", intent.id)
     .eq("phase", "proposal");
-  if (rowsErr) throw new Error(`proposal rows lookup failed: ${rowsErr.message}`);
-  if (!rows?.length) return intentMismatch(intent, "no proposal rows");
+  if (rowsErr) throw new Error(`Proposal rows lookup failed: ${rowsErr.message}`);
+  if (!rows?.length) return intentMismatch(intent, "No proposal rows");
 
   const bidIds = rows.map((r) => r.bid_id);
   const metaIds = String(intent.metadata?.bid_ids || "").split(",").filter(Boolean);
@@ -714,13 +714,13 @@ async function confirmProposalBatchPayment(intent) {
   }
   const expected = rows.reduce((sum, r) => sum + phaseRowGross(r), 0);
   if (intent.currency !== "usd" || intent.amount !== expected) {
-    return intentMismatch(intent, "amount mismatch", { intent_amount: intent.amount, expected });
+    return intentMismatch(intent, "Amount mismatch", { intent_amount: intent.amount, expected });
   }
   const { data: bids } = await supabase.from("bids").select("id, listing_id").in("id", bidIds);
   const listingIds = [...new Set((bids || []).map((b) => b.listing_id))];
   const { data: listings } = await supabase.from("listings").select("id, owner_id").in("id", listingIds);
   if (!ownerId || (listings || []).length !== listingIds.length || listings.some((l) => l.owner_id !== ownerId)) {
-    return intentMismatch(intent, "owner mismatch");
+    return intentMismatch(intent, "Owner mismatch");
   }
 
   const now = new Date().toISOString();
@@ -730,21 +730,21 @@ async function confirmProposalBatchPayment(intent) {
     .eq("payment_intent_id", intent.id)
     .eq("phase", "proposal")
     .in("status", CONFIRMABLE_PAYMENT_STATUSES);
-  if (phaseUpdErr) throw new Error(`proposal rows confirm failed: ${phaseUpdErr.message}`);
+  if (phaseUpdErr) throw new Error(`Proposal rows confirm failed: ${phaseUpdErr.message}`);
 
   const { error: bidUpdErr } = await supabase
     .from("bids")
     .update({ status: "accepted", accepted_at: now })
     .in("id", bidIds)
     .neq("status", "accepted");
-  if (bidUpdErr) throw new Error(`proposal bids accept failed: ${bidUpdErr.message}`);
+  if (bidUpdErr) throw new Error(`Proposal bids accept failed: ${bidUpdErr.message}`);
 
   return { ok: true, bidIds };
 }
 
 async function confirmServicePayment(intent) {
   if (intent.status !== "succeeded") {
-    return { ok: false, error: `payment not yet captured (status: ${intent.status}).` };
+    return { ok: false, error: `Payment not yet captured (status: ${intent.status}).` };
   }
   const { data: row, error: rowErr } = await supabase
     .from("bid_phase_payments")
@@ -752,18 +752,18 @@ async function confirmServicePayment(intent) {
     .eq("payment_intent_id", intent.id)
     .eq("phase", "service")
     .maybeSingle();
-  if (rowErr) throw new Error(`service row lookup failed: ${rowErr.message}`);
-  if (!row) return intentMismatch(intent, "no service row");
-  if (intent.metadata?.bid_id !== row.bid_id) return intentMismatch(intent, "bid mismatch", { row_bid: row.bid_id });
+  if (rowErr) throw new Error(`Service row lookup failed: ${rowErr.message}`);
+  if (!row) return intentMismatch(intent, "No service row");
+  if (intent.metadata?.bid_id !== row.bid_id) return intentMismatch(intent, "Bid mismatch", { row_bid: row.bid_id });
 
   const { data: bid } = await supabase.from("bids").select("listing_id").eq("id", row.bid_id).maybeSingle();
   const { data: listing } = bid
     ? await supabase.from("listings").select("owner_id").eq("id", bid.listing_id).maybeSingle()
     : { data: null };
-  if (!listing || listing.owner_id !== intent.metadata?.owner_id) return intentMismatch(intent, "owner mismatch");
+  if (!listing || listing.owner_id !== intent.metadata?.owner_id) return intentMismatch(intent, "Owner mismatch");
   const expected = phaseRowGross(row);
   if (intent.currency !== "usd" || intent.amount !== expected) {
-    return intentMismatch(intent, "amount mismatch", { intent_amount: intent.amount, expected });
+    return intentMismatch(intent, "Amount mismatch", { intent_amount: intent.amount, expected });
   }
 
   const { error: updErr } = await supabase
@@ -771,7 +771,7 @@ async function confirmServicePayment(intent) {
     .update({ status: "held", paid_at: new Date().toISOString(), charge_id: idOf(intent.latest_charge) })
     .eq("id", row.id)
     .in("status", CONFIRMABLE_PAYMENT_STATUSES);
-  if (updErr) throw new Error(`service confirm failed: ${updErr.message}`);
+  if (updErr) throw new Error(`Service confirm failed: ${updErr.message}`);
   return { ok: true, bidId: row.bid_id };
 }
 
@@ -803,8 +803,8 @@ async function chargeDisputeHold(chargeId) {
   return (list?.data || []).find((d) => !["won", "warning_closed"].includes(d.status)) || null;
 }
 
-const DISPUTE_HOLD_ERROR = "this payment is under a card dispute, so it can't be released yet. contact support.";
-const PARTIAL_REFUND_ERROR = "part of this payment was refunded, so support needs to settle the rest. contact support.";
+const DISPUTE_HOLD_ERROR = "This payment is under a card dispute, so it can't be released yet. Contact support.";
+const PARTIAL_REFUND_ERROR = "Part of this payment was refunded, so support needs to settle the rest. Contact support.";
 
 let adminIdsCache = null;
 async function adminUserIds() {
@@ -846,12 +846,12 @@ async function onDisputeCreated(dispute) {
   const ctx = await disputeContext(dispute);
   const dueBy = dispute?.evidence_details?.due_by
     ? new Date(dispute.evidence_details.due_by * 1000).toISOString().slice(0, 10)
-    : "see stripe";
+    : "See Stripe";
   alertOps("dispute_created", { dispute: dispute?.id, amount: dispute?.amount, reason: dispute?.reason, due_by: dueBy, ...ctx });
   await notifyAdmins({
     type: "dispute_opened",
-    title: `card dispute opened · ${dollars(dispute?.amount)}`,
-    body: `reason: ${dispute?.reason || "unknown"}. funds state: ${ctx.status || "not matched"}. respond in stripe by ${dueBy}.`,
+    title: `Card dispute opened · ${dollars(dispute?.amount)}`,
+    body: `Reason: ${dispute?.reason || "unknown"}. Funds state: ${ctx.status || "not matched"}. Respond in Stripe by ${dueBy}.`,
     link: ctx.bidId ? `/engagement.html?bid=${ctx.bidId}` : null,
   });
 }
@@ -861,10 +861,10 @@ async function onDisputeClosed(dispute) {
   alertOps("dispute_closed", { dispute: dispute?.id, outcome: dispute?.status, amount: dispute?.amount, ...ctx });
   await notifyAdmins({
     type: "dispute_closed",
-    title: `card dispute ${dispute?.status === "won" ? "won" : "closed: " + (dispute?.status || "unknown")} · ${dollars(dispute?.amount)}`,
+    title: `Card dispute ${dispute?.status === "won" ? "won" : "closed: " + (dispute?.status || "unknown")} · ${dollars(dispute?.amount)}`,
     body: dispute?.status === "won"
-      ? "the funds are back on the platform and can be released again."
-      : "the funds were returned to the cardholder. decide whether to recover from the consultant.",
+      ? "The funds are back on the platform and can be released again."
+      : "The funds were returned to the cardholder. Decide whether to recover from the consultant.",
     link: ctx.bidId ? `/engagement.html?bid=${ctx.bidId}` : null,
   });
 }
@@ -901,22 +901,22 @@ async function onChargeRefunded(charge) {
     const refunded = Number(charge.amount_refunded) || 0;
     if (bid && bid.payment_status === "held") {
       const { error } = await supabase.from("bids").update({ refunded_cents: refunded }).eq("id", bid.id).eq("payment_status", "held");
-      if (error) throw new Error(`bid partial refund mirror failed: ${error.message}`);
+      if (error) throw new Error(`Bid partial refund mirror failed: ${error.message}`);
     }
     for (const row of phaseRows || []) {
       if (row.status !== "held") continue;
       const { error } = await supabase.from("bid_phase_payments").update({ refunded_cents: refunded }).eq("id", row.id).eq("status", "held");
-      if (error) throw new Error(`phase partial refund mirror failed: ${error.message}`);
+      if (error) throw new Error(`Phase partial refund mirror failed: ${error.message}`);
     }
     const bidId = bid?.id || phaseRows?.[0]?.bid_id || null;
     const released = (bid?.payment_status === "released") || (phaseRows || []).some((r) => r.status === "released");
     alertOps("partial_refund_needs_review", { payment_intent: paymentIntentId, bid_id: bidId, amount_refunded: refunded, amount: charge.amount, already_released: released });
     await notifyAdmins({
       type: "partial_refund",
-      title: `partial refund · ${dollars(refunded)} of ${dollars(charge.amount)}`,
+      title: `Partial refund · ${dollars(refunded)} of ${dollars(charge.amount)}`,
       body: released
-        ? "this payment was already released. decide whether to reverse part of the transfer."
-        : "the rest is frozen. it won't release automatically. settle it in stripe, then release or refund it.",
+        ? "This payment was already released. Decide whether to reverse part of the transfer."
+        : "The rest is frozen. It won't release automatically. Settle it in Stripe, then release or refund it.",
       link: bidId ? `/engagement.html?bid=${bidId}` : null,
     });
     return;
@@ -931,7 +931,7 @@ async function onChargeRefunded(charge) {
         .update({ payment_status: "refunded", status: "rejected", refunded_cents: Number(charge.amount_refunded) || 0 })
         .eq("id", bid.id)
         .neq("payment_status", "released");
-      if (error) throw new Error(`bid refund mirror failed: ${error.message}`);
+      if (error) throw new Error(`Bid refund mirror failed: ${error.message}`);
     }
   }
   for (const row of phaseRows || []) {
@@ -943,7 +943,7 @@ async function onChargeRefunded(charge) {
         .update({ status: "refunded", refunded_at: now, refunded_cents: Number(charge.amount_refunded) || 0 })
         .eq("id", row.id)
         .neq("status", "released");
-      if (error) throw new Error(`phase refund mirror failed: ${error.message}`);
+      if (error) throw new Error(`Phase refund mirror failed: ${error.message}`);
     }
   }
 }
@@ -974,8 +974,8 @@ async function onPayoutFailed(payout, accountId) {
   if (!profile?.id) return;
   await notifyUser(profile.id, {
     type: "payout_failed",
-    title: "your payout didn't go through",
-    body: "your bank returned the payout. update your bank details in the payout tab and stripe will retry.",
+    title: "Your payout didn't go through",
+    body: "Your bank returned the payout. Update your bank details in the payout tab and Stripe will retry.",
     link: "/settings.html#payout",
   });
 }
@@ -1111,12 +1111,12 @@ app.use("/api", (req, res, next) => {
 app.post("/api/profile/instagram-avatar", express.json(), async (req, res) => {
   const token = getBearerToken(req);
   if (!token) {
-    return res.status(401).json({ ok: false, error: "missing token" });
+    return res.status(401).json({ ok: false, error: "Missing token" });
   }
 
   const { data: userData, error: userErr } = await supabase.auth.getUser(token);
   if (userErr || !userData?.user?.id) {
-    return res.status(401).json({ ok: false, error: "invalid session" });
+    return res.status(401).json({ ok: false, error: "Invalid session" });
   }
 
   const userId = userData.user.id;
@@ -1132,7 +1132,7 @@ app.post("/api/profile/instagram-avatar", express.json(), async (req, res) => {
     .eq("id", userId)
     .maybeSingle();
   if (profErr || profile?.role !== "business_owner") {
-    return res.status(403).json({ ok: false, error: "business owners only" });
+    return res.status(403).json({ ok: false, error: "Business owners only" });
   }
 
   try {
@@ -1183,14 +1183,14 @@ async function geocodeAddress(address) {
 
 app.post("/api/listings/:id/geocode", express.json(), async (req, res) => {
   const token = getBearerToken(req);
-  if (!token) return res.status(401).json({ ok: false, error: "missing token" });
+  if (!token) return res.status(401).json({ ok: false, error: "Missing token" });
   const { data: userData, error: userErr } = await supabase.auth.getUser(token);
   if (userErr || !userData?.user?.id) {
-    return res.status(401).json({ ok: false, error: "invalid session" });
+    return res.status(401).json({ ok: false, error: "Invalid session" });
   }
   const userId = userData.user.id;
   const listingId = String(req.params.id || "");
-  if (!listingId) return res.status(400).json({ ok: false, error: "missing listing id" });
+  if (!listingId) return res.status(400).json({ ok: false, error: "Missing listing ID" });
 
   const { data: listing, error: listingErr } = await supabase
     .from("listings")
@@ -1198,10 +1198,10 @@ app.post("/api/listings/:id/geocode", express.json(), async (req, res) => {
     .eq("id", listingId)
     .maybeSingle();
   if (listingErr || !listing) {
-    return res.status(404).json({ ok: false, error: "listing not found" });
+    return res.status(404).json({ ok: false, error: "Listing not found" });
   }
   if (listing.owner_id !== userId) {
-    return res.status(403).json({ ok: false, error: "not your listing" });
+    return res.status(403).json({ ok: false, error: "Not your listing" });
   }
 
   const { data: bp } = await supabase
@@ -1228,15 +1228,15 @@ app.post("/api/listings/:id/geocode", express.json(), async (req, res) => {
 app.post("/api/account/delete-request", express.json(), async (req, res) => {
   const token = getBearerToken(req);
   if (!token) {
-    return res.status(401).json({ ok: false, error: "missing token" });
+    return res.status(401).json({ ok: false, error: "Missing token" });
   }
   const { data: userData, error: userErr } = await supabase.auth.getUser(token);
   if (userErr || !userData?.user?.id) {
-    return res.status(401).json({ ok: false, error: "invalid session" });
+    return res.status(401).json({ ok: false, error: "Invalid session" });
   }
   const confirm = typeof req.body?.confirm === "string" ? req.body.confirm.trim().toLowerCase() : "";
   if (confirm !== "delete my account") {
-    return res.status(400).json({ ok: false, error: "missing confirmation phrase" });
+    return res.status(400).json({ ok: false, error: "Missing confirmation phrase" });
   }
 
   const userId = userData.user.id;
@@ -1276,20 +1276,20 @@ app.post("/api/account/delete-request", express.json(), async (req, res) => {
     // In-app too, so the request is seen even before email is configured.
     notifyAdmins({
       type: "account_deletion_requested",
-      title: "account deletion requested",
-      body: `${userEmail || userId} asked to delete their account. process within 14 days.`,
+      title: "Account deletion requested",
+      body: `${userEmail || userId} asked to delete their account. Process within 14 days.`,
       link: null,
     }).catch(() => {});
 
     if (userEmail) {
       sendEmail({
         to: userEmail,
-        subject: "we received your deletion request",
+        subject: "We received your deletion request",
         text:
           `hi,\n\n` +
-          `we received your request to delete your grassroots account. ` +
-          `we'll process it within 14 days and email you again to confirm when it's done. ` +
-          `if you didn't make this request, reply to this email immediately and we'll cancel it.\n\n` +
+          `We received your request to delete your Grassroots account. ` +
+          `We'll process it within 14 days and email you again to confirm when it's done. ` +
+          `If you didn't make this request, reply to this email immediately and we'll cancel it.\n\n` +
           `— grassroots`,
       }).catch((e) => console.warn("[delete-request] user email failed", e?.message));
     }
@@ -1319,15 +1319,15 @@ app.post("/api/account/delete-request", express.json(), async (req, res) => {
 app.post("/api/account/export-request", express.json(), async (req, res) => {
   const token = getBearerToken(req);
   if (!token) {
-    return res.status(401).json({ ok: false, error: "missing token" });
+    return res.status(401).json({ ok: false, error: "Missing token" });
   }
   const { data: userData, error: userErr } = await supabase.auth.getUser(token);
   if (userErr || !userData?.user?.id) {
-    return res.status(401).json({ ok: false, error: "invalid session" });
+    return res.status(401).json({ ok: false, error: "Invalid session" });
   }
   const confirm = typeof req.body?.confirm === "string" ? req.body.confirm.trim().toLowerCase() : "";
   if (confirm !== "export my data") {
-    return res.status(400).json({ ok: false, error: "missing confirmation phrase" });
+    return res.status(400).json({ ok: false, error: "Missing confirmation phrase" });
   }
 
   const userId = userData.user.id;
@@ -1352,20 +1352,20 @@ app.post("/api/account/export-request", express.json(), async (req, res) => {
   }).catch((e) => console.warn("[export-request] admin email failed", e?.message));
   notifyAdmins({
     type: "data_export_requested",
-    title: "data export requested",
-    body: `${userEmail || userId} asked for a copy of their data. fulfil within 30 days.`,
+    title: "Data export requested",
+    body: `${userEmail || userId} asked for a copy of their data. Fulfil within 30 days.`,
     link: null,
   }).catch(() => {});
 
   if (userEmail) {
     sendEmail({
       to: userEmail,
-      subject: "we received your data export request",
+      subject: "We received your data export request",
       text:
         `hi,\n\n` +
-        `we received your request for a copy of your grassroots data. ` +
-        `we'll email you a secure download link within 30 days. ` +
-        `if you didn't make this request, reply to this email and we'll cancel it.\n\n` +
+        `We received your request for a copy of your Grassroots data. ` +
+        `We'll email you a secure download link within 30 days. ` +
+        `If you didn't make this request, reply to this email and we'll cancel it.\n\n` +
         `— grassroots`,
     }).catch((e) => console.warn("[export-request] user email failed", e?.message));
   }
@@ -1863,7 +1863,7 @@ const CONSULTANT_BUSINESS_PROFILE = {
   mcc: "7392",
   url: PLATFORM_URL,
   product_description:
-    "Independent consulting services arranged through the grassroots marketplace.",
+    "Independent consulting services arranged through the Grassroots Marketplace.",
 };
 
 async function ensureConsultantStripeAccount(viewerId) {
@@ -1874,12 +1874,12 @@ async function ensureConsultantStripeAccount(viewerId) {
     .maybeSingle();
   if (error) {
     if (/stripe_account_id|stripe_account_status|column .* does not exist/i.test(error.message || "")) {
-      throw new Error("payments schema not deployed yet — run supabase/migrations/add_stripe_fields.sql.");
+      throw new Error("Payments schema not deployed yet — run supabase/migrations/add_stripe_fields.sql.");
     }
     throw new Error(error.message);
   }
-  if (!profile) throw new Error("profile not found.");
-  if (profile.role !== "consultant") throw new Error("only consultants can set up payouts.");
+  if (!profile) throw new Error("Profile not found.");
+  if (profile.role !== "consultant") throw new Error("Only consultants can set up payouts.");
 
   if (profile.stripe_account_id) {
     // Account already exists — backfill business_profile if Stripe still
@@ -1923,11 +1923,11 @@ async function ensureOwnerStripeCustomer(viewerId) {
     .maybeSingle();
   if (error) {
     if (/stripe_customer_id|column .* does not exist/i.test(error.message || "")) {
-      throw new Error("payments schema not deployed yet — run supabase/migrations/add_stripe_fields.sql.");
+      throw new Error("Payments schema not deployed yet — run supabase/migrations/add_stripe_fields.sql.");
     }
     throw new Error(error.message);
   }
-  if (!profile) throw new Error("profile not found.");
+  if (!profile) throw new Error("Profile not found.");
   if (profile.stripe_customer_id) return profile;
 
   const customer = await stripe.customers.create({
@@ -1945,7 +1945,7 @@ async function ensureOwnerStripeCustomer(viewerId) {
 app.post("/api/stripe/account-session", async (req, res) => {
   if (!requireStripe(res)) return;
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
   try {
     const profile = await ensureConsultantStripeAccount(viewer.id);
     const accountSession = await stripe.accountSessions.create({
@@ -1962,7 +1962,7 @@ app.post("/api/stripe/account-session", async (req, res) => {
       account_id: profile.stripe_account_id,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not create account session." });
+    return res.status(500).json({ error: err.message || "Could not create account session." });
   }
 });
 
@@ -1970,7 +1970,7 @@ app.post("/api/stripe/account-session", async (req, res) => {
 app.get("/api/stripe/account-status", async (req, res) => {
   if (!requireStripe(res)) return;
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
   try {
     const { data: profile } = await supabase
       .from("profiles")
@@ -1999,7 +1999,7 @@ app.get("/api/stripe/account-status", async (req, res) => {
       requirements_due: account.requirements?.currently_due || [],
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not load account status." });
+    return res.status(500).json({ error: err.message || "Could not load account status." });
   }
 });
 
@@ -2016,7 +2016,7 @@ app.get("/api/stripe/account-status", async (req, res) => {
 app.get("/api/stripe/balance-summary", async (req, res) => {
   if (!requireStripe(res)) return;
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
   try {
     const { data: profile } = await supabase
       .from("profiles")
@@ -2052,7 +2052,7 @@ app.get("/api/stripe/balance-summary", async (req, res) => {
       last_payout: lastPayout,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not load balance summary." });
+    return res.status(500).json({ error: err.message || "Could not load balance summary." });
   }
 });
 
@@ -2067,7 +2067,7 @@ app.get("/api/stripe/balance-summary", async (req, res) => {
 app.post("/api/stripe/payment-intent", async (req, res) => {
   if (!requireStripe(res)) return;
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
   const bidId = String(req.body?.bid_id || "").trim();
   if (!bidId) return res.status(400).json({ error: "bid_id required." });
 
@@ -2080,26 +2080,26 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
     if (bidErr) {
       const msg = bidErr.message || "";
       if (/payment_intent_id|payment_status|column .* does not exist/i.test(msg)) {
-        return res.status(503).json({ error: "payments schema not deployed yet — run supabase/migrations/add_stripe_fields.sql." });
+        return res.status(503).json({ error: "Payments schema not deployed yet — run supabase/migrations/add_stripe_fields.sql." });
       }
       return res.status(500).json({ error: msg });
     }
-    if (!bid) return res.status(404).json({ error: "bid not found." });
+    if (!bid) return res.status(404).json({ error: "Bid not found." });
 
     const { data: listing, error: listingErr } = await supabase
       .from("listings")
       .select("id, owner_id, title")
       .eq("id", bid.listing_id)
       .maybeSingle();
-    if (listingErr || !listing) return res.status(404).json({ error: "listing not found." });
-    if (listing.owner_id !== viewer.id) return res.status(403).json({ error: "only the listing owner can pay." });
+    if (listingErr || !listing) return res.status(404).json({ error: "Listing not found." });
+    if (listing.owner_id !== viewer.id) return res.status(403).json({ error: "Only the listing owner can pay." });
     if (bid.payment_status === "held" || bid.payment_status === "released") {
-      return res.status(409).json({ error: "this bid is already paid." });
+      return res.status(409).json({ error: "This bid is already paid." });
     }
 
     const offerAmount = Number(bid.counter_offer_cents || bid.amount_cents);
     if (!Number.isFinite(offerAmount) || offerAmount < 50) {
-      return res.status(400).json({ error: "bid amount is invalid for payment." });
+      return res.status(400).json({ error: "Bid amount is invalid for payment." });
     }
 
     // What the business is actually charged = offer + platform fee. The
@@ -2118,7 +2118,7 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
       .eq("id", bid.consultant_id)
       .maybeSingle();
     if (!consultantProfile?.stripe_account_id) {
-      return res.status(409).json({ error: "this consultant hasn't set up payouts yet — they need to finish onboarding before their offer can be accepted." });
+      return res.status(409).json({ error: "This consultant hasn't set up payouts yet — they need to finish onboarding before their offer can be accepted." });
     }
     try {
       const acct = await stripe.accounts.retrieve(consultantProfile.stripe_account_id);
@@ -2128,10 +2128,10 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
           .from("profiles")
           .update({ stripe_account_status: "pending" })
           .eq("id", bid.consultant_id);
-        return res.status(409).json({ error: "this consultant's payout setup isn't fully verified yet. they'll need to finish stripe onboarding before you can accept their offer." });
+        return res.status(409).json({ error: "This consultant's payout setup isn't fully verified yet. They'll need to finish Stripe onboarding before you can accept their offer." });
       }
     } catch (err) {
-      return res.status(502).json({ error: "could not verify consultant's payout account: " + (err.message || "stripe error") });
+      return res.status(502).json({ error: "Could not verify consultant's payout account: " + (err.message || "Stripe error") });
     }
 
     const owner = await ensureOwnerStripeCustomer(viewer.id);
@@ -2148,10 +2148,10 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
       // Already paid — the confirm step just never landed. Finish it
       // instead of minting a second PaymentIntent (a double charge).
       await confirmStandardBidPayment(intent);
-      return res.status(409).json({ error: "this bid is already paid." });
+      return res.status(409).json({ error: "This bid is already paid." });
     }
     if (intent && ["processing", "requires_capture"].includes(intent.status)) {
-      return res.status(409).json({ error: "a payment for this bid is already processing." });
+      return res.status(409).json({ error: "A payment for this bid is already processing." });
     }
     if (intent && intent.status !== "canceled" && intent.amount !== amount) {
       // The offer changed (e.g. a counter was accepted) since this PI was
@@ -2204,7 +2204,7 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
         // Without the link, confirm can't find this PI — don't let the
         // owner pay it.
         try { await stripe.paymentIntents.cancel(intent.id); } catch (_) {}
-        return res.status(500).json({ error: "could not start payment. try again." });
+        return res.status(500).json({ error: "Could not start payment. Try again." });
       }
     }
 
@@ -2216,7 +2216,7 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
       fee_breakdown: feeBreakdown,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not start payment." });
+    return res.status(500).json({ error: err.message || "Could not start payment." });
   }
 });
 
@@ -2225,7 +2225,7 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
 app.post("/api/stripe/confirm-acceptance", async (req, res) => {
   if (!requireStripe(res)) return;
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
   const bidId = String(req.body?.bid_id || "").trim();
   if (!bidId) return res.status(400).json({ error: "bid_id required." });
 
@@ -2235,18 +2235,18 @@ app.post("/api/stripe/confirm-acceptance", async (req, res) => {
       .select("id, payment_intent_id, listing_id")
       .eq("id", bidId)
       .maybeSingle();
-    if (bidErr || !bid) return res.status(404).json({ error: "bid not found." });
+    if (bidErr || !bid) return res.status(404).json({ error: "Bid not found." });
     const { data: listing } = await supabase
       .from("listings")
       .select("owner_id")
       .eq("id", bid.listing_id)
       .maybeSingle();
-    if (listing?.owner_id !== viewer.id) return res.status(403).json({ error: "only the listing owner can confirm." });
-    if (!bid.payment_intent_id) return res.status(400).json({ error: "no payment intent on this bid." });
+    if (listing?.owner_id !== viewer.id) return res.status(403).json({ error: "Only the listing owner can confirm." });
+    if (!bid.payment_intent_id) return res.status(400).json({ error: "No payment intent on this bid." });
 
     const intent = await stripe.paymentIntents.retrieve(bid.payment_intent_id);
     if (intent.metadata?.bid_id !== bidId || intent.metadata?.owner_id !== viewer.id) {
-      return res.status(403).json({ error: "this payment doesn't belong to this engagement." });
+      return res.status(403).json({ error: "This payment doesn't belong to this engagement." });
     }
     // Same path the payment_intent.succeeded webhook runs; verifies amount
     // and flips authorizing → held exactly once.
@@ -2255,7 +2255,7 @@ app.post("/api/stripe/confirm-acceptance", async (req, res) => {
 
     return res.json({ ok: true });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not confirm payment." });
+    return res.status(500).json({ error: err.message || "Could not confirm payment." });
   }
 });
 
@@ -2288,11 +2288,11 @@ async function releaseStandardBid(bid, { claimEq = {} } = {}) {
         .eq("id", bid.consultant_id)
         .maybeSingle());
       if (!consultant?.stripe_account_id) {
-        return { ok: false, status: 400, error: "consultant hasn't set up payouts yet — they need to finish onboarding before funds can be released." };
+        return { ok: false, status: 400, error: "Consultant hasn't set up payouts yet — they need to finish onboarding before funds can be released." };
       }
       const account = await stripe.accounts.retrieve(consultant.stripe_account_id);
       if (!account.payouts_enabled) {
-        return { ok: false, status: 400, error: "consultant's payout setup is incomplete — they need to finish onboarding first." };
+        return { ok: false, status: 400, error: "Consultant's payout setup is incomplete — they need to finish onboarding first." };
       }
     }
   }
@@ -2311,7 +2311,7 @@ async function releaseStandardBid(bid, { claimEq = {} } = {}) {
     if (now?.payment_status === "held" && Number(now.refunded_cents) > 0) {
       return { ok: false, status: 409, partialRefund: true, error: PARTIAL_REFUND_ERROR };
     }
-    return { ok: false, status: 409, conflict: true, error: "this payment changed while you were releasing it. reload and try again." };
+    return { ok: false, status: 409, conflict: true, error: "This payment changed while you were releasing it. Reload and try again." };
   }
 
   if (intent) {
@@ -2319,7 +2319,7 @@ async function releaseStandardBid(bid, { claimEq = {} } = {}) {
 
     if (wasDestinationCharge) {
       // Pre-escrow bid: funds already routed at capture. Bookkeeping flip.
-      fundsRouted = "at-capture (pre-escrow)";
+      fundsRouted = "At-capture (pre-escrow)";
     } else {
       // Grandfathering: bids paid before the fee-split rollout have
       // consultant_payout_cents NULL. Keep transferring the full
@@ -2359,7 +2359,7 @@ async function releaseStandardBid(bid, { claimEq = {} } = {}) {
         throw err;
       }
       transferId = transfer.id;
-      fundsRouted = hasFeeBreakdown ? "on-release (fee-split)" : "on-release (grandfathered)";
+      fundsRouted = hasFeeBreakdown ? "On-release (fee-split)" : "On-release (grandfathered)";
 
       const { error: stampErr } = await supabase
         .from("bids")
@@ -2392,7 +2392,7 @@ async function releaseStandardBid(bid, { claimEq = {} } = {}) {
 app.post("/api/stripe/release-funds", async (req, res) => {
   if (!requireStripe(res)) return;
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
   const bidId = String(req.body?.bid_id || "").trim();
   if (!bidId) return res.status(400).json({ error: "bid_id required." });
 
@@ -2402,15 +2402,15 @@ app.post("/api/stripe/release-funds", async (req, res) => {
       .select("id, listing_id, consultant_id, payment_amount_cents, payment_status, payment_intent_id, transfer_id, stripe_fee_cents, platform_fee_cents, consultant_payout_cents")
       .eq("id", bidId)
       .maybeSingle();
-    if (bidErr || !bid) return res.status(404).json({ error: "bid not found." });
+    if (bidErr || !bid) return res.status(404).json({ error: "Bid not found." });
     const { data: listing } = await supabase
       .from("listings")
       .select("owner_id")
       .eq("id", bid.listing_id)
       .maybeSingle();
-    if (listing?.owner_id !== viewer.id) return res.status(403).json({ error: "only the listing owner can release funds." });
+    if (listing?.owner_id !== viewer.id) return res.status(403).json({ error: "Only the listing owner can release funds." });
     if (bid.payment_status === "released") return res.json({ ok: true, alreadyReleased: true });
-    if (bid.payment_status !== "held") return res.status(400).json({ error: `cannot release: status is ${bid.payment_status}.` });
+    if (bid.payment_status !== "held") return res.status(400).json({ error: `Cannot release: status is ${bid.payment_status}.` });
 
     // Require the review to be in before flipping to released.
     const { data: review } = await supabase
@@ -2418,13 +2418,13 @@ app.post("/api/stripe/release-funds", async (req, res) => {
       .select("id")
       .eq("bid_id", bidId)
       .maybeSingle();
-    if (!review?.id) return res.status(400).json({ error: "submit your review before releasing payment." });
+    if (!review?.id) return res.status(400).json({ error: "Submit your review before releasing payment." });
 
     const result = await releaseStandardBid(bid);
     if (!result.ok) return res.status(result.status).json({ error: result.error });
     return res.json(result);
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not release funds." });
+    return res.status(500).json({ error: err.message || "Could not release funds." });
   }
 });
 
@@ -2448,7 +2448,7 @@ const REFUND_WINDOW_MS = 24 * 60 * 60 * 1000;
 app.post("/api/stripe/refund-payment", async (req, res) => {
   if (!requireStripe(res)) return;
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
   const bidId = String(req.body?.bid_id || "").trim();
   if (!bidId) return res.status(400).json({ error: "bid_id required." });
 
@@ -2458,7 +2458,7 @@ app.post("/api/stripe/refund-payment", async (req, res) => {
       .select("id, listing_id, payment_intent_id, payment_status, paid_at, payment_amount_cents")
       .eq("id", bidId)
       .maybeSingle();
-    if (bidErr || !bid) return res.status(404).json({ error: "bid not found." });
+    if (bidErr || !bid) return res.status(404).json({ error: "Bid not found." });
 
     const { data: listing } = await supabase
       .from("listings")
@@ -2466,7 +2466,7 @@ app.post("/api/stripe/refund-payment", async (req, res) => {
       .eq("id", bid.listing_id)
       .maybeSingle();
     if (listing?.owner_id !== viewer.id) {
-      return res.status(403).json({ error: "only the listing owner can request a refund." });
+      return res.status(403).json({ error: "Only the listing owner can request a refund." });
     }
 
     if (bid.payment_status === "refunded") {
@@ -2474,23 +2474,23 @@ app.post("/api/stripe/refund-payment", async (req, res) => {
     }
     if (bid.payment_status === "released") {
       return res.status(409).json({
-        error: "funds have already been released to the consultant. once the work was marked complete and the review submitted, the engagement is final — refunds are not available.",
+        error: "Funds have already been released to the consultant. Once the work was marked complete and the review submitted, the engagement is final — refunds are not available.",
       });
     }
     if (bid.payment_status !== "held") {
-      return res.status(409).json({ error: `cannot refund: payment status is ${bid.payment_status}.` });
+      return res.status(409).json({ error: `Cannot refund: payment status is ${bid.payment_status}.` });
     }
     if (!bid.payment_intent_id) {
-      return res.status(400).json({ error: "no payment intent on this bid." });
+      return res.status(400).json({ error: "No payment intent on this bid." });
     }
     if (!bid.paid_at) {
-      return res.status(400).json({ error: "no paid_at timestamp — contact support." });
+      return res.status(400).json({ error: "No paid_at timestamp — contact support." });
     }
 
     const elapsed = Date.now() - new Date(bid.paid_at).getTime();
     if (elapsed > REFUND_WINDOW_MS) {
       return res.status(403).json({
-        error: "the 24-hour self-serve refund window has passed. contact support to request a refund.",
+        error: "The 24-hour self-serve refund window has passed. Contact support to request a refund.",
         windowExpired: true,
       });
     }
@@ -2502,7 +2502,7 @@ app.post("/api/stripe/refund-payment", async (req, res) => {
     // this refund can't also go through. Rolled back if Stripe fails.
     const claimed = await casUpdate("bids", bidId, "held", { payment_status: "refunded" }, "payment_status");
     if (!claimed) {
-      return res.status(409).json({ error: "this payment changed while you were refunding it. reload and try again." });
+      return res.status(409).json({ error: "This payment changed while you were refunding it. Reload and try again." });
     }
 
     let refund;
@@ -2536,7 +2536,7 @@ app.post("/api/stripe/refund-payment", async (req, res) => {
 
     return res.json({ ok: true, refund_id: refund.id });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not refund payment." });
+    return res.status(500).json({ error: err.message || "Could not refund payment." });
   }
 });
 
@@ -2555,7 +2555,7 @@ app.post("/api/stripe/refund-payment", async (req, res) => {
 app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
   if (!requireStripe(res)) return;
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
 
   const bidIds = Array.isArray(req.body?.bid_ids)
     ? req.body.bid_ids.map((id) => String(id || "").trim()).filter(Boolean)
@@ -2568,9 +2568,9 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
       .select("id, listing_id, consultant_id, proposal_fee_cents, service_fee_cents, status, move_forward_status")
       .in("id", bidIds);
     if (bidsErr) return res.status(500).json({ error: bidsErr.message });
-    if (!bids?.length) return res.status(404).json({ error: "bids not found." });
+    if (!bids?.length) return res.status(404).json({ error: "Bids not found." });
     if (bids.length !== bidIds.length) {
-      return res.status(404).json({ error: "one or more bids not found." });
+      return res.status(404).json({ error: "One or more bids not found." });
     }
 
     // All bids must belong to listings the viewer owns, and all those
@@ -2584,10 +2584,10 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
 
     for (const l of listings || []) {
       if (l.owner_id !== viewer.id) {
-        return res.status(403).json({ error: "you don't own one of these listings." });
+        return res.status(403).json({ error: "You don't own one of these listings." });
       }
       if (l.contract_type !== "phased") {
-        return res.status(400).json({ error: `listing "${l.title}" is not a phased contract.` });
+        return res.status(400).json({ error: `Listing "${l.title}" is not a phased contract.` });
       }
     }
 
@@ -2602,7 +2602,7 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
     for (const row of existingPhases || []) {
       if (["held", "released", "authorizing"].includes(row.status)) {
         return res.status(409).json({
-          error: `proposal fee for one of these bids has already been processed (status: ${row.status}).`,
+          error: `Proposal fee for one of these bids has already been processed (status: ${row.status}).`,
         });
       }
     }
@@ -2616,7 +2616,7 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
     for (const b of bids) {
       const fee = Number(b.proposal_fee_cents);
       if (!Number.isFinite(fee) || fee < 50) {
-        return res.status(400).json({ error: "one of the bids has an invalid proposal fee." });
+        return res.status(400).json({ error: "One of the bids has an invalid proposal fee." });
       }
       const breakdown = fees.computeFees(fee);
       bidBreakdowns.set(b.id, breakdown);
@@ -2634,7 +2634,7 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
       const c = consultantById.get(b.consultant_id);
       if (!c?.stripe_account_id) {
         return res.status(409).json({
-          error: "one of these consultants hasn't set up payouts yet — they need to finish onboarding before you can accept.",
+          error: "One of these consultants hasn't set up payouts yet — they need to finish onboarding before you can accept.",
         });
       }
       try {
@@ -2645,12 +2645,12 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
             .update({ stripe_account_status: "pending" })
             .eq("id", b.consultant_id);
           return res.status(409).json({
-            error: "one of these consultants' payout setup isn't fully verified yet.",
+            error: "One of these consultants' payout setup isn't fully verified yet.",
           });
         }
       } catch (err) {
         return res.status(502).json({
-          error: "could not verify a consultant's payout account: " + (err.message || "stripe error"),
+          error: "Could not verify a consultant's payout account: " + (err.message || "Stripe error"),
         });
       }
     }
@@ -2736,7 +2736,7 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
       },
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not start proposal payment." });
+    return res.status(500).json({ error: err.message || "Could not start proposal payment." });
   }
 });
 
@@ -2772,7 +2772,7 @@ function retainerCancelAt(anchorUnix, cadence, periodCount) {
 app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
   if (!requireStripe(res)) return;
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
 
   const bidId = String(req.body?.bid_id || "").trim();
   if (!bidId) return res.status(400).json({ error: "bid_id required." });
@@ -2783,22 +2783,22 @@ app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
       .select("id, listing_id, consultant_id, amount_cents, payment_status")
       .eq("id", bidId)
       .maybeSingle();
-    if (bidErr || !bid) return res.status(404).json({ error: "bid not found." });
+    if (bidErr || !bid) return res.status(404).json({ error: "Bid not found." });
 
     const { data: listing } = await supabase
       .from("listings")
       .select("id, owner_id, contract_type, retainer_terms, retainer_cadence, retainer_period_count, retainer_fee_cents, title")
       .eq("id", bid.listing_id)
       .maybeSingle();
-    if (!listing) return res.status(404).json({ error: "listing not found." });
+    if (!listing) return res.status(404).json({ error: "Listing not found." });
     if (listing.owner_id !== viewer.id) {
-      return res.status(403).json({ error: "only the listing owner can start a retainer." });
+      return res.status(403).json({ error: "Only the listing owner can start a retainer." });
     }
     if (listing.contract_type !== "retainer") {
-      return res.status(400).json({ error: "this isn't a retainer listing." });
+      return res.status(400).json({ error: "This isn't a retainer listing." });
     }
     if (bid.payment_status !== "released") {
-      return res.status(400).json({ error: "release the first-period payment before continuing as a retainer." });
+      return res.status(400).json({ error: "Release the first-period payment before continuing as a retainer." });
     }
 
     // Block if a subscription is already running for this bid.
@@ -2808,7 +2808,7 @@ app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
       .eq("bid_id", bidId)
       .maybeSingle();
     if (existing && ["pending", "active"].includes(existing.status)) {
-      return res.status(409).json({ error: `retainer already ${existing.status} for this engagement.` });
+      return res.status(409).json({ error: `Retainer already ${existing.status} for this engagement.` });
     }
 
     // Resolve cadence + fee. 'fixed' uses listing values; 'tentative'
@@ -2833,10 +2833,10 @@ app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
     }
 
     if (!CADENCE_INTERVAL[cadence]) {
-      return res.status(400).json({ error: "cadence must be weekly, biweekly, monthly, or quarterly." });
+      return res.status(400).json({ error: "Cadence must be weekly, biweekly, monthly, or quarterly." });
     }
     if (!Number.isFinite(feeCents) || feeCents < 50) {
-      return res.status(400).json({ error: "fee per period must be at least $0.50." });
+      return res.status(400).json({ error: "Fee per period must be at least $0.50." });
     }
 
     const { data: consultantProfile } = await supabase
@@ -2845,7 +2845,7 @@ app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
       .eq("id", bid.consultant_id)
       .maybeSingle();
     if (!consultantProfile?.stripe_account_id) {
-      return res.status(409).json({ error: "consultant hasn't set up payouts yet." });
+      return res.status(409).json({ error: "Consultant hasn't set up payouts yet." });
     }
 
     const owner = await ensureOwnerStripeCustomer(viewer.id);
@@ -2950,7 +2950,7 @@ app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
       status: phaseRow.status,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not start retainer." });
+    return res.status(500).json({ error: err.message || "Could not start retainer." });
   }
 });
 
@@ -2960,7 +2960,7 @@ app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
 // Stripe subscription is created until the consultant accepts.
 app.post("/api/stripe/retainer/offer", async (req, res) => {
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
 
   const bidId = String(req.body?.bid_id || "").trim();
   if (!bidId) return res.status(400).json({ error: "bid_id required." });
@@ -2975,13 +2975,13 @@ app.post("/api/stripe/retainer/offer", async (req, res) => {
   const message = String(req.body?.message || "").trim() || null;
 
   if (!CADENCE_INTERVAL[cadence]) {
-    return res.status(400).json({ error: "cadence must be weekly, biweekly, monthly, or quarterly." });
+    return res.status(400).json({ error: "Cadence must be weekly, biweekly, monthly, or quarterly." });
   }
   if (!Number.isFinite(periodCount) || periodCount < 1) {
     return res.status(400).json({ error: "period_count must be at least 1." });
   }
   if (!Number.isFinite(feeCents) || feeCents < 50) {
-    return res.status(400).json({ error: "fee per period must be at least $0.50." });
+    return res.status(400).json({ error: "Fee per period must be at least $0.50." });
   }
 
   try {
@@ -2990,7 +2990,7 @@ app.post("/api/stripe/retainer/offer", async (req, res) => {
       .select("id, listing_id, consultant_id, payment_status")
       .eq("id", bidId)
       .maybeSingle();
-    if (!bid) return res.status(404).json({ error: "bid not found." });
+    if (!bid) return res.status(404).json({ error: "Bid not found." });
 
     const { data: listing } = await supabase
       .from("listings")
@@ -2998,10 +2998,10 @@ app.post("/api/stripe/retainer/offer", async (req, res) => {
       .eq("id", bid.listing_id)
       .maybeSingle();
     if (listing?.owner_id !== viewer.id) {
-      return res.status(403).json({ error: "only the listing owner can offer a retainer." });
+      return res.status(403).json({ error: "Only the listing owner can offer a retainer." });
     }
     if (bid.payment_status !== "released") {
-      return res.status(400).json({ error: "the engagement isn't released yet — retainer offers happen after first delivery." });
+      return res.status(400).json({ error: "The engagement isn't released yet — retainer offers happen after first delivery." });
     }
 
     const { data: existing } = await supabase
@@ -3010,7 +3010,7 @@ app.post("/api/stripe/retainer/offer", async (req, res) => {
       .eq("bid_id", bidId)
       .maybeSingle();
     if (existing && ["offered", "pending", "active"].includes(existing.status)) {
-      return res.status(409).json({ error: `a retainer is already ${existing.status} on this engagement.` });
+      return res.status(409).json({ error: `A retainer is already ${existing.status} on this engagement.` });
     }
 
     const row = {
@@ -3042,7 +3042,7 @@ app.post("/api/stripe/retainer/offer", async (req, res) => {
 
     return res.json({ ok: true, fee_cents: feeCents, cadence, period_count: periodCount });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not create offer." });
+    return res.status(500).json({ error: err.message || "Could not create offer." });
   }
 });
 
@@ -3052,7 +3052,7 @@ app.post("/api/stripe/retainer/offer", async (req, res) => {
 app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
   if (!requireStripe(res)) return;
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
 
   const bidId = String(req.body?.bid_id || "").trim();
   if (!bidId) return res.status(400).json({ error: "bid_id required." });
@@ -3063,9 +3063,9 @@ app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
       .select("id, listing_id, consultant_id")
       .eq("id", bidId)
       .maybeSingle();
-    if (!bid) return res.status(404).json({ error: "bid not found." });
+    if (!bid) return res.status(404).json({ error: "Bid not found." });
     if (bid.consultant_id !== viewer.id) {
-      return res.status(403).json({ error: "only the consultant on this bid can accept." });
+      return res.status(403).json({ error: "Only the consultant on this bid can accept." });
     }
 
     const { data: offerRow } = await supabase
@@ -3073,15 +3073,15 @@ app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
       .select("id, status, cadence, period_count, fee_cents, offered_by, offered_at")
       .eq("bid_id", bidId)
       .maybeSingle();
-    if (!offerRow) return res.status(404).json({ error: "no retainer offer on this engagement." });
+    if (!offerRow) return res.status(404).json({ error: "No retainer offer on this engagement." });
     if (offerRow.status !== "offered") {
-      return res.status(409).json({ error: `offer is ${offerRow.status} — can't accept.` });
+      return res.status(409).json({ error: `Offer is ${offerRow.status} — can't accept.` });
     }
     if (!CADENCE_INTERVAL[offerRow.cadence]) {
-      return res.status(500).json({ error: "stored cadence is invalid." });
+      return res.status(500).json({ error: "Stored cadence is invalid." });
     }
     if (!offerRow.fee_cents || offerRow.fee_cents < 50) {
-      return res.status(500).json({ error: "stored fee is invalid." });
+      return res.status(500).json({ error: "Stored fee is invalid." });
     }
 
     const { data: listing } = await supabase
@@ -3089,7 +3089,7 @@ app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
       .select("id, title")
       .eq("id", bid.listing_id)
       .maybeSingle();
-    if (!listing) return res.status(404).json({ error: "listing not found." });
+    if (!listing) return res.status(404).json({ error: "Listing not found." });
 
     // Resolve the owner's customer (proposed_by) — needed to attach the
     // subscription to the right customer with the saved default PM.
@@ -3099,7 +3099,7 @@ app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
       .eq("id", offerRow.offered_by)
       .maybeSingle();
     if (!ownerProfile?.stripe_customer_id) {
-      return res.status(400).json({ error: "the business doesn't have a payment method on file yet." });
+      return res.status(400).json({ error: "The business doesn't have a payment method on file yet." });
     }
 
     // Re-verify consultant payout is still active so the eventual transfers
@@ -3110,7 +3110,7 @@ app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
       .eq("id", viewer.id)
       .maybeSingle();
     if (!consultantProfile?.stripe_account_id) {
-      return res.status(409).json({ error: "finish payout setup before accepting a retainer." });
+      return res.status(409).json({ error: "Finish payout setup before accepting a retainer." });
     }
 
     // Claim the offer (offered → pending) before any Stripe call so a
@@ -3120,7 +3120,7 @@ app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
       status: "pending",
       accepted_at: acceptedAt,
     });
-    if (!claimed) return res.status(409).json({ error: "this offer was already accepted." });
+    if (!claimed) return res.status(409).json({ error: "This offer was already accepted." });
 
     // The agreed term: Stripe stops after `period_count` invoices. The
     // business can lengthen or shorten it later via update-settings.
@@ -3188,14 +3188,14 @@ app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
 
     return res.json({ ok: true, subscription_id: subscription.id, status: newStatus });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not accept offer." });
+    return res.status(500).json({ error: err.message || "Could not accept offer." });
   }
 });
 
 // Consultant: decline a pending retainer offer.
 app.post("/api/stripe/retainer/decline-offer", async (req, res) => {
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
 
   const bidId = String(req.body?.bid_id || "").trim();
   if (!bidId) return res.status(400).json({ error: "bid_id required." });
@@ -3206,9 +3206,9 @@ app.post("/api/stripe/retainer/decline-offer", async (req, res) => {
       .select("id, consultant_id")
       .eq("id", bidId)
       .maybeSingle();
-    if (!bid) return res.status(404).json({ error: "bid not found." });
+    if (!bid) return res.status(404).json({ error: "Bid not found." });
     if (bid.consultant_id !== viewer.id) {
-      return res.status(403).json({ error: "only the consultant on this bid can decline." });
+      return res.status(403).json({ error: "Only the consultant on this bid can decline." });
     }
 
     const { data: offerRow } = await supabase
@@ -3216,9 +3216,9 @@ app.post("/api/stripe/retainer/decline-offer", async (req, res) => {
       .select("id, status")
       .eq("bid_id", bidId)
       .maybeSingle();
-    if (!offerRow) return res.status(404).json({ error: "no retainer offer on this engagement." });
+    if (!offerRow) return res.status(404).json({ error: "No retainer offer on this engagement." });
     if (offerRow.status !== "offered") {
-      return res.status(409).json({ error: `offer is ${offerRow.status} — can't decline.` });
+      return res.status(409).json({ error: `Offer is ${offerRow.status} — can't decline.` });
     }
 
     const { error: updErr } = await supabase
@@ -3229,7 +3229,7 @@ app.post("/api/stripe/retainer/decline-offer", async (req, res) => {
 
     return res.json({ ok: true });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not decline offer." });
+    return res.status(500).json({ error: err.message || "Could not decline offer." });
   }
 });
 
@@ -3242,7 +3242,7 @@ app.post("/api/stripe/retainer/decline-offer", async (req, res) => {
 app.post("/api/stripe/retainer/cancel-subscription", async (req, res) => {
   if (!requireStripe(res)) return;
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
 
   const bidId = String(req.body?.bid_id || "").trim();
   if (!bidId) return res.status(400).json({ error: "bid_id required." });
@@ -3254,7 +3254,7 @@ app.post("/api/stripe/retainer/cancel-subscription", async (req, res) => {
       .select("id, listing_id, consultant_id")
       .eq("id", bidId)
       .maybeSingle();
-    if (!bid) return res.status(404).json({ error: "bid not found." });
+    if (!bid) return res.status(404).json({ error: "Bid not found." });
 
     const { data: listing } = await supabase
       .from("listings")
@@ -3265,10 +3265,10 @@ app.post("/api/stripe/retainer/cancel-subscription", async (req, res) => {
     const isOwner = listing?.owner_id === viewer.id;
     const isConsultant = bid.consultant_id === viewer.id;
     if (!isOwner && !isConsultant) {
-      return res.status(403).json({ error: "only the listing owner or the consultant can end this retainer." });
+      return res.status(403).json({ error: "Only the listing owner or the consultant can end this retainer." });
     }
     if (immediate && !isOwner) {
-      return res.status(403).json({ error: "only the owner can end a retainer mid-period." });
+      return res.status(403).json({ error: "Only the owner can end a retainer mid-period." });
     }
 
     const { data: subRow } = await supabase
@@ -3276,7 +3276,7 @@ app.post("/api/stripe/retainer/cancel-subscription", async (req, res) => {
       .select("id, stripe_subscription_id, status")
       .eq("bid_id", bidId)
       .maybeSingle();
-    if (!subRow) return res.status(404).json({ error: "no retainer on this engagement." });
+    if (!subRow) return res.status(404).json({ error: "No retainer on this engagement." });
     if (subRow.status === "canceled") return res.json({ ok: true, alreadyCanceled: true });
 
     if (subRow.stripe_subscription_id) {
@@ -3298,7 +3298,7 @@ app.post("/api/stripe/retainer/cancel-subscription", async (req, res) => {
         console.warn("[retainer cancel]", err.message);
         const alreadyGone = err.code === "resource_missing" || /canceled subscription/i.test(err.message || "");
         if (!alreadyGone) {
-          return res.status(502).json({ error: "could not end the retainer with our payment processor. try again." });
+          return res.status(502).json({ error: "Could not end the retainer with our payment processor. Try again." });
         }
       }
     }
@@ -3326,7 +3326,7 @@ app.post("/api/stripe/retainer/cancel-subscription", async (req, res) => {
 
     return res.json({ ok: true, mode: immediate ? "immediate" : "end-of-period" });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not cancel retainer." });
+    return res.status(500).json({ error: err.message || "Could not cancel retainer." });
   }
 });
 
@@ -3338,7 +3338,7 @@ app.post("/api/stripe/retainer/cancel-subscription", async (req, res) => {
 app.post("/api/stripe/retainer/update-settings", async (req, res) => {
   if (!requireStripe(res)) return;
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
 
   const bidId = String(req.body?.bid_id || "").trim();
   if (!bidId) return res.status(400).json({ error: "bid_id required." });
@@ -3349,14 +3349,14 @@ app.post("/api/stripe/retainer/update-settings", async (req, res) => {
       .select("id, listing_id, consultant_id")
       .eq("id", bidId)
       .maybeSingle();
-    if (!bid) return res.status(404).json({ error: "bid not found." });
+    if (!bid) return res.status(404).json({ error: "Bid not found." });
     const { data: listing } = await supabase
       .from("listings")
       .select("owner_id, title")
       .eq("id", bid.listing_id)
       .maybeSingle();
     if (listing?.owner_id !== viewer.id) {
-      return res.status(403).json({ error: "only the listing owner can update retainer settings." });
+      return res.status(403).json({ error: "Only the listing owner can update retainer settings." });
     }
 
     const { data: subRow } = await supabase
@@ -3364,9 +3364,9 @@ app.post("/api/stripe/retainer/update-settings", async (req, res) => {
       .select("id, stripe_subscription_id, auto_release, terminates_at, status, cadence, period_count, periods_billed")
       .eq("bid_id", bidId)
       .maybeSingle();
-    if (!subRow) return res.status(404).json({ error: "no retainer on this engagement." });
+    if (!subRow) return res.status(404).json({ error: "No retainer on this engagement." });
     if (["canceled", "completed"].includes(subRow.status)) {
-      return res.status(400).json({ error: "retainer is no longer active." });
+      return res.status(400).json({ error: "Retainer is no longer active." });
     }
 
     const updates = {};
@@ -3390,24 +3390,24 @@ app.post("/api/stripe/retainer/update-settings", async (req, res) => {
       const paid = Number(subRow.periods_billed) || 0;
       if (!Number.isInteger(n) || n < Math.max(1, paid) || n > 120) {
         return res.status(400).json({
-          error: `length must be a whole number of periods, at least ${Math.max(1, paid)} (periods already paid).`,
+          error: `Length must be a whole number of periods, at least ${Math.max(1, paid)} (periods already paid).`,
         });
       }
       if (!subRow.stripe_subscription_id) {
-        return res.status(409).json({ error: "the retainer hasn't started billing yet. try again in a moment." });
+        return res.status(409).json({ error: "The retainer hasn't started billing yet. Try again in a moment." });
       }
       let sub;
       try {
         sub = await stripe.subscriptions.retrieve(subRow.stripe_subscription_id);
       } catch (err) {
-        return res.status(502).json({ error: "could not reach the payment processor. try again." });
+        return res.status(502).json({ error: "Could not reach the payment processor. Try again." });
       }
       if (sub.cancel_at_period_end) {
-        return res.status(409).json({ error: "this retainer is already set to end after the current period." });
+        return res.status(409).json({ error: "This retainer is already set to end after the current period." });
       }
       const cancelAt = retainerCancelAt(sub.billing_cycle_anchor, subRow.cadence, n);
       if (!cancelAt || cancelAt * 1000 <= Date.now()) {
-        return res.status(400).json({ error: "that length has already passed." });
+        return res.status(400).json({ error: "That length has already passed." });
       }
       updates.period_count = n;
       updates.terminates_at = new Date(cancelAt * 1000).toISOString();
@@ -3438,7 +3438,7 @@ app.post("/api/stripe/retainer/update-settings", async (req, res) => {
           proration_behavior: "none",
         });
       } catch (err) {
-        return res.status(502).json({ error: `stripe update failed: ${err.message}` });
+        return res.status(502).json({ error: `Stripe update failed: ${err.message}` });
       }
     }
 
@@ -3456,8 +3456,8 @@ app.post("/api/stripe/retainer/update-settings", async (req, res) => {
       const n = updates.period_count;
       await notifyUser(bid.consultant_id, {
         type: "retainer_length_changed",
-        title: "retainer length updated",
-        body: `the business set "${listing.title || "your retainer"}" to ${n} period${n === 1 ? "" : "s"}. billing stops after ${updates.terminates_at.slice(0, 10)}.`,
+        title: "Retainer length updated",
+        body: `The business set "${listing.title || "Your retainer"}" to ${n} period${n === 1 ? "" : "s"}. Billing stops after ${updates.terminates_at.slice(0, 10)}.`,
         link: `/engagement.html?bid=${bidId}`,
       });
     }
@@ -3488,7 +3488,7 @@ app.post("/api/stripe/retainer/update-settings", async (req, res) => {
       catch_up_released: released,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not update retainer settings." });
+    return res.status(500).json({ error: err.message || "Could not update retainer settings." });
   }
 });
 
@@ -3498,7 +3498,7 @@ app.post("/api/stripe/retainer/update-settings", async (req, res) => {
 app.post("/api/stripe/retainer/release-period", async (req, res) => {
   if (!requireStripe(res)) return;
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
 
   const bidId = String(req.body?.bid_id || "").trim();
   const periodIndex = Number(req.body?.period_index);
@@ -3513,7 +3513,7 @@ app.post("/api/stripe/retainer/release-period", async (req, res) => {
       .select("id, listing_id, consultant_id")
       .eq("id", bidId)
       .maybeSingle();
-    if (!bid) return res.status(404).json({ error: "bid not found." });
+    if (!bid) return res.status(404).json({ error: "Bid not found." });
 
     const { data: listing } = await supabase
       .from("listings")
@@ -3521,7 +3521,7 @@ app.post("/api/stripe/retainer/release-period", async (req, res) => {
       .eq("id", bid.listing_id)
       .maybeSingle();
     if (listing?.owner_id !== viewer.id) {
-      return res.status(403).json({ error: "only the listing owner can release periods." });
+      return res.status(403).json({ error: "Only the listing owner can release periods." });
     }
 
     const { data: phaseRow, error: phaseErr } = await supabase
@@ -3532,13 +3532,13 @@ app.post("/api/stripe/retainer/release-period", async (req, res) => {
       .eq("period_index", periodIndex)
       .maybeSingle();
     if (phaseErr) return res.status(500).json({ error: phaseErr.message });
-    if (!phaseRow) return res.status(404).json({ error: "no retainer period at that index." });
+    if (!phaseRow) return res.status(404).json({ error: "No retainer period at that index." });
     if (phaseRow.status === "released") return res.json({ ok: true, alreadyReleased: true });
     if (phaseRow.status !== "held") {
-      return res.status(400).json({ error: `cannot release: status is ${phaseRow.status}.` });
+      return res.status(400).json({ error: `Cannot release: status is ${phaseRow.status}.` });
     }
     if (!phaseRow.charge_id) {
-      return res.status(400).json({ error: "no charge id on period — contact support." });
+      return res.status(400).json({ error: "No charge ID on period — contact support." });
     }
 
     const { data: consultant } = await supabase
@@ -3547,23 +3547,23 @@ app.post("/api/stripe/retainer/release-period", async (req, res) => {
       .eq("id", bid.consultant_id)
       .maybeSingle();
     if (!consultant?.stripe_account_id) {
-      return res.status(400).json({ error: "consultant hasn't set up payouts yet." });
+      return res.status(400).json({ error: "Consultant hasn't set up payouts yet." });
     }
     const account = await stripe.accounts.retrieve(consultant.stripe_account_id);
     if (!account.payouts_enabled) {
-      return res.status(400).json({ error: "consultant's payout setup is incomplete." });
+      return res.status(400).json({ error: "Consultant's payout setup is incomplete." });
     }
 
     const result = await releasePhaseRow(phaseRow, {
       destination: consultant.stripe_account_id,
       metadata: { bid_id: bidId, phase: "retainer_period", period_index: String(periodIndex) },
     });
-    if (result.conflict) return res.status(409).json({ error: "this period changed while you were releasing it. reload and try again." });
+    if (result.conflict) return res.status(409).json({ error: "This period changed while you were releasing it. Reload and try again." });
     if (!result.ok) return res.status(409).json({ error: result.error });
 
     return res.json({ ok: true, transfer_id: result.transfer_id });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not release period." });
+    return res.status(500).json({ error: err.message || "Could not release period." });
   }
 });
 
@@ -3574,7 +3574,7 @@ app.post("/api/stripe/retainer/release-period", async (req, res) => {
 app.post("/api/stripe/phased/start-service", async (req, res) => {
   if (!requireStripe(res)) return;
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
 
   const bidId = String(req.body?.bid_id || "").trim();
   if (!bidId) return res.status(400).json({ error: "bid_id required." });
@@ -3585,27 +3585,27 @@ app.post("/api/stripe/phased/start-service", async (req, res) => {
       .select("id, listing_id, consultant_id, service_fee_cents, move_forward_status")
       .eq("id", bidId)
       .maybeSingle();
-    if (bidErr || !bid) return res.status(404).json({ error: "bid not found." });
+    if (bidErr || !bid) return res.status(404).json({ error: "Bid not found." });
 
     const { data: listing } = await supabase
       .from("listings")
       .select("id, owner_id, contract_type, title")
       .eq("id", bid.listing_id)
       .maybeSingle();
-    if (!listing) return res.status(404).json({ error: "listing not found." });
+    if (!listing) return res.status(404).json({ error: "Listing not found." });
     if (listing.owner_id !== viewer.id) {
-      return res.status(403).json({ error: "only the listing owner can start the service phase." });
+      return res.status(403).json({ error: "Only the listing owner can start the service phase." });
     }
     if (listing.contract_type !== "phased") {
-      return res.status(400).json({ error: "service phase only applies to phased contracts." });
+      return res.status(400).json({ error: "Service phase only applies to phased contracts." });
     }
     if (bid.move_forward_status !== "selected") {
-      return res.status(409).json({ error: "you haven't decided to move forward with this consultant yet." });
+      return res.status(409).json({ error: "You haven't decided to move forward with this consultant yet." });
     }
 
     const fee = Number(bid.service_fee_cents);
     if (!Number.isFinite(fee) || fee < 50) {
-      return res.status(400).json({ error: "service fee is missing or too small." });
+      return res.status(400).json({ error: "Service fee is missing or too small." });
     }
     const feeBreakdown = fees.computeFees(fee);
 
@@ -3617,7 +3617,7 @@ app.post("/api/stripe/phased/start-service", async (req, res) => {
       .maybeSingle();
     if (existing && ["held", "released", "authorizing"].includes(existing.status)) {
       return res.status(409).json({
-        error: `service fee already ${existing.status === "authorizing" ? "in progress" : existing.status}.`,
+        error: `Service fee already ${existing.status === "authorizing" ? "in progress" : existing.status}.`,
       });
     }
 
@@ -3628,7 +3628,7 @@ app.post("/api/stripe/phased/start-service", async (req, res) => {
       .eq("id", bid.consultant_id)
       .maybeSingle();
     if (!consultantProfile?.stripe_account_id) {
-      return res.status(409).json({ error: "consultant hasn't set up payouts yet." });
+      return res.status(409).json({ error: "Consultant hasn't set up payouts yet." });
     }
     try {
       const acct = await stripe.accounts.retrieve(consultantProfile.stripe_account_id);
@@ -3637,10 +3637,10 @@ app.post("/api/stripe/phased/start-service", async (req, res) => {
           .from("profiles")
           .update({ stripe_account_status: "pending" })
           .eq("id", bid.consultant_id);
-        return res.status(409).json({ error: "consultant's payout setup isn't fully verified yet." });
+        return res.status(409).json({ error: "Consultant's payout setup isn't fully verified yet." });
       }
     } catch (err) {
-      return res.status(502).json({ error: "could not verify consultant's payout account: " + (err.message || "stripe error") });
+      return res.status(502).json({ error: "Could not verify consultant's payout account: " + (err.message || "Stripe error") });
     }
 
     const owner = await ensureOwnerStripeCustomer(viewer.id);
@@ -3699,7 +3699,7 @@ app.post("/api/stripe/phased/start-service", async (req, res) => {
       fee_breakdown: feeBreakdown,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not start service payment." });
+    return res.status(500).json({ error: err.message || "Could not start service payment." });
   }
 });
 
@@ -3707,7 +3707,7 @@ app.post("/api/stripe/phased/start-service", async (req, res) => {
 app.post("/api/stripe/phased/confirm-service", async (req, res) => {
   if (!requireStripe(res)) return;
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
 
   const paymentIntentId = String(req.body?.payment_intent_id || "").trim();
   if (!paymentIntentId) return res.status(400).json({ error: "payment_intent_id required." });
@@ -3715,14 +3715,14 @@ app.post("/api/stripe/phased/confirm-service", async (req, res) => {
   try {
     const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
     if (intent.metadata?.owner_id !== viewer.id || intent.metadata?.phase !== "service") {
-      return res.status(403).json({ error: "this payment doesn't belong to you." });
+      return res.status(403).json({ error: "This payment doesn't belong to you." });
     }
     const result = await confirmServicePayment(intent);
     if (!result.ok) return res.status(result.mismatch ? 409 : 400).json({ error: result.error });
 
     return res.json({ ok: true });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not confirm service payment." });
+    return res.status(500).json({ error: err.message || "Could not confirm service payment." });
   }
 });
 
@@ -3732,7 +3732,7 @@ app.post("/api/stripe/phased/confirm-service", async (req, res) => {
 app.post("/api/stripe/phased/release-service", async (req, res) => {
   if (!requireStripe(res)) return;
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
 
   const bidId = String(req.body?.bid_id || "").trim();
   if (!bidId) return res.status(400).json({ error: "bid_id required." });
@@ -3743,7 +3743,7 @@ app.post("/api/stripe/phased/release-service", async (req, res) => {
       .select("id, listing_id, consultant_id")
       .eq("id", bidId)
       .maybeSingle();
-    if (bidErr || !bid) return res.status(404).json({ error: "bid not found." });
+    if (bidErr || !bid) return res.status(404).json({ error: "Bid not found." });
 
     const { data: listing } = await supabase
       .from("listings")
@@ -3751,10 +3751,10 @@ app.post("/api/stripe/phased/release-service", async (req, res) => {
       .eq("id", bid.listing_id)
       .maybeSingle();
     if (listing?.owner_id !== viewer.id) {
-      return res.status(403).json({ error: "only the listing owner can release funds." });
+      return res.status(403).json({ error: "Only the listing owner can release funds." });
     }
     if (listing.contract_type !== "phased") {
-      return res.status(400).json({ error: "this endpoint is for phased contracts." });
+      return res.status(400).json({ error: "This endpoint is for phased contracts." });
     }
 
     const { data: phaseRow, error: phaseErr } = await supabase
@@ -3764,13 +3764,13 @@ app.post("/api/stripe/phased/release-service", async (req, res) => {
       .eq("phase", "service")
       .maybeSingle();
     if (phaseErr) return res.status(500).json({ error: phaseErr.message });
-    if (!phaseRow) return res.status(400).json({ error: "no service payment on file for this bid." });
+    if (!phaseRow) return res.status(400).json({ error: "No service payment on file for this bid." });
     if (phaseRow.status === "released") return res.json({ ok: true, alreadyReleased: true });
     if (phaseRow.status !== "held") {
-      return res.status(400).json({ error: `cannot release: status is ${phaseRow.status}.` });
+      return res.status(400).json({ error: `Cannot release: status is ${phaseRow.status}.` });
     }
     if (!phaseRow.charge_id) {
-      return res.status(400).json({ error: "no charge id on service payment — contact support." });
+      return res.status(400).json({ error: "No charge ID on service payment — contact support." });
     }
 
     const { data: review } = await supabase
@@ -3779,7 +3779,7 @@ app.post("/api/stripe/phased/release-service", async (req, res) => {
       .eq("bid_id", bidId)
       .maybeSingle();
     if (!review?.id) {
-      return res.status(400).json({ error: "submit your review before releasing payment." });
+      return res.status(400).json({ error: "Submit your review before releasing payment." });
     }
 
     const { data: consultant } = await supabase
@@ -3788,11 +3788,11 @@ app.post("/api/stripe/phased/release-service", async (req, res) => {
       .eq("id", bid.consultant_id)
       .maybeSingle();
     if (!consultant?.stripe_account_id) {
-      return res.status(400).json({ error: "consultant hasn't set up payouts yet." });
+      return res.status(400).json({ error: "Consultant hasn't set up payouts yet." });
     }
     const account = await stripe.accounts.retrieve(consultant.stripe_account_id);
     if (!account.payouts_enabled) {
-      return res.status(400).json({ error: "consultant's payout setup is incomplete." });
+      return res.status(400).json({ error: "Consultant's payout setup is incomplete." });
     }
 
     // Same fee-split-or-grandfather pattern as proposal release (inside
@@ -3801,12 +3801,12 @@ app.post("/api/stripe/phased/release-service", async (req, res) => {
       destination: consultant.stripe_account_id,
       metadata: { bid_id: bidId, phase: "service" },
     });
-    if (result.conflict) return res.status(409).json({ error: "this payment changed while you were releasing it. reload and try again." });
+    if (result.conflict) return res.status(409).json({ error: "This payment changed while you were releasing it. Reload and try again." });
     if (!result.ok) return res.status(409).json({ error: result.error });
 
     return res.json({ ok: true, transfer_id: result.transfer_id });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not release service funds." });
+    return res.status(500).json({ error: err.message || "Could not release service funds." });
   }
 });
 
@@ -3825,13 +3825,13 @@ app.post("/api/stripe/phased/release-service", async (req, res) => {
 app.post("/api/stripe/phased/proposal-decision", async (req, res) => {
   if (!requireStripe(res)) return;
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
 
   const bidId = String(req.body?.bid_id || "").trim();
   const decision = String(req.body?.decision || "").trim();
   if (!bidId) return res.status(400).json({ error: "bid_id required." });
   if (!["selected", "declined"].includes(decision)) {
-    return res.status(400).json({ error: "decision must be 'selected' or 'declined'." });
+    return res.status(400).json({ error: "Decision must be 'selected' or 'declined'." });
   }
 
   try {
@@ -3840,22 +3840,22 @@ app.post("/api/stripe/phased/proposal-decision", async (req, res) => {
       .select("id, listing_id, consultant_id, move_forward_status, status")
       .eq("id", bidId)
       .maybeSingle();
-    if (bidErr || !bid) return res.status(404).json({ error: "bid not found." });
+    if (bidErr || !bid) return res.status(404).json({ error: "Bid not found." });
 
     const { data: listing } = await supabase
       .from("listings")
       .select("id, owner_id, contract_type, title")
       .eq("id", bid.listing_id)
       .maybeSingle();
-    if (!listing) return res.status(404).json({ error: "listing not found." });
+    if (!listing) return res.status(404).json({ error: "Listing not found." });
     if (listing.owner_id !== viewer.id) {
-      return res.status(403).json({ error: "only the listing owner can make this decision." });
+      return res.status(403).json({ error: "Only the listing owner can make this decision." });
     }
     if (listing.contract_type !== "phased") {
-      return res.status(400).json({ error: "this decision only applies to phased contracts." });
+      return res.status(400).json({ error: "This decision only applies to phased contracts." });
     }
     if (bid.move_forward_status && bid.move_forward_status !== "pending") {
-      return res.status(409).json({ error: `decision already recorded as '${bid.move_forward_status}'.` });
+      return res.status(409).json({ error: `Decision already recorded as '${bid.move_forward_status}'.` });
     }
 
     const { data: phaseRow, error: phaseErr } = await supabase
@@ -3865,7 +3865,7 @@ app.post("/api/stripe/phased/proposal-decision", async (req, res) => {
       .eq("phase", "proposal")
       .maybeSingle();
     if (phaseErr) return res.status(500).json({ error: phaseErr.message });
-    if (!phaseRow) return res.status(400).json({ error: "no proposal payment on file for this bid." });
+    if (!phaseRow) return res.status(400).json({ error: "No proposal payment on file for this bid." });
     if (phaseRow.status === "released") {
       // Idempotent: already released. Just record the decision and exit.
       const { error: idempotentErr } = await supabase
@@ -3879,10 +3879,10 @@ app.post("/api/stripe/phased/proposal-decision", async (req, res) => {
       return res.json({ ok: true, alreadyReleased: true });
     }
     if (phaseRow.status !== "held") {
-      return res.status(400).json({ error: `cannot release: proposal payment is ${phaseRow.status}.` });
+      return res.status(400).json({ error: `Cannot release: proposal payment is ${phaseRow.status}.` });
     }
     if (!phaseRow.charge_id) {
-      return res.status(400).json({ error: "no charge id on proposal payment — contact support." });
+      return res.status(400).json({ error: "No charge ID on proposal payment — contact support." });
     }
 
     const { data: consultant } = await supabase
@@ -3891,15 +3891,15 @@ app.post("/api/stripe/phased/proposal-decision", async (req, res) => {
       .eq("id", bid.consultant_id)
       .maybeSingle();
     if (!consultant?.stripe_account_id) {
-      return res.status(400).json({ error: "consultant hasn't set up payouts yet." });
+      return res.status(400).json({ error: "Consultant hasn't set up payouts yet." });
     }
     try {
       const acct = await stripe.accounts.retrieve(consultant.stripe_account_id);
       if (!acct.payouts_enabled) {
-        return res.status(400).json({ error: "consultant's payout setup is incomplete." });
+        return res.status(400).json({ error: "Consultant's payout setup is incomplete." });
       }
     } catch (err) {
-      return res.status(502).json({ error: "could not verify consultant's payout account: " + (err.message || "stripe error") });
+      return res.status(502).json({ error: "Could not verify consultant's payout account: " + (err.message || "Stripe error") });
     }
 
     // Transfer the stored consultant payout (offer - estimated Stripe
@@ -3910,7 +3910,7 @@ app.post("/api/stripe/phased/proposal-decision", async (req, res) => {
       destination: consultant.stripe_account_id,
       metadata: { bid_id: bidId, phase: "proposal", decision },
     });
-    if (result.conflict) return res.status(409).json({ error: "this payment changed while you were deciding. reload and try again." });
+    if (result.conflict) return res.status(409).json({ error: "This payment changed while you were deciding. Reload and try again." });
     if (!result.ok) return res.status(409).json({ error: result.error });
     const transfer = { id: result.transfer_id };
 
@@ -3926,7 +3926,7 @@ app.post("/api/stripe/phased/proposal-decision", async (req, res) => {
 
     return res.json({ ok: true, transfer_id: transfer.id, decision });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not record decision." });
+    return res.status(500).json({ error: err.message || "Could not record decision." });
   }
 });
 
@@ -3935,7 +3935,7 @@ app.post("/api/stripe/phased/proposal-decision", async (req, res) => {
 app.post("/api/stripe/phased/confirm-proposals", async (req, res) => {
   if (!requireStripe(res)) return;
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
 
   const paymentIntentId = String(req.body?.payment_intent_id || "").trim();
   if (!paymentIntentId) return res.status(400).json({ error: "payment_intent_id required." });
@@ -3943,14 +3943,14 @@ app.post("/api/stripe/phased/confirm-proposals", async (req, res) => {
   try {
     const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
     if (intent.metadata?.owner_id !== viewer.id || intent.metadata?.phase !== "proposal_batch") {
-      return res.status(403).json({ error: "this payment doesn't belong to you." });
+      return res.status(403).json({ error: "This payment doesn't belong to you." });
     }
     const result = await confirmProposalBatchPayment(intent);
     if (!result.ok) return res.status(result.mismatch ? 409 : 400).json({ error: result.error });
 
     return res.json({ ok: true, bid_ids: result.bidIds });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not confirm proposal payment." });
+    return res.status(500).json({ error: err.message || "Could not confirm proposal payment." });
   }
 });
 
@@ -4014,7 +4014,7 @@ async function releaseContext(bidId, cache) {
       bidId,
       ownerId: listing?.owner_id || null,
       consultantId: bid.consultant_id,
-      title: listing?.title || "your engagement",
+      title: listing?.title || "Your engagement",
       contractType: listing?.contract_type || "standard",
       listingCadence: listing?.retainer_cadence || null,
       subCadence: sub?.cadence || null,
@@ -4032,11 +4032,11 @@ function paymentKind(item, ctx) {
 
 function paymentLabel(kind, row) {
   // Same numbering as the engagement page's period list.
-  if (kind === "retainer_period") return `period ${Number(row.period_index) + 1}`;
-  if (kind === "retainer_first") return "first period";
-  if (kind === "service") return "service fee";
-  if (kind === "proposal") return "proposal fee";
-  return "payment";
+  if (kind === "retainer_period") return `Period ${Number(row.period_index) + 1}`;
+  if (kind === "retainer_first") return "First period";
+  if (kind === "service") return "Service fee";
+  if (kind === "proposal") return "Proposal fee";
+  return "Payment";
 }
 
 function periodEndMs(item, kind, ctx) {
@@ -4097,9 +4097,9 @@ async function autoReleasePhaseRow(row, claimEq) {
   const { data: consultant } = bid
     ? await supabase.from("profiles").select("stripe_account_id").eq("id", bid.consultant_id).maybeSingle()
     : { data: null };
-  if (!consultant?.stripe_account_id) return { ok: false, error: "consultant has no payout account" };
+  if (!consultant?.stripe_account_id) return { ok: false, error: "Consultant has no payout account" };
   const account = await stripe.accounts.retrieve(consultant.stripe_account_id);
-  if (!account.payouts_enabled) return { ok: false, error: "consultant payouts not enabled" };
+  if (!account.payouts_enabled) return { ok: false, error: "Consultant payouts not enabled" };
   if (!row.charge_id) return { ok: false, error: "missing charge_id" };
   return releasePhaseRow(row, {
     destination: consultant.stripe_account_id,
@@ -4148,14 +4148,14 @@ async function scanHeld(nowMs) {
     .eq("payment_status", "held")
     .order("paid_at", { ascending: true })
     .limit(RELEASE_SCAN_LIMIT);
-  if (bidsErr) throw new Error(`release bid scan failed: ${bidsErr.message}`);
+  if (bidsErr) throw new Error(`Release bid scan failed: ${bidsErr.message}`);
   const { data: rows, error: rowsErr } = await supabase
     .from("bid_phase_payments")
     .select(PHASE_RELEASE_COLS)
     .eq("status", "held")
     .order("paid_at", { ascending: true })
     .limit(RELEASE_SCAN_LIMIT);
-  if (rowsErr) throw new Error(`release phase scan failed: ${rowsErr.message}`);
+  if (rowsErr) throw new Error(`Release phase scan failed: ${rowsErr.message}`);
   if ((bids || []).length >= RELEASE_SCAN_LIMIT || (rows || []).length >= RELEASE_SCAN_LIMIT) {
     alertOps("release_scan_truncated", { bids: bids.length, rows: rows.length, at: new Date(nowMs).toISOString() });
   }
@@ -4191,8 +4191,8 @@ async function runReleaseJob(nowMs = Date.now()) {
       for (const adminId of await adminUserIds()) {
         await notifyOnce(adminId, {
           type: "support_hold_stale",
-          title: `support hold open ${SUPPORT_HOLD_STALE_DAYS}+ days`,
-          body: `"${ctx.title}" (${label}, ${dollars(item.cents)}) has been on hold since ${shortDate(Date.parse(row.support_hold_at))}. resolve it or clear the hold.`,
+          title: `Support hold open ${SUPPORT_HOLD_STALE_DAYS}+ days`,
+          body: `"${ctx.title}" (${label}, ${dollars(item.cents)}) has been on hold since ${shortDate(Date.parse(row.support_hold_at))}. Resolve it or clear the hold.`,
           link: `${link}-hold-${row.support_hold_at}`,
         });
       }
@@ -4205,8 +4205,8 @@ async function runReleaseJob(nowMs = Date.now()) {
         alertOps("held_payment_backstop", { item: item.key, bid_id: item.bidId, kind, amount_cents: item.cents, paid_at: row.paid_at, delivered_at: row.delivered_at || null, on_hold: Boolean(row.support_hold_at) });
         await notifyAdmins({
           type: "held_payment_backstop",
-          title: `payment held 90+ days · ${dollars(item.cents)}`,
-          body: `"${ctx.title}" (${label}) has been held since ${shortDate(Date.parse(row.paid_at))}. it won't release on its own. release, refund, or follow up with both sides.`,
+          title: `Payment held 90+ days · ${dollars(item.cents)}`,
+          body: `"${ctx.title}" (${label}) has been held since ${shortDate(Date.parse(row.paid_at))}. It won't release on its own. Release, refund, or follow up with both sides.`,
           link,
         });
       }
@@ -4232,14 +4232,14 @@ async function runReleaseJob(nowMs = Date.now()) {
         summary.released.push(item.key);
         await notifyOnce(ctx.ownerId, {
           type: "auto_released",
-          title: "payment released to your consultant",
-          body: `your 14-day review window for "${ctx.title}" ended, so grassroots released ${dollars(item.cents)} to the consultant.`,
+          title: "Payment released to your consultant",
+          body: `Your 14-day review window for "${ctx.title}" ended, so Grassroots released ${dollars(item.cents)} to the consultant.`,
           link,
         });
         await notifyOnce(ctx.consultantId, {
           type: "auto_released",
-          title: "payment released",
-          body: `${dollars(item.payoutCents)} from "${ctx.title}" is on its way to your stripe balance.`,
+          title: "Payment released",
+          body: `${dollars(item.payoutCents)} from "${ctx.title}" is on its way to your Stripe balance.`,
           link,
         });
       } else if (result.disputed || result.conflict || result.partialRefund) {
@@ -4256,8 +4256,8 @@ async function runReleaseJob(nowMs = Date.now()) {
       summary.noticed.push(item.key);
       await notifyUser(ctx.ownerId, {
         type: "review_window_closing",
-        title: `review closes ${shortDate(win.releaseAt)}`,
-        body: `grassroots is holding ${dollars(item.cents)} for "${ctx.title}" (${label}). release it, request changes, or contact support by ${shortDate(win.releaseAt)}. after that it releases to the consultant.`,
+        title: `Review closes ${shortDate(win.releaseAt)}`,
+        body: `Grassroots is holding ${dollars(item.cents)} for "${ctx.title}" (${label}). Release it, request changes, or contact support by ${shortDate(win.releaseAt)}. After that it releases to the consultant.`,
         link,
       });
     }
@@ -4277,7 +4277,7 @@ app.get("/api/cron/auto-release", async (req, res) => {
     return res.json({ ok: true, ...summary });
   } catch (err) {
     console.error("[auto-release] run failed:", err);
-    return res.status(500).json({ error: "auto-release run failed" });
+    return res.status(500).json({ error: "Auto-release run failed" });
   }
 });
 
@@ -4287,18 +4287,18 @@ app.get("/api/cron/auto-release", async (req, res) => {
 // job, retainer first period) or one of its phase rows (`payment_id`).
 async function loadReleaseTarget(bidId, paymentId) {
   const ctx = await releaseContext(bidId);
-  if (!ctx) return { error: "engagement not found.", status: 404 };
+  if (!ctx) return { error: "Engagement not found.", status: 404 };
   let item;
   if (paymentId) {
     const { data: row } = await supabase
       .from("bid_phase_payments").select(PHASE_RELEASE_COLS).eq("id", paymentId).eq("bid_id", bidId).maybeSingle();
-    if (!row) return { error: "payment not found.", status: 404 };
+    if (!row) return { error: "Payment not found.", status: 404 };
     item = { kind: "phase", key: `pay-${row.id}`, bidId, row, cents: row.amount_cents };
   } else {
     const { data: row } = await supabase
       .from("bids").select(BID_RELEASE_COLS).eq("id", bidId).maybeSingle();
-    if (!row) return { error: "engagement not found.", status: 404 };
-    if (ctx.contractType === "phased") return { error: "pick which payment you mean.", status: 400 };
+    if (!row) return { error: "Engagement not found.", status: 404 };
+    if (ctx.contractType === "phased") return { error: "Pick which payment you mean.", status: 400 };
     item = { kind: "bid", key: `bid-${row.id}`, bidId, row, cents: row.payment_amount_cents };
   }
   const kind = paymentKind(item, ctx);
@@ -4315,7 +4315,7 @@ function cleanText(value, max) {
 // owner's 14-day review window.
 app.post("/api/engagement/mark-delivered", async (req, res) => {
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
   const bidId = String(req.body?.bid_id || "").trim();
   const paymentId = String(req.body?.payment_id || "").trim() || null;
   if (!bidId) return res.status(400).json({ error: "bid_id required." });
@@ -4323,16 +4323,16 @@ app.post("/api/engagement/mark-delivered", async (req, res) => {
   const note = cleanText(req.body?.note, 1000);
   const link = cleanText(req.body?.link, 500);
   if (link && !/^https?:\/\/\S+$/i.test(link)) {
-    return res.status(400).json({ error: "the link needs to start with https://." });
+    return res.status(400).json({ error: "The link needs to start with https://." });
   }
 
   try {
     const t = await loadReleaseTarget(bidId, paymentId);
     if (t.error) return res.status(t.status).json({ error: t.error });
-    if (t.ctx.consultantId !== viewer.id) return res.status(403).json({ error: "only the consultant can mark this delivered." });
-    if (!DELIVERABLE_KINDS.has(t.kind)) return res.status(400).json({ error: "this payment releases when the business decides, not on delivery." });
-    if (!t.held) return res.status(409).json({ error: "this payment isn't being held anymore." });
-    if (t.item.row.delivered_at) return res.status(409).json({ error: "you already marked this delivered." });
+    if (t.ctx.consultantId !== viewer.id) return res.status(403).json({ error: "Only the consultant can mark this delivered." });
+    if (!DELIVERABLE_KINDS.has(t.kind)) return res.status(400).json({ error: "This payment releases when the business decides, not on delivery." });
+    if (!t.held) return res.status(409).json({ error: "This payment isn't being held anymore." });
+    if (t.item.row.delivered_at) return res.status(409).json({ error: "You already marked this delivered." });
 
     const deliveredAt = new Date().toISOString();
     const { data: won, error } = await supabase
@@ -4343,19 +4343,19 @@ app.post("/api/engagement/mark-delivered", async (req, res) => {
       .is("delivered_at", null)
       .select("id");
     if (error) return res.status(500).json({ error: error.message });
-    if (!won?.length) return res.status(409).json({ error: "this payment changed. reload and try again." });
+    if (!won?.length) return res.status(409).json({ error: "This payment changed. Reload and try again." });
 
     const win = reviewWindow({ ...t.item, row: { ...t.item.row, delivered_at: deliveredAt } }, t.kind, t.ctx);
     const label = paymentLabel(t.kind, t.item.row);
     await notifyUser(t.ctx.ownerId, {
       type: "work_delivered",
-      title: `${label === "payment" ? "work" : label} marked delivered`,
-      body: `the consultant marked "${t.ctx.title}" delivered. review it by ${shortDate(win.releaseAt)}. after that, grassroots releases the payment to them.`,
+      title: `${label === "Payment" ? "Work" : label} marked delivered`,
+      body: `The consultant marked "${t.ctx.title}" delivered. Review it by ${shortDate(win.releaseAt)}. After that, Grassroots releases the payment to them.`,
       link: `/engagement.html?bid=${bidId}#${t.item.key}`,
     });
     return res.json({ ok: true, delivered_at: deliveredAt, auto_release_at: new Date(win.releaseAt).toISOString() });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not mark delivered." });
+    return res.status(500).json({ error: err.message || "Could not mark delivered." });
   }
 });
 
@@ -4363,7 +4363,7 @@ app.post("/api/engagement/mark-delivered", async (req, res) => {
 // window until the consultant marks delivered again.
 app.post("/api/engagement/request-changes", async (req, res) => {
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
   const bidId = String(req.body?.bid_id || "").trim();
   const paymentId = String(req.body?.payment_id || "").trim() || null;
   if (!bidId) return res.status(400).json({ error: "bid_id required." });
@@ -4372,11 +4372,11 @@ app.post("/api/engagement/request-changes", async (req, res) => {
   try {
     const t = await loadReleaseTarget(bidId, paymentId);
     if (t.error) return res.status(t.status).json({ error: t.error });
-    if (t.ctx.ownerId !== viewer.id) return res.status(403).json({ error: "only the business can request changes." });
-    if (!t.held) return res.status(409).json({ error: "this payment isn't being held anymore." });
+    if (t.ctx.ownerId !== viewer.id) return res.status(403).json({ error: "Only the business can request changes." });
+    if (!t.held) return res.status(409).json({ error: "This payment isn't being held anymore." });
     const win = reviewWindow(t.item, t.kind, t.ctx);
     if (!win || win.opensAt > Date.now()) {
-      return res.status(409).json({ error: "there's nothing delivered to review yet." });
+      return res.status(409).json({ error: "There's nothing delivered to review yet." });
     }
 
     const requestedAt = new Date().toISOString();
@@ -4388,30 +4388,30 @@ app.post("/api/engagement/request-changes", async (req, res) => {
     query = t.item.row.delivered_at ? query.eq("delivered_at", t.item.row.delivered_at) : query.is("delivered_at", null);
     const { data: won, error } = await query.select("id");
     if (error) return res.status(500).json({ error: error.message });
-    if (!won?.length) return res.status(409).json({ error: "this payment changed. reload and try again." });
+    if (!won?.length) return res.status(409).json({ error: "This payment changed. Reload and try again." });
 
     await notifyUser(t.ctx.consultantId, {
       type: "changes_requested",
-      title: "the business asked for changes",
+      title: "The business asked for changes",
       body: `${note ? `"${note.slice(0, 160)}" ` : ""}update "${t.ctx.title}", then mark it delivered again to restart the 14-day review.`,
       link: `/engagement.html?bid=${bidId}#${t.item.key}`,
     });
     return res.json({ ok: true, changes_requested_at: requestedAt });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not request changes." });
+    return res.status(500).json({ error: err.message || "Could not request changes." });
   }
 });
 
 // Either party: where each held payment stands in the review cycle.
 app.get("/api/engagement/:bidId/release-status", async (req, res) => {
   const viewer = await getViewerFromRequest(req);
-  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
   const bidId = String(req.params.bidId || "").trim();
   try {
     const ctx = await releaseContext(bidId);
-    if (!ctx) return res.status(404).json({ error: "engagement not found." });
+    if (!ctx) return res.status(404).json({ error: "Engagement not found." });
     const role = viewer.id === ctx.ownerId ? "owner" : viewer.id === ctx.consultantId ? "consultant" : null;
-    if (!role) return res.status(403).json({ error: "not your engagement." });
+    if (!role) return res.status(403).json({ error: "Not your engagement." });
 
     const { data: bid } = await supabase.from("bids").select(BID_RELEASE_COLS).eq("id", bidId).maybeSingle();
     const { data: rows } = await supabase.from("bid_phase_payments").select(PHASE_RELEASE_COLS).eq("bid_id", bidId).eq("status", "held");
@@ -4453,7 +4453,7 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
     });
     return res.json({ role, payments });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not load payment status." });
+    return res.status(500).json({ error: err.message || "Could not load payment status." });
   }
 });
 
@@ -4461,16 +4461,16 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
 
 async function setSupportHold(req, res, on) {
   const admin = await requireAdmin(req);
-  if (!admin) return res.status(403).json({ error: "admin only." });
+  if (!admin) return res.status(403).json({ error: "Admin only." });
   const bidId = String(req.body?.bid_id || "").trim();
   const paymentId = String(req.body?.payment_id || "").trim() || null;
   if (!bidId) return res.status(400).json({ error: "bid_id required." });
   const reason = cleanText(req.body?.reason, 500);
-  if (on && !reason) return res.status(400).json({ error: "add a short reason for the hold." });
+  if (on && !reason) return res.status(400).json({ error: "Add a short reason for the hold." });
   try {
     const t = await loadReleaseTarget(bidId, paymentId);
     if (t.error) return res.status(t.status).json({ error: t.error });
-    if (!t.held) return res.status(409).json({ error: "this payment isn't being held anymore." });
+    if (!t.held) return res.status(409).json({ error: "This payment isn't being held anymore." });
 
     const nowIso = new Date().toISOString();
     let query = supabase
@@ -4488,13 +4488,13 @@ async function setSupportHold(req, res, on) {
     alertOps(on ? "support_hold_set" : "support_hold_cleared", { item: t.item.key, bid_id: bidId, by: admin.email, reason });
     const link = `/engagement.html?bid=${bidId}#${t.item.key}`;
     const payload = on
-      ? { type: "support_hold", title: "support is reviewing a payment", body: `grassroots paused the automatic release for "${t.ctx.title}" while support looks into it. we'll reach out if we need anything.`, link }
-      : { type: "support_hold_cleared", title: "support review finished", body: `the payment for "${t.ctx.title}" is back on its normal release schedule.`, link };
+      ? { type: "support_hold", title: "Support is reviewing a payment", body: `Grassroots paused the automatic release for "${t.ctx.title}" while support looks into it. We'll reach out if we need anything.`, link }
+      : { type: "support_hold_cleared", title: "Support review finished", body: `The payment for "${t.ctx.title}" is back on its normal release schedule.`, link };
     await notifyUser(t.ctx.ownerId, payload);
     await notifyUser(t.ctx.consultantId, payload);
     return res.json({ ok: true, support_hold_at: on ? nowIso : null });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not update the hold." });
+    return res.status(500).json({ error: err.message || "Could not update the hold." });
   }
 }
 
@@ -4504,7 +4504,7 @@ app.post("/api/admin/payments/clear-hold", (req, res) => setSupportHold(req, res
 // Admin: every held payment, oldest first, with delivery / hold state.
 app.get("/api/admin/payments/held", async (req, res) => {
   const admin = await requireAdmin(req);
-  if (!admin) return res.status(403).json({ error: "admin only." });
+  if (!admin) return res.status(403).json({ error: "Admin only." });
   const minDays = Math.max(0, Math.min(365, Number(req.query.min_days) || 0));
   const { data, error } = await supabase.rpc("stranded_funds_report", { min_days: minDays });
   if (error) return res.status(500).json({ error: error.message });
@@ -4587,8 +4587,8 @@ app.post("/api/metrics/page-load", express.json({ limit: "4kb" }), async (req, r
 // trip so the health tab can render with a single fetch.
 app.post("/api/admin/health-summary", express.json({ limit: "2kb" }), async (req, res) => {
   const admin = await requireAdmin(req);
-  if (!admin) return res.status(403).json({ error: "admin required." });
-  if (!supabase) return res.status(503).json({ error: "db not configured." });
+  if (!admin) return res.status(403).json({ error: "Admin required." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
 
   const days = Math.max(1, Math.min(90, Number(req.body?.days) || 7));
 
@@ -4614,7 +4614,7 @@ app.post("/api/admin/health-summary", express.json({ limit: "2kb" }), async (req
     });
   } catch (err) {
     console.warn("[health-summary]", err.message || err);
-    return res.status(500).json({ error: "could not load summary." });
+    return res.status(500).json({ error: "Could not load summary." });
   }
 });
 

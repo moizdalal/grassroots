@@ -17,21 +17,21 @@ function ensureSuggestionBoxMarkup() {
   if (document.getElementById("gr-suggest-btn")) return;
   const tpl = document.createElement("template");
   tpl.innerHTML = `
-    <button class="gr-suggest-btn" id="gr-suggest-btn" type="button" aria-label="suggestion box">
+    <button class="gr-suggest-btn" id="gr-suggest-btn" type="button" aria-label="Suggestion box">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
     </button>
     <div class="gr-suggest-overlay" id="gr-suggest-overlay">
       <div class="gr-suggest-popup">
-        <button class="gr-suggest-popup__close" id="gr-suggest-close" type="button" aria-label="close">
+        <button class="gr-suggest-popup__close" id="gr-suggest-close" type="button" aria-label="Close">
           <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
         </button>
         <div id="gr-suggest-form">
-          <p class="gr-suggest-popup__title">grassroots values and takes your feedback seriously&mdash;how can we improve?</p>
-          <textarea class="gr-suggest-popup__textarea" id="gr-suggest-input" placeholder="your suggestion…" maxlength="1000"></textarea>
-          <button class="gr-suggest-popup__submit" id="gr-suggest-submit" type="button">submit</button>
+          <p class="gr-suggest-popup__title">Grassroots values and takes your feedback seriously&mdash;how can we improve?</p>
+          <textarea class="gr-suggest-popup__textarea" id="gr-suggest-input" placeholder="Your suggestion…" maxlength="1000"></textarea>
+          <button class="gr-suggest-popup__submit" id="gr-suggest-submit" type="button">Submit</button>
         </div>
         <div id="gr-suggest-thanks" hidden>
-          <p class="gr-suggest-popup__thanks">thanks for the note. we read all of these.</p>
+          <p class="gr-suggest-popup__thanks">Thanks for the note. We read all of these.</p>
         </div>
       </div>
     </div>
@@ -63,10 +63,10 @@ function initSuggestionBox() {
   fileWrap.innerHTML = `
     <label class="gr-suggest-popup__attach-btn" tabindex="0">
       <span class="gr-suggest-popup__attach-icon" aria-hidden="true">+</span>
-      <span>attach files</span>
+      <span>Attach files</span>
       <input type="file" id="gr-suggest-files" multiple hidden />
     </label>
-    <span class="gr-suggest-popup__attach-hint" id="gr-suggest-attach-hint">up to ${MAX_FILES} files · 10 MB each · 25 MB total</span>
+    <span class="gr-suggest-popup__attach-hint" id="gr-suggest-attach-hint">Up to ${MAX_FILES} files · 10 MB each · 25 MB total</span>
     <ul class="gr-suggest-popup__attach-list" id="gr-suggest-attach-list"></ul>
     <p class="gr-suggest-popup__attach-error" id="gr-suggest-attach-error" hidden></p>
   `;
@@ -99,7 +99,7 @@ function initSuggestionBox() {
           `<li class="gr-suggest-popup__attach-item">
             <span class="gr-suggest-popup__attach-name">${escapeHtml(f.name)}</span>
             <span class="gr-suggest-popup__attach-size">${fmtSize(f.size)}</span>
-            <button type="button" class="gr-suggest-popup__attach-remove" data-i="${i}" aria-label="remove ${escapeHtml(f.name)}">&times;</button>
+            <button type="button" class="gr-suggest-popup__attach-remove" data-i="${i}" aria-label="Remove ${escapeHtml(f.name)}">&times;</button>
           </li>`
       )
       .join("");
@@ -122,7 +122,7 @@ function initSuggestionBox() {
     fileInput.value = ""; // reset so re-selecting the same file fires change
     for (const f of incoming) {
       if (selectedFiles.length >= MAX_FILES) {
-        showError(`max ${MAX_FILES} files per submission.`);
+        showError(`Max ${MAX_FILES} files per submission.`);
         break;
       }
       if (f.size > MAX_PER_FILE) {
@@ -131,7 +131,7 @@ function initSuggestionBox() {
       }
       const total = selectedFiles.reduce((a, x) => a + x.size, 0) + f.size;
       if (total > MAX_TOTAL) {
-        showError("that batch is over the 25 MB total limit.");
+        showError("That batch is over the 25 MB total limit.");
         break;
       }
       selectedFiles.push(f);
@@ -179,7 +179,7 @@ function initSuggestionBox() {
 
     submit.disabled = true;
     const originalLabel = submit.textContent;
-    submit.textContent = "sending…";
+    submit.textContent = "Sending…";
     showError("");
 
     try {
@@ -202,7 +202,7 @@ function initSuggestionBox() {
           const { error: upErr } = await client.storage
             .from("suggestion-attachments")
             .upload(path, f, { upsert: false, contentType: f.type || undefined });
-          if (upErr) throw new Error(`upload failed: ${upErr.message}`);
+          if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
           storedPaths.push(path);
         }
       }
@@ -233,7 +233,7 @@ function initSuggestionBox() {
         }, 350);
       }, 1400);
     } catch (err) {
-      showError(err?.message || "couldn't send. try again?");
+      showError(err?.message || "Couldn't send. Try again?");
       submit.disabled = false;
       submit.textContent = originalLabel;
     }

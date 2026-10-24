@@ -15,7 +15,7 @@ const progressTrack = document.getElementById("reg-progress-track");
 const roleField = document.getElementById("field-role");
 
 // Steps are dynamic based on role selection; start with base
-let STEP_LABELS = ["pick your path", "account details"];
+let STEP_LABELS = ["Pick your path", "Account details"];
 let STEPS = [0, 1];
 
 let currentStep = 0;
@@ -43,42 +43,42 @@ function renderEducationEntry(index) {
   wrap.dataset.eduIndex = String(index);
   const removeBtn = index === 0
     ? ""
-    : `<button type="button" class="reg-edu-entry__remove" aria-label="remove degree">&times;</button>`;
+    : `<button type="button" class="reg-edu-entry__remove" aria-label="Remove degree">&times;</button>`;
   const options = DEGREE_OPTIONS
     .map(([val, label]) => `<option value="${val}">${label}</option>`)
     .join("");
   wrap.innerHTML = `
     <div class="reg-edu-entry__head">
-      <span class="reg-edu-entry__num">degree ${index + 1}</span>
+      <span class="reg-edu-entry__num">Degree ${index + 1}</span>
       ${removeBtn}
     </div>
     <div class="gr-field-grid reg-field-grid--2">
       <label class="gr-label">
-        <span>degree</span>
+        <span>Degree</span>
         <select class="reg-edu-degree" data-initial-required="1" required>
-          <option value="">choose…</option>
+          <option value="">Choose…</option>
           ${options}
         </select>
       </label>
       <label class="gr-label">
-        <span>major</span>
-        <input type="text" class="reg-edu-major" data-initial-required="1" placeholder="e.g. marketing, computer science" required />
+        <span>Major</span>
+        <input type="text" class="reg-edu-major" data-initial-required="1" placeholder="E.g. marketing, computer science" required />
       </label>
       <label class="gr-label">
-        <span>minor <span class="gr-optional">optional</span></span>
-        <input type="text" class="reg-edu-minor" data-initial-required="0" placeholder="e.g. data analytics" />
+        <span>Minor <span class="gr-optional">Optional</span></span>
+        <input type="text" class="reg-edu-minor" data-initial-required="0" placeholder="E.g. data analytics" />
       </label>
       <label class="gr-label">
-        <span>school</span>
+        <span>School</span>
         <div class="reg-edu-school-ac">
           <input type="text" class="reg-edu-school-search" autocomplete="off"
-                 placeholder="search your school…" required />
+                 placeholder="Search your school…" required />
           <input type="hidden" class="reg-edu-school" data-initial-required="1" />
           <div class="reg-edu-school-ac__panel" hidden>
             <ul class="reg-edu-school-ac__list"></ul>
           </div>
           <div class="reg-edu-school-other-wrap" hidden>
-            <input type="text" class="reg-edu-school-other" placeholder="type your school name" />
+            <input type="text" class="reg-edu-school-other" placeholder="Type your school name" />
           </div>
         </div>
       </label>
@@ -96,7 +96,7 @@ function relabelEducationEntries() {
   [...eduList.querySelectorAll(".reg-edu-entry")].forEach((entry, idx) => {
     entry.dataset.eduIndex = String(idx);
     const numEl = entry.querySelector(".reg-edu-entry__num");
-    if (numEl) numEl.textContent = `degree ${idx + 1}`;
+    if (numEl) numEl.textContent = `Degree ${idx + 1}`;
     const removeEl = entry.querySelector(".reg-edu-entry__remove");
     if (idx === 0 && removeEl) removeEl.remove();
   });
@@ -204,25 +204,25 @@ function validatePassword() {
 
   if (pw.length < 8) {
     form.password.focus();
-    statusEl.textContent = "password must be at least 8 characters.";
+    statusEl.textContent = "Password must be at least 8 characters.";
     statusEl.className = "gr-status error";
     return false;
   }
   if (!PW_UPPER.test(pw) || !PW_LOWER.test(pw)) {
     form.password.focus();
-    statusEl.textContent = "password must include both uppercase and lowercase letters.";
+    statusEl.textContent = "Password must include both uppercase and lowercase letters.";
     statusEl.className = "gr-status error";
     return false;
   }
   if (!PW_SPECIAL.test(pw)) {
     form.password.focus();
-    statusEl.textContent = "password must include at least one special character.";
+    statusEl.textContent = "Password must include at least one special character.";
     statusEl.className = "gr-status error";
     return false;
   }
   if (pw !== confirm) {
     form.passwordConfirm.focus();
-    statusEl.textContent = "passwords do not match.";
+    statusEl.textContent = "Passwords do not match.";
     statusEl.className = "gr-status error";
     return false;
   }
@@ -233,7 +233,7 @@ function validateCurrentStep() {
   if (currentStep === 0) {
     const checked = form.querySelector('input[name="role_choice"]:checked');
     if (!checked) {
-      statusEl.textContent = "please choose a role to continue.";
+      statusEl.textContent = "Please choose a role to continue.";
       statusEl.className = "gr-status error";
       return false;
     }
@@ -242,10 +242,10 @@ function validateCurrentStep() {
 
     // Dynamically set steps based on role
     if (selectedRole === "consultant") {
-      STEP_LABELS = ["pick your path", "account details", "education"];
+      STEP_LABELS = ["Pick your path", "Account details", "Education"];
       STEPS = [0, 1, 2];
     } else {
-      STEP_LABELS = ["pick your path", "account details"];
+      STEP_LABELS = ["Pick your path", "Account details"];
       STEPS = [0, 1];
     }
     // Update progress segments visibility
@@ -262,7 +262,7 @@ function validateCurrentStep() {
     for (const input of required) {
       if (!input.value.trim()) {
         input.focus();
-        statusEl.textContent = "please fill in all required fields.";
+        statusEl.textContent = "Please fill in all required fields.";
         statusEl.className = "gr-status error";
         return false;
       }
@@ -276,7 +276,7 @@ function validateCurrentStep() {
     for (const input of required) {
       if (!input.value.trim()) {
         input.focus();
-        statusEl.textContent = "please fill in all required fields.";
+        statusEl.textContent = "Please fill in all required fields.";
         statusEl.className = "gr-status error";
         return false;
       }
@@ -324,15 +324,15 @@ form.addEventListener("submit", async (e) => {
     if (consentWrap) consentWrap.classList.add("is-invalid");
     if (consent) consent.focus();
     statusEl.textContent =
-      "please agree to the privacy policy and terms of service to continue.";
+      "Please agree to the privacy policy and terms of service to continue.";
     statusEl.className = "gr-status error";
     return;
   }
   if (consentWrap) consentWrap.classList.remove("is-invalid");
 
   submitBtn.disabled = true;
-  submitBtn.textContent = "creating…";
-  statusEl.textContent = "setting up your account…";
+  submitBtn.textContent = "Creating…";
+  statusEl.textContent = "Setting up your account…";
 
   const email = form.email.value.trim();
   const password = form.password.value;
@@ -358,10 +358,10 @@ form.addEventListener("submit", async (e) => {
     const body = await res.json();
 
     if (!res.ok) {
-      throw new Error(body.error || "registration failed.");
+      throw new Error(body.error || "Registration failed.");
     }
 
-    statusEl.textContent = "account created — signing you in…";
+    statusEl.textContent = "Account created — signing you in…";
     statusEl.className = "gr-status success";
 
     const supabase = await getSupabaseClient();
@@ -372,7 +372,7 @@ form.addEventListener("submit", async (e) => {
 
     if (signInError) {
       statusEl.innerHTML =
-        'account created. <a href="/signin.html">sign in</a> to continue.';
+        'Account created. <a href="/signin.html">Sign in</a> to continue.';
       return;
     }
 
@@ -397,7 +397,7 @@ form.addEventListener("submit", async (e) => {
     statusEl.textContent = err.message;
     statusEl.className = "gr-status error";
     submitBtn.disabled = false;
-    submitBtn.textContent = "create account";
+    submitBtn.textContent = "Create account";
   }
 });
 
@@ -408,7 +408,7 @@ form.addEventListener(
     if (!(field instanceof HTMLInputElement || field instanceof HTMLSelectElement || field instanceof HTMLTextAreaElement)) {
       return;
     }
-    statusEl.textContent = field.validationMessage || "please complete the required fields.";
+    statusEl.textContent = field.validationMessage || "Please complete the required fields.";
     statusEl.className = "gr-status error";
   },
   true
@@ -427,7 +427,7 @@ document.addEventListener("click", (event) => {
   const reveal = input.type === "password";
   input.type = reveal ? "text" : "password";
   btn.setAttribute("aria-pressed", String(reveal));
-  btn.setAttribute("aria-label", reveal ? "hide password" : "show password");
+  btn.setAttribute("aria-label", reveal ? "Hide password" : "Show password");
   btn.classList.toggle("gr-pw-toggle--shown", reveal);
 });
 

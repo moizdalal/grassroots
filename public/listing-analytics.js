@@ -480,11 +480,11 @@ function renderHistogram(daily) {
   const pagesHtml = pages.map((p, i) => buildPageContent(p, niceMax, i)).join("");
   const dotsHtml =
     pages.length > 1
-      ? `<div class="lv-hist__dots" role="tablist" aria-label="daily views pages">
+      ? `<div class="lv-hist__dots" role="tablist" aria-label="Daily views pages">
           ${pages
             .map(
               (_, i) =>
-                `<button type="button" role="tab" class="lv-hist__dot${i === lastIdx ? " is-active" : ""}" data-target-page="${i}" aria-label="page ${i + 1} of ${pages.length}"></button>`
+                `<button type="button" role="tab" class="lv-hist__dot${i === lastIdx ? " is-active" : ""}" data-target-page="${i}" aria-label="Page ${i + 1} of ${pages.length}"></button>`
             )
             .join("")}
         </div>`
@@ -546,7 +546,7 @@ export function renderAnalyticsPanel(container, analytics, opts = {}) {
         <div class="lv-panel__head">
           <h2 class="lv-panel__title">${escapeText(title)}</h2>
         </div>
-        <p class="lv-panel__empty">couldn't load analytics. try refreshing.</p>
+        <p class="lv-panel__empty">Couldn't load analytics. Try refreshing.</p>
       </div>
     `;
     return;
@@ -558,7 +558,7 @@ export function renderAnalyticsPanel(container, analytics, opts = {}) {
         <div class="lv-panel__head">
           <h2 class="lv-panel__title">${escapeText(title)}</h2>
         </div>
-        <p class="lv-panel__empty">analytics will appear here once the supabase migration is applied (see <code>supabase/migrations/add_listing_views.sql</code>).</p>
+        <p class="lv-panel__empty">Analytics will appear here once the Supabase migration is applied (see <code>supabase/migrations/add_listing_views.sql</code>).</p>
       </div>
     `;
     return;
@@ -567,7 +567,7 @@ export function renderAnalyticsPanel(container, analytics, opts = {}) {
   const conversion = analytics.conversionPct == null ? "—" : `${analytics.conversionPct}%`;
   const conversionSub =
     analytics.conversionPct == null
-      ? "no views yet"
+      ? "No views yet"
       : `${analytics.totalUniqueBidders} of ${analytics.totalUniqueViewers} viewer${analytics.totalUniqueViewers === 1 ? "" : "s"} submitted an offer`;
 
   const histogram = compact ? "" : renderHistogram(analytics.daily);
@@ -582,13 +582,13 @@ export function renderAnalyticsPanel(container, analytics, opts = {}) {
       <div class="lv-metrics">
         <div class="lv-metric">
           <p class="lv-metric__value">${analytics.totalUniqueViewers}</p>
-          <p class="lv-metric__label">unique viewers</p>
+          <p class="lv-metric__label">Unique viewers</p>
         </div>
         <div class="lv-metric lv-metric--accent">
           <p class="lv-metric__value">${conversion}</p>
           <p class="lv-metric__label">
-            view → offer rate
-            <button type="button" class="lv-metric__info" aria-expanded="false" aria-controls="lv-conversion-sub" aria-label="show conversion details">?</button>
+            View → offer rate
+            <button type="button" class="lv-metric__info" aria-expanded="false" aria-controls="lv-conversion-sub" aria-label="Show conversion details">?</button>
             <span class="lv-metric__sub" id="lv-conversion-sub" hidden>${escapeText(conversionSub)}</span>
           </p>
         </div>
@@ -597,10 +597,10 @@ export function renderAnalyticsPanel(container, analytics, opts = {}) {
       ${compact ? "" : `
       <div class="lv-section">
         <div class="lv-section__head">
-          <p class="lv-section__eyebrow">daily views</p>
+          <p class="lv-section__eyebrow">Daily views</p>
           <p class="lv-section__hint">${analytics.daily.length} day${analytics.daily.length === 1 ? "" : "s"} since listed</p>
         </div>
-        ${histogram || '<p class="lv-panel__empty">no views yet.</p>'}
+        ${histogram || '<p class="lv-panel__empty">No views yet.</p>'}
       </div>
       `}
     </div>

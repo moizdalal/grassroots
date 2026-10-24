@@ -382,7 +382,7 @@
     }
     let stateText = "empty";
     if (p >= FLY_IN_A && p < FLY_IN_B)     stateText = "funding";
-    else if (p >= FLY_IN_B && p < REVIEW_A) stateText = "held safely";
+    else if (p >= FLY_IN_B && p < REVIEW_A) stateText = "Held safely";
     else if (p >= REVIEW_A && p < REVIEW_B) stateText = "shipped";
     else if (p >= FLY_OUT_A && p < FLY_OUT_B) stateText = "releasing";
     else if (p >= FLY_OUT_B - 0.02) stateText = "delivered";

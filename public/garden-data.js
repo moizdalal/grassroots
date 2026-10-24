@@ -57,8 +57,8 @@ export async function loadCompletedEngagements(client, ownerId) {
     .map((b) => ({
       bidId: b.id,
       listingId: b.listing_id,
-      listingTitle: titleByListing[b.listing_id] || "untitled listing",
-      consultantName: consultantNameById[b.consultant_id] || "the consultant",
+      listingTitle: titleByListing[b.listing_id] || "Untitled listing",
+      consultantName: consultantNameById[b.consultant_id] || "The consultant",
       amountCents: b.amount_cents || 0,
       releasedAt: b.released_at,
     }))

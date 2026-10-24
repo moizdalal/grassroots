@@ -75,18 +75,18 @@ function renderGuestBanner() {
   if (!host) return;
   host.hidden = false;
   host.innerHTML = `
-    <div class="gr-guest-banner" role="region" aria-label="guest welcome">
+    <div class="gr-guest-banner" role="region" aria-label="Guest welcome">
       <div class="gr-guest-banner__copy">
-        <p class="gr-guest-banner__title">browsing as a guest</p>
+        <p class="gr-guest-banner__title">Browsing as a guest</p>
         <p class="gr-guest-banner__sub">
-          this is real, live work small businesses are paying students to do. start by
+          This is real, live work small businesses are paying students to do. Start by
           <a href="/register.html?role=owner">posting your own project</a>, or
           <a href="/home/for-students.html">apply to join as a student consultant</a>.
         </p>
       </div>
       <div class="gr-guest-banner__actions">
-        <a class="gr-btn gr-btn--ghost gr-btn--sm" href="/signin.html">sign in</a>
-        <a class="gr-btn gr-btn--primary gr-btn--sm" href="/register.html?role=owner">post a project</a>
+        <a class="gr-btn gr-btn--ghost gr-btn--sm" href="/signin.html">Sign in</a>
+        <a class="gr-btn gr-btn--primary gr-btn--sm" href="/register.html?role=owner">Post a project</a>
       </div>
     </div>
   `;
@@ -158,7 +158,7 @@ function renderResultCount(filteredCount, totalCount) {
   if (filteredCount === totalCount) {
     host.textContent = `${totalCount} ${totalCount === 1 ? "opportunity" : "opportunities"}`;
   } else {
-    host.textContent = `showing ${filteredCount} of ${totalCount}`;
+    host.textContent = `Showing ${filteredCount} of ${totalCount}`;
   }
 }
 
@@ -182,9 +182,9 @@ function formatRecency(createdAt) {
   const then = new Date(createdAt).getTime();
   if (Number.isNaN(then)) return null;
   const diffMs = Date.now() - then;
-  if (diffMs < 0) return { label: "today", stale: false };
+  if (diffMs < 0) return { label: "Today", stale: false };
   const days = Math.floor(diffMs / (24 * 60 * 60 * 1000));
-  if (days === 0) return { label: "today", stale: false };
+  if (days === 0) return { label: "Today", stale: false };
   if (days < 7) return { label: `${days}d ago`, stale: false };
   const weeks = Math.floor(days / 7);
   if (weeks < 4) return { label: `${weeks}w ago`, stale: true };
@@ -229,7 +229,7 @@ function renderCard(row, client) {
   const tagsHtml = categories.length
     ? `<div class="gr-listing-tags">${
         visibleTags
-          .map((c) => `<span class="gr-listing-tag">${escapeHtml(c)}</span>`)
+          .map((c) => `<span class="gr-listing-tag">${escapeHtml(capFirst(c))}</span>`)
           .join("")
       }${
         overflow > 0
@@ -244,7 +244,7 @@ function renderCard(row, client) {
 
   const contractType = formatContractType(row.contract_type);
   const contractHtml = contractType
-    ? `<p class="gr-listing-contract">${escapeHtml(contractType)}</p>`
+    ? `<p class="gr-listing-contract">${escapeHtml(capFirst(contractType))}</p>`
     : "";
 
   const recency = formatRecency(row.created_at);
@@ -285,7 +285,7 @@ function renderCard(row, client) {
     </div>
     <div class="gr-listing-foot">
       ${tagsHtml || '<div></div>'}
-      <span class="gr-listing-cta-link">view →</span>
+      <span class="gr-listing-cta-link">View →</span>
     </div>
     ${summaryHtml}
   `;
@@ -299,7 +299,7 @@ function renderSection({ title, subtitle, rows, emptyText, client }) {
   head.className = "gr-marketplace-section__head";
   head.innerHTML = `
     <div>
-      <h2 class="gr-marketplace-section__title">${escapeHtml(title)}</h2>
+      <h2 class="gr-marketplace-section__title">${escapeHtml(capFirst(title))}</h2>
       ${subtitle ? `<p class="gr-marketplace-section__sub">${escapeHtml(subtitle)}</p>` : ""}
     </div>
     <span class="gr-marketplace-section__count">${rows.length}</span>
@@ -309,7 +309,7 @@ function renderSection({ title, subtitle, rows, emptyText, client }) {
   if (!rows.length) {
     const empty = document.createElement("p");
     empty.className = "gr-marketplace-section__empty";
-    empty.textContent = emptyText || "nothing here yet.";
+    empty.textContent = emptyText || "Nothing here yet.";
     section.appendChild(empty);
     return section;
   }
@@ -381,7 +381,7 @@ function renderListings(rows, client) {
 
   if (!rows.length) {
     listingGrid.innerHTML =
-      '<p class="gr-empty-state">no open opportunities yet. once business owners post needs, they\'ll show up here.</p>';
+      '<p class="gr-empty-state">No open opportunities yet. Once business owners post needs, they\'ll show up here.</p>';
     return;
   }
 
@@ -401,8 +401,8 @@ function renderListings(rows, client) {
     if (localRows.length) {
       listingGrid.appendChild(
         renderSection({
-          title: "local",
-          subtitle: `within ${LOCAL_RADIUS_MILES} miles of where you're based`,
+          title: "Local",
+          subtitle: `Within ${LOCAL_RADIUS_MILES} miles of where you're based`,
           rows: localRows,
           client,
         })
@@ -433,7 +433,7 @@ function renderListings(rows, client) {
       renderSection({
         title: tag,
         rows: list,
-        emptyText: `no open ${tag} listings right now.`,
+        emptyText: `No open ${tag} listings right now.`,
         client,
       })
     );
@@ -441,7 +441,7 @@ function renderListings(rows, client) {
   if (untagged.length) {
     listingGrid.appendChild(
       renderSection({
-        title: "other",
+        title: "Other",
         rows: untagged,
         client,
       })
@@ -461,11 +461,11 @@ function populateCategoryDropdown() {
     }
   }
   const sorted = [...cats].sort();
-  dropdown.innerHTML = '<option value="">all categories</option>';
+  dropdown.innerHTML = '<option value="">All categories</option>';
   for (const c of sorted) {
     const opt = document.createElement("option");
     opt.value = c;
-    opt.textContent = c;
+    opt.textContent = capFirst(c);
     dropdown.appendChild(opt);
   }
 }
@@ -612,7 +612,7 @@ async function refreshListings(client) {
 }
 
 async function init() {
-  listingsStatus.textContent = "loading…";
+  listingsStatus.textContent = "Loading…";
 
   // Lock in guest mode (persists across in-tab navigation) so the
   // listing detail page doesn't need ?guest=1 re-passed on every link.
@@ -679,9 +679,15 @@ async function init() {
 
     await refreshListings(client);
   } catch (error) {
-    listingsStatus.textContent = error.message || "could not initialize marketplace.";
+    listingsStatus.textContent = error.message || "Could not initialize marketplace.";
     listingsStatus.className = "gr-status error";
   }
 }
 
 init();
+
+// Categories and statuses are stored lowercase; show them in sentence case.
+function capFirst(value) {
+  const s = String(value || "");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
