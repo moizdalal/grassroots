@@ -181,6 +181,11 @@ function activateTab(name) {
     case "engagements": renderEngagementsTable(); break;
     case "calendar": renderCalendar(); break;
     case "health": renderHealth(); break;
+    case "payments":
+      import("./payments.js")
+        .then((m) => m.renderPayments())
+        .catch((err) => console.warn("payments tab failed to load", err));
+      break;
   }
 }
 

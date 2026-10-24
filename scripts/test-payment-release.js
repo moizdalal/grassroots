@@ -2,15 +2,17 @@
 // Stripe (real webhook signing), then drives it over HTTP.
 //   node scripts/test-payment-release.js
 // No network, no real keys. Covers idempotency, compare-and-set releases,
-// disputes, retainer terms, and the delivery-anchored release job.
+// disputes, retainer terms, the delivery-anchored release job, and
+// reported problems with support outcomes A / B / C.
 const WT = require("path").resolve(__dirname, "..");
 const Module = require("module");
 const assert = require("assert");
 
 // ---------- fake supabase ----------
-const db = { profiles: [], listings: [], bids: [], bid_phase_payments: [], retainer_subscriptions: [], consultant_reviews: [], notifications: [] };
-// Columns the add_delivery_release migration defaults.
-const DEFAULTS = { bids: { refunded_cents: 0 }, bid_phase_payments: { refunded_cents: 0 } };
+const db = { profiles: [], listings: [], bids: [], bid_phase_payments: [], retainer_subscriptions: [], consultant_reviews: [], notifications: [], payment_audit: [] };
+// Columns the add_delivery_release / add_support_outcomes migrations default.
+const PAY_DEFAULTS = { refunded_cents: 0, problem_report_count: 0, redo_used: false };
+const DEFAULTS = { bids: PAY_DEFAULTS, bid_phase_payments: PAY_DEFAULTS };
 let nextId = 1;
 const uniqueIdx = { bid_phase_payments: (r) => `${r.bid_id}|${r.phase}|${r.period_index ?? -1}` };
 
@@ -60,7 +62,10 @@ function builder(table) {
 const fakeSupabase = {
   from: (t) => builder(t),
   auth: {
-    admin: { listUsers: async () => ({ data: { users: [{ id: "admin1", email: "moizdalal@ufl.edu" }] } }) },
+    admin: {
+      listUsers: async () => ({ data: { users: [{ id: "admin1", email: "moizdalal@ufl.edu" }] } }),
+      getUserById: async (id) => ({ data: { user: { id, email: `${id}@x.test` } } }),
+    },
     getUser: async (tok) => ({ data: { user: tok ? { id: tok, email: tok === "admin1" ? "moizdalal@ufl.edu" : `${tok}@x.test` } : null }, error: tok ? null : { message: "no" } }),
   },
   rpc: async (fn, args) => {
@@ -82,6 +87,8 @@ const pis = new Map();
 let failTransfers = false;
 const disputes = [];
 const subs = new Map();
+const transferLog = [];
+const refundLog = [];
 function keyed(kind, opts, make) {
   calls.push({ kind, key: opts?.idempotencyKey });
   if (opts?.idempotencyKey && idem.has(opts.idempotencyKey)) {
@@ -100,8 +107,8 @@ const fakeStripe = {
     create: async (p, o) => keyed("pi", o, () => { const pi = { id: `pi_${nextId++}`, status: "requires_payment_method", client_secret: "cs", ...p }; pis.set(pi.id, pi); return pi; }),
     cancel: async (id) => { pis.get(id).status = "canceled"; },
   },
-  transfers: { create: async (p, o) => { await new Promise((r) => setTimeout(r, 30)); if (failTransfers) throw new Error("stripe down"); return keyed("transfer", o, () => ({ id: `tr_${nextId++}`, ...p })); } },
-  refunds: { create: async (p, o) => keyed("refund", o, () => ({ id: `re_${nextId++}`, ...p })) },
+  transfers: { create: async (p, o) => { await new Promise((r) => setTimeout(r, 30)); if (failTransfers) throw new Error("stripe down"); transferLog.push(p); return keyed("transfer", o, () => ({ id: `tr_${nextId++}`, ...p })); } },
+  refunds: { create: async (p, o) => { refundLog.push(p); return keyed("refund", o, () => ({ id: `re_${nextId++}`, ...p })); } },
   products: { create: async (p, o) => keyed("product", o, () => ({ id: `prod_${nextId++}` })) },
   prices: { create: async (p, o) => keyed("price", o, () => ({ id: `price_${nextId++}` })) },
   subscriptions: {
@@ -109,7 +116,7 @@ const fakeStripe = {
     retrieve: async (id) => ({ ...subs.get(id) }),
     update: async (id, p) => { calls.push({ kind: "sub.update", p }); Object.assign(subs.get(id), p); return subs.get(id); },
   },
-  disputes: { list: async ({ charge }) => ({ data: disputes.filter((d) => d.charge === charge) }) },
+  disputes: { list: async ({ charge, payment_intent }) => ({ data: disputes.filter((d) => (charge && d.charge === charge) || (payment_intent && d.payment_intent === payment_intent)) }) },
   invoicePayments: { list: async ({ invoice }) => ({ data: [{ status: "paid", payment: { type: "payment_intent", payment_intent: `pi_inv_${invoice}` } }] }) },
 };
 pis.set = pis.set.bind(pis);
@@ -448,10 +455,9 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     ok(run.stale_holds.includes("bid-B1") && logs.some((l) => l.includes("support_hold_stale")) && notes("support_hold_stale", "admin1").length === 1, "hold open 14+ days → ops alert + admin notice");
     await cron();
     ok(notes("support_hold_stale").length === 1, "stale-hold admin notice not repeated");
+    ok(db.payment_audit.some((a) => a.action === "support_hold" && a.actor_id === "admin1" && a.details.reason), "admin hold writes an audit row");
     h = await api("/api/admin/payments/clear-hold", { bid_id: "B1" }, "admin1");
-    ok(h.status === 200 && bid("B1").support_hold_at === null, "admin clears hold");
-    await cron();
-    ok(bid("B1").payment_status === "released", "after hold cleared, the overdue window releases");
+    ok(h.status === 404 && bid("B1").support_hold_at, "no plain clear-hold: a hold ends only with an outcome");
 
     // --- hold placed after the job read the row: claim refuses ---
     seed();
@@ -492,6 +498,203 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     db.bid_phase_payments.push({ id: "PB2", bid_id: "B7", phase: "proposal", status: "held", payment_intent_id: "pi_batch", amount_cents: 5000, charge_id: "ch_b", paid_at: ago(2), refunded_cents: 0 });
     await hook("charge.refunded", { id: "ch_b", payment_intent: "pi_batch", refunded: false, amount: 10000, amount_refunded: 5000 });
     ok(db.bid_phase_payments.filter((r) => r.payment_intent_id === "pi_batch").every((r) => r.refunded_cents === 5000 && r.status === "held"), "batch partial refund freezes every row on that charge");
+
+    // ================= reported problems + support outcomes =================
+    const audits = (action) => db.payment_audit.filter((a) => a.action === action);
+    const report = (who = OWNER, extra = {}) => api("/api/engagement/report-problem", { bid_id: "B1", note: "the deck is missing the pricing section", link: "https://docs.example.com/notes", ...extra }, who);
+    const outcome = (o, who = "admin1", extra = {}) => api("/api/admin/payments/outcome", { bid_id: "B1", outcome: o, ...extra }, who);
+    const choose = (choice, who = CONS) => api("/api/engagement/redo-choice", { bid_id: "B1", choice }, who);
+    // $100 offer + $10 platform fee = $110 charged; $3.20 card fee; $96.80 payout.
+    const FEES = { payment_amount_cents: 11000, platform_fee_cents: 1000, stripe_fee_cents: 320, consultant_payout_cents: 9680 };
+    const reported = async (extra = {}) => {
+      seed();
+      heldBid({ delivered_at: ago(2), ...FEES, ...extra });
+      const r = await report();
+      assert.strictEqual(r.status, 200, `report failed: ${JSON.stringify(r.body)}`);
+      calls.length = 0; transferLog.length = 0; refundLog.length = 0;
+    };
+
+    // --- report window ---
+    seed();
+    heldBid({ ...FEES });
+    ok((await report()).status === 409, "report: nothing delivered yet → refused");
+    bid("B1").delivered_at = ago(14.2);
+    ok((await report()).status === 409, "report: after the 14-day review ended → refused");
+    bid("B1").delivered_at = ago(2);
+    ok((await report(CONS)).status === 403, "report: consultant can't report");
+    ok((await report(OWNER, { note: "" })).status === 400, "report: needs a note");
+    ok((await report(OWNER, { link: "javascript:alert(1)" })).status === 400, "report: non-http link rejected");
+
+    // --- report locks auto-release ---
+    let rpt = await report();
+    ok(rpt.status === 200 && bid("B1").support_hold_at && bid("B1").problem_reported_at && bid("B1").problem_report_count === 1 && bid("B1").problem_report_link === "https://docs.example.com/notes", "business reports a problem → payment locked");
+    ok(notes("problem_reported", OWNER).length === 1 && notes("problem_reported", CONS).length === 1 && notes("problem_reported", "admin1").length === 1, "report: business, consultant and admin notified");
+    ok(notes("problem_reported", CONS)[0].body.includes("pricing section"), "report: consultant sees the business's note");
+    ok(audits("problem_reported").length === 1 && audits("problem_reported")[0].actor_id === OWNER, "report writes an audit row");
+    ok((await report()).status === 409, "can't report the same payment twice");
+    ok((await api("/api/engagement/request-changes", { bid_id: "B1", note: "x" }, OWNER)).status === 409, "can't request changes while support is reviewing");
+    st = await apiGet("/api/engagement/B1/release-status", OWNER);
+    ok(st.body.payments[0].reported && !st.body.payments[0].can_report_problem && st.body.payments[0].auto_release_at === null, "status: reported, no auto-release date");
+    bid("B1").delivered_at = ago(14.5);
+    calls.length = 0;
+    run = await cron();
+    ok(bid("B1").payment_status === "held" && transfers() === 0 && run.skipped.some((x) => x.reason === "support_hold"), "reported payment doesn't auto-release after day 14");
+
+    // --- business can still release while locked ---
+    const own = await api("/api/stripe/release-funds", { bid_id: "B1" }, OWNER);
+    ok(own.status === 200 && bid("B1").payment_status === "released" && transfers() === 1, "business can still release a reported payment itself");
+
+    // --- outcome A: meets scope → release ---
+    await reported();
+    ok((await outcome("meets_scope", OWNER)).status === 403, "only admins pick an outcome");
+    ok((await outcome("split")).status === 400, "free-form outcomes refused");
+    let oc = await outcome("meets_scope");
+    ok(oc.status === 200 && bid("B1").payment_status === "released" && bid("B1").support_outcome === "meets_scope" && transferLog.length === 1 && transferLog[0].amount === 9680, "A: released to the consultant ($96.80)");
+    ok(transferLog[0].source_transaction === "ch_rel", "A: transfer pinned to the charge");
+    ok(notes("support_outcome", OWNER).length === 1 && notes("support_outcome", CONS).length === 1, "A: both parties notified");
+    const aud = audits("outcome_meets_scope")[0];
+    ok(aud && aud.actor_email === "moizdalal@ufl.edu" && aud.amount_cents === 9680 && aud.stripe_object_id?.startsWith("tr_"), "A: audit row with who, amount, transfer id");
+    st = await apiGet("/api/engagement/B1/release-status", CONS);
+    ok(st.body.payments[0].status === "released" && st.body.payments[0].support_outcome === "meets_scope", "status: outcome A shown after release");
+
+    // --- outcome B: redo, then a second report allows only A or C ---
+    await reported();
+    oc = await outcome("fixable", "admin1", { note: "add the pricing section" });
+    const choiceDays = (Date.parse(bid("B1").redo_deadline_at) - Date.now()) / 86400000;
+    ok(oc.status === 200 && bid("B1").support_outcome === "fixable" && choiceDays > 4.99 && choiceDays <= 5, `B: consultant has 5 days to choose (${choiceDays.toFixed(2)})`);
+    ok(notes("support_outcome", CONS).length === 1 && notes("support_outcome", OWNER).length === 1, "B: both parties notified");
+    st = await apiGet("/api/engagement/B1/release-status", CONS);
+    let p0 = st.body.payments[0];
+    ok(p0.can_choose && p0.waiting_on_consultant && p0.money.give_back_cents === 10680 && !p0.can_mark_delivered, "status: consultant gets the choice, give-back amount shown");
+    ok((await outcome("meets_scope")).status === 409, "B: no other outcome while waiting on the consultant");
+    ok((await choose("redo", OWNER)).status === 403, "B: business can't choose for the consultant");
+    ok((await choose("maybe")).status === 400, "B: only redo or give_back");
+    run = await cron();
+    ok(bid("B1").payment_status === "held" && transfers() === 0, "B: nothing releases while waiting on the choice");
+    let ch = await choose("redo");
+    ok(ch.status === 200 && bid("B1").redo_used && bid("B1").delivered_at === null && bid("B1").support_hold_at === null && bid("B1").consultant_choice === "redo", "B redo: delivered mark cleared, lock lifted, redo used");
+    ok(notes("redo_choice", OWNER).length === 1 && notes("redo_choice", OWNER)[0].body.includes("last redo") && notes("redo_choice", CONS).length === 1, "B redo: both notified, business told it's the last redo");
+    ok(audits("consultant_redo").length === 1 && audits("consultant_redo")[0].actor_id === CONS, "B redo: audit row");
+    ok((await choose("give_back")).status === 409, "B redo: can't choose twice");
+    run = await cron();
+    ok(bid("B1").payment_status === "held" && transfers() === 0, "after a redo, nothing releases until delivered again");
+    md = await api("/api/engagement/mark-delivered", { bid_id: "B1", note: "added pricing" }, CONS);
+    ok(md.status === 200 && (Date.parse(md.body.auto_release_at) - Date.now()) / 86400000 > 13.9, "redelivery → new 14-day review");
+    st = await apiGet("/api/engagement/B1/release-status", OWNER);
+    ok(st.body.payments[0].redo_used && st.body.payments[0].can_report_problem, "status: business can report again, marked as the last redo");
+    rpt = await report(OWNER, { note: "pricing is still wrong" });
+    ok(rpt.status === 200 && bid("B1").problem_report_count === 2, "second report after the redo accepted");
+    ok(notes("problem_reported", "admin1").some((n) => n.body.includes("after a redo")), "admin told it's a second report: A or C only");
+    let list = await apiGet("/api/admin/payments/held", "admin1");
+    let lp = list.body.payments.find((x) => x.key === "bid-B1");
+    ok(lp && lp.actions.includes("meets_scope") && lp.actions.includes("scope_breached") && !lp.actions.includes("fixable"), "admin screen offers only A or C after a redo");
+    ok((await outcome("fixable")).status === 409 && bid("B1").support_outcome === null, "second report after a redo: B refused by the server");
+
+    // --- outcome B: give back, fee math ---
+    await reported();
+    await outcome("fixable");
+    ch = await choose("give_back");
+    ok(ch.status === 200 && bid("B1").payment_status === "refunded" && bid("B1").consultant_choice === "give_back", "B give back: payment refunded");
+    ok(refundLog.length === 1 && refundLog[0].amount === 10680 && refundLog[0].charge === "ch_rel" && bid("B1").refunded_cents === 10680, "B give back: $110 − $3.20 card fee = $106.80 refunded (platform fee back in full)");
+    ok(transfers() === 0, "B give back: consultant gets nothing");
+    const ret = notes("payment_returned", OWNER)[0];
+    ok(ret && ret.title.includes("$106.80") && ret.body.includes("$3.20") && notes("payment_returned", CONS).length === 1, "B give back: business told the amount and the kept fee; consultant notified");
+    ok(audits("consultant_give_back")[0]?.amount_cents === 10680 && audits("consultant_give_back")[0].stripe_object_id?.startsWith("re_"), "B give back: audit row with refund id");
+    logs.length = 0;
+    await hook("charge.refunded", { id: "ch_rel", payment_intent: "pi_rel", refunded: false, amount: 11000, amount_refunded: 10680 });
+    ok(!logs.some((l) => l.includes("partial_refund_needs_review")) && notes("partial_refund", "admin1").length === 0, "webhook for grassroots' own give-back isn't flagged as an unexplained partial refund");
+    st = await apiGet("/api/engagement/B1/release-status", OWNER);
+    ok(st.body.payments[0]?.status === "refunded" && st.body.payments[0].consultant_choice === "give_back" && st.body.payments[0].refunded_cents === 10680, "status: give-back shown to the business after refund");
+
+    // --- outcome B: day-3 reminder, then 5-day timeout → give back ---
+    await reported();
+    await outcome("fixable");
+    bid("B1").redo_offered_at = ago(3.1);
+    bid("B1").redo_deadline_at = ahead(1.9);
+    run = await cron();
+    ok(run.redo_reminders.includes("bid-B1") && notes("redo_choice_reminder", CONS).length === 1 && notes("redo_choice_reminder", CONS)[0].title === "2 days left to choose", "B: day-3 reminder to the consultant");
+    await cron();
+    ok(notes("redo_choice_reminder", CONS).length === 1, "B: reminder sent once");
+    bid("B1").redo_deadline_at = ago(0.01);
+    ok((await choose("redo")).status === 409, "B: can't redo after the 5 days");
+    run = await cron();
+    ok(run.returned.includes("bid-B1") && bid("B1").payment_status === "refunded" && bid("B1").consultant_choice === "give_back_timeout" && refundLog[0]?.amount === 10680, "B: no answer in 5 days → payment goes back (less card fee)");
+    ok(audits("give_back_timeout")[0]?.actor_email === "system:auto-release" && notes("payment_returned", OWNER)[0].body.includes("didn't choose within 5 days"), "B timeout: audit row by the system, business told why");
+    await cron();
+    ok(refundLog.length === 1, "B timeout: rerun doesn't refund twice");
+
+    // --- outcome C: scope breached → full refund ---
+    await reported();
+    oc = await outcome("scope_breached");
+    ok(oc.status === 200 && bid("B1").payment_status === "refunded" && bid("B1").support_outcome === "scope_breached" && refundLog[0].amount === 11000 && transfers() === 0, "C: full $110 refunded incl. platform fee, consultant gets nothing");
+    ok(notes("support_outcome", OWNER)[0].title.includes("$110.00 in full") && notes("support_outcome", CONS).length === 1, "C: both notified");
+    ok(audits("outcome_scope_breached")[0]?.details.card_fee_absorbed_cents === 320, "C: audit row records the card fee grassroots absorbs");
+    ok((await outcome("meets_scope")).status === 409, "C: refunded payment can't be released afterwards");
+
+    // --- stale report alert ---
+    await reported();
+    bid("B1").support_hold_at = ago(15);
+    logs.length = 0;
+    run = await cron();
+    ok(run.stale_holds.includes("bid-B1") && logs.some((l) => l.includes("problem_report_stale")) && notes("problem_report_stale", "admin1").length === 1, "report undecided 14+ days → ops alert + admin notice");
+    list = await apiGet("/api/admin/payments/held", "admin1");
+    ok(list.body.payments.find((x) => x.key === "bid-B1")?.flags.stale, "admin screen flags the stale report");
+    await outcome("fixable");
+    logs.length = 0;
+    run = await cron();
+    ok(!run.stale_holds.includes("bid-B1"), "no stale alert once support decided (waiting on consultant)");
+
+    // --- dispute blocks every outcome that moves money ---
+    await reported();
+    disputes.push({ id: "dp_s", charge: "ch_rel", payment_intent: "pi_rel", status: "needs_response", reason: "product_not_received" });
+    oc = await outcome("meets_scope");
+    ok(oc.status === 409 && bid("B1").payment_status === "held" && transfers() === 0, "dispute blocks outcome A (no transfer)");
+    oc = await outcome("scope_breached");
+    ok(oc.status === 409 && bid("B1").payment_status === "held" && refundLog.length === 0, "dispute blocks outcome C (no refund)");
+    list = await apiGet("/api/admin/payments/held", "admin1");
+    lp = list.body.payments.find((x) => x.key === "bid-B1");
+    ok(lp.flags.disputed && lp.dispute.status === "needs_response" && !lp.actions.includes("meets_scope"), "admin screen shows the dispute and hides release/refund");
+    disputes.length = 0;
+
+    // --- partial refund: support settles the rest ---
+    seed();
+    heldBid({ delivered_at: ago(20), ...FEES });
+    await hook("charge.refunded", { id: "ch_rel", payment_intent: "pi_rel", refunded: false, amount: 11000, amount_refunded: 4000 });
+    transferLog.length = 0;
+    ok((await outcome("meets_scope")).status === 409, "partly refunded: full release refused");
+    list = await apiGet("/api/admin/payments/held", "admin1");
+    lp = list.body.payments.find((x) => x.key === "bid-B1");
+    ok(lp.flags.partly_refunded && lp.actions.join() === "release_remainder,refund_remainder,hold" && lp.money.remainder_payout_cents === 5680, "admin screen: settle the rest ($70 left − $3.20 − $10 = $56.80 payout)");
+    let sr = await api("/api/admin/payments/settle-remainder", { bid_id: "B1", action: "release" }, "admin1");
+    ok(sr.status === 200 && bid("B1").payment_status === "released" && transferLog[0]?.amount === 5680 && bid("B1").support_outcome === "release_remainder", "release the rest: $56.80 transferred");
+    ok(audits("release_remainder").length === 1, "release the rest: audit row");
+    seed();
+    heldBid({ delivered_at: ago(20), ...FEES });
+    await hook("charge.refunded", { id: "ch_rel", payment_intent: "pi_rel", refunded: false, amount: 11000, amount_refunded: 4000 });
+    refundLog.length = 0;
+    sr = await api("/api/admin/payments/settle-remainder", { bid_id: "B1", action: "refund" }, "admin1");
+    ok(sr.status === 200 && bid("B1").payment_status === "refunded" && refundLog[0]?.amount === 7000 && bid("B1").refunded_cents === 11000, "refund the rest: $70 refunded");
+    ok(audits("refund_remainder").length === 1 && notes("support_outcome", OWNER).length === 1 && notes("support_outcome", CONS).length === 1, "refund the rest: audit row, both notified");
+    ok((await api("/api/admin/payments/settle-remainder", { bid_id: "B1", action: "refund" }, OWNER)).status === 403, "settle is admin-only");
+
+    // --- phase rows: give back on a service fee; shared charge stays clean ---
+    seed();
+    db.bids.push({ id: "B6", listing_id: "L2", consultant_id: CONS, payment_status: "unpaid", move_forward_status: "selected", refunded_cents: 0 });
+    db.bid_phase_payments.push({ id: "SV2", bid_id: "B6", phase: "service", status: "held", amount_cents: 80000, platform_fee_cents: 0, stripe_fee_cents: 2350, consultant_payout_cents: 77650, payment_intent_id: "pi_sv2", charge_id: "ch_sv2", paid_at: ago(5), delivered_at: ago(2), refunded_cents: 0 });
+    rpt = await api("/api/engagement/report-problem", { bid_id: "B6", payment_id: "SV2", note: "no slides" }, OWNER);
+    await api("/api/admin/payments/outcome", { bid_id: "B6", payment_id: "SV2", outcome: "fixable" }, "admin1");
+    refundLog.length = 0;
+    ch = await api("/api/engagement/redo-choice", { bid_id: "B6", payment_id: "SV2", choice: "give_back" }, CONS);
+    const sv2 = db.bid_phase_payments.find((r) => r.id === "SV2");
+    ok(rpt.status === 200 && ch.status === 200 && sv2.status === "refunded" && sv2.refunded_at && refundLog[0]?.amount === 77650, "service fee: report → B → give back refunds $776.50");
+    db.bid_phase_payments.push({ id: "PB3", bid_id: "B6", phase: "proposal", status: "held", payment_intent_id: "pi_b3", charge_id: "ch_b3", amount_cents: 5000, paid_at: ago(2), refunded_cents: 0 });
+    db.bid_phase_payments.push({ id: "PB4", bid_id: "B7x", phase: "proposal", status: "held", payment_intent_id: "pi_b3", charge_id: "ch_b3", amount_cents: 5000, paid_at: ago(2), refunded_cents: 0 });
+    ok((await api("/api/admin/payments/outcome", { bid_id: "B6", payment_id: "PB3", outcome: "fixable" }, "admin1")).status === 400, "proposal fee: no redo outcome");
+    await api("/api/admin/payments/hold", { bid_id: "B6", payment_id: "PB3", reason: "business emailed support" }, "admin1");
+    oc = await api("/api/admin/payments/outcome", { bid_id: "B6", payment_id: "PB3", outcome: "scope_breached" }, "admin1");
+    await hook("charge.refunded", { id: "ch_b3", payment_intent: "pi_b3", refunded: false, amount: 10000, amount_refunded: 5000 });
+    const pb4 = db.bid_phase_payments.find((r) => r.id === "PB4");
+    ok(oc.status === 200 && pb4.status === "held" && pb4.refunded_cents === 0, "refunding one payment on a shared charge doesn't freeze the other");
 
     // --- bad signature / legacy path ---
     const bad = await fetch(base + "/webhooks/stripe", { method: "POST", headers: { "content-type": "application/json", "stripe-signature": "t=1,v1=bad" }, body: "{}" });

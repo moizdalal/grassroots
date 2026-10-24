@@ -16,6 +16,8 @@
 --                              gets nothing; grassroots absorbs the fee.
 --   * Support aims to decide within 14 days of a report (ops alerted after).
 --   * Every admin action writes a payment_audit row.
+--   * There is no plain "clear hold": a hold ends only by release, refund,
+--     or the consultant choosing to redo.
 --
 -- All new columns are server-only, like add_delivery_release.sql: not in the
 -- authenticated column grants on bids, and bid_phase_payments is SELECT-only
@@ -33,17 +35,21 @@ begin
       alter table public.%I
         add column if not exists problem_reported_at timestamptz,
         add column if not exists problem_report_note text,
+        add column if not exists problem_report_link text,
         add column if not exists problem_report_count integer not null default 0,
         add column if not exists support_outcome text,
         add column if not exists support_outcome_at timestamptz,
         add column if not exists redo_offered_at timestamptz,
         add column if not exists redo_deadline_at timestamptz,
+        add column if not exists redo_reminded_at timestamptz,
         add column if not exists redo_used boolean not null default false,
         add column if not exists consultant_choice text,
         add column if not exists consultant_choice_at timestamptz
     $c$, t);
     execute format('alter table public.%I drop constraint if exists %I', t, t || '_problem_note_len');
     execute format('alter table public.%I add constraint %I check (problem_report_note is null or char_length(problem_report_note) <= 1000)', t, t || '_problem_note_len');
+    execute format('alter table public.%I drop constraint if exists %I', t, t || '_problem_link_fmt');
+    execute format($c$alter table public.%I add constraint %I check (problem_report_link is null or (char_length(problem_report_link) <= 500 and problem_report_link ~* '^https?://'))$c$, t, t || '_problem_link_fmt');
     execute format('alter table public.%I drop constraint if exists %I', t, t || '_support_outcome_vals');
     execute format($c$alter table public.%I add constraint %I check (support_outcome is null or support_outcome in ('meets_scope', 'fixable', 'scope_breached', 'release_remainder', 'refund_remainder'))$c$, t, t || '_support_outcome_vals');
     execute format('alter table public.%I drop constraint if exists %I', t, t || '_consultant_choice_vals');

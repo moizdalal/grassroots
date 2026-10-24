@@ -248,17 +248,18 @@ async function casUpdate(table, id, expected, updates, statusField = "status", e
    held so the owner can retry. The transfer's idempotency key is the row
    id, so a retry after a lost response returns the same transfer instead
    of paying twice. */
-async function releasePhaseRow(phaseRow, { destination, metadata, claimEq = {} }) {
+async function releasePhaseRow(phaseRow, { destination, metadata, claimEq = {}, payoutCents = null }) {
   if (await chargeDisputeHold(phaseRow.charge_id)) {
     return { ok: false, disputed: true, error: DISPUTE_HOLD_ERROR };
   }
   const releasedAt = new Date().toISOString();
   // refunded_cents = 0 in the claim: a partially refunded payment is never
   // released for its full amount, even if the refund lands mid-release.
+  // Support settling a remainder passes its own refunded_cents + payout.
   const claimed = await casUpdate("bid_phase_payments", phaseRow.id, "held", {
     status: "released",
     released_at: releasedAt,
-  }, "status", { ...claimEq, refunded_cents: 0 });
+  }, "status", { refunded_cents: 0, ...claimEq });
   if (!claimed) {
     const { data: now } = await supabase
       .from("bid_phase_payments").select("status, refunded_cents").eq("id", phaseRow.id).maybeSingle();
@@ -270,7 +271,7 @@ async function releasePhaseRow(phaseRow, { destination, metadata, claimEq = {} }
 
   // Stored consultant payout (offer - estimated Stripe fee); legacy rows
   // with NULL grandfather to a full-amount transfer.
-  const payoutAmount = phaseRow.consultant_payout_cents ?? phaseRow.amount_cents;
+  const payoutAmount = payoutCents ?? phaseRow.consultant_payout_cents ?? phaseRow.amount_cents;
   let transfer;
   try {
     transfer = await stripe.transfers.create(
@@ -817,15 +818,22 @@ async function onChargeRefunded(charge) {
 
   const { data: bid } = await supabase
     .from("bids")
-    .select("id, payment_status")
+    .select("id, payment_status, refunded_cents")
     .eq("payment_intent_id", paymentIntentId)
     .maybeSingle();
   const { data: phaseRows } = await supabase
     .from("bid_phase_payments")
-    .select("id, bid_id, status")
+    .select("id, bid_id, status, refunded_cents")
     .eq("payment_intent_id", paymentIntentId);
 
   if (!bid && !phaseRows?.length) return;
+
+  // Refunds grassroots issued itself (support outcomes, give-backs) are
+  // already on the refunded rows. Only the rest is unexplained.
+  const knownRefunded = [bid, ...(phaseRows || [])]
+    .filter((r) => r && (r.payment_status || r.status) === "refunded")
+    .reduce((sum, r) => sum + Number(r.refunded_cents || 0), 0);
+  if (!full && Number(charge.amount_refunded || 0) <= knownRefunded) return;
 
   if (!full) {
     // Partial refunds (e.g. one consultant's share of a proposal batch)
@@ -834,7 +842,7 @@ async function onChargeRefunded(charge) {
     // requires refunded_cents = 0, so nothing on it can be released (by
     // the owner or the daily job) for the full amount. Support settles
     // the remainder by hand.
-    const refunded = Number(charge.amount_refunded) || 0;
+    const refunded = (Number(charge.amount_refunded) || 0) - knownRefunded;
     if (bid && bid.payment_status === "held") {
       const { error } = await supabase.from("bids").update({ refunded_cents: refunded }).eq("id", bid.id).eq("payment_status", "held");
       if (error) throw new Error(`bid partial refund mirror failed: ${error.message}`);
@@ -2055,7 +2063,7 @@ app.post("/api/stripe/confirm-acceptance", async (req, res) => {
    authorization (and the review requirement for the manual path).
    Returns { ok, transfer_id, fundsRouted, payout_cents } or
    { ok: false, status, error }. */
-async function releaseStandardBid(bid, { claimEq = {} } = {}) {
+async function releaseStandardBid(bid, { claimEq = {}, payoutCents = null } = {}) {
   const bidId = bid.id;
   let transferId = null;
   let fundsRouted = "no-payment-intent";
@@ -2094,7 +2102,7 @@ async function releaseStandardBid(bid, { claimEq = {} } = {}) {
   const claimed = await casUpdate("bids", bidId, "held", {
     payment_status: "released",
     released_at: new Date().toISOString(),
-  }, "payment_status", { ...claimEq, refunded_cents: 0 });
+  }, "payment_status", { refunded_cents: 0, ...claimEq });
   if (!claimed) {
     const { data: now } = await supabase
       .from("bids").select("payment_status, refunded_cents").eq("id", bidId).maybeSingle();
@@ -2122,6 +2130,7 @@ async function releaseStandardBid(bid, { claimEq = {} } = {}) {
       if (hasFeeBreakdown) {
         payoutAmount = bid.consultant_payout_cents;
       }
+      if (payoutCents != null) payoutAmount = payoutCents;
 
       let transfer;
       try {
@@ -3772,9 +3781,11 @@ const SUPPORT_HOLD_STALE_DAYS = 14;
 const RELEASE_SCAN_LIMIT = 1000;
 const DAY_MS = 86400000;
 
-const DELIVERY_COLS = "delivered_at, delivery_note, delivery_link, changes_requested_at, changes_request_note, review_reminded_at, support_hold_at, support_hold_reason, backstop_flagged_at, refunded_cents";
-const BID_RELEASE_COLS = `id, listing_id, consultant_id, payment_amount_cents, payment_status, payment_intent_id, transfer_id, consultant_payout_cents, paid_at, ${DELIVERY_COLS}`;
-const PHASE_RELEASE_COLS = `id, bid_id, phase, period_index, status, amount_cents, charge_id, transfer_id, consultant_payout_cents, paid_at, period_end_at, ${DELIVERY_COLS}`;
+const DELIVERY_COLS = "delivered_at, delivery_note, delivery_link, changes_requested_at, changes_request_note, review_reminded_at, support_hold_at, support_hold_reason, backstop_flagged_at, refunded_cents, stripe_fee_cents, platform_fee_cents, " +
+  // add_support_outcomes.sql: reported problems + support outcomes A/B/C.
+  "problem_reported_at, problem_report_note, problem_report_link, problem_report_count, support_outcome, support_outcome_at, redo_offered_at, redo_deadline_at, redo_reminded_at, redo_used, consultant_choice, consultant_choice_at";
+const BID_RELEASE_COLS = `id, listing_id, consultant_id, payment_amount_cents, payment_status, payment_intent_id, transfer_id, consultant_payout_cents, paid_at, released_at, ${DELIVERY_COLS}`;
+const PHASE_RELEASE_COLS = `id, bid_id, phase, period_index, status, amount_cents, payment_intent_id, charge_id, transfer_id, consultant_payout_cents, paid_at, released_at, refunded_at, period_end_at, ${DELIVERY_COLS}`;
 
 // What the consultant can mark delivered and what auto-releases.
 const DELIVERABLE_KINDS = new Set(["one_time", "retainer_first", "service", "retainer_period"]);
@@ -3881,7 +3892,7 @@ function unchangedGuard(row) {
 }
 
 // Release a held phase row on the consultant's behalf (no owner click).
-async function autoReleasePhaseRow(row, claimEq) {
+async function autoReleasePhaseRow(row, claimEq, { source = "auto_release_review_window", payoutCents = null } = {}) {
   const { data: bid } = await supabase
     .from("bids").select("consultant_id").eq("id", row.bid_id).maybeSingle();
   const { data: consultant } = bid
@@ -3897,9 +3908,10 @@ async function autoReleasePhaseRow(row, claimEq) {
       bid_id: row.bid_id,
       phase: row.phase,
       ...(row.period_index != null ? { period_index: String(row.period_index) } : {}),
-      source: "auto_release_review_window",
+      source,
     },
     claimEq,
+    payoutCents,
   });
 }
 
@@ -3963,7 +3975,7 @@ async function scanHeld(nowMs) {
 
 async function runReleaseJob(nowMs = Date.now()) {
   const nowIso = new Date(nowMs).toISOString();
-  const summary = { released: [], noticed: [], flagged: [], skipped: [], failed: [], stale_holds: [] };
+  const summary = { released: [], noticed: [], flagged: [], skipped: [], failed: [], stale_holds: [], returned: [], redo_reminders: [] };
   const cache = new Map();
 
   for (const item of await scanHeld(nowMs)) {
@@ -3974,16 +3986,26 @@ async function runReleaseJob(nowMs = Date.now()) {
     const label = paymentLabel(kind, row);
     const link = `/engagement.html?bid=${item.bidId}#${item.key}`;
 
-    // Support hold gone stale: alert every run until it's resolved.
-    if (row.support_hold_at && nowMs - Date.parse(row.support_hold_at) >= SUPPORT_HOLD_STALE_DAYS * DAY_MS) {
+    // Outcome B: waiting on the consultant's redo / give-back choice.
+    // Nothing else applies until they choose or the 5 days run out.
+    if (row.support_outcome === "fixable" && !row.consultant_choice) {
+      await runRedoClock(item, ctx, nowMs, summary);
+      continue;
+    }
+
+    // Report or hold with no support decision yet: alert every run once
+    // it's 14 days old (support aims to decide within 14 days).
+    if (row.support_hold_at && !row.support_outcome && nowMs - Date.parse(row.support_hold_at) >= SUPPORT_HOLD_STALE_DAYS * DAY_MS) {
+      const reported = Boolean(row.problem_reported_at);
+      const kind = reported ? "problem_report_stale" : "support_hold_stale";
       summary.stale_holds.push(item.key);
-      alertOps("support_hold_stale", { item: item.key, bid_id: item.bidId, hold_since: row.support_hold_at, reason: row.support_hold_reason || null });
+      alertOps(kind, { item: item.key, bid_id: item.bidId, hold_since: row.support_hold_at, reason: row.support_hold_reason || null });
       for (const adminId of await adminUserIds()) {
         await notifyOnce(adminId, {
-          type: "support_hold_stale",
-          title: `support hold open ${SUPPORT_HOLD_STALE_DAYS}+ days`,
-          body: `"${ctx.title}" (${label}, ${dollars(item.cents)}) has been on hold since ${shortDate(Date.parse(row.support_hold_at))}. resolve it or clear the hold.`,
-          link: `${link}-hold-${row.support_hold_at}`,
+          type: kind,
+          title: reported ? `problem report open ${SUPPORT_HOLD_STALE_DAYS}+ days` : `support hold open ${SUPPORT_HOLD_STALE_DAYS}+ days`,
+          body: `"${ctx.title}" (${label}, ${dollars(item.cents)}) has been waiting since ${shortDate(Date.parse(row.support_hold_at))}. pick an outcome on the admin payments tab.`,
+          link: `/admin/?tab=payments#${item.key}-hold-${row.support_hold_at}`,
         });
       }
     }
@@ -4164,6 +4186,7 @@ app.post("/api/engagement/request-changes", async (req, res) => {
     if (t.error) return res.status(t.status).json({ error: t.error });
     if (t.ctx.ownerId !== viewer.id) return res.status(403).json({ error: "only the business can request changes." });
     if (!t.held) return res.status(409).json({ error: "this payment isn't being held anymore." });
+    if (t.item.row.support_hold_at) return res.status(409).json({ error: "support is reviewing this payment, so changes go through them." });
     const win = reviewWindow(t.item, t.kind, t.ctx);
     if (!win || win.opensAt > Date.now()) {
       return res.status(409).json({ error: "there's nothing delivered to review yet." });
@@ -4204,10 +4227,13 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
     if (!role) return res.status(403).json({ error: "not your engagement." });
 
     const { data: bid } = await supabase.from("bids").select(BID_RELEASE_COLS).eq("id", bidId).maybeSingle();
-    const { data: rows } = await supabase.from("bid_phase_payments").select(PHASE_RELEASE_COLS).eq("bid_id", bidId).eq("status", "held");
+    const { data: rows } = await supabase.from("bid_phase_payments").select(PHASE_RELEASE_COLS).eq("bid_id", bidId);
+    // Held payments, plus finished ones support decided (so both sides
+    // can see the outcome on the page).
+    const shown = (row, status) => row.paid_at && (status === "held" || Boolean(row.support_outcome) || /^give_back/.test(row.consultant_choice || ""));
     const items = [
-      ...(bid && bid.payment_status === "held" && bid.paid_at ? [{ kind: "bid", key: `bid-${bid.id}`, bidId, row: bid, cents: bid.payment_amount_cents }] : []),
-      ...(rows || []).filter((r) => r.paid_at).map((r) => ({ kind: "phase", key: `pay-${r.id}`, bidId, row: r, cents: r.amount_cents })),
+      ...(bid && shown(bid, bid.payment_status) ? [{ kind: "bid", key: `bid-${bid.id}`, bidId, row: bid, cents: bid.payment_amount_cents }] : []),
+      ...(rows || []).filter((r) => shown(r, r.status)).map((r) => ({ kind: "phase", key: `pay-${r.id}`, bidId, row: r, cents: r.amount_cents })),
     ];
     const nowMs = Date.now();
     const iso = (ms) => (Number.isFinite(ms) ? new Date(ms).toISOString() : null);
@@ -4216,9 +4242,13 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
       const row = item.row;
       const win = reviewWindow(item, kind, ctx);
       const backstop = backstopAt(item);
+      const status = row[heldStatusField(item)];
+      const held = status === "held";
       const onHold = Boolean(row.support_hold_at);
-      const partiallyRefunded = Number(row.refunded_cents) > 0;
-      const autoReleaseAt = win && !onHold && !partiallyRefunded && win.releaseAt < backstop ? win.releaseAt : null;
+      const partiallyRefunded = held && Number(row.refunded_cents) > 0;
+      const autoReleaseAt = held && win && !onHold && !partiallyRefunded && win.releaseAt < backstop ? win.releaseAt : null;
+      const money = paymentMoney(item);
+      const waiting = held && waitingOnConsultant(row);
       return {
         key: item.key,
         payment_id: item.kind === "phase" ? row.id : null,
@@ -4237,8 +4267,30 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
         backstop_at: iso(backstop),
         on_hold: onHold,
         partially_refunded: partiallyRefunded,
-        can_mark_delivered: role === "consultant" && DELIVERABLE_KINDS.has(kind) && !row.delivered_at,
-        can_request_changes: role === "owner" && Boolean(win) && win.opensAt <= nowMs && !onHold,
+        can_mark_delivered: held && role === "consultant" && DELIVERABLE_KINDS.has(kind) && !row.delivered_at,
+        can_request_changes: held && role === "owner" && Boolean(win) && win.opensAt <= nowMs && !onHold,
+        // Reported problem + support outcome (Terms §7.1).
+        status,
+        released_at: row.released_at || null,
+        refunded_cents: Number(row.refunded_cents || 0),
+        reported: Boolean(row.problem_reported_at),
+        problem_reported_at: row.problem_reported_at,
+        problem_report_note: row.problem_report_note,
+        problem_report_link: row.problem_report_link,
+        support_outcome: row.support_outcome,
+        redo_used: Boolean(row.redo_used),
+        consultant_choice: row.consultant_choice,
+        redo_deadline_at: waiting ? row.redo_deadline_at : null,
+        waiting_on_consultant: waiting,
+        can_report_problem: held && role === "owner" && DELIVERABLE_KINDS.has(kind) && Boolean(win) && win.opensAt <= nowMs && nowMs < win.releaseAt && !onHold,
+        can_choose: waiting && role === "consultant" && nowMs < Date.parse(row.redo_deadline_at),
+        money: {
+          gross_cents: money.gross_cents,
+          card_fee_cents: money.card_fee_cents,
+          platform_fee_cents: money.platform_fee_cents,
+          give_back_cents: money.give_back_cents,
+          payout_cents: money.payout_cents,
+        },
       };
     });
     return res.json({ role, payments });
@@ -4247,58 +4299,712 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
   }
 });
 
-/* ── admin: support hold ─────────────────────────────────────── */
+/* ── reported problems + support outcomes ─────────────────────
+   Terms §6.4, §7.1, §21 (moiz, 2026-10-23).
+   - During its 14-day review the business can report a problem. That
+     locks the payment (support hold): no auto-release, but the business
+     can still release it itself.
+   - Support picks one outcome on the admin payments tab:
+       meets_scope    (A) → release to the consultant.
+       fixable        (B) → the consultant has 5 days to redo the work
+                            (once per payment) or give the payment back
+                            (refund = payment − card fee; the platform
+                            fee is refunded in full). No answer = give back.
+       scope_breached (C) → full refund incl. platform fee; consultant
+                            gets nothing; grassroots absorbs the card fee.
+     After a redo, a second report allows only A or C.
+   - There is no plain "clear hold": a hold ends by release, refund, or
+     the consultant choosing to redo.
+   - Partly refunded payments: support releases or refunds the rest.
+   - Every support / outcome action writes a payment_audit row.
+   ================================================================ */
+const REDO_CHOICE_DAYS = 5;
+const REDO_REMINDER_DAYS = 3;
+const SUPPORT_OUTCOMES = new Set(["meets_scope", "fixable", "scope_breached"]);
+const SYSTEM_ACTOR = { id: null, email: "system:auto-release" };
+const WAITING_ERROR = "this payment is waiting on the consultant's choice.";
 
-async function setSupportHold(req, res, on) {
-  const admin = await requireAdmin(req);
-  if (!admin) return res.status(403).json({ error: "admin only." });
-  const bidId = String(req.body?.bid_id || "").trim();
-  const paymentId = String(req.body?.payment_id || "").trim() || null;
-  if (!bidId) return res.status(400).json({ error: "bid_id required." });
-  const reason = cleanText(req.body?.reason, 500);
-  if (on && !reason) return res.status(400).json({ error: "add a short reason for the hold." });
+// Money on one held payment. gross = what the business was charged.
+function paymentMoney(item) {
+  const row = item.row;
+  const platformFee = Number(row.platform_fee_cents || 0);
+  const gross = item.kind === "bid" ? Number(row.payment_amount_cents || 0) : phaseRowGross(row);
+  const offer = item.kind === "bid" ? gross - platformFee : Number(row.amount_cents || 0);
+  const cardFee = row.stripe_fee_cents != null ? Number(row.stripe_fee_cents) : fees.estimateStripeFeeCents(offer);
+  const refunded = Number(row.refunded_cents || 0);
+  const remaining = Math.max(0, gross - refunded);
+  const payout = Number(row.consultant_payout_cents ?? offer);
+  return {
+    gross_cents: gross,
+    platform_fee_cents: platformFee,
+    card_fee_cents: cardFee,
+    refunded_cents: refunded,
+    remaining_cents: remaining,
+    payout_cents: payout,
+    // Outcome B (ii): the platform keeps only the card-processing fee.
+    give_back_cents: Math.max(0, gross - cardFee - refunded),
+    // Outcome C: everything still on the charge.
+    full_refund_cents: remaining,
+    // Partly refunded payment: what the consultant gets for the rest.
+    remainder_payout_cents: Math.max(0, Math.min(payout, remaining - cardFee - platformFee)),
+  };
+}
+
+function waitingOnConsultant(row) {
+  return row.support_outcome === "fixable" && !row.consultant_choice;
+}
+
+function paymentLink(item) {
+  return `/engagement.html?bid=${item.bidId}#${item.key}`;
+}
+
+// Never throws: a missing audit row must not undo a money movement.
+async function writeAudit(item, action, actor, { amountCents = null, stripeId = null, details = {} } = {}) {
   try {
-    const t = await loadReleaseTarget(bidId, paymentId);
-    if (t.error) return res.status(t.status).json({ error: t.error });
-    if (!t.held) return res.status(409).json({ error: "this payment isn't being held anymore." });
-
-    const nowIso = new Date().toISOString();
-    let query = supabase
-      .from(releaseTable(t.item))
-      .update(on
-        ? { support_hold_at: nowIso, support_hold_reason: reason, support_hold_by: admin.id }
-        : { support_hold_at: null, support_hold_reason: null, support_hold_by: null })
-      .eq("id", t.item.row.id)
-      .eq(heldStatusField(t.item), "held");
-    query = on ? query.is("support_hold_at", null) : query.not("support_hold_at", "is", null);
-    const { data: won, error } = await query.select("id");
-    if (error) return res.status(500).json({ error: error.message });
-    if (!won?.length) return res.json({ ok: true, unchanged: true });
-
-    alertOps(on ? "support_hold_set" : "support_hold_cleared", { item: t.item.key, bid_id: bidId, by: admin.email, reason });
-    const link = `/engagement.html?bid=${bidId}#${t.item.key}`;
-    const payload = on
-      ? { type: "support_hold", title: "support is reviewing a payment", body: `grassroots paused the automatic release for "${t.ctx.title}" while support looks into it. we'll reach out if we need anything.`, link }
-      : { type: "support_hold_cleared", title: "support review finished", body: `the payment for "${t.ctx.title}" is back on its normal release schedule.`, link };
-    await notifyUser(t.ctx.ownerId, payload);
-    await notifyUser(t.ctx.consultantId, payload);
-    return res.json({ ok: true, support_hold_at: on ? nowIso : null });
+    const { error } = await supabase.from("payment_audit").insert({
+      payment_table: releaseTable(item),
+      payment_id: item.row.id,
+      bid_id: item.bidId,
+      action,
+      actor_id: actor?.id || null,
+      actor_email: actor?.email || null,
+      amount_cents: amountCents,
+      stripe_object_id: stripeId,
+      details,
+    });
+    if (error) throw new Error(error.message);
   } catch (err) {
-    return res.status(500).json({ error: err.message || "could not update the hold." });
+    alertOps("payment_audit_failed", { item: item.key, action, error: err.message });
   }
 }
 
-app.post("/api/admin/payments/hold", (req, res) => setSupportHold(req, res, true));
-app.post("/api/admin/payments/clear-hold", (req, res) => setSupportHold(req, res, false));
+async function viewerEmail(viewer) {
+  try {
+    const { data } = await supabase.auth.admin.getUserById?.(viewer.id) || {};
+    return data?.user?.email || null;
+  } catch {
+    return null;
+  }
+}
 
-// Admin: every held payment, oldest first, with delivery / hold state.
+/* Refund part or all of a held payment. Claims held → refunded first
+   (compare-and-set on refunded_cents, plus `claimEq`), then calls Stripe
+   with an idempotency key; rolls the claim back if Stripe fails. */
+async function refundHeldPayment(item, amountCents, { updates = {}, claimEq = {}, reason }) {
+  const row = item.row;
+  const table = releaseTable(item);
+  const field = heldStatusField(item);
+  if (!(amountCents > 0)) return { ok: false, status: 400, error: "there's nothing left to refund." };
+
+  let chargeId = row.charge_id || null;
+  const paymentIntentId = row.payment_intent_id || null;
+  if (item.kind === "bid") {
+    if (!paymentIntentId) return { ok: false, status: 400, error: "no payment on this bid." };
+    const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    if (intent.transfer_data?.destination) {
+      return { ok: false, status: 409, error: "this payment went to the consultant at checkout. refund it in stripe with a transfer reversal." };
+    }
+    chargeId = idOf(intent.latest_charge);
+  }
+  if (!chargeId && !paymentIntentId) return { ok: false, status: 400, error: "no charge on this payment." };
+  if (await chargeDisputeHold(chargeId)) {
+    return { ok: false, status: 409, disputed: true, error: "this payment is under a card dispute. settle the dispute in stripe first." };
+  }
+
+  const nowIso = new Date().toISOString();
+  const before = Number(row.refunded_cents || 0);
+  const claim = {
+    [field]: "refunded",
+    refunded_cents: before + amountCents,
+    ...(item.kind === "phase" ? { refunded_at: nowIso } : {}),
+    ...updates,
+  };
+  const claimed = await casUpdate(table, row.id, "held", claim, field, { refunded_cents: before, ...claimEq });
+  if (!claimed) return { ok: false, status: 409, conflict: true, error: "this payment changed. reload and try again." };
+
+  let refund;
+  try {
+    refund = await stripe.refunds.create(
+      {
+        ...(chargeId ? { charge: chargeId } : { payment_intent: paymentIntentId }),
+        amount: amountCents,
+        metadata: { bid_id: item.bidId, payment_table: table, payment_id: row.id, reason },
+      },
+      { idempotencyKey: idemKey("refund", "support", table, row.id, reason, amountCents) }
+    );
+  } catch (err) {
+    const revert = { [field]: "held", refunded_cents: before, ...(item.kind === "phase" ? { refunded_at: null } : {}) };
+    for (const key of Object.keys(updates)) revert[key] = row[key] ?? null;
+    const { error: revertErr } = await supabase.from(table).update(revert).eq("id", row.id).eq(field, "refunded");
+    if (revertErr) alertOps("support_refund_revert_failed", { item: item.key, error: revertErr.message });
+    throw err;
+  }
+  return { ok: true, refund_id: refund.id, amount_cents: amountCents };
+}
+
+// Release a held payment on support's decision (dispute check inside).
+async function releaseHeldPayment(item, { claimEq = {}, payoutCents = null, source }) {
+  const result = item.kind === "bid"
+    ? await releaseStandardBid(item.row, { claimEq, payoutCents })
+    : await autoReleasePhaseRow(item.row, claimEq, { source, payoutCents });
+  if (!result.ok && !result.status) result.status = result.disputed || result.conflict || result.partialRefund ? 409 : 400;
+  return result;
+}
+
+async function stampOutcome(item, updates) {
+  const { error } = await supabase.from(releaseTable(item)).update(updates).eq("id", item.row.id);
+  if (error) alertOps("support_outcome_not_saved", { item: item.key, updates, error: error.message });
+}
+
+async function notifyBoth(ctx, owner, consultant, link) {
+  await notifyUser(ctx.ownerId, { ...owner, link });
+  await notifyUser(ctx.consultantId, { ...consultant, link });
+}
+
+// Outcome B (ii), by the consultant's choice or after 5 days with none.
+async function giveBackPayment(item, ctx, choice, actor) {
+  const money = paymentMoney(item);
+  const nowIso = new Date().toISOString();
+  const result = await refundHeldPayment(item, money.give_back_cents, {
+    updates: { consultant_choice: choice, consultant_choice_at: nowIso },
+    claimEq: { support_outcome: "fixable", consultant_choice: null },
+    reason: choice,
+  });
+  if (!result.ok) return result;
+  await writeAudit(item, choice === "give_back" ? "consultant_give_back" : "give_back_timeout", actor, {
+    amountCents: result.amount_cents,
+    stripeId: result.refund_id,
+    details: { gross_cents: money.gross_cents, card_fee_cents: money.card_fee_cents, platform_fee_cents: money.platform_fee_cents },
+  });
+  const timedOut = choice === "give_back_timeout";
+  const feeLine = `the ${dollars(money.card_fee_cents)} card processing fee isn't refunded.${money.platform_fee_cents > 0 ? " the platform fee is refunded in full." : ""}`;
+  await notifyBoth(ctx, {
+    type: "payment_returned",
+    title: `you were refunded ${dollars(result.amount_cents)}`,
+    body: `${timedOut ? `the consultant didn't choose within ${REDO_CHOICE_DAYS} days, so the payment for "${ctx.title}" went back to you.` : `the consultant gave the payment back for "${ctx.title}".`} ${feeLine}`,
+  }, {
+    type: "payment_returned",
+    title: timedOut ? "the payment went back to the business" : "you gave the payment back",
+    body: `${timedOut ? `you didn't choose within ${REDO_CHOICE_DAYS} days, so ` : ""}the business was refunded for "${ctx.title}". you won't be paid for this payment.`,
+  }, paymentLink(item));
+  return { ...result, money };
+}
+
+// Daily job, outcome B: 5-day deadline and the day-3 reminder.
+async function runRedoClock(item, ctx, nowMs, summary) {
+  const row = item.row;
+  const deadline = Date.parse(row.redo_deadline_at);
+  if (Number.isFinite(deadline) && nowMs >= deadline) {
+    let result;
+    try {
+      result = await giveBackPayment(item, ctx, "give_back_timeout", SYSTEM_ACTOR);
+    } catch (err) {
+      result = { ok: false, error: err.message };
+    }
+    if (result.ok) summary.returned.push(item.key);
+    else if (result.conflict || result.disputed) summary.skipped.push({ key: item.key, reason: result.disputed ? "disputed" : "changed" });
+    else {
+      summary.failed.push({ key: item.key, error: result.error });
+      alertOps("give_back_timeout_failed", { item: item.key, bid_id: item.bidId, error: result.error });
+    }
+    return;
+  }
+  const remindAt = Date.parse(row.redo_offered_at) + REDO_REMINDER_DAYS * DAY_MS;
+  if (nowMs >= remindAt && !row.redo_reminded_at && await stampOnce(item, "redo_reminded_at", new Date(nowMs).toISOString())) {
+    summary.redo_reminders.push(item.key);
+    const daysLeft = Math.max(1, Math.ceil((deadline - nowMs) / DAY_MS));
+    await notifyUser(ctx.consultantId, {
+      type: "redo_choice_reminder",
+      title: `${daysLeft} day${daysLeft === 1 ? "" : "s"} left to choose`,
+      body: `redo the work for "${ctx.title}" or give the payment back by ${shortDate(deadline)}. if you don't choose, the payment goes back to the business.`,
+      link: paymentLink(item),
+    });
+  }
+}
+
+// Business: report a problem during the 14-day review. Locks the payment.
+app.post("/api/engagement/report-problem", async (req, res) => {
+  const viewer = await getViewerFromRequest(req);
+  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  const bidId = String(req.body?.bid_id || "").trim();
+  const paymentId = String(req.body?.payment_id || "").trim() || null;
+  if (!bidId) return res.status(400).json({ error: "bid_id required." });
+  const note = cleanText(req.body?.note, 1000);
+  const link = cleanText(req.body?.link, 500);
+  if (!note) return res.status(400).json({ error: "tell support what's wrong." });
+  if (link && !/^https?:\/\/\S+$/i.test(link)) return res.status(400).json({ error: "the link needs to start with https://." });
+
+  try {
+    const t = await loadReleaseTarget(bidId, paymentId);
+    if (t.error) return res.status(t.status).json({ error: t.error });
+    if (t.ctx.ownerId !== viewer.id) return res.status(403).json({ error: "only the business can report a problem." });
+    if (!t.held) return res.status(409).json({ error: "this payment isn't being held anymore." });
+    if (!DELIVERABLE_KINDS.has(t.kind)) return res.status(400).json({ error: "this payment releases when you decide. contact support if something's wrong." });
+    const row = t.item.row;
+    if (row.support_hold_at) return res.status(409).json({ error: "support is already reviewing this payment." });
+    const win = reviewWindow(t.item, t.kind, t.ctx);
+    const nowMs = Date.now();
+    if (!win || win.opensAt > nowMs) return res.status(409).json({ error: "there's nothing delivered to review yet." });
+    if (nowMs >= win.releaseAt) return res.status(409).json({ error: "the 14-day review for this payment has ended." });
+
+    const nowIso = new Date(nowMs).toISOString();
+    const priorCount = Number(row.problem_report_count || 0);
+    const { data: won, error } = await supabase
+      .from(releaseTable(t.item))
+      .update({
+        support_hold_at: nowIso,
+        support_hold_reason: "the business reported a problem",
+        support_hold_by: viewer.id,
+        problem_reported_at: nowIso,
+        problem_report_note: note,
+        problem_report_link: link,
+        problem_report_count: priorCount + 1,
+        support_outcome: null,
+        support_outcome_at: null,
+      })
+      .eq("id", row.id)
+      .eq(heldStatusField(t.item), "held")
+      .is("support_hold_at", null)
+      .eq("problem_report_count", priorCount)
+      .select("id");
+    if (error) return res.status(500).json({ error: error.message });
+    if (!won?.length) return res.status(409).json({ error: "this payment changed. reload and try again." });
+
+    const afterRedo = Boolean(row.redo_used);
+    await writeAudit(t.item, "problem_reported", { id: viewer.id, email: await viewerEmail(viewer) }, { details: { note, link, report_count: priorCount + 1, after_redo: afterRedo } });
+    const label = paymentLabel(t.kind, row);
+    const money = paymentMoney(t.item);
+    await notifyBoth(t.ctx, {
+      type: "problem_reported",
+      title: "you reported a problem",
+      body: `support is reviewing "${t.ctx.title}". the payment won't release on its own. you can still release it yourself.`,
+    }, {
+      type: "problem_reported",
+      title: "the business reported a problem",
+      body: `"${note.slice(0, 160)}" support is reviewing "${t.ctx.title}" and aims to decide within 14 days. the payment stays held until then.`,
+    }, paymentLink(t.item));
+    await notifyAdmins({
+      type: "problem_reported",
+      title: `problem reported · ${dollars(money.gross_cents)}`,
+      body: `"${t.ctx.title}" (${label}).${afterRedo ? " reported again after a redo: meets scope or scope breached only." : ""} aim to decide by ${shortDate(nowMs + SUPPORT_HOLD_STALE_DAYS * DAY_MS)}.`,
+      link: `/admin/?tab=payments#${t.item.key}`,
+    });
+    return res.json({ ok: true, problem_reported_at: nowIso });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "could not report the problem." });
+  }
+});
+
+// Consultant, after outcome B: redo the work (once) or give the payment back.
+app.post("/api/engagement/redo-choice", async (req, res) => {
+  const viewer = await getViewerFromRequest(req);
+  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  const bidId = String(req.body?.bid_id || "").trim();
+  const paymentId = String(req.body?.payment_id || "").trim() || null;
+  const choice = String(req.body?.choice || "");
+  if (!bidId) return res.status(400).json({ error: "bid_id required." });
+  if (!["redo", "give_back"].includes(choice)) return res.status(400).json({ error: "choose redo or give_back." });
+
+  try {
+    const t = await loadReleaseTarget(bidId, paymentId);
+    if (t.error) return res.status(t.status).json({ error: t.error });
+    if (t.ctx.consultantId !== viewer.id) return res.status(403).json({ error: "only the consultant can make this choice." });
+    if (!t.held) return res.status(409).json({ error: "this payment isn't being held anymore." });
+    const row = t.item.row;
+    if (!waitingOnConsultant(row)) return res.status(409).json({ error: "there's no choice to make on this payment." });
+    if (Date.now() >= Date.parse(row.redo_deadline_at)) {
+      return res.status(409).json({ error: `the ${REDO_CHOICE_DAYS} days to choose have passed, so the payment goes back to the business.` });
+    }
+    const actor = { id: viewer.id, email: await viewerEmail(viewer) };
+
+    if (choice === "give_back") {
+      const result = await giveBackPayment(t.item, t.ctx, "give_back", actor);
+      if (!result.ok) return res.status(result.status).json({ error: result.error });
+      return res.json({ ok: true, choice, refunded_cents: result.amount_cents });
+    }
+
+    // Redo: back to "changes requested" so only a new delivered mark opens
+    // a fresh 14-day review (also for retainer periods). The lock lifts.
+    const nowIso = new Date().toISOString();
+    const { data: won, error } = await supabase
+      .from(releaseTable(t.item))
+      .update({
+        consultant_choice: "redo",
+        consultant_choice_at: nowIso,
+        redo_used: true,
+        support_outcome: null,
+        delivered_at: null,
+        review_reminded_at: null,
+        changes_requested_at: nowIso,
+        changes_request_note: row.problem_report_note,
+        support_hold_at: null,
+        support_hold_reason: null,
+        support_hold_by: null,
+        problem_reported_at: null,
+      })
+      .eq("id", row.id)
+      .eq(heldStatusField(t.item), "held")
+      .eq("support_outcome", "fixable")
+      .is("consultant_choice", null)
+      .select("id");
+    if (error) return res.status(500).json({ error: error.message });
+    if (!won?.length) return res.status(409).json({ error: "this payment changed. reload and try again." });
+
+    await writeAudit(t.item, "consultant_redo", actor);
+    await notifyBoth(t.ctx, {
+      type: "redo_choice",
+      title: "the consultant is redoing the work",
+      body: `you'll get a new 14-day review for "${t.ctx.title}" when they deliver again. this is the last redo for this payment.`,
+    }, {
+      type: "redo_choice",
+      title: "you chose to redo the work",
+      body: `mark "${t.ctx.title}" delivered when it's ready. the business gets a new 14-day review. this is your one redo for this payment.`,
+    }, paymentLink(t.item));
+    return res.json({ ok: true, choice });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "could not save your choice." });
+  }
+});
+
+/* ── admin: support actions ──────────────────────────────────── */
+
+// Load + admin-check a support action's target. Returns { admin, t } or sends.
+async function adminTarget(req, res) {
+  const admin = await requireAdmin(req);
+  if (!admin) { res.status(403).json({ error: "admin only." }); return null; }
+  if (!requireStripe(res)) return null;
+  const bidId = String(req.body?.bid_id || "").trim();
+  const paymentId = String(req.body?.payment_id || "").trim() || null;
+  if (!bidId) { res.status(400).json({ error: "bid_id required." }); return null; }
+  const t = await loadReleaseTarget(bidId, paymentId);
+  if (t.error) { res.status(t.status).json({ error: t.error }); return null; }
+  if (!t.held) { res.status(409).json({ error: "this payment isn't being held anymore." }); return null; }
+  return { admin, t };
+}
+
+// Admin: put a payment on hold on support's own initiative (e.g. the
+// business emailed support). Ends only with an outcome, not a clear.
+app.post("/api/admin/payments/hold", async (req, res) => {
+  const reason = cleanText(req.body?.reason, 500);
+  try {
+    const got = await adminTarget(req, res);
+    if (!got) return;
+    if (!reason) return res.status(400).json({ error: "add a short reason for the hold." });
+    const { admin, t } = got;
+    const nowIso = new Date().toISOString();
+    const { data: won, error } = await supabase
+      .from(releaseTable(t.item))
+      .update({ support_hold_at: nowIso, support_hold_reason: reason, support_hold_by: admin.id })
+      .eq("id", t.item.row.id)
+      .eq(heldStatusField(t.item), "held")
+      .is("support_hold_at", null)
+      .select("id");
+    if (error) return res.status(500).json({ error: error.message });
+    if (!won?.length) return res.json({ ok: true, unchanged: true });
+
+    alertOps("support_hold_set", { item: t.item.key, bid_id: t.item.bidId, by: admin.email, reason });
+    await writeAudit(t.item, "support_hold", admin, { details: { reason } });
+    const payload = {
+      type: "support_hold",
+      title: "support is reviewing a payment",
+      body: `grassroots paused the automatic release for "${t.ctx.title}" while support looks into it. we'll reach out if we need anything.`,
+    };
+    await notifyBoth(t.ctx, payload, payload, paymentLink(t.item));
+    return res.json({ ok: true, support_hold_at: nowIso });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "could not place the hold." });
+  }
+});
+
+// Admin: outcome A / B / C for a held payment (Terms §7.1).
+app.post("/api/admin/payments/outcome", async (req, res) => {
+  const outcome = String(req.body?.outcome || "");
+  const note = cleanText(req.body?.note, 500);
+  try {
+    if (!SUPPORT_OUTCOMES.has(outcome)) {
+      if (!(await requireAdmin(req))) return res.status(403).json({ error: "admin only." });
+      return res.status(400).json({ error: "pick an outcome: meets_scope, fixable, or scope_breached." });
+    }
+    const got = await adminTarget(req, res);
+    if (!got) return;
+    const { admin, t } = got;
+    const item = t.item;
+    const row = item.row;
+    const ctx = t.ctx;
+    if (waitingOnConsultant(row)) return res.status(409).json({ error: WAITING_ERROR });
+    const money = paymentMoney(item);
+    const nowIso = new Date().toISOString();
+    const link = paymentLink(item);
+
+    if (outcome === "fixable") {
+      if (!DELIVERABLE_KINDS.has(t.kind)) return res.status(400).json({ error: "there's no delivery to redo on this payment. pick meets scope or scope breached." });
+      if (row.redo_used) return res.status(409).json({ error: "the consultant already used their one redo. pick meets scope or scope breached." });
+      if (money.refunded_cents > 0) return res.status(409).json({ error: "part of this payment was already refunded. settle the rest instead." });
+      const deadlineMs = Date.now() + REDO_CHOICE_DAYS * DAY_MS;
+      const updates = {
+        support_outcome: "fixable",
+        support_outcome_at: nowIso,
+        redo_offered_at: nowIso,
+        redo_deadline_at: new Date(deadlineMs).toISOString(),
+        redo_reminded_at: null,
+        consultant_choice: null,
+        consultant_choice_at: null,
+      };
+      // Keep it locked while the consultant decides.
+      if (!row.support_hold_at) Object.assign(updates, { support_hold_at: nowIso, support_hold_reason: "support offered a redo", support_hold_by: admin.id });
+      const { data: won, error } = await supabase
+        .from(releaseTable(item))
+        .update(updates)
+        .eq("id", row.id)
+        .eq(heldStatusField(item), "held")
+        .is("support_outcome", null)
+        .eq("redo_used", false)
+        .select("id");
+      if (error) return res.status(500).json({ error: error.message });
+      if (!won?.length) return res.status(409).json({ error: "this payment changed. reload and try again." });
+      await writeAudit(item, "outcome_fixable", admin, { details: { note, redo_deadline_at: updates.redo_deadline_at } });
+      await notifyBoth(ctx, {
+        type: "support_outcome",
+        title: "waiting on the consultant",
+        body: `support found the work for "${ctx.title}" can be fixed. the consultant has until ${shortDate(deadlineMs)} to redo it or give the payment back.`,
+      }, {
+        type: "support_outcome",
+        title: "choose: redo the work or give the payment back",
+        body: `support found the work for "${ctx.title}" falls short but can be fixed. choose by ${shortDate(deadlineMs)}. if you don't choose, the payment goes back to the business.`,
+      }, link);
+      return res.json({ ok: true, outcome, redo_deadline_at: updates.redo_deadline_at });
+    }
+
+    if (outcome === "meets_scope") {
+      if (money.refunded_cents > 0) return res.status(409).json({ error: "part of this payment was already refunded. settle the rest instead." });
+      const result = await releaseHeldPayment(item, { claimEq: { support_outcome: null }, source: "support_meets_scope" });
+      if (!result.ok) return res.status(result.status).json({ error: result.error });
+      await stampOutcome(item, { support_outcome: "meets_scope", support_outcome_at: nowIso });
+      await writeAudit(item, "outcome_meets_scope", admin, { amountCents: result.payout_cents, stripeId: result.transfer_id, details: { note } });
+      await notifyBoth(ctx, {
+        type: "support_outcome",
+        title: "support released the payment",
+        body: `support found the work for "${ctx.title}" meets the agreed scope. grassroots released ${dollars(money.gross_cents)} to the consultant.`,
+      }, {
+        type: "support_outcome",
+        title: "support released your payment",
+        body: `support found your work for "${ctx.title}" meets the agreed scope. ${dollars(result.payout_cents)} is on its way to your stripe balance.`,
+      }, link);
+      return res.json({ ok: true, outcome, transfer_id: result.transfer_id });
+    }
+
+    // scope_breached: full refund, consultant gets nothing.
+    const result = await refundHeldPayment(item, money.full_refund_cents, {
+      updates: { support_outcome: "scope_breached", support_outcome_at: nowIso },
+      claimEq: { support_outcome: null },
+      reason: "scope_breached",
+    });
+    if (!result.ok) return res.status(result.status).json({ error: result.error });
+    await writeAudit(item, "outcome_scope_breached", admin, { amountCents: result.amount_cents, stripeId: result.refund_id, details: { note, card_fee_absorbed_cents: money.card_fee_cents } });
+    await notifyBoth(ctx, {
+      type: "support_outcome",
+      title: `you were refunded ${dollars(result.amount_cents)} in full`,
+      body: `support found the agreed scope for "${ctx.title}" was breached. grassroots refunded the full payment${money.platform_fee_cents > 0 ? ", including the platform fee" : ""}. cards can take 5–10 business days to show it.`,
+    }, {
+      type: "support_outcome",
+      title: "the payment went back to the business",
+      body: `support found the agreed scope for "${ctx.title}" was breached. the business was refunded in full, so you won't be paid for this payment.`,
+    }, link);
+    return res.json({ ok: true, outcome, refund_id: result.refund_id });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "could not apply the outcome." });
+  }
+});
+
+// Admin: settle a partly refunded payment — release or refund the rest.
+app.post("/api/admin/payments/settle-remainder", async (req, res) => {
+  const action = String(req.body?.action || "");
+  try {
+    const got = await adminTarget(req, res);
+    if (!got) return;
+    if (!["release", "refund"].includes(action)) return res.status(400).json({ error: "choose release or refund." });
+    const { admin, t } = got;
+    const item = t.item;
+    const ctx = t.ctx;
+    if (waitingOnConsultant(item.row)) return res.status(409).json({ error: WAITING_ERROR });
+    const money = paymentMoney(item);
+    if (money.refunded_cents <= 0) return res.status(409).json({ error: "nothing was refunded on this payment. pick an outcome instead." });
+    const nowIso = new Date().toISOString();
+    const link = paymentLink(item);
+
+    if (action === "release") {
+      if (money.remainder_payout_cents <= 0) return res.status(409).json({ error: "nothing is left to pay out. refund the rest instead." });
+      const result = await releaseHeldPayment(item, {
+        claimEq: { refunded_cents: money.refunded_cents },
+        payoutCents: money.remainder_payout_cents,
+        source: "support_release_remainder",
+      });
+      if (!result.ok) return res.status(result.status).json({ error: result.error });
+      await stampOutcome(item, { support_outcome: "release_remainder", support_outcome_at: nowIso });
+      await writeAudit(item, "release_remainder", admin, { amountCents: result.payout_cents, stripeId: result.transfer_id, details: money });
+      await notifyBoth(ctx, {
+        type: "support_outcome",
+        title: "support released the rest of the payment",
+        body: `part of the payment for "${ctx.title}" was refunded earlier. support released the rest to the consultant.`,
+      }, {
+        type: "support_outcome",
+        title: "support released your payment",
+        body: `${dollars(result.payout_cents)} from "${ctx.title}" is on its way to your stripe balance. part of this payment was refunded to the business earlier.`,
+      }, link);
+      return res.json({ ok: true, action, transfer_id: result.transfer_id, payout_cents: result.payout_cents });
+    }
+
+    const result = await refundHeldPayment(item, money.remaining_cents, {
+      updates: { support_outcome: "refund_remainder", support_outcome_at: nowIso },
+      reason: "refund_remainder",
+    });
+    if (!result.ok) return res.status(result.status).json({ error: result.error });
+    await writeAudit(item, "refund_remainder", admin, { amountCents: result.amount_cents, stripeId: result.refund_id, details: money });
+    await notifyBoth(ctx, {
+      type: "support_outcome",
+      title: `you were refunded the rest · ${dollars(result.amount_cents)}`,
+      body: `support refunded the rest of the payment for "${ctx.title}". cards can take 5–10 business days to show it.`,
+    }, {
+      type: "support_outcome",
+      title: "the rest went back to the business",
+      body: `support refunded the rest of the payment for "${ctx.title}" to the business. you won't be paid for this payment.`,
+    }, link);
+    return res.json({ ok: true, action, refund_id: result.refund_id });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "could not settle the payment." });
+  }
+});
+
+// Open or lost card dispute on a payment, or null.
+async function paymentDispute(item) {
+  if (!stripe) return null;
+  const params = item.kind === "bid" ? { payment_intent: item.row.payment_intent_id } : { charge: item.row.charge_id };
+  if (!params.payment_intent && !params.charge) return null;
+  try {
+    const list = await stripe.disputes.list({ ...params, limit: 10 });
+    const d = (list?.data || []).find((x) => !["won", "warning_closed"].includes(x.status));
+    if (!d) return null;
+    return {
+      id: d.id,
+      status: d.status,
+      reason: d.reason || null,
+      amount_cents: d.amount ?? null,
+      due_by: d.evidence_details?.due_by ? new Date(d.evidence_details.due_by * 1000).toISOString() : null,
+    };
+  } catch (err) {
+    return { status: "unknown", error: err.message };
+  }
+}
+
+// Admin: held payments that need a person, with what support can do.
+// ?all=1 also lists held payments on their normal schedule.
 app.get("/api/admin/payments/held", async (req, res) => {
   const admin = await requireAdmin(req);
   if (!admin) return res.status(403).json({ error: "admin only." });
-  const minDays = Math.max(0, Math.min(365, Number(req.query.min_days) || 0));
-  const { data, error } = await supabase.rpc("stranded_funds_report", { min_days: minDays });
+  try {
+    const nowMs = Date.now();
+    const cache = new Map();
+    const names = new Map();
+    const nameOf = async (id) => {
+      if (!id) return null;
+      if (!names.has(id)) {
+        const { data } = await supabase.from("profiles").select("full_name").eq("id", id).maybeSingle();
+        names.set(id, data?.full_name || null);
+      }
+      return names.get(id);
+    };
+    const payments = [];
+    for (const item of await scanHeld(nowMs)) {
+      const ctx = await releaseContext(item.bidId, cache);
+      if (!ctx) continue;
+      const row = item.row;
+      const kind = paymentKind(item, ctx);
+      const money = paymentMoney(item);
+      const dispute = await paymentDispute(item);
+      const waiting = waitingOnConsultant(row);
+      const flags = {
+        on_hold: Boolean(row.support_hold_at),
+        reported: Boolean(row.problem_reported_at),
+        waiting_on_consultant: waiting,
+        partly_refunded: money.refunded_cents > 0,
+        backstop: Boolean(row.backstop_flagged_at) || nowMs >= backstopAt(item),
+        disputed: Boolean(dispute),
+        stale: Boolean(row.support_hold_at) && !row.support_outcome && nowMs - Date.parse(row.support_hold_at) >= SUPPORT_HOLD_STALE_DAYS * DAY_MS,
+      };
+      if (!flags.on_hold && !flags.partly_refunded && !flags.backstop && !flags.disputed && req.query.all !== "1") continue;
+
+      // What the screen offers. The endpoints re-check all of this.
+      const actions = [];
+      if (!waiting && !flags.disputed) {
+        if (flags.partly_refunded) actions.push("release_remainder", "refund_remainder");
+        else {
+          actions.push("meets_scope");
+          if (DELIVERABLE_KINDS.has(kind) && !row.redo_used) actions.push("fixable");
+          actions.push("scope_breached");
+        }
+      }
+      if (!flags.on_hold && !waiting) actions.push("hold");
+
+      const win = reviewWindow(item, kind, ctx);
+      payments.push({
+        key: item.key,
+        table: releaseTable(item),
+        bid_id: item.bidId,
+        payment_id: item.kind === "phase" ? row.id : null,
+        kind,
+        label: paymentLabel(kind, row),
+        title: ctx.title,
+        engagement_link: paymentLink(item),
+        owner: { id: ctx.ownerId, name: await nameOf(ctx.ownerId) },
+        consultant: { id: ctx.consultantId, name: await nameOf(ctx.consultantId) },
+        amount_cents: money.gross_cents,
+        refunded_cents: money.refunded_cents,
+        paid_at: row.paid_at,
+        days_held: Math.floor((nowMs - Date.parse(row.paid_at)) / DAY_MS),
+        delivered_at: row.delivered_at,
+        delivery_note: row.delivery_note,
+        delivery_link: row.delivery_link,
+        review_ends_at: win ? new Date(win.releaseAt).toISOString() : null,
+        support_hold_at: row.support_hold_at,
+        support_hold_reason: row.support_hold_reason,
+        decide_by: row.support_hold_at ? new Date(Date.parse(row.support_hold_at) + SUPPORT_HOLD_STALE_DAYS * DAY_MS).toISOString() : null,
+        problem_reported_at: row.problem_reported_at,
+        problem_report_note: row.problem_report_note,
+        problem_report_link: row.problem_report_link,
+        problem_report_count: Number(row.problem_report_count || 0),
+        support_outcome: row.support_outcome,
+        redo_offered_at: row.redo_offered_at,
+        redo_deadline_at: row.redo_deadline_at,
+        redo_used: Boolean(row.redo_used),
+        consultant_choice: row.consultant_choice,
+        backstop_flagged_at: row.backstop_flagged_at,
+        dispute,
+        flags,
+        money,
+        actions,
+      });
+    }
+    payments.sort((a, b) => Number(b.flags.stale) - Number(a.flags.stale) || Date.parse(a.paid_at) - Date.parse(b.paid_at));
+    return res.json({ payments });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "could not load held payments." });
+  }
+});
+
+// Admin: audit trail for one payment, newest first.
+app.get("/api/admin/payments/audit", async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "admin only." });
+  const paymentId = String(req.query.payment_id || "").trim();
+  if (!paymentId) return res.status(400).json({ error: "payment_id required." });
+  const { data, error } = await supabase
+    .from("payment_audit")
+    .select("created_at, action, actor_email, amount_cents, stripe_object_id, details")
+    .eq("payment_id", paymentId)
+    .order("created_at", { ascending: false })
+    .limit(100);
   if (error) return res.status(500).json({ error: error.message });
-  return res.json({ payments: data || [] });
+  return res.json({ entries: data || [] });
 });
 
 /* ──────────────────────────────────────────────────────────────

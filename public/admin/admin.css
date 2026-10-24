@@ -1295,3 +1295,42 @@ body.adm-body {
 :root:not([data-theme="light"]) .adm-info-popover {
   background: var(--fo-surface-2);
 }
+
+/* ============================================================== */
+/*                     PAYMENTS TAB (payments.js)                  */
+/* ============================================================== */
+.adm-table tr[data-pay-key] { cursor: pointer; }
+.adm-pay-kv {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: var(--type-meta);
+}
+.adm-pay-kv > div {
+  display: grid;
+  grid-template-columns: minmax(7rem, 38%) 1fr;
+  gap: 0.75rem;
+}
+.adm-pay-kv dt { color: var(--fo-text-3); }
+.adm-pay-kv dd {
+  margin: 0;
+  color: var(--fo-text);
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.adm-pay-kv a { color: var(--fo-text); text-decoration: underline; text-underline-offset: 2px; }
+.adm-pay-quote { white-space: pre-wrap; }
+.adm-pay-note { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.75rem; }
+.adm-pay-note textarea { width: 100%; }
+.adm-pay-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.adm-pay-danger { color: var(--fo-accent-warm); border-color: color-mix(in srgb, var(--fo-accent-warm) 45%, transparent); }
+.adm-pay-audit {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  font-size: var(--type-meta);
+}

@@ -1,4 +1,5 @@
-// Applies rls_lockdown.sql then add_delivery_release.sql to an in-memory
+// Applies rls_lockdown.sql, add_delivery_release.sql and
+// add_support_outcomes.sql to an in-memory
 // Postgres (PGlite) and checks that browsers can't set delivery, hold,
 // backstop or refund state on bids / bid_phase_payments, while the server
 // (service_role) and participants' reads still work.
@@ -32,6 +33,7 @@ await db.exec(`
 `);
 await db.exec(mig("rls_lockdown.sql"));
 await db.exec(mig("add_delivery_release.sql"));
+await db.exec(mig("add_support_outcomes.sql"));
 // Re-grant the stray UPDATE after the migration so the trigger is what stops it.
 await db.exec(`grant update on bid_phase_payments to authenticated`);
 
@@ -84,5 +86,26 @@ const BID = "20000000-0000-0000-0000-000000000001";
 const bidConsultant = (await db.query(`select consultant_id from bids where id='${BID}'`)).rows[0].consultant_id;
 await t("negotiation grants intact: consultant withdraws a pending offer", bidConsultant, `update bids set status='declined', declined_at=now() where id='${BID}' returning id`, "allow");
 await t("delivery link must be http(s)", "service", ub("delivery_link='javascript:alert(1)'"), "block");
+
+// add_support_outcomes.sql: reported problems, outcomes, audit trail.
+await t("owner sets bids.problem_reported_at", owner, ub("problem_reported_at=now()"), "block");
+await t("owner clears bids.support_outcome", owner, ub("support_outcome=null"), "block");
+await t("consultant sets bids.consultant_choice", consultant, ub("consultant_choice='redo'"), "block");
+await t("consultant resets bids.redo_used", consultant, ub("redo_used=false"), "block");
+await t("consultant moves bids.redo_deadline_at", consultant, ub("redo_deadline_at=now() + interval '30 days'"), "block");
+await t("owner sets phase support_outcome (stray grant)", owner, up("support_outcome='scope_breached'"), "block");
+await t("owner reads report columns on the bid", owner, `select problem_report_note, support_outcome, redo_deadline_at, consultant_choice from bids where id='${PAID}'`, "allow");
+await t("consultant reads outcome columns on the phase row", consultant, `select support_outcome, redo_used from bid_phase_payments where id='${ROW}'`, "allow");
+await t("service sets outcome + report on bid", "service", ub("problem_reported_at=now(), problem_report_count=1, support_outcome='fixable', redo_deadline_at=now()"), "allow");
+await t("support_outcome only takes known values", "service", ub("support_outcome='split'"), "block");
+await t("consultant_choice only takes known values", "service", ub("consultant_choice='half'"), "block");
+await t("problem link must be http(s)", "service", ub("problem_report_link='javascript:alert(1)'"), "block");
+await db.exec(`insert into payment_audit(payment_table, payment_id, bid_id, action) values ('bids', '${PAID}', '${PAID}', 'seed')`);
+await t("owner reads payment_audit", owner, `select id from payment_audit`, "block");
+await t("consultant reads payment_audit", consultant, `select id from payment_audit`, "block");
+await t("owner writes payment_audit", owner, `insert into payment_audit(payment_table, payment_id, action) values ('bids', '${PAID}', 'fake') returning id`, "block");
+await t("service writes payment_audit", "service", `insert into payment_audit(payment_table, payment_id, bid_id, action, amount_cents) values ('bids', '${PAID}', '${PAID}', 'outcome_meets_scope', 9680) returning id`, "allow");
+await t("service reads payment_audit", "service", `select id from payment_audit`, "allow");
+
 console.log(fails ? `\n${fails} failed` : "\nall passed");
 process.exitCode = fails ? 1 : 0;

@@ -348,6 +348,26 @@
 }
 .eg-delivery__form textarea,
 .eg-delivery__form input { width: 100%; }
+/* Give-back refund lines: payment, kept card fee, refunded. */
+.eg-delivery__breakdown {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--type-meta);
+}
+.eg-delivery__breakdown > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.eg-delivery__breakdown dt { color: var(--fo-text-2); }
+.eg-delivery__breakdown dd {
+  margin: 0;
+  color: var(--fo-text);
+  font-variant-numeric: tabular-nums;
+}
+.eg-delivery__breakdown > div:last-child dd { font-weight: 600; }
 
 .eg-retainer-terms__grid {
   display: grid;
