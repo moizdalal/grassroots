@@ -3783,7 +3783,7 @@ const DAY_MS = 86400000;
 
 const DELIVERY_COLS = "delivered_at, delivery_note, delivery_link, changes_requested_at, changes_request_note, review_reminded_at, support_hold_at, support_hold_reason, backstop_flagged_at, refunded_cents, stripe_fee_cents, platform_fee_cents, " +
   // add_support_outcomes.sql: reported problems + support outcomes A/B/C.
-  "problem_reported_at, problem_report_note, problem_report_link, problem_report_count, support_outcome, support_outcome_at, redo_offered_at, redo_deadline_at, redo_reminded_at, redo_used, consultant_choice, consultant_choice_at, give_back_fee_cents, give_back_fee_note";
+  "problem_reported_at, problem_report_note, problem_report_link, problem_report_count, support_outcome, support_outcome_at, redo_offered_at, redo_deadline_at, redo_reminded_at, redo_used, consultant_choice, consultant_choice_at, give_back_fee_cents, give_back_fee_note, response_due_at, consultant_response_at";
 const BID_RELEASE_COLS = `id, listing_id, consultant_id, payment_amount_cents, payment_status, payment_intent_id, transfer_id, consultant_payout_cents, paid_at, released_at, ${DELIVERY_COLS}`;
 const PHASE_RELEASE_COLS = `id, bid_id, phase, period_index, status, amount_cents, payment_intent_id, charge_id, transfer_id, consultant_payout_cents, paid_at, released_at, refunded_at, period_end_at, ${DELIVERY_COLS}`;
 
@@ -4279,6 +4279,14 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
         released_at: row.released_at || null,
         refunded_cents: Number(row.refunded_cents || 0),
         reported: Boolean(row.problem_reported_at),
+        hold_reason: onHold && !row.problem_reported_at ? row.support_hold_reason : null,
+        response_due_at: held && row.support_hold_at && !row.support_outcome ? row.response_due_at : null,
+        responded_at: held ? row.consultant_response_at : null,
+        // Only the consultant sees their own response text.
+        ...(role === "consultant" && held && row.consultant_response_at
+          ? await latestResponse(item).then((r) => ({ consultant_response_note: r?.note || null, consultant_response_link: r?.link || null }))
+          : { consultant_response_note: null, consultant_response_link: null }),
+        can_respond: held && role === "consultant" && onHold && !row.support_outcome && Boolean(row.response_due_at) && nowMs < Date.parse(row.response_due_at),
         problem_reported_at: row.problem_reported_at,
         problem_report_note: row.problem_report_note,
         problem_report_link: row.problem_report_link,
@@ -4326,6 +4334,8 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
    ================================================================ */
 const REDO_CHOICE_DAYS = 5;
 const REDO_REMINDER_DAYS = 3;
+// The consultant's window to tell support their side, from the hold.
+const RESPONSE_WINDOW_MS = 48 * 60 * 60 * 1000;
 const SUPPORT_OUTCOMES = new Set(["meets_scope", "fixable", "scope_breached"]);
 const SYSTEM_ACTOR = { id: null, email: "system:auto-release" };
 const WAITING_ERROR = "this payment is waiting on the consultant's choice.";
@@ -4405,6 +4415,51 @@ async function cardFeeFor(item, { strict = false } = {}) {
     if (strict) throw new Error(`couldn't get the card fee from stripe: ${err.message}`);
     return estimate;
   }
+}
+
+// Fields that open a fresh 48-hour response window (report or hold).
+function responseWindowFields(nowMs) {
+  return {
+    response_due_at: new Date(nowMs + RESPONSE_WINDOW_MS).toISOString(),
+    consultant_response_at: null,
+  };
+}
+
+// The consultant's latest response for the current hold. The text is kept
+// in payment_audit (server-only), never on the payment row the business
+// can read.
+async function latestResponse(item) {
+  const row = item.row;
+  if (!row.consultant_response_at || !row.support_hold_at) return null;
+  const { data } = await supabase
+    .from("payment_audit")
+    .select("created_at, details")
+    .eq("payment_id", row.id)
+    .in("action", ["consultant_response", "consultant_response_updated"])
+    .order("created_at", { ascending: false })
+    .limit(20);
+  const since = Date.parse(row.support_hold_at);
+  const hit = (data || [])
+    .filter((a) => Date.parse(a.created_at) >= since)
+    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0];
+  return hit ? { note: hit.details?.note || null, link: hit.details?.link || null, at: hit.created_at } : null;
+}
+
+// Still inside the consultant's 48 hours and they haven't responded.
+function responsePending(row, nowMs = Date.now()) {
+  return Boolean(row.response_due_at) && !row.consultant_response_at && nowMs < Date.parse(row.response_due_at);
+}
+
+function longDate(ms) {
+  return new Date(ms).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York", timeZoneName: "short" }).toLowerCase();
+}
+
+// Could the business report this itself right now? Then support doesn't
+// place the hold for them — it points them to "report a problem".
+function businessCanReport(t, nowMs = Date.now()) {
+  if (!DELIVERABLE_KINDS.has(t.kind) || t.item.row.support_hold_at) return false;
+  const win = reviewWindow(t.item, t.kind, t.ctx);
+  return Boolean(win) && win.opensAt <= nowMs && nowMs < win.releaseAt;
 }
 
 function waitingOnConsultant(row) {
@@ -4620,6 +4675,7 @@ app.post("/api/engagement/report-problem", async (req, res) => {
         problem_report_count: priorCount + 1,
         support_outcome: null,
         support_outcome_at: null,
+        ...responseWindowFields(nowMs),
       })
       .eq("id", row.id)
       .eq(heldStatusField(t.item), "held")
@@ -4640,7 +4696,7 @@ app.post("/api/engagement/report-problem", async (req, res) => {
     }, {
       type: "problem_reported",
       title: "the business reported a problem",
-      body: `"${note.slice(0, 160)}" support is reviewing "${t.ctx.title}" and aims to decide within 14 days. the payment stays held until then.`,
+      body: `"${note.slice(0, 160)}" tell support your side by ${longDate(nowMs + RESPONSE_WINDOW_MS)}. the payment stays held until support decides.`,
     }, paymentLink(t.item));
     await notifyAdmins({
       type: "problem_reported",
@@ -4725,6 +4781,66 @@ app.post("/api/engagement/redo-choice", async (req, res) => {
   }
 });
 
+// Consultant: tell support their side of a report or hold. 48 hours from
+// the hold; they can update it until then. Support sees it on the admin
+// screen; the business only sees that a response was sent.
+app.post("/api/engagement/respond-to-report", async (req, res) => {
+  const viewer = await getViewerFromRequest(req);
+  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  const bidId = String(req.body?.bid_id || "").trim();
+  const paymentId = String(req.body?.payment_id || "").trim() || null;
+  if (!bidId) return res.status(400).json({ error: "bid_id required." });
+  const note = cleanText(req.body?.note, 2000);
+  const link = cleanText(req.body?.link, 500);
+  if (!note) return res.status(400).json({ error: "tell support what happened." });
+  if (link && !/^https?:\/\/\S+$/i.test(link)) return res.status(400).json({ error: "the link needs to start with https://." });
+
+  try {
+    const t = await loadReleaseTarget(bidId, paymentId);
+    if (t.error) return res.status(t.status).json({ error: t.error });
+    if (t.ctx.consultantId !== viewer.id) return res.status(403).json({ error: "only the consultant can respond." });
+    if (!t.held) return res.status(409).json({ error: "this payment isn't being held anymore." });
+    const row = t.item.row;
+    if (!row.support_hold_at || row.support_outcome || !row.response_due_at) {
+      return res.status(409).json({ error: "there's nothing to respond to on this payment." });
+    }
+    if (Date.now() >= Date.parse(row.response_due_at)) {
+      return res.status(409).json({ error: "the 48 hours to respond have passed. support will decide from the engagement record." });
+    }
+    const nowIso = new Date().toISOString();
+    const first = !row.consultant_response_at;
+    const { data: won, error } = await supabase
+      .from(releaseTable(t.item))
+      .update({ consultant_response_at: nowIso })
+      .eq("id", row.id)
+      .eq(heldStatusField(t.item), "held")
+      .eq("support_hold_at", row.support_hold_at)
+      .is("support_outcome", null)
+      .select("id");
+    if (error) return res.status(500).json({ error: error.message });
+    if (!won?.length) return res.status(409).json({ error: "this payment changed. reload and try again." });
+
+    await writeAudit(t.item, first ? "consultant_response" : "consultant_response_updated", { id: viewer.id, email: await viewerEmail(viewer) }, { details: { note, link } });
+    await notifyAdmins({
+      type: "consultant_response",
+      title: first ? "the consultant responded to a report" : "the consultant updated their response",
+      body: `"${t.ctx.title}" (${paymentLabel(t.kind, row)}): "${note.slice(0, 160)}"`,
+      link: `/admin/?tab=payments#${t.item.key}`,
+    });
+    if (first) {
+      await notifyUser(t.ctx.ownerId, {
+        type: "consultant_response",
+        title: "the consultant responded",
+        body: `the consultant sent support their side of "${t.ctx.title}". support will decide and let you both know.`,
+        link: paymentLink(t.item),
+      });
+    }
+    return res.json({ ok: true, consultant_response_at: nowIso });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "could not send your response." });
+  }
+});
+
 /* ── admin: support actions ──────────────────────────────────── */
 
 // Load + admin-check a support action's target. Returns { admin, t } or sends.
@@ -4748,12 +4864,16 @@ app.post("/api/admin/payments/hold", async (req, res) => {
   try {
     const got = await adminTarget(req, res);
     if (!got) return;
-    if (!reason) return res.status(400).json({ error: "add a short reason for the hold." });
+    if (!reason) return res.status(400).json({ error: "add a short reason for the hold. both sides will see it." });
     const { admin, t } = got;
-    const nowIso = new Date().toISOString();
+    if (businessCanReport(t)) {
+      return res.status(409).json({ error: "the business can report this themselves. point them to \"report a problem\" on the engagement page." });
+    }
+    const nowMs = Date.now();
+    const nowIso = new Date(nowMs).toISOString();
     const { data: won, error } = await supabase
       .from(releaseTable(t.item))
-      .update({ support_hold_at: nowIso, support_hold_reason: reason, support_hold_by: admin.id })
+      .update({ support_hold_at: nowIso, support_hold_reason: reason, support_hold_by: admin.id, ...responseWindowFields(nowMs) })
       .eq("id", t.item.row.id)
       .eq(heldStatusField(t.item), "held")
       .is("support_hold_at", null)
@@ -4763,12 +4883,15 @@ app.post("/api/admin/payments/hold", async (req, res) => {
 
     alertOps("support_hold_set", { item: t.item.key, bid_id: t.item.bidId, by: admin.email, reason });
     await writeAudit(t.item, "support_hold", admin, { details: { reason } });
-    const payload = {
+    await notifyBoth(t.ctx, {
       type: "support_hold",
-      title: "support is reviewing a payment",
-      body: `grassroots paused the automatic release for "${t.ctx.title}" while support looks into it. we'll reach out if we need anything.`,
-    };
-    await notifyBoth(t.ctx, payload, payload, paymentLink(t.item));
+      title: "support put a payment on hold",
+      body: `"${reason.slice(0, 160)}" grassroots won't release "${t.ctx.title}" until support decides.`,
+    }, {
+      type: "support_hold",
+      title: "support put your payment on hold",
+      body: `"${reason.slice(0, 160)}" tell support your side of "${t.ctx.title}" by ${longDate(nowMs + RESPONSE_WINDOW_MS)}.`,
+    }, paymentLink(t.item));
     return res.json({ ok: true, support_hold_at: nowIso });
   } catch (err) {
     return res.status(500).json({ error: err.message || "could not place the hold." });
@@ -4791,6 +4914,10 @@ app.post("/api/admin/payments/outcome", async (req, res) => {
     const row = item.row;
     const ctx = t.ctx;
     if (waitingOnConsultant(row)) return res.status(409).json({ error: WAITING_ERROR });
+    const early = responsePending(row);
+    if (early && req.body?.decide_early !== true) {
+      return res.status(409).json({ error: `the consultant has until ${longDate(Date.parse(row.response_due_at))} to tell you their side. confirm to decide now.`, response_window_open: true, response_due_at: row.response_due_at });
+    }
     const money = paymentMoney(item);
     const nowIso = new Date().toISOString();
     const link = paymentLink(item);
@@ -4821,7 +4948,7 @@ app.post("/api/admin/payments/outcome", async (req, res) => {
         .select("id");
       if (error) return res.status(500).json({ error: error.message });
       if (!won?.length) return res.status(409).json({ error: "this payment changed. reload and try again." });
-      await writeAudit(item, "outcome_fixable", admin, { details: { note, redo_deadline_at: updates.redo_deadline_at } });
+      await writeAudit(item, "outcome_fixable", admin, { details: { note, early, redo_deadline_at: updates.redo_deadline_at } });
       await notifyBoth(ctx, {
         type: "support_outcome",
         title: "waiting on the consultant",
@@ -4839,7 +4966,7 @@ app.post("/api/admin/payments/outcome", async (req, res) => {
       const result = await releaseHeldPayment(item, { claimEq: { support_outcome: null }, source: "support_meets_scope" });
       if (!result.ok) return res.status(result.status).json({ error: result.error });
       await stampOutcome(item, { support_outcome: "meets_scope", support_outcome_at: nowIso });
-      await writeAudit(item, "outcome_meets_scope", admin, { amountCents: result.payout_cents, stripeId: result.transfer_id, details: { note } });
+      await writeAudit(item, "outcome_meets_scope", admin, { amountCents: result.payout_cents, stripeId: result.transfer_id, details: { note, early } });
       await notifyBoth(ctx, {
         type: "support_outcome",
         title: "support released the payment",
@@ -4860,7 +4987,7 @@ app.post("/api/admin/payments/outcome", async (req, res) => {
     });
     if (!result.ok) return res.status(result.status).json({ error: result.error });
     const absorbed = await cardFeeFor(item);
-    await writeAudit(item, "outcome_scope_breached", admin, { amountCents: result.amount_cents, stripeId: result.refund_id, details: { note, card_fee_absorbed_cents: absorbed.card_fee_cents, fee_source: absorbed.source } });
+    await writeAudit(item, "outcome_scope_breached", admin, { amountCents: result.amount_cents, stripeId: result.refund_id, details: { note, early, card_fee_absorbed_cents: absorbed.card_fee_cents, fee_source: absorbed.source } });
     await notifyBoth(ctx, {
       type: "support_outcome",
       title: `you were refunded ${dollars(result.amount_cents)} in full`,
@@ -4889,6 +5016,9 @@ app.post("/api/admin/payments/settle-remainder", async (req, res) => {
     if (waitingOnConsultant(item.row)) return res.status(409).json({ error: WAITING_ERROR });
     const money = paymentMoney(item);
     if (money.refunded_cents <= 0) return res.status(409).json({ error: "nothing was refunded on this payment. pick an outcome instead." });
+    if (responsePending(item.row) && req.body?.decide_early !== true) {
+      return res.status(409).json({ error: `the consultant has until ${longDate(Date.parse(item.row.response_due_at))} to tell you their side. confirm to decide now.`, response_window_open: true, response_due_at: item.row.response_due_at });
+    }
     const nowIso = new Date().toISOString();
     const link = paymentLink(item);
 
@@ -4990,6 +5120,7 @@ app.get("/api/admin/payments/held", async (req, res) => {
         backstop: Boolean(row.backstop_flagged_at) || nowMs >= backstopAt(item),
         disputed: Boolean(dispute),
         stale: Boolean(row.support_hold_at) && !row.support_outcome && nowMs - Date.parse(row.support_hold_at) >= SUPPORT_HOLD_STALE_DAYS * DAY_MS,
+        awaiting_response: responsePending(row, nowMs) && !row.support_outcome,
       };
       if (!flags.on_hold && !flags.partly_refunded && !flags.backstop && !flags.disputed && req.query.all !== "1") continue;
 
@@ -5003,7 +5134,7 @@ app.get("/api/admin/payments/held", async (req, res) => {
           actions.push("scope_breached");
         }
       }
-      if (!flags.on_hold && !waiting) actions.push("hold");
+      if (!flags.on_hold && !waiting && !businessCanReport({ item, kind, ctx }, nowMs)) actions.push("hold");
 
       // Give-back math with Stripe's actual card fee, when B is in play.
       if (actions.includes("fixable") || waiting) {
@@ -5043,6 +5174,9 @@ app.get("/api/admin/payments/held", async (req, res) => {
         problem_report_note: row.problem_report_note,
         problem_report_link: row.problem_report_link,
         problem_report_count: Number(row.problem_report_count || 0),
+        response_due_at: row.response_due_at,
+        ...(await latestResponse(item).then((r) => ({ consultant_response_note: r?.note || null, consultant_response_link: r?.link || null }))),
+        consultant_response_at: row.consultant_response_at,
         support_outcome: row.support_outcome,
         redo_offered_at: row.redo_offered_at,
         redo_deadline_at: row.redo_deadline_at,

@@ -17,6 +17,8 @@ const SUPPORT_EMAIL = "moiz@grassroots-marketplace.com";
 
 let ctx = null; // { supabase, bidId, title }
 
+const fmtWhen = (iso) =>
+  iso ? new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).toLowerCase() : "";
 const fmtDate = (iso) =>
   iso ? new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
 const DAY_MS = 86400000;
@@ -51,6 +53,16 @@ function supportHref(p) {
 
 function daysLeft(iso) {
   return Math.max(1, Math.ceil((Date.parse(iso) - Date.now()) / DAY_MS));
+}
+
+// The consultant's 48 hours to tell support their side, per viewer.
+function responseLines(p, role) {
+  if (role === "owner") return p.responded_at ? ["the consultant sent support their side."] : [];
+  if (p.responded_at && p.can_respond) return [`you sent support your side. you can update it until ${fmtWhen(p.response_due_at)}.`];
+  if (p.responded_at) return ["you sent support your side. support will decide and let you both know."];
+  if (p.can_respond) return [`tell support your side by ${fmtWhen(p.response_due_at)}. after that, support decides from the engagement record.`];
+  if (p.response_due_at) return ["the 48 hours to respond have passed. support will decide from the engagement record."];
+  return [];
 }
 
 // Finished payments support decided, and payments mid-report.
@@ -118,12 +130,23 @@ function describeSupport(p, role) {
           lines: [
             "you reported a problem. we're reviewing it. the payment won't release on its own.",
             `support aims to decide by ${by}. you can still release it yourself by marking the work complete.`,
+            ...responseLines(p, role),
           ],
         }
       : {
           pill: ["reported", "warn"],
-          lines: [`the business reported a problem. support is reviewing it and aims to decide by ${by}.`],
+          lines: [`the business reported a problem. support is reviewing it and aims to decide by ${by}.`, ...responseLines(p, role)],
         };
+  }
+  if (p.on_hold && p.status === "held") {
+    return {
+      pill: ["on hold", "warn"],
+      lines: [
+        p.hold_reason ? `support put this payment on hold: “${p.hold_reason}”` : "support put this payment on hold.",
+        owner ? "it won't release until support decides. we'll let you both know." : "it won't release until support decides.",
+        ...responseLines(p, role),
+      ],
+    };
   }
   return null;
 }
@@ -217,6 +240,11 @@ function renderItem(p, role) {
     deliveryBits.push(`<p class="eg-delivery__quote">“${esc(p.problem_report_note)}”</p>`);
     if (p.problem_report_link) deliveryBits.push(`<a class="eg-delivery__link" href="${esc(p.problem_report_link)}" target="_blank" rel="noopener noreferrer nofollow">open the business's link</a>`);
   }
+  if (role === "consultant" && p.consultant_response_note) {
+    deliveryBits.push(`<p class="eg-delivery__line">your response to support:</p>`);
+    deliveryBits.push(`<p class="eg-delivery__quote">“${esc(p.consultant_response_note)}”</p>`);
+    if (p.consultant_response_link) deliveryBits.push(`<a class="eg-delivery__link" href="${esc(p.consultant_response_link)}" target="_blank" rel="noopener noreferrer nofollow">open your link</a>`);
+  }
   if (d.breakdown) {
     deliveryBits.push(`<dl class="eg-delivery__breakdown">${d.breakdown.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>`);
     if (d.feeNote) deliveryBits.push(`<p class="eg-delivery__line">${esc(d.feeNote)}</p>`);
@@ -239,6 +267,9 @@ function renderItem(p, role) {
 
   if (p.can_mark_delivered && !p.on_hold && p.status === "held") {
     actions.appendChild(button("mark delivered", "primary", () => openDeliverForm(p, form, actions)));
+  }
+  if (p.can_respond) {
+    actions.appendChild(button(p.responded_at ? "update your response" : "tell support your side", p.responded_at ? "ghost" : "primary", () => openResponseForm(p, form, actions)));
   }
   if (p.can_choose) {
     actions.appendChild(button("redo the work", "primary", () => openChoiceForm(p, "redo", form, actions)));
@@ -373,6 +404,51 @@ function openReportForm(p, form, actions) {
           link: form.querySelector("[data-field=link]").value,
         });
         showSuccess("sent to support. the payment is locked while they review it.", { duration: 5000 });
+        await refreshDeliveryPanel();
+      } catch (err) {
+        showError(err.message);
+        btn.disabled = false;
+      }
+    }),
+  );
+  form.appendChild(row);
+  form.classList.remove("hidden");
+  actions.classList.add("hidden");
+  form.querySelector("textarea").focus();
+}
+
+// Consultant: tell support their side within 48 hours of the hold.
+function openResponseForm(p, form, actions) {
+  form.innerHTML = `
+    <label class="gr-label">
+      <span>what happened?</span>
+      <textarea rows="4" maxlength="2000" data-field="note" placeholder="what you delivered, when, and where the business can find it"></textarea>
+    </label>
+    <label class="gr-label">
+      <span>link <span class="gr-optional">optional</span></span>
+      <input type="url" maxlength="500" data-field="link" placeholder="https://" />
+    </label>
+    <p class="eg-delivery__line">only support sees this. the business is told you responded.</p>
+  `;
+  form.querySelector("[data-field=note]").value = p.consultant_response_note || "";
+  form.querySelector("[data-field=link]").value = p.consultant_response_link || "";
+  const row = document.createElement("div");
+  row.className = "eg-delivery__actions";
+  row.append(
+    button("cancel", "ghost", () => closeForm(form, actions)),
+    button("send to support", "primary", async (e) => {
+      const note = form.querySelector("[data-field=note]").value.trim();
+      if (!note) { showError("tell support what happened."); return; }
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      try {
+        await post("/api/engagement/respond-to-report", {
+          bid_id: ctx.bidId,
+          payment_id: p.payment_id,
+          note,
+          link: form.querySelector("[data-field=link]").value,
+        });
+        showSuccess("sent to support. we'll let you know what they decide.", { duration: 5000 });
         await refreshDeliveryPanel();
       } catch (err) {
         showError(err.message);

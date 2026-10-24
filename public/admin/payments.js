@@ -5,7 +5,10 @@
 //   A meets scope    → release to the consultant
 //   B fixable        → consultant has 5 days to redo (once) or give it back
 //   C scope breached → full refund, consultant gets nothing
-// plus settling partly refunded payments and placing a hold. The server
+// plus settling partly refunded payments and placing a hold. The consultant
+// has 48 hours from a report or hold to send their side; deciding before
+// that asks for confirmation. Support places a hold only when the business
+// can't report it itself ("everything held" lists payments with no flag). The server
 // re-checks every rule; this page only offers what the server lists in
 // `actions`. Every action writes an audit row, shown in the drawer.
 
@@ -16,6 +19,7 @@ import { confirmDialog } from "/confirm-modal.js";
 const FILTERS = [
   ["all", "all", () => true],
   ["reported", "reported", (p) => p.flags.reported],
+  ["response", "consultant can respond", (p) => p.flags.awaiting_response],
   ["waiting", "waiting on consultant", (p) => p.flags.waiting_on_consultant],
   ["hold", "on hold", (p) => p.flags.on_hold],
   ["partial", "partly refunded", (p) => p.flags.partly_refunded],
@@ -26,6 +30,7 @@ const FILTERS = [
 
 let payments = [];
 let filter = "all";
+let showEverything = false;
 let loading = null;
 
 const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -44,7 +49,7 @@ async function call(path, body) {
     ? { method: "POST", headers: await authHeaders(), body: JSON.stringify(body) }
     : { headers: await authHeaders() });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "something went wrong. try again.");
+  if (!res.ok) throw Object.assign(new Error(data.error || "something went wrong. try again."), { data });
   return data;
 }
 
@@ -54,6 +59,7 @@ function statePill(p) {
   if (f.disputed) return ["disputed", "warn"];
   if (f.stale) return ["undecided 14+ days", "warn"];
   if (f.waiting_on_consultant) return [`consultant choosing · ${day(p.redo_deadline_at)}`, "pending"];
+  if (f.awaiting_response) return [`consultant can respond · ${when(p.response_due_at)}`, "pending"];
   if (f.reported) return [p.problem_report_count > 1 ? "reported again" : "reported", "warn"];
   if (f.partly_refunded) return ["partly refunded", "warn"];
   if (f.on_hold) return ["on hold", "muted"];
@@ -66,7 +72,11 @@ function renderFilters() {
   host.innerHTML = FILTERS.map(([key, label, test]) => {
     const n = payments.filter(test).length;
     return `<button type="button" class="adm-chip${key === filter ? " is-active" : ""}" data-pay-filter="${key}">${esc(label)} · ${n}</button>`;
-  }).join("");
+  }).join("") + `<button type="button" class="adm-chip${showEverything ? " is-active" : ""}" data-pay-everything>everything held</button>`;
+  host.querySelector("[data-pay-everything]").addEventListener("click", () => {
+    showEverything = !showEverything;
+    renderPayments(true);
+  });
   host.querySelectorAll("[data-pay-filter]").forEach((b) => b.addEventListener("click", () => {
     filter = b.dataset.payFilter;
     renderFilters();
@@ -117,7 +127,7 @@ function actionSpec(p, action) {
     scope_breached: { label: `C · scope breached — refund in full`, kind: "danger", title: "refund the business in full?", body: `the business gets ${usd(m.full_refund_cents)} back, including the platform fee. the consultant gets nothing. grassroots absorbs the ${usd(m.card_fee_cents)} card fee.`, path: "/api/admin/payments/outcome", body2: { outcome: "scope_breached" }, note: true },
     release_remainder: { label: `release the rest — ${usd(m.remainder_payout_cents)}`, kind: "primary", title: "release the rest?", body: `${usd(m.refunded_cents)} was already refunded. the consultant gets ${usd(m.remainder_payout_cents)} of the remaining ${usd(m.remaining_cents)}.`, path: "/api/admin/payments/settle-remainder", body2: { action: "release" } },
     refund_remainder: { label: `refund the rest — ${usd(m.remaining_cents)}`, kind: "danger", title: "refund the rest?", body: `the business gets the remaining ${usd(m.remaining_cents)} back. the consultant gets nothing for this payment.`, path: "/api/admin/payments/settle-remainder", body2: { action: "refund" } },
-    hold: { label: "put on hold", kind: "ghost", title: "put this payment on hold?", body: "it won't release on its own until you pick an outcome. both sides are notified.", path: "/api/admin/payments/hold", body2: {}, reason: true },
+    hold: { label: "put on hold", kind: "ghost", title: "put this payment on hold?", body: "for cases the business can't report itself. it won't release until you pick an outcome. both sides see your reason, and the consultant gets 48 hours to respond.", path: "/api/admin/payments/hold", body2: {}, reason: true },
   }[action];
 }
 
@@ -127,14 +137,27 @@ async function runAction(p, action, drawerEl) {
   if (spec.reason && !text) { showError("add a short reason for the hold."); return; }
   const ok = await confirmDialog({ title: spec.title, body: spec.body, confirmLabel: "confirm", kind: spec.kind === "danger" ? "danger" : "primary" });
   if (!ok) return;
+  const body = {
+    bid_id: p.bid_id,
+    payment_id: p.payment_id,
+    ...spec.body2,
+    ...(spec.note && text ? { note: text } : {}),
+    ...(spec.reason ? { reason: text } : {}),
+  };
   try {
-    await call(spec.path, {
-      bid_id: p.bid_id,
-      payment_id: p.payment_id,
-      ...spec.body2,
-      ...(spec.note && text ? { note: text } : {}),
-      ...(spec.reason ? { reason: text } : {}),
-    });
+    try {
+      await call(spec.path, body);
+    } catch (err) {
+      if (!err.data?.response_window_open) throw err;
+      const now = await confirmDialog({
+        title: "decide before hearing from the consultant?",
+        body: `they have until ${when(err.data.response_due_at)} to tell you their side. the decision is recorded as made early.`,
+        confirmLabel: "decide now",
+        cancelLabel: "wait",
+      });
+      if (!now) return;
+      await call(spec.path, { ...body, decide_early: true });
+    }
     showSuccess("done. both sides were notified.");
     await renderPayments(true);
     const fresh = payments.find((x) => x.key === p.key);
@@ -192,6 +215,12 @@ async function openPayment(key) {
       ["reports", p.problem_report_count ? String(p.problem_report_count) : null],
       ["redo", p.redo_used ? "used. only A or C now." : "not used"],
       ["consultant chooses by", p.flags.waiting_on_consultant ? when(p.redo_deadline_at) : null],
+    ])}
+    <h3 class="adm-section-h">consultant's side</h3>
+    ${kv([
+      ["response", p.consultant_response_at ? quote(p.consultant_response_note) : p.flags.awaiting_response ? `none yet · they can respond until ${when(p.response_due_at)}` : "none. the 48 hours passed."],
+      ["their link", link(p.consultant_response_link, "open link")],
+      ["sent", p.consultant_response_at ? when(p.consultant_response_at) : null],
     ])}` : ""}
     ${p.dispute ? `<h3 class="adm-section-h">card dispute</h3>${kv([
       ["status", esc(p.dispute.status)],
@@ -214,7 +243,7 @@ async function openPayment(key) {
     ])}
     <h3 class="adm-section-h">decide</h3>
     ${p.actions.length ? `
-      ${needsNote ? `<label class="gr-label adm-pay-note"><span>${p.actions.includes("hold") ? (p.actions.length === 1 ? "reason for the hold" : "note for the record (a hold needs one)") : "note for the record (optional)"}</span><textarea id="adm-pay-note" rows="2" maxlength="500"></textarea></label>` : ""}
+      ${needsNote ? `<label class="gr-label adm-pay-note"><span>${p.actions.includes("hold") ? (p.actions.length === 1 ? "reason for the hold (both sides see it)" : "note for the record (a hold needs a reason both sides see)") : "note for the record (optional)"}</span><textarea id="adm-pay-note" rows="2" maxlength="500"></textarea></label>` : ""}
       <div class="adm-pay-actions">${p.actions.map((a) => {
         const spec = actionSpec(p, a);
         return `<button type="button" class="gr-btn gr-btn--${spec.kind === "danger" ? "ghost adm-pay-danger" : spec.kind} gr-btn--sm" data-pay-action="${a}">${esc(spec.label)}</button>`;
@@ -244,7 +273,7 @@ export async function renderPayments(force = false) {
   status.hidden = false;
   status.className = "adm-gate";
   status.textContent = "loading…";
-  loading = call("/api/admin/payments/held")
+  loading = call(`/api/admin/payments/held${showEverything ? "?all=1" : ""}`)
     .then((data) => {
       payments = data.payments || [];
       status.hidden = true;

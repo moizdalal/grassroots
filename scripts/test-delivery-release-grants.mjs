@@ -97,6 +97,9 @@ await t("owner sets phase support_outcome (stray grant)", owner, up("support_out
 await t("owner reads report columns on the bid", owner, `select problem_report_note, support_outcome, redo_deadline_at, consultant_choice from bids where id='${PAID}'`, "allow");
 await t("consultant reads outcome columns on the phase row", consultant, `select support_outcome, redo_used from bid_phase_payments where id='${ROW}'`, "allow");
 await t("service sets outcome + report on bid", "service", ub("problem_reported_at=now(), problem_report_count=1, support_outcome='fixable', redo_deadline_at=now()"), "allow");
+await t("consultant marks themselves responded on the bid", consultant, ub("consultant_response_at=now()"), "block");
+await t("consultant extends their response window", consultant, ub("response_due_at=now() + interval '30 days'"), "block");
+await t("owner reads response columns on the bid", owner, `select consultant_response_at, response_due_at from bids where id='${PAID}'`, "allow");
 await t("support_outcome only takes known values", "service", ub("support_outcome='split'"), "block");
 await t("consultant_choice only takes known values", "service", ub("consultant_choice='half'"), "block");
 await t("problem link must be http(s)", "service", ub("problem_report_link='javascript:alert(1)'"), "block");

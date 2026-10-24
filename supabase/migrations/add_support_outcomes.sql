@@ -15,6 +15,9 @@
 --                              allows only A or C.
 --       C scope breached     → full refund incl. platform fee; consultant
 --                              gets nothing; grassroots absorbs the fee.
+--   * The consultant is told why and has 48 hours from the hold to tell
+--     support their side (note + optional link). Support may decide
+--     sooner, but has to confirm it's deciding before hearing from them.
 --   * Support aims to decide within 14 days of a report (ops alerted after).
 --   * Every admin action writes a payment_audit row.
 --   * There is no plain "clear hold": a hold ends only by release, refund,
@@ -49,7 +52,12 @@ begin
         -- Give-back: Stripe's actual card fee kept, and why it differs
         -- from the standard US rate (international card, etc.).
         add column if not exists give_back_fee_cents integer,
-        add column if not exists give_back_fee_note text
+        add column if not exists give_back_fee_note text,
+        -- The consultant's side: 48 hours from the hold to respond. The
+        -- text lives in payment_audit (server-only) so the business can't
+        -- read it; only the time is on the payment row.
+        add column if not exists response_due_at timestamptz,
+        add column if not exists consultant_response_at timestamptz
     $c$, t);
     execute format('alter table public.%I drop constraint if exists %I', t, t || '_problem_note_len');
     execute format('alter table public.%I add constraint %I check (problem_report_note is null or char_length(problem_report_note) <= 1000)', t, t || '_problem_note_len');

@@ -27,7 +27,7 @@ function builder(table) {
           return { data: null, error: { code: "23505", message: "duplicate key" } };
         }
       }
-      const inserted = st.rows.map((r) => ({ id: `id${nextId++}`, ...(DEFAULTS[table] || {}), ...r }));
+      const inserted = st.rows.map((r) => ({ id: `id${nextId++}`, ...(DEFAULTS[table] || {}), ...(table === "payment_audit" ? { created_at: new Date(Date.now() + nextId).toISOString() } : {}), ...r }));
       t.push(...inserted);
       return { data: inserted, error: null };
     }
@@ -518,6 +518,7 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
       setCharge("ch_rel", 11000, 349);
       const r = await report();
       assert.strictEqual(r.status, 200, `report failed: ${JSON.stringify(r.body)}`);
+      bid("B1").response_due_at = ago(0.01); // consultant's 48 hours are up
       calls.length = 0; transferLog.length = 0; refundLog.length = 0;
     };
 
@@ -550,6 +551,62 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     // --- business can still release while locked ---
     const own = await api("/api/stripe/release-funds", { bid_id: "B1" }, OWNER);
     ok(own.status === 200 && bid("B1").payment_status === "released" && transfers() === 1, "business can still release a reported payment itself");
+
+    // --- the consultant's side: 48 hours from the report ---
+    seed();
+    heldBid({ delivered_at: ago(2), ...FEES });
+    setCharge("ch_rel", 11000, 349);
+    await report();
+    const dueH = (Date.parse(bid("B1").response_due_at) - Date.now()) / 3600000;
+    ok(dueH > 47.9 && dueH <= 48, `report opens a 48-hour response window (${dueH.toFixed(2)}h)`);
+    ok(/tell support your side by/.test(notes("problem_reported", CONS)[0].body), "consultant told why and by when to respond");
+    st = await apiGet("/api/engagement/B1/release-status", CONS);
+    ok(st.body.payments[0].can_respond && st.body.payments[0].response_due_at && st.body.payments[0].problem_report_link === "https://docs.example.com/notes", "status: consultant can respond, sees the business's note and link");
+    const respond = (who, body) => api("/api/engagement/respond-to-report", { bid_id: "B1", ...body }, who);
+    ok((await respond(OWNER, { note: "x" })).status === 403, "respond: business can't respond for the consultant");
+    ok((await respond(CONS, { note: "" })).status === 400, "respond: needs a note");
+    let early = await outcome("meets_scope");
+    ok(early.status === 409 && early.body.response_window_open && bid("B1").payment_status === "held", "deciding inside the 48 hours needs confirmation");
+    let rs1 = await respond(CONS, { note: "i sent the deck on oct 20, see the shared folder.", link: "https://drive.example.com/deck" });
+    ok(rs1.status === 200 && bid("B1").consultant_response_at && !("consultant_response_note" in bid("B1")) && audits("consultant_response")[0]?.details.link === "https://drive.example.com/deck", "consultant sends their side with a link (text kept server-side only)");
+    ok(notes("consultant_response", "admin1").length === 1 && notes("consultant_response", OWNER).length === 1 && !notes("consultant_response", OWNER)[0].body.includes("shared folder"), "support gets the response; business only told one was sent");
+    ok(audits("consultant_response").length === 1 && audits("consultant_response")[0].actor_id === CONS, "response writes an audit row");
+    ok((await respond(CONS, { note: "also attaching the invoice." })).status === 200 && audits("consultant_response_updated").length === 1 && notes("consultant_response", OWNER).length === 1, "consultant can update it; business not re-notified");
+    st = await apiGet("/api/engagement/B1/release-status", OWNER);
+    ok(st.body.payments[0].responded_at && st.body.payments[0].consultant_response_note === null, "status: business sees that a response was sent, not its text");
+    st = await apiGet("/api/engagement/B1/release-status", CONS);
+    ok(st.body.payments[0].consultant_response_note === "also attaching the invoice." && st.body.payments[0].can_respond, "status: consultant sees their latest response and can still edit it");
+    let rl = await apiGet("/api/admin/payments/held", "admin1");
+    let rlp = rl.body.payments.find((x) => x.key === "bid-B1");
+    ok(rlp.consultant_response_note === "also attaching the invoice." && !rlp.flags.awaiting_response, "admin screen shows the consultant's side");
+    ok((await outcome("meets_scope")).status === 200, "once they've responded, support decides without confirming");
+    // no response: deciding early with confirmation, or after 48 hours
+    seed();
+    heldBid({ delivered_at: ago(2), ...FEES });
+    await report();
+    early = await outcome("scope_breached", "admin1", { decide_early: true });
+    ok(early.status === 200 && audits("outcome_scope_breached")[0].details.early === true, "support can decide before the 48 hours with confirmation (recorded as early)");
+    seed();
+    heldBid({ delivered_at: ago(2), ...FEES });
+    await report();
+    bid("B1").response_due_at = ago(0.01);
+    ok((await respond(CONS, { note: "late" })).status === 409, "respond: refused after 48 hours");
+    ok((await outcome("meets_scope")).status === 200, "after 48 hours, support decides from the record");
+
+    // --- support hold only where the business can't report ---
+    seed();
+    heldBid({ delivered_at: ago(2), ...FEES });
+    h = await api("/api/admin/payments/hold", { bid_id: "B1", reason: "business called" }, "admin1");
+    ok(h.status === 409 && /report a problem/.test(h.body.error) && !bid("B1").support_hold_at, "support hold refused during the review: the business reports it themselves");
+    rl = await apiGet("/api/admin/payments/held?all=1", "admin1");
+    ok(!rl.body.payments.find((x) => x.key === "bid-B1").actions.includes("hold"), "admin screen doesn't offer a hold the business can place itself");
+    seed();
+    heldBid({ delivered_at: null, paid_at: ago(30), ...FEES });
+    h = await api("/api/admin/payments/hold", { bid_id: "B1", reason: "consultant stopped replying and nothing was delivered" }, "admin1");
+    ok(h.status === 200 && bid("B1").response_due_at, "support hold allowed when nothing was delivered; opens the 48-hour window");
+    ok(notes("support_hold", CONS)[0].body.includes("stopped replying") && notes("support_hold", OWNER)[0].body.includes("stopped replying"), "both sides see the hold reason");
+    st = await apiGet("/api/engagement/B1/release-status", CONS);
+    ok(st.body.payments[0].hold_reason.includes("stopped replying") && st.body.payments[0].can_respond, "status: consultant sees the reason and can respond");
 
     // --- outcome A: meets scope → release ---
     await reported();
@@ -590,7 +647,8 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     st = await apiGet("/api/engagement/B1/release-status", OWNER);
     ok(st.body.payments[0].redo_used && st.body.payments[0].can_report_problem, "status: business can report again, marked as the last redo");
     rpt = await report(OWNER, { note: "pricing is still wrong" });
-    ok(rpt.status === 200 && bid("B1").problem_report_count === 2, "second report after the redo accepted");
+    ok(rpt.status === 200 && bid("B1").problem_report_count === 2 && bid("B1").response_due_at && !bid("B1").consultant_response_at, "second report after the redo accepted, fresh 48 hours to respond");
+    bid("B1").response_due_at = ago(0.01);
     ok(notes("problem_reported", "admin1").some((n) => n.body.includes("after a redo")), "admin told it's a second report: A or C only");
     let list = await apiGet("/api/admin/payments/held", "admin1");
     let lp = list.body.payments.find((x) => x.key === "bid-B1");
@@ -725,6 +783,7 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     setCharge("ch_sv2", 80000, 2350);
     db.bid_phase_payments.push({ id: "SV2", bid_id: "B6", phase: "service", status: "held", amount_cents: 80000, platform_fee_cents: 0, stripe_fee_cents: 2350, consultant_payout_cents: 77650, payment_intent_id: "pi_sv2", charge_id: "ch_sv2", paid_at: ago(5), delivered_at: ago(2), refunded_cents: 0 });
     rpt = await api("/api/engagement/report-problem", { bid_id: "B6", payment_id: "SV2", note: "no slides" }, OWNER);
+    db.bid_phase_payments.find((r) => r.id === "SV2").response_due_at = ago(0.01);
     await api("/api/admin/payments/outcome", { bid_id: "B6", payment_id: "SV2", outcome: "fixable" }, "admin1");
     refundLog.length = 0;
     ch = await api("/api/engagement/redo-choice", { bid_id: "B6", payment_id: "SV2", choice: "give_back" }, CONS);
@@ -734,6 +793,7 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     db.bid_phase_payments.push({ id: "PB4", bid_id: "B7x", phase: "proposal", status: "held", payment_intent_id: "pi_b3", charge_id: "ch_b3", amount_cents: 5000, paid_at: ago(2), refunded_cents: 0 });
     ok((await api("/api/admin/payments/outcome", { bid_id: "B6", payment_id: "PB3", outcome: "fixable" }, "admin1")).status === 400, "proposal fee: no redo outcome");
     await api("/api/admin/payments/hold", { bid_id: "B6", payment_id: "PB3", reason: "business emailed support" }, "admin1");
+    db.bid_phase_payments.find((r) => r.id === "PB3").response_due_at = ago(0.01);
     oc = await api("/api/admin/payments/outcome", { bid_id: "B6", payment_id: "PB3", outcome: "scope_breached" }, "admin1");
     await hook("charge.refunded", { id: "ch_b3", payment_intent: "pi_b3", refunded: false, amount: 10000, amount_refunded: 5000 });
     const pb4 = db.bid_phase_payments.find((r) => r.id === "PB4");
