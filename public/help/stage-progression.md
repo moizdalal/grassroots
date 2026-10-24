@@ -61,6 +61,6 @@ we may add maintenance/decay later (so the badge means current trust, not just h
 
 ## faq
 
-- **does grassroots reward higher stages with lower fees?** the platform fee is 0% today across all stages. if a fee is introduced, stage-based discounts are an obvious lever.
+- **does grassroots reward higher stages with lower fees?** the 10% business platform fee is waived during launch, across all stages. when the waiver ends, stage-based discounts are an obvious lever.
 - **can i see other consultants' stages?** yes — every public profile shows the stage.
 - **does the stage decay if i drop below 4.0 later?** not today.

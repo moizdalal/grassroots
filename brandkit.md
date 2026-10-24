@@ -204,6 +204,14 @@ Theme-aware shimmer placeholder using `--fo-surface-2` → `--fo-surface-3`. Mod
 | Partial load inside a panel | `.gr-skeleton` rows or cards |
 | Action in flight on a button | `.is-loading` class on the button |
 
+### `.gr-cookie-banner` — cookie notice
+
+Auto-injecting dismissible bottom pill that explains we use cookies and links to `/privacy#cookies`. Rendered by `cookie-banner.js` (loaded `defer` on every page that imports `theme.js`). Renders once per visitor — dismissal is persisted to `localStorage["grassroots_cookies_acknowledged"] = "1"`. No opt-in/out controls; we don't load analytics or ad cookies, so the notice is purely disclosure.
+
+Pinned bottom-right on desktop (`max-width: 28rem`, pill shape), full-width across the bottom on screens ≤ 560 px. z-index `1400` — above page chrome, below modals (1500-1700) so opening a modal cleanly hides it.
+
+Don't render the banner on `/region-unavailable.html` (the geo-block page); the script skips that path. If you add other "no-account" landing pages, add their paths to the skip list in `cookie-banner.js`.
+
 ---
 
 ## Page shell

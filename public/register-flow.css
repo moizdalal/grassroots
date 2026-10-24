@@ -489,6 +489,78 @@ a.reg-role-card--apply:visited {
   border-top: 1px solid var(--card-border);
 }
 
+/* Disclosure line under the create-account button, linking to privacy/ToS.
+   Only visible on the final step (the JS toggles .is-final on the form). */
+.reg-disclosure {
+  margin: 0.85rem 0 0;
+  font-size: var(--type-meta);
+  color: var(--fo-text-3, var(--tagline-body));
+  line-height: 1.45;
+  text-align: center;
+  display: none;
+}
+
+.reg-flow.is-final .reg-disclosure,
+form.is-final .reg-disclosure {
+  display: block;
+}
+
+.reg-disclosure a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.reg-disclosure a:hover,
+.reg-disclosure a:focus-visible {
+  color: var(--fo-accent);
+}
+
+/* Required consent checkbox — only visible on the final step alongside the
+   create-account button. Aligned the checkbox + label as a row so the
+   target stays comfortable on mobile. */
+.reg-consent {
+  display: none;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 1.25rem 0 0;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--card-border, var(--fo-line));
+  border-radius: 10px;
+  font-size: var(--type-meta);
+  color: var(--fo-text);
+  cursor: pointer;
+  line-height: 1.45;
+}
+
+form.is-final .reg-consent {
+  display: flex;
+}
+
+.reg-consent input[type="checkbox"] {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--fo-accent);
+  cursor: pointer;
+}
+
+.reg-consent__text a {
+  color: var(--fo-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.reg-consent__text a:hover,
+.reg-consent__text a:focus-visible {
+  text-decoration: none;
+}
+
+.reg-consent.is-invalid {
+  border-color: var(--fo-plan, #cc6666);
+}
+
 /* --- Responsive --- */
 @media (max-width: 520px) {
   .reg-role-cards {

@@ -117,7 +117,7 @@ function buildModal({ amount, title, feeBreakdown }) {
         <button type="button" class="pay-modal__close" data-pay-close aria-label="close">&times;</button>
       </header>
       <p class="pay-modal__intro">
-        funds are <strong>held in escrow by grassroots</strong> until you mark the work complete and submit your review. test card: <code>4242 4242 4242 4242</code>, any future date, any cvc.
+        grassroots <strong>holds your payment</strong> until you mark the work complete and submit your review. your card is saved for payments you approve later. see the <a href="/terms.html#refunds" target="_blank" rel="noopener">refund policy</a>. test card: <code>4242 4242 4242 4242</code>, any future date, any cvc.
       </p>
       ${amountBlock}
       <div id="pay-element" class="pay-modal__element"></div>
@@ -307,7 +307,7 @@ export async function payAndAcceptBid({ client, bid, listing }) {
             return;
           }
 
-          statusEl.textContent = "payment held in escrow. redirecting to engagement…";
+          statusEl.textContent = "payment held. redirecting to engagement…";
           statusEl.className = "gr-status success";
           setTimeout(() => cleanup({ ok: true }), 700);
         });
@@ -345,7 +345,7 @@ export async function payAndAcceptProposals({ client, bids, listing }) {
   // Reframe the intro copy for the proposal phase.
   const intro = overlay.querySelector(".pay-modal__intro");
   if (intro) {
-    intro.innerHTML = `proposal fees go <strong>into escrow</strong> as soon as you pay. consultants are paid out only after they deliver their proposal and you mark it accepted. test card: <code>4242 4242 4242 4242</code>.`;
+    intro.innerHTML = `grassroots <strong>holds proposal fees</strong> as soon as you pay. consultants are paid out only after they deliver their proposal and you mark it accepted. test card: <code>4242 4242 4242 4242</code>.`;
   }
   submitBtn.textContent = bids.length === 1 ? "pay proposal fee" : `pay ${bids.length} proposal fees`;
 
@@ -446,7 +446,7 @@ export async function payAndAcceptProposals({ client, bids, listing }) {
             return;
           }
 
-          statusEl.textContent = "proposal fees held in escrow. reloading…";
+          statusEl.textContent = "proposal fees held. reloading…";
           statusEl.className = "gr-status success";
           setTimeout(() => cleanup({ ok: true, bid_ids: confirmData.bid_ids }), 700);
         });
@@ -477,7 +477,7 @@ export async function payAndStartService({ client, bid, listing }) {
 
   const intro = overlay.querySelector(".pay-modal__intro");
   if (intro) {
-    intro.innerHTML = `the service fee goes <strong>into escrow</strong> as soon as you pay. it releases to the consultant once you mark the work complete and submit your review. test card: <code>4242 4242 4242 4242</code>.`;
+    intro.innerHTML = `grassroots <strong>holds the service fee</strong> as soon as you pay. it releases to the consultant once you mark the work complete and submit your review. test card: <code>4242 4242 4242 4242</code>.`;
   }
   submitBtn.textContent = "pay service fee";
 
@@ -577,7 +577,7 @@ export async function payAndStartService({ client, bid, listing }) {
             return;
           }
 
-          statusEl.textContent = "service fee held in escrow. reloading…";
+          statusEl.textContent = "service fee held. reloading…";
           statusEl.className = "gr-status success";
           setTimeout(() => cleanup({ ok: true }), 700);
         });

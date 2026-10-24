@@ -55,4 +55,4 @@ email notifications are off by default and configurable per-category in settings
 
 - **why is my first message limited to 200 characters?** it forces a tight, scoped question so the owner can scan quickly. once you're in conversation, the limit lifts.
 - **can i message a consultant before they bid?** no. only consultants can initiate the "have a question?" thread, and only on an active listing.
-- **what if someone is abusive?** report via [help@grassroots.com](mailto:help@grassroots.com). we keep message history for moderation; it isn't deleted by the platform automatically.
+- **what if someone is abusive?** report via [moiz@grassroots-marketplace.com](mailto:moiz@grassroots-marketplace.com). we keep message history for moderation; it isn't deleted by the platform automatically.

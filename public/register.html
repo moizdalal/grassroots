@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <script src="/theme.js"></script>
+    <script src="/cookie-banner.js" defer></script>
     <link rel="stylesheet" href="/register-flow.css" />
   </head>
   <body class="gr-body">
@@ -244,6 +245,21 @@
             </div>
           </div>
 
+          <label class="reg-consent" id="reg-consent">
+            <input
+              type="checkbox"
+              name="accepted_terms"
+              id="reg-accepted-terms"
+              value="1"
+            />
+            <span class="reg-consent__text">
+              i agree to the
+              <a href="/privacy.html" target="_blank" rel="noopener">privacy policy</a>
+              and
+              <a href="/terms.html" target="_blank" rel="noopener">terms of service</a>.
+            </span>
+          </label>
+
           <div class="reg-nav">
             <button type="button" class="gr-btn gr-btn--ghost hidden" id="reg-back">
               back
@@ -260,6 +276,13 @@
               create account
             </button>
           </div>
+
+          <p class="reg-disclosure" id="reg-disclosure">
+            by creating an account, you agree to our
+            <a href="/privacy.html" target="_blank" rel="noopener">privacy policy</a>
+            and
+            <a href="/terms.html" target="_blank" rel="noopener">terms of service</a>.
+          </p>
         </form>
 
         <div id="oauth-slot"></div>

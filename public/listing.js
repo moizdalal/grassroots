@@ -2525,7 +2525,7 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
     try {
       const result = await payAndAcceptProposals({ client, bids: selected, listing });
       if (result?.ok) {
-        showSuccess(`proposal fees in escrow for ${selected.length} consultant${selected.length === 1 ? "" : "s"}.`);
+        showSuccess(`proposal fees held for ${selected.length} consultant${selected.length === 1 ? "" : "s"}.`);
         window.location.reload();
       }
     } catch (err) {

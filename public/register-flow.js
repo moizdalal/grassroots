@@ -187,6 +187,10 @@ function showSlide(idx) {
   const isLast = idx === STEPS[STEPS.length - 1];
   nextBtn.classList.toggle("hidden", isLast);
   submitBtn.classList.toggle("hidden", !isLast);
+  // Show the privacy/terms disclosure only on the final step (when the
+  // "create account" button is visible) — wired by the .is-final CSS gate.
+  const form = document.getElementById("registration-form");
+  if (form) form.classList.toggle("is-final", isLast);
   syncStepFieldState();
 }
 
@@ -310,6 +314,21 @@ form.addEventListener("submit", async (e) => {
   statusEl.className = "gr-status";
 
   if (!validateCurrentStep()) return;
+
+  // Privacy + terms consent. The checkbox lives outside any slide, only
+  // visible on the final step (.is-final), so a normal validateCurrentStep
+  // pass won't catch it.
+  const consent = document.getElementById("reg-accepted-terms");
+  const consentWrap = document.getElementById("reg-consent");
+  if (!consent || !consent.checked) {
+    if (consentWrap) consentWrap.classList.add("is-invalid");
+    if (consent) consent.focus();
+    statusEl.textContent =
+      "please agree to the privacy policy and terms of service to continue.";
+    statusEl.className = "gr-status error";
+    return;
+  }
+  if (consentWrap) consentWrap.classList.remove("is-invalid");
 
   submitBtn.disabled = true;
   submitBtn.textContent = "creating…";

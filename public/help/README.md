@@ -29,6 +29,6 @@ short articles explaining how grassroots works — the payment flow, what a kick
 ## reference
 
 - [payment states explained](./payments-and-payouts.md#bid-payment-states) — `unpaid` → `held` → `released`
-- [policy: what we don't allow](./policies.md) — content rules, scope abuse, refund posture
+- [policy: what we don't allow](./policies.md) — content rules, scope abuse, refunds, disputes
 
-something missing? email [help@grassroots.com](mailto:help@grassroots.com).
+something missing? email [moiz@grassroots-marketplace.com](mailto:moiz@grassroots-marketplace.com).

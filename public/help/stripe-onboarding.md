@@ -43,9 +43,11 @@ if stripe needs more info days later (e.g., a follow-up id document), the status
 
 ## taxes & 1099s
 
-stripe issues a 1099-nec automatically each january for any consultant who earned **$600 or more** through grassroots in the prior year. it's emailed to the address on your stripe account and e-filed with the irs.
+grassroots, through stripe, issues tax forms (like a 1099-k or 1099-nec) to consultants who cross the irs reporting thresholds. stripe doesn't send these on its own. we'll confirm the form and thresholds with our accountant before live payments start.
 
-you don't need to download a w-9 or upload anything — the data stripe collected during onboarding is what they use to generate the 1099.
+you don't need to download a w-9 or upload anything. the tax info stripe collects during onboarding is what's used.
+
+you owe income tax and self-employment tax on what you earn here, whether or not you get a form. this isn't tax advice.
 
 ## updating your info
 
@@ -60,5 +62,5 @@ the **account-management** panel on that page is stripe-rendered and reflects wh
 
 - **i'm not a us resident — can i still bid?** not yet. stripe connect on grassroots is us-only for now.
 - **do i need an llc / business entity?** no. stripe treats most consultants as "individual / sole proprietor," which is fine.
-- **why did stripe ask for my ssn?** the irs requires a tax id for any us payee receiving $600+ per year. stripe collects it once at onboarding so you don't get a 1099 mailed to the wrong address.
+- **why did stripe ask for my ssn?** payment platforms must collect a tax id to report payee earnings to the irs. stripe collects it once at onboarding.
 - **what if i forget to set up payouts and submit a bid?** you can't — the submit button is disabled until your stripe account reads `active`.

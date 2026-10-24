@@ -204,7 +204,7 @@ function openRefundRequestModal({ engagementId, listingTitle } = {}) {
       "what happened:",
       reason,
     ];
-    const href = `mailto:support@grassroots.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join("\n"))}`;
+    const href = `mailto:moiz@grassroots-marketplace.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join("\n"))}`;
     window.location.href = href;
     cleanup();
   }
@@ -817,7 +817,7 @@ function renderRetainerPeriodsPanel() {
 
   // Show the panel as soon as there's a subscription on file — even
   // before the first invoice fires — so the owner can configure
-  // auto-release / termination date / cancel from day one.
+  // auto-release / retainer length / cancel from day one.
   const hasSub = retainerSub && ["active", "pending", "canceled", "completed"].includes(retainerSub.status);
   if (!hasSub) {
     retainerPeriodsPanel.classList.add("hidden");
@@ -859,7 +859,7 @@ function renderRetainerPeriodsPanel() {
   }
 
   // Settings + cancel controls. Owner sees the full settings (auto-release
-  // toggle + termination date). Either party gets the "end after current
+  // toggle + retainer length). Either party gets the "end after current
   // period" button. Both panels stay hidden once the sub is canceled or
   // completed — nothing left to control.
   renderRetainerControls();
@@ -1007,7 +1007,7 @@ async function endRetainerAfterPeriod() {
 
 async function releaseRetainerPeriod(periodIndex, btnEl) {
   if (!currentBid?.id) return;
-  if (!window.confirm(`release period ${periodIndex + 1}'s escrow to the consultant?`)) return;
+  if (!window.confirm(`release period ${periodIndex + 1}'s payment to the consultant?`)) return;
   if (btnEl) btnEl.disabled = true;
   periodStatusEl.textContent = "";
   periodStatusEl.className = "gr-status";
@@ -1107,7 +1107,7 @@ function renderRetainerOfferPanel() {
     offerStatusPill.className = "gr-pill gr-pill--accepted gr-pill--no-dot";
     offerTitleEl.textContent = "retainer is live";
     const feeLabel = retainerSub.fee_cents ? formatUsd(Number(retainerSub.fee_cents)) : "—";
-    offerBodyEl.textContent = `billing ${feeLabel} every ${cadenceLabel(retainerSub.cadence)} — period ${retainerSub.periods_billed} of ${retainerSub.period_count}. each period escrows on payment and releases after the work is marked delivered.`;
+    offerBodyEl.textContent = `billing ${feeLabel} every ${cadenceLabel(retainerSub.cadence)} — period ${retainerSub.periods_billed} of ${retainerSub.period_count}. each period is held on payment and releases when the business releases it, or 14 days after the period ends.`;
     if (viewRole === "owner") {
       offerActionsEl.classList.remove("hidden");
       offerDeclineBtn.classList.add("hidden");
@@ -1173,7 +1173,7 @@ function renderRetainerDecisionPanel() {
       : billed
         ? `${billed} period${billed === 1 ? "" : "s"} billed so far.`
         : "first period bills at the start of the next cycle.";
-    retainerBodyEl.textContent = `billing every ${cadenceLabel(retainerSub.cadence)}. ${periodsLine} each period escrows on payment and releases after you mark the work delivered.`;
+    retainerBodyEl.textContent = `billing every ${cadenceLabel(retainerSub.cadence)}. ${periodsLine} each period is held on payment and releases when you release it, or 14 days after the period ends.`;
     retainerTermsForm.classList.add("hidden");
     // The cancel control moved to the retainer-controls panel under the
     // period list (handles both owner + consultant). Suppress the old
@@ -1265,12 +1265,12 @@ function renderServicePhasePanel() {
     return;
   }
   if (status === "held") {
-    serviceTitleEl.textContent = "service fee in escrow";
-    serviceStatusPill.textContent = "in escrow";
+    serviceTitleEl.textContent = "service fee held";
+    serviceStatusPill.textContent = "held";
     serviceStatusPill.className = "gr-pill gr-pill--warn gr-pill--no-dot";
     serviceBodyEl.textContent = viewRole === "owner"
       ? "the service fee is locked in. mark the work complete and submit your review below to release it to the consultant."
-      : "the service fee is in escrow. it releases to you once the business marks the work complete and submits their review.";
+      : "grassroots is holding the service fee. it releases to you once the business marks the work complete and submits their review.";
     serviceActionsEl.classList.add("hidden");
     return;
   }
@@ -1290,7 +1290,7 @@ function renderServicePhasePanel() {
     serviceStatusPill.className = "gr-pill gr-pill--muted gr-pill--no-dot";
     const fee = Number(currentBid?.service_fee_cents);
     const feeLabel = Number.isFinite(fee) ? formatUsd(fee) : "the service fee";
-    serviceBodyEl.textContent = `you moved forward with this consultant. ${Number.isFinite(fee) ? `${feeLabel} ` : ""}goes into escrow and releases once you submit your review.`;
+    serviceBodyEl.textContent = `you moved forward with this consultant. ${Number.isFinite(fee) ? `${feeLabel} ` : ""}is held by grassroots and releases once you submit your review.`;
     servicePayBtn.textContent = Number.isFinite(fee) ? `pay ${feeLabel}` : "pay service fee";
     serviceActionsEl.classList.remove("hidden");
   } else {
@@ -1319,7 +1319,7 @@ function renderProposalDecisionPanel() {
     proposalStatusPill.textContent = "released";
     proposalStatusPill.className = "gr-pill gr-pill--accepted gr-pill--no-dot";
   } else if (phaseStatus === "held") {
-    proposalStatusPill.textContent = "in escrow";
+    proposalStatusPill.textContent = "held";
     proposalStatusPill.className = "gr-pill gr-pill--warn gr-pill--no-dot";
   } else if (phaseStatus === "refunded") {
     proposalStatusPill.textContent = "refunded";
@@ -1342,13 +1342,13 @@ function renderProposalDecisionPanel() {
 
   if (viewRole !== "owner") {
     proposalActionsEl.classList.add("hidden");
-    proposalBodyEl.textContent = "your proposal fee is in escrow. the business will release it once they've met with you and decided whether to move forward with the full job.";
+    proposalBodyEl.textContent = "grassroots is holding your proposal fee. the business will release it once they've met with you and decided whether to move forward with the full job.";
     return;
   }
 
   // Owner, pending decision.
   proposalActionsEl.classList.remove("hidden");
-  proposalBodyEl.textContent = "this consultant's proposal fee is in escrow. once you've met, decide whether to continue with the full job. either way, the proposal fee releases to the consultant now — they earned it.";
+  proposalBodyEl.textContent = "grassroots is holding this consultant's proposal fee. once you've met, decide whether to continue with the full job. either way, the proposal fee releases to the consultant now — they earned it.";
 }
 
 function renderRefundCta() {
@@ -1662,12 +1662,12 @@ async function submitReview() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      releaseMessage = ` payout pending: ${data.error || "could not release escrow yet."}`;
+      releaseMessage = ` payout pending: ${data.error || "could not release the payment yet."}`;
     } else {
-      releaseMessage = " escrow released to the consultant.";
+      releaseMessage = " payment released to the consultant.";
     }
   } catch (err) {
-    releaseMessage = " escrow release will retry — couldn't reach the payment server.";
+    releaseMessage = " payment release will retry — couldn't reach the payment server.";
   }
 
   showSuccess(`thank you for the thoughtful review.${releaseMessage}`, { duration: 5000 });
@@ -2141,7 +2141,7 @@ function bindReviewInteractions() {
     try {
       const result = await payAndStartService({ client: supabase, bid: currentBid, listing: currentListing });
       if (result?.ok) {
-        showSuccess("service fee in escrow. reloading…");
+        showSuccess("service fee held. reloading…");
         window.location.reload();
       }
     } catch (err) {
