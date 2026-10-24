@@ -52,7 +52,7 @@ a quick read: you need to maintain a **4.0+ average** across at least a few enga
 
 reviews are final once submitted. there's no edit button on grassroots.
 
-if a review contains something inappropriate (harassment, identifying private info, etc.), email [help@grassroots.com](mailto:help@grassroots.com) — we'll review and remove case-by-case.
+if a review contains something inappropriate (harassment, identifying private info, etc.), email [moiz@grassroots-marketplace.com](mailto:moiz@grassroots-marketplace.com) — we'll review and remove case-by-case.
 
 ## faq
 

@@ -62,15 +62,14 @@ consultants don't review the business owner today.
 
 ## cancellations
 
-there's no formal cancellation flow yet. if the engagement needs to stop early:
+if the engagement needs to stop early, the [refund policy](./payments-and-payouts.md#refunds) applies:
 
-- before kickoff: contact [help@grassroots.com](mailto:help@grassroots.com) — we'll refund the owner and unwind the bid
-- after kickoff: you and the consultant work it out directly; partial refunds aren't currently supported
-
-a proper cancellation + refund flow is on the roadmap.
+- within 24 hours of paying for a one-time job, the owner can cancel from the engagement page for a full refund
+- after that, while the payment is still held, email [moiz@grassroots-marketplace.com](mailto:moiz@grassroots-marketplace.com) with the bid id. we review it and release it, send it back for a redo, or refund you
+- once the payment is released, it's final
 
 ## faq
 
 - **can we reschedule the kickoff?** the owner can re-mark availability to nudge the consultant to a new time. there's no formal "reschedule" button yet.
-- **what if the consultant ghosts?** contact us. we'll refund the owner.
+- **what if the consultant ghosts?** contact us while the payment is still held. we'll review it and refund what wasn't delivered.
 - **can i have multiple active engagements with the same business?** yes — they'd post separate listings, and you'd bid on each.

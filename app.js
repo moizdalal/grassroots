@@ -46,7 +46,9 @@ app.use(compression());
 
 // EU/EEA/UK geo-block. Grassroots is US-only at launch; we redirect EU
 // traffic to a static "not available in your region" page to defer GDPR
-// scope. Vercel injects the request's ISO country code into the
+// scope. On Vercel, static pages never reach Express — vercel.json's
+// `redirects` rule does the blocking there (same country list). This
+// middleware covers the API and local/Express-served pages. Vercel injects the request's ISO country code into the
 // `x-vercel-ip-country` header on every forwarded request — when the
 // header is absent (localhost dev, direct origin hits) we allow the
 // request through unchanged.
@@ -67,6 +69,14 @@ const EU_BLOCK_COUNTRIES = new Set([
 ]);
 const REGION_BLOCK_ALLOW_PATHS = new Set([
   "/privacy",
+  "/privacy.html",
+  "/terms",
+  "/terms.html",
+  // Machine callers, not visitors: Stripe webhooks, Vercel Cron, CSP reports.
+  "/webhooks/stripe",
+  "/api/webhooks/stripe",
+  "/api/cron/auto-release",
+  "/api/csp-report",
   "/region-unavailable.html",
   "/region-unavailable",
   "/favicon.svg",
@@ -1263,6 +1273,13 @@ app.post("/api/account/delete-request", express.json(), async (req, res) => {
         `Requested at: ${requestedAt}\n\n` +
         `Process per docs/account-deletion-process.md within 14 days.`,
     }).catch((e) => console.warn("[delete-request] admin email failed", e?.message));
+    // In-app too, so the request is seen even before email is configured.
+    notifyAdmins({
+      type: "account_deletion_requested",
+      title: "account deletion requested",
+      body: `${userEmail || userId} asked to delete their account. process within 14 days.`,
+      link: null,
+    }).catch(() => {});
 
     if (userEmail) {
       sendEmail({
@@ -1333,6 +1350,12 @@ app.post("/api/account/export-request", express.json(), async (req, res) => {
       `Requested at: ${requestedAt}\n\n` +
       `Fulfill per docs/data-export-process.md within 30 days.`,
   }).catch((e) => console.warn("[export-request] admin email failed", e?.message));
+  notifyAdmins({
+    type: "data_export_requested",
+    title: "data export requested",
+    body: `${userEmail || userId} asked for a copy of their data. fulfil within 30 days.`,
+    link: null,
+  }).catch(() => {});
 
   if (userEmail) {
     sendEmail({
@@ -4749,6 +4772,7 @@ app.get("/sitemap.xml", async (_req, res) => {
     { loc: `${origin}/home/for-students.html`, changefreq: "monthly", priority: "0.7" },
     { loc: `${origin}/help.html`, changefreq: "monthly", priority: "0.6" },
     { loc: `${origin}/privacy`, changefreq: "yearly", priority: "0.3" },
+    { loc: `${origin}/terms`, changefreq: "yearly", priority: "0.3" },
   ];
   let listingUrls = [];
   if (supabase) {
@@ -4803,6 +4827,9 @@ app.get("/", (_req, res) => {
 // any policy/legal pages referenced without extension need an explicit route.
 app.get("/privacy", (_req, res) => {
   res.sendFile("privacy.html", { root: path.join(__dirname, "public") });
+});
+app.get("/terms", (_req, res) => {
+  res.sendFile("terms.html", { root: path.join(__dirname, "public") });
 });
 
 app.use(
