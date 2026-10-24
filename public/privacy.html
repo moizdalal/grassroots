@@ -69,17 +69,17 @@
       Page chrome (nav, title, headings, footer) keeps the lowercase brand voice.
     -->
     <style>
-      .pp-page {
+      .lg-page {
         max-width: 760px;
         margin: 0 auto;
         padding: 5rem 1.5rem 5rem;
         color: var(--fo-text);
       }
 
-      .pp-header {
+      .lg-header {
         margin-bottom: var(--space-6);
       }
-      .pp-eyebrow {
+      .lg-eyebrow {
         font-size: var(--type-eyebrow);
         text-transform: uppercase;
         letter-spacing: 0.12em;
@@ -87,20 +87,20 @@
         font-weight: 600;
         margin: 0 0 var(--space-3);
       }
-      .pp-title {
+      .lg-title {
         font-family: "Fraunces", serif;
         font-size: var(--type-display);
         font-weight: 600;
         line-height: 1.1;
         margin: 0 0 var(--space-4);
       }
-      .pp-lede {
+      .lg-lede {
         font-size: var(--type-body);
         color: var(--fo-text-2);
         line-height: 1.5;
         margin: 0 0 var(--space-4);
       }
-      .pp-updated {
+      .lg-updated {
         display: inline-block;
         font-size: var(--type-meta);
         color: var(--fo-text-3);
@@ -109,19 +109,19 @@
         border-radius: 999px;
       }
 
-      .pp-toc {
+      .lg-toc {
         margin: var(--space-6) 0;
         padding: var(--space-4) var(--space-5);
         border: 1px solid var(--fo-line);
         border-radius: 14px;
       }
-      :root:not([data-theme="light"]) .pp-toc {
+      :root:not([data-theme="light"]) .lg-toc {
         background: transparent;
       }
-      :root[data-theme="light"] .pp-toc {
+      :root[data-theme="light"] .lg-toc {
         background: var(--fo-surface);
       }
-      .pp-toc__title {
+      .lg-toc__title {
         font-size: var(--type-eyebrow);
         text-transform: uppercase;
         letter-spacing: 0.12em;
@@ -129,7 +129,7 @@
         font-weight: 600;
         margin: 0 0 var(--space-3);
       }
-      .pp-toc__list {
+      .lg-toc__list {
         margin: 0;
         padding: 0;
         list-style: none;
@@ -138,51 +138,51 @@
         gap: var(--space-2) var(--space-5);
       }
       @media (max-width: 560px) {
-        .pp-toc__list { grid-template-columns: 1fr; }
+        .lg-toc__list { grid-template-columns: 1fr; }
       }
-      .pp-toc__list a {
+      .lg-toc__list a {
         font-size: var(--type-meta);
         color: var(--fo-text-2);
         text-decoration: none;
       }
-      .pp-toc__list a:hover { color: var(--fo-accent); text-decoration: underline; }
+      .lg-toc__list a:hover { color: var(--fo-accent); text-decoration: underline; }
 
-      .pp-section {
+      .lg-section {
         margin: var(--space-7) 0;
         scroll-margin-top: 80px;
       }
-      .pp-section h2 {
+      .lg-section h2 {
         font-family: "Fraunces", serif;
         font-size: var(--type-h1);
         font-weight: 600;
         margin: 0 0 var(--space-4);
       }
-      .pp-section h3 {
+      .lg-section h3 {
         font-size: var(--type-h3);
         font-weight: 600;
         margin: var(--space-5) 0 var(--space-2);
       }
-      .pp-section p,
-      .pp-section li {
+      .lg-section p,
+      .lg-section li {
         font-size: var(--type-body);
         line-height: 1.6;
         color: var(--fo-text);
       }
-      .pp-section p { margin: 0 0 var(--space-4); }
-      .pp-section ul,
-      .pp-section ol {
+      .lg-section p { margin: 0 0 var(--space-4); }
+      .lg-section ul,
+      .lg-section ol {
         margin: 0 0 var(--space-4);
         padding-left: 1.25rem;
       }
-      .pp-section li { margin-bottom: var(--space-2); }
-      .pp-section a {
+      .lg-section li { margin-bottom: var(--space-2); }
+      .lg-section a {
         color: var(--fo-accent);
         text-decoration: underline;
         text-underline-offset: 2px;
       }
-      .pp-section a:hover { text-decoration: none; }
+      .lg-section a:hover { text-decoration: none; }
 
-      .pp-callout {
+      .lg-callout {
         padding: var(--space-4) var(--space-5);
         border-left: 3px solid var(--fo-accent);
         border-radius: 6px;
@@ -190,40 +190,40 @@
         font-size: var(--type-meta);
         color: var(--fo-text-2);
       }
-      :root[data-theme="light"] .pp-callout {
+      :root[data-theme="light"] .lg-callout {
         background: var(--fo-surface-2);
       }
 
-      .pp-table {
+      .lg-table {
         width: 100%;
         border-collapse: collapse;
         margin: var(--space-3) 0 var(--space-5);
         font-size: var(--type-meta);
       }
-      .pp-table th,
-      .pp-table td {
+      .lg-table th,
+      .lg-table td {
         padding: var(--space-2) var(--space-3);
         border: 1px solid var(--fo-line);
         text-align: left;
         vertical-align: top;
       }
-      .pp-table th {
+      .lg-table th {
         font-weight: 600;
         background: var(--fo-surface-2);
         color: var(--fo-text);
       }
-      :root:not([data-theme="light"]) .pp-table th {
+      :root:not([data-theme="light"]) .lg-table th {
         background: transparent;
       }
 
-      .pp-placeholder {
+      .lg-placeholder {
         background: var(--fo-accent-soft);
         padding: 0 var(--space-1);
         border-radius: 3px;
         font-style: italic;
       }
 
-      .pp-foot {
+      .lg-foot {
         margin-top: var(--space-7);
         padding-top: var(--space-5);
         border-top: 1px solid var(--fo-line);
@@ -234,11 +234,11 @@
         gap: var(--space-4);
         justify-content: space-between;
       }
-      .pp-foot a {
+      .lg-foot a {
         color: var(--fo-text-3);
         text-decoration: none;
       }
-      .pp-foot a:hover { color: var(--fo-accent); }
+      .lg-foot a:hover { color: var(--fo-accent); }
     </style>
   </head>
 
@@ -264,17 +264,17 @@
       </div>
     </nav>
 
-    <main class="pp-page">
-      <header class="pp-header">
-        <p class="pp-eyebrow">legal</p>
-        <h1 class="pp-title">privacy policy</h1>
-        <p class="pp-lede">how we collect, use, and protect information when you use grassroots — the consulting marketplace pairing small businesses with student consultants.</p>
-        <span class="pp-updated">draft · last updated: october 21, 2026</span>
+    <main class="lg-page">
+      <header class="lg-header">
+        <p class="lg-eyebrow">legal</p>
+        <h1 class="lg-title">privacy policy</h1>
+        <p class="lg-lede">how we collect, use, and protect information when you use grassroots — the consulting marketplace pairing small businesses with student consultants.</p>
+        <span class="lg-updated">draft · last updated: october 21, 2026</span>
       </header>
 
-      <nav class="pp-toc" aria-label="on this page">
-        <p class="pp-toc__title">on this page</p>
-        <ul class="pp-toc__list">
+      <nav class="lg-toc" aria-label="on this page">
+        <p class="lg-toc__title">on this page</p>
+        <ul class="lg-toc__list">
           <li><a href="#who-we-are">1. who we are</a></li>
           <li><a href="#what-we-collect">2. what we collect</a></li>
           <li><a href="#how-we-use-it">3. how we use it</a></li>
@@ -291,14 +291,14 @@
         </ul>
       </nav>
 
-      <section class="pp-section" id="who-we-are">
+      <section class="lg-section" id="who-we-are">
         <h2>1. Who we are</h2>
-        <p>Grassroots is a marketplace operated by grassroots marketplace LLC (referred to in this policy as "Grassroots," "we," "us," or "our"). Our business address is <span class="pp-placeholder">[Business Address — counsel]</span>. You can contact us at <a href="mailto:moiz@grassroots-marketplace.com">moiz@grassroots-marketplace.com</a>.</p>
+        <p>Grassroots is a marketplace operated by grassroots marketplace LLC (referred to in this policy as "Grassroots," "we," "us," or "our"). Our business address is <span class="lg-placeholder">[Business Address — counsel]</span>. You can contact us at <a href="mailto:moiz@grassroots-marketplace.com">moiz@grassroots-marketplace.com</a>.</p>
         <p>We provide a two-sided marketplace where small businesses post project listings and student consultants submit proposals. This policy explains how we handle personal information collected through our website, account system, messaging, and payment processing. Your use of Grassroots is also governed by our <a href="/terms.html">Terms of Service</a>.</p>
         <p>This policy applies to information collected through <a href="https://www.grassroots-marketplace.com">grassroots-marketplace.com</a> and any associated subdomains we operate.</p>
       </section>
 
-      <section class="pp-section" id="what-we-collect">
+      <section class="lg-section" id="what-we-collect">
         <h2>2. What we collect</h2>
 
         <h3>2.1 Information you give us</h3>
@@ -324,7 +324,7 @@
         <p>Student consultants who set up payouts complete a Stripe Connect onboarding flow in which Stripe collects identity-verification information directly. We do not see or receive that information; please review <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe's privacy notice</a> for details.</p>
       </section>
 
-      <section class="pp-section" id="how-we-use-it">
+      <section class="lg-section" id="how-we-use-it">
         <h2>3. How we use it</h2>
         <p>We use the information we collect to:</p>
         <ul>
@@ -340,11 +340,11 @@
         <p>We do not sell your personal information. We do not use your information to train machine-learning models for third parties.</p>
       </section>
 
-      <section class="pp-section" id="sharing">
+      <section class="lg-section" id="sharing">
         <h2>4. Who we share it with</h2>
         <p>We share personal information only with the service providers we use to operate the platform ("sub-processors"), and only as needed for them to provide their service to us. Each sub-processor is contractually required to handle data securely and to use it only on our instructions.</p>
 
-        <table class="pp-table">
+        <table class="lg-table">
           <thead>
             <tr>
               <th>Sub-processor</th>
@@ -385,13 +385,13 @@
         <p>Other users of the platform see only the information we describe in <a href="#public-info">Section 6</a>. We do not show your email address, phone number, password, or payment details to other users.</p>
       </section>
 
-      <section class="pp-section" id="cookies">
+      <section class="lg-section" id="cookies">
         <h2>5. Cookies and local storage</h2>
         <p>We use a small set of browser storage mechanisms to keep you signed in and to remember your preferences. We do not use any third-party analytics or advertising cookies.</p>
 
         <h3>5.1 Browser local storage (used by Grassroots)</h3>
         <p>The following keys are stored in your browser's local storage by the Grassroots website. They are read by our own code and are not transmitted to third parties.</p>
-        <table class="pp-table">
+        <table class="lg-table">
           <thead>
             <tr>
               <th>Key</th>
@@ -419,7 +419,7 @@
         <p>You can clear all local storage and cookies set by our site through your browser's settings ("Clear browsing data" or "Site settings"). Doing so will sign you out and reset your preferences.</p>
       </section>
 
-      <section class="pp-section" id="public-info">
+      <section class="lg-section" id="public-info">
         <h2>6. Public information</h2>
         <p>Some information on Grassroots is intentionally visible to anyone who visits the site, including visitors who are not signed in. By posting content to the marketplace, you agree to that content being publicly visible:</p>
         <ul>
@@ -433,7 +433,7 @@
         <p>Private information — including your email address, phone number, Stripe account identifiers, message history (other than with the people you message), scheduling details, and payment records — is not visible to other users or to the public. A business owner sees the offers made on their own listings, and the other party to an engagement sees the details of that engagement.</p>
       </section>
 
-      <section class="pp-section" id="retention">
+      <section class="lg-section" id="retention">
         <h2>7. Data retention</h2>
         <p>We retain your information for as long as your account is active and for the period afterward described below:</p>
         <ul>
@@ -446,7 +446,7 @@
         <p>We may retain information longer if required by law (for example, in response to a legal hold) or if it is necessary to resolve a dispute or enforce our agreements.</p>
       </section>
 
-      <section class="pp-section" id="choices">
+      <section class="lg-section" id="choices">
         <h2>8. Your choices and rights</h2>
         <p>You have the following choices about your information:</p>
         <ul>
@@ -462,13 +462,13 @@
         <p>We do not "sell" personal information or "share" it for cross-context behavioral advertising as those terms are defined under the California Consumer Privacy Act.</p>
       </section>
 
-      <section class="pp-section" id="children">
+      <section class="lg-section" id="children">
         <h2>9. Children</h2>
         <p>Grassroots is not directed to children under 13, and we do not knowingly collect personal information from anyone under 13. If you believe a child under 13 has provided personal information to us, please contact us at <a href="mailto:moiz@grassroots-marketplace.com">moiz@grassroots-marketplace.com</a> and we will delete the account.</p>
         <p>You must be at least 18 years old to create an account on Grassroots, as set out in our <a href="/terms.html">Terms of Service</a>.</p>
       </section>
 
-      <section class="pp-section" id="security">
+      <section class="lg-section" id="security">
         <h2>10. Security</h2>
         <p>We use industry-standard measures to protect your information:</p>
         <ul>
@@ -481,29 +481,29 @@
         <p>No method of transmission or storage is perfectly secure. If we become aware of a security incident affecting your personal information, we will notify you and any required authorities within the timeframes required by applicable law.</p>
       </section>
 
-      <section class="pp-section" id="international">
+      <section class="lg-section" id="international">
         <h2>11. International users</h2>
         <p>Grassroots is intended for users in the United States. Our servers and data infrastructure are located in the United States, and the laws of the United States govern the processing of personal information through our service.</p>
         <p>We do not currently offer the service to users in the European Union, the United Kingdom, the European Economic Area, or Switzerland. Visitors from those regions may be redirected to a notice page. If you believe you are receiving this notice in error, please contact us.</p>
       </section>
 
-      <section class="pp-section" id="changes">
+      <section class="lg-section" id="changes">
         <h2>12. Changes to this policy</h2>
         <p>We may update this policy from time to time. When we make material changes, we will update the "last updated" date at the top of this page and, if the change is significant, we will notify you by email or through an in-product notice. Your continued use of Grassroots after a change takes effect means you accept the updated policy.</p>
       </section>
 
-      <section class="pp-section" id="contact">
+      <section class="lg-section" id="contact">
         <h2>13. Contact us</h2>
         <p>If you have questions about this policy or about how we handle your information, please contact us:</p>
-        <div class="pp-callout">
+        <div class="lg-callout">
           <p style="margin: 0;">
             <strong>Email:</strong> <a href="mailto:moiz@grassroots-marketplace.com">moiz@grassroots-marketplace.com</a><br/>
-            <strong>Postal mail:</strong> grassroots marketplace LLC, <span class="pp-placeholder">[Business Address — counsel]</span>
+            <strong>Postal mail:</strong> grassroots marketplace LLC, <span class="lg-placeholder">[Business Address — counsel]</span>
           </p>
         </div>
       </section>
 
-      <div class="pp-foot">
+      <div class="lg-foot">
         <span>&copy; 2026 grassroots</span>
         <span>
           <a href="/">home</a>
