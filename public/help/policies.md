@@ -29,7 +29,7 @@ if either side feels the scope is being abused, contact us — we'll mediate or 
 
 this is the same policy as [section 7 of the terms](/terms.html#refunds). if anything here differs, the terms win.
 
-1. **within 24 hours (one-time jobs):** cancel from the engagement page for a full refund, platform fee included. this only works while the payment is still held.
+1. **within 24 hours (one-time jobs):** cancel from the engagement page for a full refund. this only works while the payment is still held.
 2. **after 24 hours, before release:** report a problem from the engagement page during your 14-day review, or email [moiz@grassroots-marketplace.com](mailto:moiz@grassroots-marketplace.com) with the bid id. this is also the only route for proposal fees, service fees, and retainer periods. the payment locks while we review. we then decide one of three things:
    - **the work meets scope:** it's released to the consultant.
    - **it falls short but can be fixed:** the consultant has 5 days to redo it once, or give the money back. a give-back refunds you minus card-processing fees. no answer in 5 days counts as a give-back.

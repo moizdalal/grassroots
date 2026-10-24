@@ -1,21 +1,24 @@
 // Money math for charges and payouts. Keep in sync with lib/fees.js —
 // same constants, same rounding, just ES-module shape for the browser.
 //
-// Model:
-//   * Business pays the offer + platform fee (10%, waived during launch).
-//     Strikethrough on the line item telegraphs the eventual cut.
-//   * Consultant absorbs the Stripe processing fee out of their payout
-//     (~3%, framed as the cost of receiving money — universal across
-//     freelance platforms).
-//   * Platform retains the platform fee (currently $0 while waived).
+// Model (all-in pricing):
+//   * The offer is the whole price. The business pays exactly the offer —
+//     no fee lines at checkout, so a $60 budget means $60 out the door.
+//   * Offers are free ($0) or at least $10. Free offers never touch Stripe.
+//   * Stripe processing (~2.9% + 30¢) comes out of the consultant payout.
+//   * The platform fee (10%, discounted to 5% during launch) applies only to
+//     the part of the offer above $10, so a $10 offer just covers the card
+//     cost and offering more always means taking home more (no cliff).
 //
-// Stripe fee is computed on the OFFER amount, not the business total —
-// the consultant shouldn't pay Stripe on the platform's cut.
+// Ending the launch discount only changes LAUNCH_PLATFORM_FEE_BPS; business
+// prices never move.
 
 export const STRIPE_FEE_BPS = 290; // 2.9%
 export const STRIPE_FEE_FLAT_CENTS = 30;
-export const PLATFORM_FEE_BPS = 1000; // 10%
-export const PLATFORM_FEE_WAIVED = true;
+export const PLATFORM_FEE_BPS = 1000; // 10% list rate
+export const LAUNCH_PLATFORM_FEE_BPS = 500; // 5% during launch; set to null to charge the list rate
+export const MIN_PAID_OFFER_CENTS = 1000; // offers are $0 or at least $10
+export const PLATFORM_FEE_EXEMPT_CENTS = 1000; // no platform fee on the first $10
 
 export function estimateStripeFeeCents(amountCents) {
   const n = Number(amountCents);
@@ -23,14 +26,26 @@ export function estimateStripeFeeCents(amountCents) {
   return Math.round((n * STRIPE_FEE_BPS) / 10000) + STRIPE_FEE_FLAT_CENTS;
 }
 
-export function platformFeeFullCents(amountCents) {
+// Platform fee at a given rate, charged only on the part above the
+// exempt first $10.
+function feeAboveExempt(amountCents, bps) {
   const n = Number(amountCents);
-  if (!Number.isFinite(n) || n <= 0) return 0;
-  return Math.round((n * PLATFORM_FEE_BPS) / 10000);
+  if (!Number.isFinite(n) || n <= PLATFORM_FEE_EXEMPT_CENTS) return 0;
+  return Math.round(((n - PLATFORM_FEE_EXEMPT_CENTS) * bps) / 10000);
+}
+
+export function platformFeeFullCents(amountCents) {
+  return feeAboveExempt(amountCents, PLATFORM_FEE_BPS);
 }
 
 export function platformFeeCents(amountCents) {
-  return PLATFORM_FEE_WAIVED ? 0 : platformFeeFullCents(amountCents);
+  return feeAboveExempt(amountCents, LAUNCH_PLATFORM_FEE_BPS ?? PLATFORM_FEE_BPS);
+}
+
+// Valid offer amounts: free, or at least the paid minimum.
+export function isValidOfferCents(amountCents) {
+  const n = Number(amountCents);
+  return Number.isInteger(n) && (n === 0 || n >= MIN_PAID_OFFER_CENTS);
 }
 
 export function computeFees(amountCents) {
@@ -40,16 +55,15 @@ export function computeFees(amountCents) {
   const platformFeeFull = platformFeeFullCents(amount);
   return {
     amountCents: amount,
-    // Business is charged offer + platform fee (= offer today while waived).
-    businessTotalCents: amount + platformFee,
-    // Stripe + platform fees broken out for line-by-line rendering.
+    // All-in: the business is charged the offer, nothing on top.
+    businessTotalCents: amount,
+    // Stripe + platform fees broken out for the consultant's take-home view.
     stripeFeeCents: stripeFee,
     platformFeeCents: platformFee,
     platformFeeFullCents: platformFeeFull,
-    platformFeeWaived: PLATFORM_FEE_WAIVED,
-    // Consultant nets offer minus just the Stripe processing fee. The
-    // platform fee never touches their payout in this model.
-    consultantPayoutCents: Math.max(0, amount - stripeFee),
+    platformFeeDiscounted: LAUNCH_PLATFORM_FEE_BPS != null && LAUNCH_PLATFORM_FEE_BPS < PLATFORM_FEE_BPS,
+    // Consultant nets the offer minus both fees.
+    consultantPayoutCents: Math.max(0, amount - stripeFee - platformFee),
   };
 }
 

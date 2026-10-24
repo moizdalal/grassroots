@@ -42,8 +42,47 @@ function supportHref(p) {
   return `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
+// Free jobs ($0) have no money held, so the copy talks about the work
+// being marked complete instead of a payment releasing.
+function describeFree(p, role) {
+  const now = Date.now();
+  const opens = p.review_opens_at ? Date.parse(p.review_opens_at) : null;
+  const closeOn = fmtDate(p.auto_release_at);
+  if (p.kind === "proposal") {
+    return {
+      pill: ["pending", "muted"],
+      lines: [role === "owner"
+        ? "next, decide whether to move forward."
+        : "the business decides next whether to move forward."],
+    };
+  }
+  if (opens && opens <= now) {
+    return {
+      pill: ["in review", "warn"],
+      lines: role === "owner"
+        ? [`marked delivered ${fmtDate(p.delivered_at)}.`, `review it by ${closeOn}. after that, it's marked complete.`]
+        : [`marked delivered ${fmtDate(p.delivered_at)}.`, `the business has until ${closeOn} to review. then it's marked complete.`],
+    };
+  }
+  if (p.changes_requested_at) {
+    return {
+      pill: ["changes requested", "warn"],
+      lines: role === "owner"
+        ? ["you asked for changes. the 14-day review restarts when the consultant marks it delivered again."]
+        : ["the business asked for changes. update the work, then mark it delivered again."],
+    };
+  }
+  return {
+    pill: ["in progress", "muted"],
+    lines: role === "owner"
+      ? ["waiting for the consultant to mark the work delivered."]
+      : ["mark the work delivered when it's done."],
+  };
+}
+
 // Status pill + one or two short lines for a payment, per viewer.
 function describe(p, role) {
+  if (p.free) return describeFree(p, role);
   const now = Date.now();
   const opens = p.review_opens_at ? Date.parse(p.review_opens_at) : null;
   const windowOpen = opens && opens <= now;
@@ -134,7 +173,7 @@ function renderItem(p, role) {
   if (p.can_request_changes) {
     actions.appendChild(button("request changes", "ghost", () => openChangesForm(p, form, actions)));
   }
-  if (role === "owner" && p.kind !== "proposal") {
+  if (role === "owner" && p.kind !== "proposal" && !p.free) {
     const a = document.createElement("a");
     a.className = "gr-btn gr-btn--ghost gr-btn--sm";
     a.href = supportHref(p);
@@ -164,7 +203,9 @@ function openDeliverForm(p, form, actions) {
       <span>link to the work (optional)</span>
       <input type="url" maxlength="500" data-field="link" placeholder="https://" />
     </label>
-    <p class="eg-delivery__line">the business gets 14 days to review. then grassroots releases your payment.</p>
+    <p class="eg-delivery__line">${p.free
+      ? "the business gets 14 days to review. then it's marked complete."
+      : "the business gets 14 days to review. then grassroots releases your payment."}</p>
   `;
   const row = document.createElement("div");
   row.className = "eg-delivery__actions";
@@ -180,7 +221,9 @@ function openDeliverForm(p, form, actions) {
           note: form.querySelector("[data-field=note]").value,
           link: form.querySelector("[data-field=link]").value,
         });
-        showSuccess(`sent for review. it releases ${fmtDate(data.auto_release_at)} unless the business asks for changes.`, { duration: 5000 });
+        showSuccess(p.free
+          ? `sent for review. it's marked complete ${fmtDate(data.auto_release_at)} unless the business asks for changes.`
+          : `sent for review. it releases ${fmtDate(data.auto_release_at)} unless the business asks for changes.`, { duration: 5000 });
         await refreshDeliveryPanel();
       } catch (err) {
         showError(err.message);
@@ -253,9 +296,14 @@ export async function refreshDeliveryPanel() {
     panel.classList.add("hidden");
     return;
   }
-  intro.textContent = data.role === "owner"
-    ? "grassroots holds each payment until the work is in. you get 14 days to review before it releases."
-    : "grassroots holds each payment until you deliver. the business gets 14 days to review, then it's yours.";
+  const allFree = payments.every((p) => p.free);
+  intro.textContent = allFree
+    ? (data.role === "owner"
+      ? "you get 14 days to review delivered work. then it's marked complete."
+      : "the business gets 14 days to review your work. then it's marked complete.")
+    : data.role === "owner"
+      ? "grassroots holds each payment until the work is in. you get 14 days to review before it releases."
+      : "grassroots holds each payment until you deliver. the business gets 14 days to review, then it's yours.";
   list.innerHTML = "";
   for (const p of payments) list.appendChild(renderItem(p, data.role));
   panel.classList.remove("hidden");

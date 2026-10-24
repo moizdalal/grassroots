@@ -1205,23 +1205,28 @@ body.ld-modal-open { overflow: hidden; }
   font-weight: 400;
 }
 
+/* Single-line note in place of the breakdown: free offer, or below the
+   $10 minimum. */
+.ld-offer-breakdown__note {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--fo-text-2);
+}
+
 .ld-offer-breakdown__value {
   font-variant-numeric: tabular-nums;
   color: var(--fo-text);
   font-weight: 600;
 }
 
-.ld-offer-breakdown__value--strike {
+/* List rate struck through next to the launch rate. */
+.ld-offer-breakdown__strike {
   text-decoration: line-through;
   text-decoration-thickness: 1.5px;
   color: var(--fo-text-3);
-  font-weight: 500;
 }
 
 .ld-offer-breakdown__line--biz {
-  margin-top: 0.25rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--fo-line);
   font-size: var(--type-body);
   color: var(--fo-text);
   font-weight: 600;

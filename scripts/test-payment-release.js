@@ -493,6 +493,52 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     await hook("charge.refunded", { id: "ch_b", payment_intent: "pi_batch", refunded: false, amount: 10000, amount_refunded: 5000 });
     ok(db.bid_phase_payments.filter((r) => r.payment_intent_id === "pi_batch").every((r) => r.refunded_cents === 5000 && r.status === "held"), "batch partial refund freezes every row on that charge");
 
+    // ================= free offers ($0, no Stripe) =================
+    seed();
+    Object.assign(bid("B1"), { amount_cents: 0 });
+    calls.length = 0;
+    let fo = await api("/api/stripe/payment-intent", { bid_id: "B1" }, OWNER);
+    ok(fo.status === 400 && fo.body.free === true, "free offer can't open a payment");
+    fo = await api("/api/engagement/accept-free", { bid_id: "B1" }, "intruder");
+    ok(fo.status === 403, "non-owner can't accept a free offer");
+    fo = await api("/api/engagement/accept-free", { bid_id: "B1" }, OWNER);
+    ok(fo.status === 200 && bid("B1").status === "accepted" && bid("B1").payment_status === "held" && bid("B1").payment_amount_cents === 0 && bid("B1").paid_at, "free offer accepted with a $0 hold");
+    ok(calls.length === 0, "accepting a free offer makes no Stripe calls");
+    fo = await api("/api/stripe/refund-payment", { bid_id: "B1" }, OWNER);
+    ok(fo.status === 409, "free engagement can't be refunded");
+    const fst = await apiGet("/api/engagement/B1/release-status", OWNER);
+    ok(fst.body.payments?.[0]?.free === true, "release-status marks the job free");
+    Object.assign(bid("B1"), { delivered_at: ago(20), paid_at: ago(120) });
+    run = await cron();
+    ok(bid("B1").payment_status === "released" && calls.length === 0 && !run.flagged.length, "free job closes after review, no transfer, no 90-day flag");
+    ok(notes("auto_released", OWNER).some((n) => n.title === "engagement marked complete"), "free close uses 'marked complete' wording");
+
+    seed();
+    fo = await api("/api/engagement/accept-free", { bid_id: "B1" }, OWNER);
+    ok(fo.status === 400 && bid("B1").status === "pending", "paid offer can't be accepted as free");
+    Object.assign(bid("B1"), { amount_cents: 500 });
+    fo = await api("/api/stripe/payment-intent", { bid_id: "B1" }, OWNER);
+    ok(fo.status === 400, "offer under $10 can't be paid");
+
+    // --- free phased proposals ---
+    seed();
+    db.bids.push({ id: "B2", listing_id: "L2", consultant_id: CONS, amount_cents: 2000, proposal_fee_cents: 0, service_fee_cents: 2000, status: "pending", payment_status: "unpaid", refunded_cents: 0 });
+    calls.length = 0;
+    fo = await api("/api/stripe/phased/accept-proposals", { bid_ids: ["B2"] }, OWNER);
+    const fp = db.bid_phase_payments.find((r) => r.bid_id === "B2");
+    ok(fo.status === 200 && fo.body.free && bid("B2").status === "accepted" && fp?.status === "held" && fp.amount_cents === 0 && calls.length === 0, "all-free proposal batch accepted without Stripe");
+    fo = await api("/api/stripe/phased/proposal-decision", { bid_id: "B2", decision: "selected" }, OWNER);
+    ok(fo.status === 200 && fp.status === "released" && bid("B2").move_forward_status === "selected" && calls.length === 0, "free proposal closes on decision, no transfer");
+
+    seed();
+    db.bids.push({ id: "B3", listing_id: "L2", consultant_id: CONS, amount_cents: 2000, proposal_fee_cents: 0, service_fee_cents: 2000, status: "pending", payment_status: "unpaid", refunded_cents: 0 });
+    db.bids.push({ id: "B4", listing_id: "L2", consultant_id: CONS, amount_cents: 3000, proposal_fee_cents: 1500, service_fee_cents: 3000, status: "pending", payment_status: "unpaid", refunded_cents: 0 });
+    fo = await api("/api/stripe/phased/accept-proposals", { bid_ids: ["B3", "B4"] }, OWNER);
+    const batchRows = db.bid_phase_payments.filter((r) => ["B3", "B4"].includes(r.bid_id));
+    ok(fo.status === 200 && fo.body.amount === 1500 && batchRows.length === 2 && batchRows.every((r) => r.status === "authorizing"), "mixed batch charges only the paid proposal; $0 row rides along");
+    fo = await api("/api/stripe/phased/accept-proposals", { bid_ids: ["B3"] }, OWNER);
+    ok(fo.status === 409, "free row already in a pending batch can't be accepted twice");
+
     // --- bad signature / legacy path ---
     const bad = await fetch(base + "/webhooks/stripe", { method: "POST", headers: { "content-type": "application/json", "stripe-signature": "t=1,v1=bad" }, body: "{}" });
     ok(bad.status === 400, "legacy /webhooks/stripe path routed; bad signature → 400");

@@ -16,7 +16,7 @@ async function payAndAcceptProposals(...args) {
   const m = await loadPaymentModal();
   return m.payAndAcceptProposals(...args);
 }
-import { computeFees, formatUsd } from "/fees.js";
+import { computeFees, formatUsd, isValidOfferCents, MIN_PAID_OFFER_CENTS, LAUNCH_PLATFORM_FEE_BPS, PLATFORM_FEE_BPS } from "/fees.js";
 import { getInitials } from "/initials.js";
 import {
   trackListingView,
@@ -1422,6 +1422,53 @@ function renderMsgThread(container, messages, myId) {
    Consultant view: offer panel (sidebar) + chat drawer
    ================================================================ */
 
+// Consultant-side take-home breakdown. Pricing is all-in: the offer is
+// what the business pays, and the platform fee (10% struck through to the
+// launch rate) plus Stripe processing come out of it.
+function offerBreakdownHtml(f, opts = {}) {
+  // Consultant-only copy. Businesses never see the free option mentioned.
+  if (f.amountCents === 0) {
+    return opts.allowFree
+      ? `<p class="ld-offer-breakdown__note">${opts.freeNote || "free offer. doing a job free can help build your reputation."}</p>`
+      : `<p class="ld-offer-breakdown__note">this amount must be at least $10.</p>`;
+  }
+  if (f.amountCents < MIN_PAID_OFFER_CENTS) {
+    return `<p class="ld-offer-breakdown__note">${opts.allowFree ? "offers are free or at least $10." : "this amount must be at least $10."}</p>`;
+  }
+  const bizLabel = opts.bizLabel || "business pays";
+  const takeHomeLabel = opts.takeHomeLabel || "you take home";
+  const launchPct = LAUNCH_PLATFORM_FEE_BPS / 100;
+  // Show what a flat 10% of the whole offer would cost, struck through,
+  // next to what they actually pay after the launch rate and free first $10.
+  const undiscountedCents = Math.round((f.amountCents * PLATFORM_FEE_BPS) / 10000);
+  const platformValue = undiscountedCents > f.platformFeeCents
+    ? `<span class="ld-offer-breakdown__strike">−${formatUsd(undiscountedCents)}</span> −${formatUsd(f.platformFeeCents)}`
+    : `−${formatUsd(f.platformFeeCents)}`;
+  const platformLabel = f.platformFeeDiscounted
+    ? `platform fee <span class="ld-offer-breakdown__strike">10%</span> ${launchPct}%
+       <span class="ld-offer-breakdown__hint">launch rate · none on the first $10</span>`
+    : `platform fee (10%)
+       <span class="ld-offer-breakdown__hint">none on the first $10</span>`;
+  return `
+    <div class="ld-offer-breakdown__line ld-offer-breakdown__line--biz">
+      <span>${bizLabel}</span>
+      <span class="ld-offer-breakdown__value">${formatUsd(f.businessTotalCents)}</span>
+    </div>
+    <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
+      <span>${platformLabel}</span>
+      <span class="ld-offer-breakdown__value">${platformValue}</span>
+    </div>
+    <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
+      <span>card processing</span>
+      <span class="ld-offer-breakdown__value">−${formatUsd(f.stripeFeeCents)}</span>
+    </div>
+    <div class="ld-offer-breakdown__line ld-offer-breakdown__line--total">
+      <span>${takeHomeLabel}</span>
+      <span class="ld-offer-breakdown__value">${formatUsd(f.consultantPayoutCents)}</span>
+    </div>
+  `;
+}
+
 async function showConsultantView(client, session, listing, existingBid) {
   const panel = document.getElementById("ld-offer-panel");
   setOfferRailVisible(true);
@@ -1433,52 +1480,17 @@ async function showConsultantView(client, session, listing, existingBid) {
 
   // Live breakdown beneath each offer-amount input — same shape for
   // standard, retainer (per period), phased proposal, and phased service
-  // inputs. Shows both what the business is charged (offer + platform
-  // fee, strikethrough today) AND what the consultant takes home after
-  // the Stripe processing fee they absorb. Hidden on empty / zero input
-  // so the form doesn't render a bogus "$0.30 in fees" on a blank field.
+  // inputs. Hidden on empty / zero input so the form doesn't render a
+  // bogus "$0.30 in fees" on a blank field.
   function renderBreakdownInto(container, dollars, opts = {}) {
     if (!container) return;
-    if (!Number.isFinite(dollars) || dollars <= 0) {
+    if (!Number.isFinite(dollars) || dollars < 0) {
       container.hidden = true;
       container.innerHTML = "";
       return;
     }
     const f = computeFees(Math.round(dollars * 100));
-    const platformValueClass = f.platformFeeWaived
-      ? "ld-offer-breakdown__value ld-offer-breakdown__value--strike"
-      : "ld-offer-breakdown__value";
-    const offerLabel = opts.offerLabel || "offer";
-    const bizLabel = opts.bizLabel || "business pays";
-    const takeHomeLabel = opts.takeHomeLabel || "you take home";
-    container.innerHTML = `
-      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
-        <span>${offerLabel}</span>
-        <span class="ld-offer-breakdown__value">${formatUsd(f.amountCents)}</span>
-      </div>
-      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
-        <span>
-          platform fee (10%)
-          ${f.platformFeeWaived ? `<span class="ld-offer-breakdown__hint">waived during launch</span>` : ""}
-        </span>
-        <span class="${platformValueClass}">${formatUsd(f.platformFeeFullCents)}</span>
-      </div>
-      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--biz">
-        <span>${bizLabel}</span>
-        <span class="ld-offer-breakdown__value">${formatUsd(f.businessTotalCents)}</span>
-      </div>
-      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
-        <span>
-          stripe processing fee
-          <span class="ld-offer-breakdown__hint">your cost to receive payment</span>
-        </span>
-        <span class="ld-offer-breakdown__value">−${formatUsd(f.stripeFeeCents)}</span>
-      </div>
-      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--total">
-        <span>${takeHomeLabel}</span>
-        <span class="ld-offer-breakdown__value">${formatUsd(f.consultantPayoutCents)}</span>
-      </div>
-    `;
+    container.innerHTML = offerBreakdownHtml(f, opts);
     container.hidden = false;
   }
 
@@ -1493,8 +1505,10 @@ async function showConsultantView(client, session, listing, existingBid) {
   const isRetainerListing = listing?.contract_type === "retainer";
   wireBreakdown(amountInput, "ld-offer-breakdown", isRetainerListing
     ? { offerLabel: "fee per period", bizLabel: "business pays per period", takeHomeLabel: "you take home per period" }
-    : undefined);
+    : { allowFree: true });
   wireBreakdown(proposalFeeInput, "ld-offer-proposal-breakdown", {
+    allowFree: true,
+    freeNote: "no proposal fee.",
     offerLabel: "proposal fee",
     bizLabel: "business pays for proposal",
     takeHomeLabel: "you take home (proposal)",
@@ -1661,12 +1675,18 @@ async function showConsultantView(client, session, listing, existingBid) {
      Stripe before locking the gate — handles the lag where the
      account.updated webhook hasn't fired yet. */
   let payoutsBlocked = true;
-  const setPayoutsBlocked = (blocked) => {
-    payoutsBlocked = blocked;
-    if (blocked) submitBtn.setAttribute("aria-disabled", "true");
+  // A free standard offer never pays out, so it doesn't need payouts set up.
+  const isFreeOffer = () => !isPhased && !isRetainer && amountInput.value.trim() !== "" && Number(amountInput.value) === 0;
+  const syncSubmitDisabled = () => {
+    if (payoutsBlocked && !isFreeOffer()) submitBtn.setAttribute("aria-disabled", "true");
     else submitBtn.removeAttribute("aria-disabled");
   };
+  const setPayoutsBlocked = (blocked) => {
+    payoutsBlocked = blocked;
+    syncSubmitDisabled();
+  };
   setPayoutsBlocked(true);
+  amountInput?.addEventListener("input", syncSubmitDisabled);
   (async () => {
     const readProfileStatus = async () => {
       const { data: prof, error } = await client
@@ -1788,7 +1808,7 @@ async function showConsultantView(client, session, listing, existingBid) {
 
   /* --- Submit offer --- */
   submitBtn.addEventListener("click", async () => {
-    if (payoutsBlocked) {
+    if (payoutsBlocked && !isFreeOffer()) {
       showToast(
         "set up payouts before you can submit an offer. grassroots can't pay you until your stripe account is verified.",
         {
@@ -1821,12 +1841,12 @@ async function showConsultantView(client, session, listing, existingBid) {
       const proposalRaw = parseFloat(proposalFeeInput.value);
       const proposalCents = Number.isFinite(proposalRaw) ? Math.round(proposalRaw * 100) : 0;
       const serviceCents = Math.round(parseFloat(serviceFeeInput.value) * 100);
-      if (proposalCents < 0) {
-        showError("enter a valid proposal fee.");
+      if (!isValidOfferCents(proposalCents)) {
+        showError("the proposal fee must be $0 or at least $10.");
         return;
       }
-      if (!Number.isFinite(serviceCents) || serviceCents < 1) {
-        showError("enter a valid offer amount.");
+      if (!Number.isFinite(serviceCents) || serviceCents < MIN_PAID_OFFER_CENTS) {
+        showError("the offer amount must be at least $10.");
         return;
       }
       // proposal_budget on the listing is a soft ceiling — enforce only if set.
@@ -1843,8 +1863,12 @@ async function showConsultantView(client, session, listing, existingBid) {
       payload.amount_cents = serviceCents;
     } else {
       const cents = Math.round(parseFloat(amountInput.value) * 100);
-      if (!Number.isFinite(cents) || cents < 1) {
+      if (!Number.isFinite(cents)) {
         showError("enter a valid amount.");
+        return;
+      }
+      if (isRetainer ? cents < MIN_PAID_OFFER_CENTS : !isValidOfferCents(cents)) {
+        showError(isRetainer ? "the fee per period must be at least $10." : "offers are free or at least $10.");
         return;
       }
       payload.amount_cents = cents;
@@ -2513,9 +2537,13 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
       proposalCtaLabelEl.textContent = `${selected.length} ${selected.length === 1 ? "proposal" : "proposals"} selected`;
     }
     proposalCtaTotalEl.textContent = formatUsd(total);
-    proposalCtaBtn.textContent = selected.length === 1
-      ? "pay proposal fee"
-      : `pay ${selected.length} proposal fees`;
+    if (total === 0) {
+      proposalCtaBtn.textContent = selected.length === 1 ? "accept proposal" : `accept ${selected.length} proposals`;
+    } else {
+      proposalCtaBtn.textContent = selected.length === 1
+        ? "pay proposal fee"
+        : `pay ${selected.length} proposal fees`;
+    }
   }
 
   async function handlePayProposals() {
@@ -2525,7 +2553,9 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
     try {
       const result = await payAndAcceptProposals({ client, bids: selected, listing });
       if (result?.ok) {
-        showSuccess(`proposal fees held for ${selected.length} consultant${selected.length === 1 ? "" : "s"}.`);
+        showSuccess(result.free
+          ? `${selected.length === 1 ? "proposal" : "proposals"} accepted.`
+          : `proposal fees held for ${selected.length} consultant${selected.length === 1 ? "" : "s"}.`);
         window.location.reload();
       }
     } catch (err) {
@@ -2864,11 +2894,12 @@ async function handleAcceptBid(client, session, listing, bid, card) {
   // updates to the counter value). Reading from counter_offer_cents
   // here would let the owner pay their own discount unilaterally.
   const paidAmount = bid.amount_cents;
+  const offerLabel = Number(paidAmount) === 0 ? "free offer" : `${formatUsd(paidAmount)} proposal`;
   await client.from("notifications").insert({
     user_id: bid.consultant_id,
     type: "bid_accepted",
     title: "your bid was accepted.",
-    body: `your ${formatUsd(paidAmount)} proposal for "${escapeHtml(listing.title)}" was accepted. the business is setting up kickoff availability now.`,
+    body: `your ${offerLabel} for "${escapeHtml(listing.title)}" was accepted. the business is setting up kickoff availability now.`,
     link: engagementLink(bid.id),
   });
 
@@ -2882,7 +2913,7 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
         this is your only counter on this offer. the consultant has 24 hours to accept, decline, or counter back. if they don't respond, the offer reverts to their original price — and you can't counter again.
       </p>
       <label class="gr-label"><span>counter amount (usd)</span>
-        <input type="number" class="ld-counter-amount" min="0.01" step="0.01" placeholder="0.00" />
+        <input type="number" class="ld-counter-amount" min="10" step="0.01" placeholder="0.00" />
       </label>
       <label class="gr-label full-width"><span>message (optional)</span>
         <textarea class="ld-counter-msg" rows="2" maxlength="500" placeholder="reason for the counter…"></textarea>
@@ -2899,8 +2930,8 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
 
   sendBtn.addEventListener("click", async () => {
     const cents = Math.round(parseFloat(amtInput.value) * 100);
-    if (!Number.isFinite(cents) || cents < 1) {
-      showError("enter a valid amount.");
+    if (!Number.isFinite(cents) || cents < MIN_PAID_OFFER_CENTS) {
+      showError("a counter must be at least $10.");
       return;
     }
     sendBtn.disabled = true;
@@ -3068,37 +3099,7 @@ function runTutorialListing() {
       return;
     }
     const f = computeFees(Math.round(dollars * 100));
-    const platformValueClass = f.platformFeeWaived
-      ? "ld-offer-breakdown__value ld-offer-breakdown__value--strike"
-      : "ld-offer-breakdown__value";
-    breakdownEl.innerHTML = `
-      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
-        <span>offer</span>
-        <span class="ld-offer-breakdown__value">${formatUsd(f.amountCents)}</span>
-      </div>
-      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
-        <span>
-          platform fee (10%)
-          ${f.platformFeeWaived ? '<span class="ld-offer-breakdown__hint">waived during launch</span>' : ""}
-        </span>
-        <span class="${platformValueClass}">${formatUsd(f.platformFeeFullCents)}</span>
-      </div>
-      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--biz">
-        <span>business pays</span>
-        <span class="ld-offer-breakdown__value">${formatUsd(f.businessTotalCents)}</span>
-      </div>
-      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
-        <span>
-          stripe processing fee
-          <span class="ld-offer-breakdown__hint">your cost to receive payment</span>
-        </span>
-        <span class="ld-offer-breakdown__value">−${formatUsd(f.stripeFeeCents)}</span>
-      </div>
-      <div class="ld-offer-breakdown__line ld-offer-breakdown__line--total">
-        <span>you take home</span>
-        <span class="ld-offer-breakdown__value">${formatUsd(f.consultantPayoutCents)}</span>
-      </div>
-    `;
+    breakdownEl.innerHTML = offerBreakdownHtml(f);
     breakdownEl.hidden = false;
   };
   amountInput?.addEventListener("input", renderBreakdown);

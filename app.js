@@ -332,7 +332,7 @@ async function releasePhaseRow(phaseRow, { destination, metadata, claimEq = {} }
     return { ok: false, conflict: true, error: "payment is no longer held." };
   }
 
-  // Stored consultant payout (offer - estimated Stripe fee); legacy rows
+  // Stored consultant payout (offer - Stripe fee - platform fee); legacy rows
   // with NULL grandfather to a full-amount transfer.
   const payoutAmount = phaseRow.consultant_payout_cents ?? phaseRow.amount_cents;
   let transfer;
@@ -481,12 +481,9 @@ async function onRetainerInvoicePaid(invoice) {
 
   const periodIndex = subRow.periods_billed; // 0-based; first period is 0.
 
-  // Per-period fee breakdown: the offer is fee_cents (what the consultant
-  // sees as "their" amount), Stripe processing comes out of their payout,
-  // and the platform fee — currently waived — would otherwise be the
-  // delta between invoice.amount_paid and fee_cents. We use the OFFER as
-  // amount_cents to keep parity with phased rows (where amount_cents
-  // stores the offer side, not the gross).
+  // Per-period fee breakdown: the offer is fee_cents, which is also what
+  // the business pays (all-in). Stripe processing and the platform fee
+  // both come out of the consultant's payout.
   const offerCents = Number(subRow.fee_cents) || invoice.amount_paid;
   const breakdown = fees.computeFees(offerCents);
 
@@ -689,9 +686,12 @@ async function confirmStandardBidPayment(intent, { awaitDefaultPm = false } = {}
   return { ok: true, bidId };
 }
 
-// Gross the business was charged for a phase row: offer + platform fee.
+// Gross the business was charged for a phase row. All-in pricing: the
+// offer is the charge, and the platform fee comes out of it. Rows from the
+// old offer-plus-fee model all have platform_fee_cents = 0 (it was waived),
+// so this holds for them too.
 function phaseRowGross(row) {
-  return Number(row.amount_cents || 0) + Number(row.platform_fee_cents || 0);
+  return Number(row.amount_cents || 0);
 }
 
 async function confirmProposalBatchPayment(intent) {
@@ -2098,13 +2098,15 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
     }
 
     const offerAmount = Number(bid.counter_offer_cents || bid.amount_cents);
-    if (!Number.isFinite(offerAmount) || offerAmount < 50) {
+    if (offerAmount === 0) {
+      return res.status(400).json({ error: "this offer is free, so there's nothing to pay. accept it instead.", free: true });
+    }
+    if (!Number.isFinite(offerAmount) || offerAmount < fees.MIN_PAID_OFFER_CENTS) {
       return res.status(400).json({ error: "bid amount is invalid for payment." });
     }
 
-    // What the business is actually charged = offer + platform fee. The
-    // platform fee is $0 while waived during launch, so today this still
-    // equals the offer. When the waiver lifts the charge bumps by 10%.
+    // All-in pricing: the business is charged the offer. The platform
+    // and Stripe fees come out of the consultant payout.
     const feeBreakdown = fees.computeFees(offerAmount);
     const amount = feeBreakdown.businessTotalCents;
 
@@ -2222,6 +2224,64 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
 
 // Owner: confirm the bid was paid. Server re-validates the PaymentIntent
 // directly with Stripe, then flips the bid to `accepted` atomically.
+// Owner: accept a free ($0) offer on a standard listing. No Stripe at all —
+// the bid goes straight to accepted with a $0 hold, so delivery, review
+// and the 14-day automatic close work exactly like a paid job.
+app.post("/api/engagement/accept-free", async (req, res) => {
+  const viewer = await getViewerFromRequest(req);
+  if (!viewer?.id) return res.status(401).json({ error: "sign in required." });
+  const bidId = String(req.body?.bid_id || "").trim();
+  if (!bidId) return res.status(400).json({ error: "bid_id required." });
+
+  try {
+    const { data: bid, error: bidErr } = await supabase
+      .from("bids")
+      .select("id, listing_id, amount_cents, counter_offer_cents, status, payment_status")
+      .eq("id", bidId)
+      .maybeSingle();
+    if (bidErr || !bid) return res.status(404).json({ error: "bid not found." });
+    const { data: listing } = await supabase
+      .from("listings")
+      .select("owner_id, contract_type")
+      .eq("id", bid.listing_id)
+      .maybeSingle();
+    if (listing?.owner_id !== viewer.id) return res.status(403).json({ error: "only the listing owner can accept." });
+    if ((listing.contract_type || "standard") !== "standard") {
+      return res.status(400).json({ error: "this offer needs to be accepted through payment." });
+    }
+    if (bid.counter_offer_cents != null || Number(bid.amount_cents) !== 0) {
+      return res.status(400).json({ error: "this offer has a price, so it needs payment." });
+    }
+    if (["held", "released", "refunded"].includes(bid.payment_status)) {
+      return res.json({ ok: true, alreadyAccepted: true });
+    }
+
+    const now = new Date().toISOString();
+    const { data: flipped, error: updErr } = await supabase
+      .from("bids")
+      .update({
+        status: "accepted",
+        accepted_at: now,
+        payment_status: "held",
+        paid_at: now,
+        payment_amount_cents: 0,
+        stripe_fee_cents: 0,
+        platform_fee_cents: 0,
+        consultant_payout_cents: 0,
+      })
+      .eq("id", bidId)
+      .eq("amount_cents", 0)
+      .is("counter_offer_cents", null)
+      .in("payment_status", CONFIRMABLE_PAYMENT_STATUSES)
+      .select("id");
+    if (updErr) return res.status(500).json({ error: updErr.message });
+    if (!flipped?.length) return res.status(409).json({ error: "this offer changed. reload and try again." });
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "could not accept the offer." });
+  }
+});
+
 app.post("/api/stripe/confirm-acceptance", async (req, res) => {
   if (!requireStripe(res)) return;
   const viewer = await getViewerFromRequest(req);
@@ -2325,7 +2385,7 @@ async function releaseStandardBid(bid, { claimEq = {} } = {}) {
       // consultant_payout_cents NULL. Keep transferring the full
       // payment amount for those — consultants accepted under the old
       // "you get 100%" promise. New bids transfer the pre-computed
-      // payout (offer - estimated Stripe fee) so the consultant takes
+      // payout (offer - estimated Stripe fee - platform fee) so the consultant takes
       // home exactly the number we showed them in the UI; the platform
       // absorbs any difference between estimated and actual Stripe fee.
       const hasFeeBreakdown = bid.consultant_payout_cents != null;
@@ -2480,6 +2540,9 @@ app.post("/api/stripe/refund-payment", async (req, res) => {
     if (bid.payment_status !== "held") {
       return res.status(409).json({ error: `cannot refund: payment status is ${bid.payment_status}.` });
     }
+    if (Number(bid.payment_amount_cents) === 0) {
+      return res.status(409).json({ error: "there's no payment on this engagement to refund." });
+    }
     if (!bid.payment_intent_id) {
       return res.status(400).json({ error: "no payment intent on this bid." });
     }
@@ -2609,13 +2672,13 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
 
     // Validate fees + compute the per-bid breakdown so each row stores
     // its own (offer, stripe fee estimate, platform fee, consultant
-    // payout). The batch charge is the sum of business totals (offer +
-    // platform fee per bid).
+    // payout). The batch charge is the sum of business totals (= the sum
+    // of offers, since pricing is all-in).
     let totalCents = 0;
     const bidBreakdowns = new Map();
     for (const b of bids) {
       const fee = Number(b.proposal_fee_cents);
-      if (!Number.isFinite(fee) || fee < 50) {
+      if (!fees.isValidOfferCents(fee)) {
         return res.status(400).json({ error: "one of the bids has an invalid proposal fee." });
       }
       const breakdown = fees.computeFees(fee);
@@ -2623,14 +2686,43 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
       totalCents += breakdown.businessTotalCents;
     }
 
-    // Re-verify each consultant is fully onboarded — same gate as standard.
-    const consultantIds = [...new Set(bids.map((b) => b.consultant_id))];
+    // Free proposals ($0) never touch Stripe. If every selected proposal
+    // is free, accept them now with $0 rows held — they release like any
+    // other proposal fee when the business decides. A mixed batch goes
+    // through the normal charge; the $0 rows ride along on the same
+    // PaymentIntent and add nothing to it.
+    if (totalCents === 0) {
+      const now = new Date().toISOString();
+      const { error: freeRowsErr } = await supabase.from("bid_phase_payments").insert(bids.map((b) => ({
+        bid_id: b.id,
+        phase: "proposal",
+        amount_cents: 0,
+        status: "held",
+        paid_at: now,
+        stripe_fee_cents: 0,
+        platform_fee_cents: 0,
+        consultant_payout_cents: 0,
+      })));
+      if (freeRowsErr) return res.status(500).json({ error: freeRowsErr.message });
+      const { error: freeBidsErr } = await supabase
+        .from("bids")
+        .update({ status: "accepted", accepted_at: now })
+        .in("id", bidIds)
+        .neq("status", "accepted");
+      if (freeBidsErr) return res.status(500).json({ error: freeBidsErr.message });
+      return res.json({ ok: true, free: true, bid_ids: bidIds });
+    }
+
+    // Re-verify each paid consultant is fully onboarded — same gate as
+    // standard. Free proposals don't need payouts set up.
+    const consultantIds = [...new Set(bids.filter((b) => Number(b.proposal_fee_cents) > 0).map((b) => b.consultant_id))];
     const { data: consultantProfiles } = await supabase
       .from("profiles")
       .select("id, stripe_account_id, stripe_account_status")
       .in("id", consultantIds);
     const consultantById = new Map((consultantProfiles || []).map((p) => [p.id, p]));
     for (const b of bids) {
+      if (Number(b.proposal_fee_cents) === 0) continue;
       const c = consultantById.get(b.consultant_id);
       if (!c?.stripe_account_id) {
         return res.status(409).json({
@@ -2731,7 +2823,7 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
         stripeFeeCents: aggStripe,
         platformFeeCents: aggPlatform,
         platformFeeFullCents: aggPlatformFull,
-        platformFeeWaived: fees.PLATFORM_FEE_WAIVED,
+        platformFeeDiscounted: aggPlatform < aggPlatformFull,
         consultantPayoutCents: aggPayout,
       },
     });
@@ -2835,8 +2927,8 @@ app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
     if (!CADENCE_INTERVAL[cadence]) {
       return res.status(400).json({ error: "cadence must be weekly, biweekly, monthly, or quarterly." });
     }
-    if (!Number.isFinite(feeCents) || feeCents < 50) {
-      return res.status(400).json({ error: "fee per period must be at least $0.50." });
+    if (!Number.isFinite(feeCents) || feeCents < fees.MIN_PAID_OFFER_CENTS) {
+      return res.status(400).json({ error: "fee per period must be at least $10." });
     }
 
     const { data: consultantProfile } = await supabase
@@ -2871,7 +2963,7 @@ app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
 
     // Create a Product + recurring Price tagged to this engagement so the
     // subscription has a clear lineage in the Stripe dashboard. Each
-    // period bills the offer + platform fee (= offer today while waived).
+    // period bills the offer (all-in; fees come out of the payout).
     const perPeriodBreakdown = fees.computeFees(feeCents);
     // One key per (bid, prior retainer row state, terms) so a double-click
     // replays the same Product/Price/Subscription instead of billing twice.
@@ -2980,8 +3072,8 @@ app.post("/api/stripe/retainer/offer", async (req, res) => {
   if (!Number.isFinite(periodCount) || periodCount < 1) {
     return res.status(400).json({ error: "period_count must be at least 1." });
   }
-  if (!Number.isFinite(feeCents) || feeCents < 50) {
-    return res.status(400).json({ error: "fee per period must be at least $0.50." });
+  if (!Number.isFinite(feeCents) || feeCents < fees.MIN_PAID_OFFER_CENTS) {
+    return res.status(400).json({ error: "fee per period must be at least $10." });
   }
 
   try {
@@ -3126,7 +3218,7 @@ app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
     // business can lengthen or shorten it later via update-settings.
     const cancelAtUnix = retainerCancelAt(Date.parse(acceptedAt) / 1000, offerRow.cadence, offerRow.period_count);
 
-    // Each invoice bills offer + platform fee (= offer today while waived).
+    // Each invoice bills the offer (all-in; fees come out of the payout).
     const perPeriodBreakdown = fees.computeFees(offerRow.fee_cents);
     // accepted_at is fresh per claim, so a retry after a rollback gets new keys.
     const offerKey = idemKey("retainer-offer", offerRow.id, acceptedAt);
@@ -3604,7 +3696,7 @@ app.post("/api/stripe/phased/start-service", async (req, res) => {
     }
 
     const fee = Number(bid.service_fee_cents);
-    if (!Number.isFinite(fee) || fee < 50) {
+    if (!Number.isFinite(fee) || fee < fees.MIN_PAID_OFFER_CENTS) {
       return res.status(400).json({ error: "service fee is missing or too small." });
     }
     const feeBreakdown = fees.computeFees(fee);
@@ -3880,6 +3972,20 @@ app.post("/api/stripe/phased/proposal-decision", async (req, res) => {
     }
     if (phaseRow.status !== "held") {
       return res.status(400).json({ error: `cannot release: proposal payment is ${phaseRow.status}.` });
+    }
+    if (Number(phaseRow.amount_cents) === 0) {
+      // Free proposal: nothing to transfer, just close it out.
+      const claimed = await casUpdate("bid_phase_payments", phaseRow.id, "held", {
+        status: "released",
+        released_at: new Date().toISOString(),
+      });
+      if (!claimed) return res.status(409).json({ error: "this proposal changed while you were deciding. reload and try again." });
+      const { error: freeDecisionErr } = await supabase
+        .from("bids")
+        .update({ move_forward_status: decision, move_forward_decided_at: new Date().toISOString() })
+        .eq("id", bidId);
+      if (freeDecisionErr) return res.status(500).json({ error: freeDecisionErr.message });
+      return res.json({ ok: true, free: true, decision });
     }
     if (!phaseRow.charge_id) {
       return res.status(400).json({ error: "no charge id on proposal payment — contact support." });
@@ -4183,9 +4289,12 @@ async function runReleaseJob(nowMs = Date.now()) {
     const kind = paymentKind(item, ctx);
     const label = paymentLabel(kind, row);
     const link = `/engagement.html?bid=${item.bidId}#${item.key}`;
+    // Free jobs ($0 hold): no money to protect, so no backstop or support
+    // alerts. The review window still runs and closes the job out.
+    const free = Number(item.cents) === 0;
 
     // Support hold gone stale: alert every run until it's resolved.
-    if (row.support_hold_at && nowMs - Date.parse(row.support_hold_at) >= SUPPORT_HOLD_STALE_DAYS * DAY_MS) {
+    if (!free && row.support_hold_at && nowMs - Date.parse(row.support_hold_at) >= SUPPORT_HOLD_STALE_DAYS * DAY_MS) {
       summary.stale_holds.push(item.key);
       alertOps("support_hold_stale", { item: item.key, bid_id: item.bidId, hold_since: row.support_hold_at, reason: row.support_hold_reason || null });
       for (const adminId of await adminUserIds()) {
@@ -4199,7 +4308,7 @@ async function runReleaseJob(nowMs = Date.now()) {
     }
 
     // 90-day backstop: flag once, never auto-release.
-    if (nowMs >= backstopAt(item)) {
+    if (!free && nowMs >= backstopAt(item)) {
       if (!row.backstop_flagged_at && await stampOnce(item, "backstop_flagged_at", nowIso)) {
         summary.flagged.push(item.key);
         alertOps("held_payment_backstop", { item: item.key, bid_id: item.bidId, kind, amount_cents: item.cents, paid_at: row.paid_at, delivered_at: row.delivered_at || null, on_hold: Boolean(row.support_hold_at) });
@@ -4228,7 +4337,21 @@ async function runReleaseJob(nowMs = Date.now()) {
       } catch (err) {
         result = { ok: false, error: err.message };
       }
-      if (result.ok) {
+      if (result.ok && free) {
+        summary.released.push(item.key);
+        await notifyOnce(ctx.ownerId, {
+          type: "auto_released",
+          title: "engagement marked complete",
+          body: `your 14-day review window for "${ctx.title}" ended, so grassroots marked the work complete.`,
+          link,
+        });
+        await notifyOnce(ctx.consultantId, {
+          type: "auto_released",
+          title: "engagement marked complete",
+          body: `the business's review window for "${ctx.title}" ended, so it's marked complete.`,
+          link,
+        });
+      } else if (result.ok) {
         summary.released.push(item.key);
         await notifyOnce(ctx.ownerId, {
           type: "auto_released",
@@ -4257,7 +4380,9 @@ async function runReleaseJob(nowMs = Date.now()) {
       await notifyUser(ctx.ownerId, {
         type: "review_window_closing",
         title: `review closes ${shortDate(win.releaseAt)}`,
-        body: `grassroots is holding ${dollars(item.cents)} for "${ctx.title}" (${label}). release it, request changes, or contact support by ${shortDate(win.releaseAt)}. after that it releases to the consultant.`,
+        body: free
+          ? `review "${ctx.title}" by ${shortDate(win.releaseAt)}. mark it complete or request changes. after that it's marked complete for you.`
+          : `grassroots is holding ${dollars(item.cents)} for "${ctx.title}" (${label}). release it, request changes, or contact support by ${shortDate(win.releaseAt)}. after that it releases to the consultant.`,
         link,
       });
     }
@@ -4447,6 +4572,7 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
         backstop_at: iso(backstop),
         on_hold: onHold,
         partially_refunded: partiallyRefunded,
+        free: Number(item.cents) === 0,
         can_mark_delivered: role === "consultant" && DELIVERABLE_KINDS.has(kind) && !row.delivered_at,
         can_request_changes: role === "owner" && Boolean(win) && win.opensAt <= nowMs && !onHold,
       };

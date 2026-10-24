@@ -926,7 +926,7 @@ const CONSULTANT_STEPS = [
     placement: "left",
     advanceOn: "next",
     title: "make an offer.",
-    body: "type an amount. the breakdown beneath shows what the business pays and what you take home — the platform fee sits on the business, stripe processing comes out of your payout.",
+    body: "type an amount. the breakdown beneath shows what the business pays and what you take home. the platform fee and card processing come out of your offer.",
   },
   {
     id: "c-submit-offer",

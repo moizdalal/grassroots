@@ -25,7 +25,7 @@ grassroots is not an escrow company or a bank. held money sits in grassroots' ow
 ## what business owners pay
 
 1. you accept a consultant's offer.
-2. a stripe payment form opens. you pay the offer plus the platform fee.
+2. a stripe payment form opens. you pay the offer price. no fees are added on top.
 3. grassroots holds the payment while the work happens.
 4. the consultant marks the work delivered.
 5. you mark the work complete and submit your review. that releases the payment. if you do nothing for 14 days after delivery, it releases automatically.
@@ -55,16 +55,16 @@ retainers stop billing after the number of periods in the offer. you can change 
 4. when it's released, grassroots transfers your payout to your connected account.
 5. stripe pays out to your bank on your payout schedule, usually about 2 business days.
 
-your payout is the offer minus an estimate of card processing: **2.9% + $0.30** per payment. if stripe charges more on a card (international, amex), grassroots absorbs the difference.
+your payout is the offer minus card processing (**2.9% + $0.30** per payment) and the platform fee: **10% of the part above $10**, **5% during launch**. there's no platform fee on the first $10. the offer screen shows your take-home before you send it. if stripe charges more on a card (international, amex), grassroots absorbs the difference.
 
 ## fees
 
 | who | fee |
 |---|---|
-| business | 10% platform fee on top of the offer, unless checkout shows a promotion or waiver. it's waived during launch. |
-| consultant | card processing, deducted from the payout (2.9% + $0.30) |
+| business | none. you pay the offer price, all-in. |
+| consultant | card processing (2.9% + $0.30) and a 10% platform fee on the part above $10 (5% during launch), both deducted from the payout |
 
-we'll give at least 30 days' notice before raising a fee or ending a waiver.
+we'll give at least 30 days' notice before raising a fee or ending the launch rate.
 
 ## payment states
 
@@ -83,7 +83,7 @@ every bid carries a `payment_status`:
 
 this is the same policy as [section 7 of the terms](/terms.html#refunds). if anything here differs, the terms win.
 
-1. **within 24 hours (one-time jobs):** cancel from the engagement page for a full refund, platform fee included. this only works while the payment is still held.
+1. **within 24 hours (one-time jobs):** cancel from the engagement page for a full refund. this only works while the payment is still held.
 2. **after 24 hours, before release:** report a problem from the engagement page during your 14-day review, or email [moiz@grassroots-marketplace.com](mailto:moiz@grassroots-marketplace.com) with the bid id. this is also the only route for proposal fees, service fees, and retainer periods. the payment locks while we review. we then decide one of three things:
    - **the work meets scope:** it's released to the consultant.
    - **it falls short but can be fixed:** the consultant has 5 days to redo it once, or give the money back. a give-back refunds you minus card-processing fees. no answer in 5 days counts as a give-back.
@@ -106,5 +106,6 @@ grassroots, through stripe, issues tax forms to consultants when the law require
 
 - **can i pay in installments?** use a phased listing or a retainer. a one-time job is charged in full at acceptance.
 - **what cards work?** anything stripe accepts: visa, mastercard, amex, discover, plus apple pay and google pay on supported devices.
-- **does grassroots take a cut?** businesses pay a 10% platform fee, waived during launch. consultants only lose card processing.
+- **does grassroots take a cut?** yes, 10% of the part of each payment above $10, 5% during launch. it comes out of the consultant's payout, so businesses pay only the offer price.
+- **is there a minimum?** yes. payments through grassroots are at least $10.
 - **is this escrow?** no. grassroots holds the payment in its own stripe balance and releases it under the terms. no licensed escrow agent is involved.
