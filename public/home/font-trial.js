@@ -1,78 +1,11 @@
-// FONT PREVIEW FOR REVIEW — not the final implementation.
-// Swaps the page fonts at runtime so the proposed type system can be seen on
-// any page that includes this script. If approved, the fonts should move into
-// the stylesheets properly and this file should be deleted.
-// To undo, delete this file and its <script> tag in each page.
+// SENTENCE-CASE PREVIEW FOR REVIEW — not the final implementation.
+// Fonts now live in the stylesheets (--font-display / --font-body in
+// grassroots.css); this file only capitalizes the lowercase copy at runtime
+// so the home page reads in sentence case. Delete it once the copy itself
+// is rewritten in sentence case.
 (function () {
-  // Pick the trial: "LFG" (Lexend / Figtree / Geist), "A", or "C".
-  var OPTION = "LFG";
-
-  var OPTIONS = {
-    // Lexend 500 headlines, Figtree body, Geist labels and small caps, Fraunces logo.
-    LFG: {
-      fonts: "family=Lexend:wght@300..700&family=Figtree:ital,wght@0,300..900;1,300..900&family=Geist:wght@300..700&family=Fraunces:opsz,wght@9..144,600",
-      logo: '"Fraunces", Georgia, serif',
-      label: '"Geist", system-ui, sans-serif',
-      map: {
-        fraunces: { to: '"Lexend", system-ui, sans-serif', weight: "500", upright: true },
-        manrope: { to: '"Figtree", system-ui, sans-serif' },
-        "jetbrains mono": { to: '"Geist", system-ui, sans-serif' },
-        caveat: { to: '"Figtree", system-ui, sans-serif' }
-      }
-    },
-    A: {
-      fonts: "family=Instrument+Serif:ital@0;1&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900",
-      map: {
-        fraunces: { to: '"Instrument Serif", Georgia, serif', weight: "400" },
-        manrope: { to: '"Inter", system-ui, sans-serif' }
-      }
-    },
-    C: {
-      fonts: "family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000",
-      map: {
-        fraunces: { to: '"Bricolage Grotesque", system-ui, sans-serif', upright: true },
-        manrope: { to: '"DM Sans", system-ui, sans-serif' }
-      }
-    }
-  };
-  var cfg = OPTIONS[OPTION];
-
-  var link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href = "https://fonts.googleapis.com/css2?" + cfg.fonts + "&display=swap";
-  document.head.appendChild(link);
-
   var LOGO = ".ld-nav__brand-text, .ld-nav__brand-text *, .ld-foot__brand, .ld-foot__brand *";
-  var HERO = ".ld-hero__title, .ld-hero__title *";
 
-  function apply() {
-    // Read every element's original style first, so a parent's swap can't hide its children's.
-    var plan = [];
-    document.querySelectorAll("body *").forEach(function (el) {
-      var cs = getComputedStyle(el);
-      var first = cs.fontFamily.split(",")[0].replace(/["']/g, "").trim().toLowerCase();
-      var rule = cfg.map[first];
-      if (!rule) return;
-      var italic = cs.fontStyle === "italic";
-      if (cfg.logo && el.matches(LOGO)) {
-        plan.push({ el: el, to: cfg.logo });
-      } else if (cfg.logo && el.matches(HERO)) {
-        // The hero headline matches the logo's serif, set upright.
-        plan.push({ el: el, to: cfg.logo, weight: "600", upright: true });
-      } else if (cfg.label && cs.textTransform === "uppercase" && parseFloat(cs.fontSize) <= 14) {
-        // Small uppercase text = labels ("chapter i", "posted 2h ago", stat captions).
-        plan.push({ el: el, to: cfg.label });
-      } else {
-        plan.push({ el: el, to: rule.to, weight: rule.weight, upright: rule.upright && italic });
-      }
-    });
-    plan.forEach(function (p) {
-      p.el.style.fontFamily = p.to;
-      if (p.weight) p.el.style.fontWeight = p.weight;
-      // Lexend and Bricolage have no italic; keep emphasis upright instead of a fake slant.
-      if (p.upright) p.el.style.fontStyle = "normal";
-    });
-  }
   // ---- Sentence-case trial: capitalize where grammar needs it. ----
   // The brand rule (brandkit.md) is "lowercase always", so this is preview-only.
   var CAPS = true;
@@ -142,7 +75,6 @@
   // Both passes are safe to repeat: swapped/capitalized text no longer changes.
   var queued = false;
   function runAll() {
-    apply();
     if (CAPS) capsPass();
   }
   function schedule() {

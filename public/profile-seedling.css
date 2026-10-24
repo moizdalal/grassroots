@@ -204,12 +204,14 @@
 
 .pf-level-title {
   margin: 0;
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--font-display);
   font-size: var(--type-h1);
   line-height: 1.04;
   color: var(--green-deep);
   letter-spacing: -0.03em;
   text-transform: lowercase;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .pf-level-meta {
@@ -219,9 +221,11 @@
 
 .pf-level-name {
   margin: 0;
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--font-display);
   font-size: var(--type-h3);
   color: var(--green-deep);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .pf-level-stats {
@@ -692,11 +696,13 @@
 }
 
 .pf-welcome-title {
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--font-display);
   font-size: var(--type-h2);
   font-weight: 700;
   color: var(--green-deep, #1b4332);
   margin: 0 0 0.5rem;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .pf-welcome-body {

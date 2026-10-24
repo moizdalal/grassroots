@@ -45,7 +45,7 @@
 }
 
 .cdash__journey-flowers-title {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);
   color: var(--fo-text-2);
   letter-spacing: 0.02em;
@@ -61,7 +61,7 @@
   border: 1px solid var(--fo-line);
   background: transparent;
   font: inherit;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);
   color: var(--fo-text-2);
   padding: 0.3rem 0.75rem;
@@ -124,7 +124,7 @@
 }
 
 .cdash__journey-flowers-axis-name {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);
   color: var(--fo-text-2);
   line-height: 1.2;
@@ -349,7 +349,7 @@
   border-radius: 999px;
   background: var(--fo-plan, #d4715a);
   color: var(--fo-surface);
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-body);
   font-size: 0.55rem;
   font-weight: 700;
   display: inline-flex;
@@ -427,7 +427,7 @@
   justify-content: center;
   overflow: hidden;
   flex: 0 0 auto;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: 13px;
   font-weight: 600;
   color: var(--fo-text-2);
@@ -445,7 +445,7 @@
   flex: 1;
 }
 .cdash__journey-flowers-plant-biz {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: 13px;
   color: var(--fo-text-2);
   white-space: nowrap;
@@ -453,12 +453,14 @@
   text-overflow: ellipsis;
 }
 .cdash__journey-flowers-plant-title {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: 14px;
   color: var(--fo-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: 600;
+  font-style: normal;
 }
 
 /* ── tooltip (hover card) ────────────────────────────────────── */
@@ -496,15 +498,17 @@
 }
 .cdash__journey-flowers-tooltip-title {
   flex: 1;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: 13px;
   color: var(--fo-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: 600;
+  font-style: normal;
 }
 .cdash__journey-flowers-tooltip-amount {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: 13px;
   font-weight: 700;
   color: var(--fo-accent);
@@ -515,7 +519,7 @@
   align-items: center;
   gap: 0.4rem;
   margin-top: 0.55rem;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: 11px;
   color: var(--fo-text-2);
 }
@@ -534,7 +538,7 @@
   margin-top: 0.55rem;
   padding-top: 0.5rem;
   border-top: 1px solid var(--fo-line);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: 12px;
   color: var(--fo-text);
 }
@@ -568,7 +572,7 @@
   text-align: center;
   text-decoration: none;
   color: var(--fo-text-3);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);
   cursor: pointer;
   transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
@@ -590,17 +594,21 @@
   opacity: 0.85;
 }
 .cdash__journey-flowers-garden-tile-label {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 17px;
   color: var(--fo-text-2);
+  font-weight: 600;
+  font-style: normal;
 }
 .cdash__journey-flowers-garden-tile-count {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: 31px;
   font-weight: 600;
   color: var(--fo-text);
   line-height: 1;
+  font-weight: 600;
+  font-style: normal;
 }
 .cdash__journey-flowers-garden-tile-hint {
   font-size: 12px;
@@ -614,7 +622,7 @@
   padding: 2rem 1rem;
   text-align: center;
   color: var(--fo-text-3);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);
 }
 

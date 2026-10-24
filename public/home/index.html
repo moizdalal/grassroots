@@ -52,19 +52,21 @@
       ]
     }
     </script>
-    <link rel="stylesheet" href="/fonts.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
 
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <link rel="stylesheet" href="/garden-stem.css" />
-    <link rel="stylesheet" href="/home/nav.css?v=3" />
-    <link rel="stylesheet" href="/home/index.css?v=16" />
+    <link rel="stylesheet" href="/home/nav.css?v=4" />
+    <link rel="stylesheet" href="/home/index.css?v=18" />
     <script src="/theme.js?v=2"></script>
     <script src="/home/theme-default.js"></script>
     <script src="/placeholders.js"></script>
     <script src="/home/nav.js?v=3" defer></script>
     <!-- LOCAL FONT TRIAL ONLY — remove this line before committing -->
-    <script src="/home/font-trial.js?v=2" defer></script>
+    <script src="/home/font-trial.js?v=3" defer></script>
   </head>
 
   <body class="gr-body">
@@ -227,7 +229,7 @@
       <div class="ld-shell">
         <div class="ld-manifesto__panel">
           <p class="ld-manifesto__lead">small businesses have real work to do, but agencies cost too much and take too long.</p>
-          <p class="ld-manifesto__text" id="ld-manifesto-text">grassroots pairs them with talented college students nearby. from logos and menus to websites and social posts, the work gets done well and students build experience that pays.</p>
+          <p class="ld-manifesto__text" id="ld-manifesto-text">grassroots pairs them with <strong class="ld-manifesto__key">talented college students</strong> nearby. from logos and menus to websites and social posts, the work gets done well and students build <strong class="ld-manifesto__key">experience that pays</strong>.</p>
         </div>
       </div>
     </section>
@@ -247,7 +249,7 @@
               <svg viewBox="0 0 96 104">
                 <line class="ld-grow__soil" x1="8" y1="40" x2="88" y2="40"/>
                 <ellipse class="ld-grow__seed" cx="48" cy="44" rx="7" ry="5"/>
-                <path class="ld-grow__root" d="M48 48 C47 60 44 70 38 82 M48 48 C49 62 53 72 60 86 M48 48 C48 64 47 80 48 98 M44 60 C38 64 32 66 26 70 M52 62 C58 66 64 68 70 72"/>
+                <path class="ld-grow__root" d="M48 48 C47 58 45 66 41 74 M48 48 C49 58 51 66 55 74 M48 48 C48 58 48 68 48 80"/>
               </svg>
             </div>
             <div class="ld-grow__card">
@@ -260,9 +262,12 @@
             <div class="ld-grow__art" aria-hidden="true">
               <svg viewBox="0 0 96 104">
                 <line class="ld-grow__soil" x1="8" y1="92" x2="88" y2="92"/>
-                <path class="ld-grow__stem" d="M48 92 C48 80 48 70 48 60"/>
-                <path class="ld-grow__leaf" d="M48 66 C40 62 34 56 32 48 C40 48 46 54 48 66Z"/>
-                <path class="ld-grow__leaf ld-grow__leaf--deep" d="M48 62 C56 58 62 52 64 44 C56 44 50 50 48 62Z"/>
+                <!-- the grassroots logo sprout, same shapes as the hero's (garden-stem.js) -->
+                <g transform="translate(28.4 26) scale(0.24)">
+                  <path class="ld-grow__leaf--deep" transform="translate(72 130)" d="M19 10.15C19 4.54431 14.7467 0 9.5 0C4.25329 0 0 4.54431 0 10.15C7.91804 91.2467 8.44249 120.691 0 134.85C0 140.456 4.25329 145 9.5 145C14.7467 145 19 140.456 19 134.85C16.2169 71.2734 12.3479 23.288 19 10.15Z"/>
+                  <path class="ld-grow__leaf--deep" transform="translate(0 65)" d="M84 87C21 71.5333 -6.5625 42.5333 1.3125 0C56.4375 3.86667 84 32.8667 84 87Z"/>
+                  <path class="ld-grow__leaf" transform="translate(82 0)" d="M0 147C48.6 116.053 75.6 67.0526 81 0C27 5.1579 0 54.1579 0 147Z"/>
+                </g>
               </svg>
             </div>
             <div class="ld-grow__card">
@@ -325,7 +330,7 @@
           <p class="ld-section__sub">the money is held securely by Stripe, so both sides are covered.</p>
         </div>
 
-        <ol class="ld-pay__track ld-reveal">
+        <ol class="ld-pay__track ld-reveal" id="ld-pay-track">
           <li class="ld-pay__step">
             <span class="ld-pay__dot" aria-hidden="true">
               <svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h3"/></svg>
@@ -352,9 +357,8 @@
     </section>
 
     <!-- ── why grassroots: comparison table ──────────────────
-         grassroots against the places a small business or student would
-         otherwise go. competitor checks reflect how those platforms work
-         as of oct 2026; verify before publishing and revisit if they change. -->
+         grassroots against the other ways a small business gets work done.
+         categories only, no named competitors. -->
     <section class="ld-section ld-compare" aria-labelledby="ld-compare-title">
       <div class="ld-shell">
         <div class="ld-compare__top ld-reveal">
@@ -365,11 +369,12 @@
           <table class="ld-compare__table">
             <thead>
               <tr>
-                <th scope="col"><span class="ld-sr">platform</span></th>
+                <th scope="col"><span class="ld-sr">option</span></th>
                 <th scope="col">local talent</th>
                 <th scope="col">priced for small jobs</th>
                 <th scope="col">paid only on approval</th>
                 <th scope="col">vetted college students</th>
+                <th scope="col">saves your time</th>
               </tr>
             </thead>
             <tbody>
@@ -382,34 +387,16 @@
                 <td><span class="ld-compare__yes" role="img" aria-label="yes"></span></td>
                 <td><span class="ld-compare__yes" role="img" aria-label="yes"></span></td>
                 <td><span class="ld-compare__yes" role="img" aria-label="yes"></span></td>
+                <td><span class="ld-compare__yes" role="img" aria-label="yes"></span></td>
               </tr>
               <tr>
                 <th scope="row">
-                  <span class="ld-compare__name">Upwork</span>
-                  <span class="ld-compare__desc">a huge global talent pool with payment protection, but not built around local towns or students.</span>
+                  <span class="ld-compare__name">freelance websites</span>
+                  <span class="ld-compare__desc">big global talent pools with payment protection, but no local connection.</span>
                 </th>
                 <td><span class="ld-compare__no" role="img" aria-label="no"></span></td>
                 <td><span class="ld-compare__yes" role="img" aria-label="yes"></span></td>
                 <td><span class="ld-compare__yes" role="img" aria-label="yes"></span></td>
-                <td><span class="ld-compare__no" role="img" aria-label="no"></span></td>
-              </tr>
-              <tr>
-                <th scope="row">
-                  <span class="ld-compare__name">Fiverr</span>
-                  <span class="ld-compare__desc">fast, fixed price gigs from sellers worldwide, with no local connection.</span>
-                </th>
-                <td><span class="ld-compare__no" role="img" aria-label="no"></span></td>
-                <td><span class="ld-compare__yes" role="img" aria-label="yes"></span></td>
-                <td><span class="ld-compare__yes" role="img" aria-label="yes"></span></td>
-                <td><span class="ld-compare__no" role="img" aria-label="no"></span></td>
-              </tr>
-              <tr>
-                <th scope="row">
-                  <span class="ld-compare__name">Handshake</span>
-                  <span class="ld-compare__desc">great for student jobs and internships, but not for hiring someone for a single project.</span>
-                </th>
-                <td><span class="ld-compare__yes" role="img" aria-label="yes"></span></td>
-                <td><span class="ld-compare__no" role="img" aria-label="no"></span></td>
                 <td><span class="ld-compare__no" role="img" aria-label="no"></span></td>
                 <td><span class="ld-compare__yes" role="img" aria-label="yes"></span></td>
               </tr>
@@ -418,6 +405,18 @@
                   <span class="ld-compare__name">local agencies</span>
                   <span class="ld-compare__desc">polished work, but retainers, long timelines, and prices built for big budgets.</span>
                 </th>
+                <td><span class="ld-compare__yes" role="img" aria-label="yes"></span></td>
+                <td><span class="ld-compare__no" role="img" aria-label="no"></span></td>
+                <td><span class="ld-compare__no" role="img" aria-label="no"></span></td>
+                <td><span class="ld-compare__no" role="img" aria-label="no"></span></td>
+                <td><span class="ld-compare__yes" role="img" aria-label="yes"></span></td>
+              </tr>
+              <tr>
+                <th scope="row">
+                  <span class="ld-compare__name">doing it yourself</span>
+                  <span class="ld-compare__desc">free on paper, but it costs your time and the learning curve is on you.</span>
+                </th>
+                <td><span class="ld-compare__no" role="img" aria-label="no"></span></td>
                 <td><span class="ld-compare__yes" role="img" aria-label="yes"></span></td>
                 <td><span class="ld-compare__no" role="img" aria-label="no"></span></td>
                 <td><span class="ld-compare__no" role="img" aria-label="no"></span></td>
@@ -570,11 +569,10 @@
          was removed per design direction.) -->
     <section class="ld-final" aria-labelledby="ld-final-title" data-vine-anchor="plant">
       <div class="ld-final__glyph" aria-hidden="true">
-        <svg viewBox="0 0 400 400" fill="none">
-          <path d="M200 380V200" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
-          <path d="M200 200 C120 200, 60 140, 60 60 C140 60, 200 120, 200 200 Z" fill="currentColor"/>
-          <path d="M200 200 C280 200, 340 140, 340 60 C260 60, 200 120, 200 200 Z" fill="currentColor" opacity="0.7"/>
-          <path d="M200 240 C140 240, 100 200, 100 140 C160 140, 200 180, 200 240 Z" fill="currentColor" opacity="0.5"/>
+        <svg viewBox="0 0 163 275" fill="currentColor">
+          <path transform="translate(72, 130)" d="M19 10.15C19 4.54431 14.7467 0 9.5 0C4.25329 0 0 4.54431 0 10.15C7.91804 91.2467 8.44249 120.691 0 134.85C0 140.456 4.25329 145 9.5 145C14.7467 145 19 140.456 19 134.85C16.2169 71.2734 12.3479 23.288 19 10.15Z"/>
+          <path transform="translate(0, 65)" d="M84 87C21 71.5333 -6.5625 42.5333 1.3125 0C56.4375 3.86667 84 32.8667 84 87Z"/>
+          <path transform="translate(82, 0)" d="M0 147C48.6 116.053 75.6 67.0526 81 0C27 5.1579 0 54.1579 0 147Z"/>
         </svg>
       </div>
       <div class="ld-shell">
@@ -737,6 +735,7 @@
           const CANVAS_OVERLAP = 2;          // canvas bottom is this many px below soil-line bottom
           const DENSITY  = 1.0;              // blades per CSS pixel of width (down from 1.7 — fewer but cleaner)
           const INTERACT = 90;               // cursor influence radius
+          const BLEED    = 40;               // empty canvas margin past the soil on each side, so bent blades never clip
           let w = 0;
           const cursor = { x: -9999, y: -9999 };
           const blades = [];
@@ -787,7 +786,7 @@
           // the band bottom. vbY ∈ [0,6] maps to pixels above canvas
           // bottom linearly.
           function bladeBaseAt(x) {
-            const vbX = (x / Math.max(1, w)) * 100;
+            const vbX = ((x - BLEED) / Math.max(1, w - BLEED * 2)) * 100;
             const vbY = soilCurveY(vbX);
             return HEIGHT_PX - CANVAS_OVERLAP - SOIL_LINE_H + vbY * (SOIL_LINE_H / 6);
           }
@@ -797,7 +796,10 @@
             // Render at up to 3× device pixel ratio so blade edges stay
             // crisp on hi-DPI displays (was capped at 2).
             const dpr = Math.min(window.devicePixelRatio || 1, 3);
-            w = Math.max(1, Math.floor(r.width));
+            // w spans the plot plus the bleed on both sides. Blades are planted only
+            // over the soil (BLEED..w-BLEED); the bleed is room for them to bend into.
+            w = Math.max(1, Math.floor(r.width)) + BLEED * 2;
+            canvas.style.setProperty("--ld-grass-bleed", BLEED + "px");
             canvas.width  = Math.floor(w * dpr);
             canvas.height = Math.floor(HEIGHT_PX * dpr);
             canvas.style.width  = w + "px";
@@ -815,13 +817,15 @@
           }
           function makeBlades() {
             blades.length = 0;
-            const count = Math.floor(w * DENSITY);
+            const soilW = w - BLEED * 2;
+            const count = Math.floor(soilW * DENSITY);
             for (let i = 0; i < count; i++) {
               const tall = Math.random() > 0.84;
               // Heights are the previous 24–54 range × 0.9:
               // most blades 22–35, tall sub-set 35–49.
               const h = tall ? 34 + Math.random() * 14 : 22 + Math.random() * 14;
-              const x = (i / count) * w + (Math.random() - 0.5) * 5;
+              // Planted within the soil's width, never past its ends.
+              const x = BLEED + Math.min(soilW, Math.max(0, (i / count) * soilW + (Math.random() - 0.5) * 5));
               const depth = Math.random();   // 0 = back, 1 = front
               blades.push({
                 x,
@@ -836,10 +840,10 @@
                 tilt: (Math.random() - 0.5) * 0.28,
                 bend: 0,
                 bendV: 0,
-                // Brightness rises with depth — front blades the brightest,
-                // back blades a darker forest green. Adds a per-blade jitter
-                // so neighbours don't all share one shade.
-                v: 0.42 + depth * 0.46 + (Math.random() - 0.5) * 0.08,
+                // Brightness rises with depth, but stays well under the sprout's
+                // green so the logo carries the most attention. Per-blade jitter
+                // keeps neighbours from sharing one shade.
+                v: 0.30 + depth * 0.26 + (Math.random() - 0.5) * 0.06,
                 hueShift: (Math.random() - 0.5) * 14, // ±7 channel jitter
               });
             }
@@ -849,7 +853,8 @@
           function drawBlade(b, sway) {
             const baseY = b.baseY;
             const baseLean = b.tilt * 3.5 + sway * 0.24;
-            const tipBend  = b.tilt * 9 + sway * 0.62 + b.bend * 3.2;
+            // Capped inside the bleed so a hard push can't carry the tip off the canvas.
+            const tipBend  = Math.max(-(BLEED - 6), Math.min(BLEED - 6, b.tilt * 9 + sway * 0.62 + b.bend * 3.2));
             const tipX = b.x + tipBend;
             const tipY = baseY - b.h;
             const bw = b.bw;
@@ -1035,17 +1040,35 @@
         grow.querySelectorAll(".ld-grow__step").forEach((step) => growIO.observe(step));
       }
 
-      // ── Manifesto scroll reveal ─────────────────────────────────
-      // Wrap each word of the second statement in a span, then light the
-      // words up in order as the panel scrolls up through the viewport:
-      // none lit when the panel's top reaches 85% of the screen, all lit
-      // by the time its middle reaches 45%. Scrolling back up dims them again.
+      // ── Payment flow ────────────────────────────────────────────
+      // Green runs through the tracker once, left to right, the first time
+      // it scrolls into view. Reduced motion shows the finished state.
+      const payTrack = document.getElementById("ld-pay-track");
+      if (payTrack) {
+        if (reduced || !("IntersectionObserver" in window)) {
+          payTrack.classList.add("is-flowing");
+        } else {
+          const payIo = new IntersectionObserver((entries) => {
+            if (!entries.some((e) => e.isIntersecting)) return;
+            payTrack.classList.add("is-flowing");
+            payIo.disconnect();
+          }, { threshold: 0.6 });
+          payIo.observe(payTrack);
+        }
+      }
+
+      // ── Manifesto reveal ────────────────────────────────────────
+      // Wrap each word of the second statement in a span with its index, then
+      // light them up in order (timed in CSS) once the panel enters the viewport.
       const manifesto = document.getElementById("ld-manifesto");
       const manifestoText = document.getElementById("ld-manifesto-text");
       if (manifesto && manifestoText) {
         const words = [];
-        for (const node of [...manifestoText.childNodes]) {
-          if (node.nodeType !== Node.TEXT_NODE) continue;
+        // Walk every text node, including the ones inside highlighted keywords.
+        const textNodes = [];
+        const walker = document.createTreeWalker(manifestoText, NodeFilter.SHOW_TEXT);
+        while (walker.nextNode()) textNodes.push(walker.currentNode);
+        for (const node of textNodes) {
           const frag = document.createDocumentFragment();
           for (const tok of node.textContent.split(/(\s+)/)) {
             if (!tok) continue;
@@ -1054,6 +1077,7 @@
             } else {
               const span = document.createElement("span");
               span.className = "ld-manifesto__word";
+              span.style.setProperty("--i", words.length);
               span.textContent = tok;
               frag.appendChild(span);
               words.push(span);
@@ -1063,24 +1087,15 @@
         }
 
         const panel = manifesto.querySelector(".ld-manifesto__panel") || manifesto;
-        let ticking = false;
-        function update() {
-          ticking = false;
-          const r = panel.getBoundingClientRect();
-          const vh = window.innerHeight;
-          const start = vh * 0.85;
-          const end = vh * 0.45 - r.height / 2;
-          const p = Math.min(1, Math.max(0, (start - r.top) / (start - end)));
-          const lit = Math.round(p * words.length);
-          words.forEach((w, i) => w.classList.toggle("is-lit", i < lit));
-        }
-        if (reduced) {
-          words.forEach((w) => w.classList.add("is-lit"));
+        if (reduced || !("IntersectionObserver" in window)) {
+          manifestoText.classList.add("is-lit");
         } else {
-          const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(update); } };
-          window.addEventListener("scroll", onScroll, { passive: true });
-          window.addEventListener("resize", onScroll);
-          update();
+          const io = new IntersectionObserver((entries) => {
+            if (!entries.some((e) => e.isIntersecting)) return;
+            manifestoText.classList.add("is-lit");
+            io.disconnect();
+          }, { threshold: 0.5 });
+          io.observe(panel);
         }
       }
     </script>

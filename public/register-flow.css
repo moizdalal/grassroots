@@ -305,10 +305,12 @@ a.reg-role-card--apply:visited {
 }
 
 .reg-role-card__title {
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--font-display);
   font-size: var(--type-h3);
   font-weight: 700;
   color: var(--green-deep);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .reg-role-card__hint {

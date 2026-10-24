@@ -80,7 +80,7 @@ body.gr-onboarding-active {
   box-shadow:
     0 16px 40px rgba(0, 0, 0, 0.42),
     0 4px 12px rgba(0, 0, 0, 0.28);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   animation: gr-onb-tooltip-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
   /* Whole bubble is grabbable — child buttons/links override with
      auto so they keep their pointer hint. */
@@ -209,7 +209,7 @@ body.gr-onboarding-active {
   padding: 0.2rem 0.45rem;
   margin: 0;
   cursor: pointer;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: 0.66rem;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -342,12 +342,14 @@ body.gr-onboarding-active {
 
 .gr-onb-title {
   margin: 0 0 0.4rem;
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.35rem;
   font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1.15;
   color: var(--fo-text, #f1e8d3);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .gr-onb-body {
@@ -374,7 +376,7 @@ body.gr-onboarding-active {
   gap: 0.3rem;
   padding: 0.55rem 0.95rem;
   border-radius: 999px;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: 0.86rem;
   font-weight: 600;
   cursor: pointer;
@@ -399,7 +401,7 @@ body.gr-onboarding-active {
   background: none;
   border: 0;
   padding: 0.35rem 0;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: 0.78rem;
   color: var(--fo-text-3, rgba(241, 232, 211, 0.55));
   text-decoration: underline;
@@ -437,7 +439,7 @@ body.gr-onboarding-active {
   width: 100%;
   padding: 0.65rem 1rem;
   border-radius: 12px;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: 0.92rem;
   font-weight: 600;
   cursor: pointer;
@@ -495,17 +497,19 @@ body.gr-onboarding-active {
   box-shadow:
     0 20px 50px rgba(0, 0, 0, 0.5),
     0 6px 14px rgba(0, 0, 0, 0.32);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   animation: gr-onb-confirm-card-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .gr-onb-confirm__title {
   margin: 0 0 0.4rem;
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.3rem;
   font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1.2;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .gr-onb-confirm__body {

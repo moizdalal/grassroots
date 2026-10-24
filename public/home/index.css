@@ -175,8 +175,8 @@
       }
 
       .ld-italic {
-        font-family: "Fraunces", Georgia, serif;
-        font-style: italic;
+        font-family: var(--font-display);
+        font-style: normal;
         font-weight: inherit;
         color: var(--fo-accent);
       }
@@ -214,7 +214,7 @@
       .ld-nav__brand {
         display: inline-flex; align-items: center; gap: 0.55rem;
         text-decoration: none; color: var(--fo-text);
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600; font-size: 1.2rem;
         letter-spacing: -0.02em;
         position: relative;
@@ -311,7 +311,7 @@
       .ld-nav__link {
         position: relative;
         color: var(--fo-text-2); text-decoration: none;
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: var(--type-body); font-weight: 500;
         padding: 0.6rem 0.2rem;
         transition: color 0.22s ease;
@@ -371,7 +371,7 @@
         color: var(--fo-accent-on);
         text-decoration: none;
         border-radius: 999px;
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: var(--type-body);
         font-weight: 700;
         letter-spacing: 0;
@@ -460,7 +460,7 @@
 
       /* eyebrow */
       .ld-eyebrow {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: var(--type-eyebrow);
         font-weight: 700; letter-spacing: 0.16em;
         text-transform: uppercase; color: var(--fo-text-3);
@@ -613,7 +613,7 @@
       @media (max-width: 900px) { .ld-hero__grid { grid-template-columns: 1fr; } }
 
       .ld-hero__title {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: clamp(2.5rem, 6.2vw, 4.8rem);
         line-height: 1.02;
@@ -623,7 +623,7 @@
         text-wrap: pretty;
       }
       .ld-hero__sub {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: clamp(1rem, 1.4vw, 1.18rem);
         line-height: 1.55;
         color: var(--fo-text);
@@ -664,7 +664,7 @@
         margin: clamp(0.4rem, 1.2vw, 0.8rem) auto 0;
         max-width: 38ch;
         text-align: center;
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: 0.8rem;
         line-height: 1.5;
         color: var(--fo-text-3);
@@ -721,10 +721,12 @@
       }
       /* Canvas of grass blades along the visual's soil line — bottom
          aligned to the soil line by JS, blades scaled to 8–18px. */
+      /* Wider than the plot by --ld-grass-bleed on each side (set by JS).
+         Blades only grow over the soil; the extra width is room for edge
+         blades to bend out past it without being cut off. */
       .ld-hero__garden .ld-hero__grass {
         position: absolute;
-        left: 0;
-        right: 0;
+        left: calc(var(--ld-grass-bleed, 0px) * -1);
         display: block;
         pointer-events: none;
         z-index: 6;
@@ -732,14 +734,8 @@
       /* Larger, thicker roots — beefy enough to read at hero scale. */
       .ld-hero__garden .gs__root-branch { stroke-width: 3.6; opacity: 1; }
       .ld-hero__garden .gs__root-node   { r: 9; stroke-width: 2.4; }
-      /* Green roots on the home page. garden-stem.js sets a brown --gs-root inline
-         on each root, so !important is needed to win; shades vary per root. */
-      .ld-hero__garden .gs__root:nth-of-type(6n+1) { --gs-root: #3f9a6b !important; }
-      .ld-hero__garden .gs__root:nth-of-type(6n+2) { --gs-root: #5fbf8f !important; }
-      .ld-hero__garden .gs__root:nth-of-type(6n+3) { --gs-root: #2f7a5a !important; }
-      .ld-hero__garden .gs__root:nth-of-type(6n+4) { --gs-root: #4fae7c !important; }
-      .ld-hero__garden .gs__root:nth-of-type(6n+5) { --gs-root: #6dbf8a !important; }
-      .ld-hero__garden .gs__root:nth-of-type(6n+6) { --gs-root: #379065 !important; }
+      /* Roots keep the per-root browns garden-stem.js assigns, so
+         they read as roots and the green sprout stays the focal point. */
       /* Persistent pulsing halo on each node — overrides the dashboard's
          one-shot emerge so visitors can see the nodes are interactive
          before they hover. */
@@ -800,7 +796,7 @@
           0 0 0 4px color-mix(in srgb, var(--fo-accent) 14%, transparent);
       }
       .ld-hero__garden .gs__hover-title {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-size: 1.05rem;
         font-weight: 600;
         letter-spacing: -0.015em;
@@ -812,7 +808,7 @@
       .ld-hero__garden .gs__hover-title::before {
         content: "completed work";
         display: block;
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: 0.62rem;
         font-weight: 700;
         letter-spacing: 0.14em;
@@ -840,7 +836,7 @@
         font-weight: 600;
       }
       .ld-hero__garden .gs__hover-row:last-child dd {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-style: italic;
         font-weight: 600;
         font-size: 1rem;
@@ -1002,7 +998,7 @@
         border: 1px solid var(--fo-line-strong);
         border-radius: 14px;
         box-shadow: 0 12px 26px rgba(0,0,0,0.18);
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         transform-origin: center center;
         transition:
           transform 0.75s cubic-bezier(0.22, 1, 0.36, 1),
@@ -1132,7 +1128,7 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: 0.85rem;
         letter-spacing: -0.01em;
@@ -1140,7 +1136,7 @@
       }
       .ld-hero-card__name-block { min-width: 0; }
       .ld-hero-card__name {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: 0.92rem;
         letter-spacing: -0.01em;
@@ -1164,7 +1160,7 @@
         text-transform: none;
       }
       .ld-hero-card__stat {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: 0.72rem;
         font-weight: 600;
         color: var(--fo-accent);
@@ -1256,23 +1252,12 @@
         border-radius: 28px;
         text-align: center;
         color: var(--ld-panel-ink);
-        background: linear-gradient(120deg, #dcebe2 0%, #eef3ec 55%, #e1ede6 100%);
+        background: #fff;
         box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
-      }
-      /* Soft diagonal light streaks across the panel. */
-      .ld-manifesto__panel::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        z-index: -1;
-        background:
-          linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.38) 38.2%, rgba(255, 255, 255, 0.12) 52%, transparent 52.2%),
-          linear-gradient(115deg, transparent 70%, rgba(255, 255, 255, 0.28) 70.2%, transparent 84%);
-        pointer-events: none;
       }
       .ld-manifesto__lead,
       .ld-manifesto__text {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-body);
         font-weight: 500;
         font-size: clamp(1.35rem, 2.6vw, 2.2rem);
         line-height: 1.3;
@@ -1283,13 +1268,21 @@
         text-wrap: pretty;
       }
       .ld-manifesto__lead { margin-bottom: 0.9em; }
-      /* Scroll reveal: JS wraps each word of the second statement and lights
-         words up in order as the panel scrolls through the viewport. */
+      /* Keywords in bold green. The panel is light in every theme, so this
+         uses a deep green fixed for contrast on it rather than --fo-accent. */
+      .ld-manifesto__key {
+        font-weight: 700;
+        color: #1f6b47;
+      }
+      /* Timed reveal: JS wraps each word of the second statement and gives it
+         --i; once the panel enters the viewport, .is-lit on the text fades the
+         words in one after another. */
       .ld-manifesto__word {
         opacity: 0.22;
         transition: opacity 0.35s ease;
+        transition-delay: calc(var(--i, 0) * 70ms);
       }
-      .ld-manifesto__word.is-lit { opacity: 1; }
+      .ld-manifesto__text.is-lit .ld-manifesto__word { opacity: 1; }
       @media (prefers-reduced-motion: reduce) {
         .ld-manifesto__word { opacity: 1; transition: none; }
       }
@@ -1308,14 +1301,14 @@
       }
       .ld-stat { display: grid; gap: 0.45rem; }
       .ld-stat__eyebrow {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: var(--type-eyebrow);
         font-weight: 700; letter-spacing: 0.14em;
         text-transform: uppercase; color: var(--fo-text-3);
       }
       body.gr-body .ld-stat__eyebrow { text-transform: uppercase; }
       .ld-stat__value {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: clamp(2.2rem, 4.4vw, 3.2rem);
         line-height: 1.02;
@@ -1357,7 +1350,7 @@
       .ld-section__head { max-width: 56ch; margin-bottom: clamp(var(--space-5), 4vw, var(--space-6)); }
       .ld-section__head--center { margin-inline: auto; text-align: center; }
       .ld-section__title {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: clamp(1.9rem, 3.4vw, 3rem);
         line-height: 1.06;
@@ -1367,7 +1360,7 @@
         text-wrap: pretty;
       }
       .ld-section__sub {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: var(--type-h3);
         line-height: 1.55;
         color: var(--fo-text-2);
@@ -1434,7 +1427,7 @@
       .ld-grow__petal--shade { fill: #dc94aa; }
       .ld-grow__center { fill: #e8b03c; }
       .ld-grow__title {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: clamp(1.2rem, 1.8vw, 1.45rem);
         line-height: 1.2;
@@ -1472,7 +1465,7 @@
         min-width: 640px;
         border-collapse: separate;
         border-spacing: 0;
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         color: var(--fo-text);
       }
       .ld-compare__table thead th {
@@ -1498,7 +1491,7 @@
       .ld-compare__table tbody td { text-align: center; }
       .ld-compare__name {
         display: block;
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: clamp(1.1rem, 1.6vw, 1.35rem);
         margin-bottom: 0.3rem;
@@ -1568,9 +1561,26 @@
         right: calc(100% / 6);
         height: 3px;
         border-radius: 2px;
-        background: var(--fo-accent);
+        background: color-mix(in srgb, var(--fo-accent) 22%, transparent);
       }
-      .ld-pay__step { position: relative; text-align: center; }
+      /* Green fill that runs along the line once .is-flowing is added (JS). */
+      .ld-pay__track::after {
+        content: "";
+        position: absolute;
+        top: 27px;
+        left: calc(100% / 6);
+        right: calc(100% / 6);
+        height: 3px;
+        border-radius: 2px;
+        background: var(--fo-accent);
+        transform: scaleX(0);
+        transform-origin: left center;
+      }
+      .ld-pay__track.is-flowing::after {
+        animation: ld-pay-line 2.4s ease-in-out forwards;
+      }
+      @keyframes ld-pay-line { to { transform: scaleX(1); } }
+      .ld-pay__step { position: relative; z-index: 1; text-align: center; }
       .ld-pay__dot {
         position: relative;
         display: flex;
@@ -1580,19 +1590,23 @@
         height: 56px;
         margin: 0 auto 0.9rem;
         border-radius: 50%;
-        background: var(--fo-accent);
+        /* Starts white with a green icon; fills green as the money reaches it. */
+        background: #fff;
+        box-shadow: inset 0 0 0 2px var(--fo-accent);
+        transition: background-color 0.45s ease;
       }
       .ld-pay__dot svg {
         width: 26px;
         height: 26px;
         fill: none;
-        stroke: #fff;
+        stroke: var(--fo-accent);
+        transition: stroke 0.45s ease;
         stroke-width: 1.8;
         stroke-linecap: round;
         stroke-linejoin: round;
       }
       .ld-pay__title {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: clamp(1.1rem, 1.6vw, 1.3rem);
         color: var(--fo-text);
@@ -1605,10 +1619,25 @@
         margin: 0 auto;
         max-width: 24ch;
       }
+      /* Each dot turns green as the fill reaches it: 0s, 1.2s, 2.4s. */
+      .ld-pay__track.is-flowing .ld-pay__dot { background: var(--fo-accent); }
+      .ld-pay__track.is-flowing .ld-pay__dot svg { stroke: #fff; }
+      .ld-pay__track.is-flowing .ld-pay__step:nth-child(2) .ld-pay__dot,
+      .ld-pay__track.is-flowing .ld-pay__step:nth-child(2) .ld-pay__dot svg { transition-delay: 1.2s; }
+      .ld-pay__track.is-flowing .ld-pay__step:nth-child(3) .ld-pay__dot,
+      .ld-pay__track.is-flowing .ld-pay__step:nth-child(3) .ld-pay__dot svg { transition-delay: 2.4s; }
+      @media (prefers-reduced-motion: reduce) {
+        .ld-pay__track.is-flowing::after { animation: none; transform: none; }
+        .ld-pay__dot, .ld-pay__dot svg { transition: none !important; }
+      }
       /* Phones: stack the steps with the line running down the left side. */
       @media (max-width: 600px) {
         .ld-pay__track { grid-template-columns: 1fr; gap: var(--space-4); max-width: 420px; }
-        .ld-pay__track::before { top: 28px; bottom: 28px; left: 27px; right: auto; width: 3px; height: auto; }
+        .ld-pay__track::before,
+        .ld-pay__track::after { top: 28px; bottom: 28px; left: 27px; right: auto; width: 3px; height: auto; }
+        .ld-pay__track::after { transform: scaleY(0); transform-origin: center top; }
+        .ld-pay__track.is-flowing::after { animation-name: ld-pay-line-down; }
+        @keyframes ld-pay-line-down { to { transform: scaleY(1); } }
         .ld-pay__step {
           display: grid;
           grid-template-columns: 56px minmax(0, 1fr);
@@ -1705,7 +1734,7 @@
         display: inline-flex;
         align-items: baseline;
         gap: 0.45rem;
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         z-index: 2;
       }
       .ld-cherry__counter-num {
@@ -1719,7 +1748,7 @@
       }
       .ld-cherry__counter-num::before { content: "0" attr(data-step); }
       .ld-cherry__counter-of {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: var(--type-eyebrow);
         font-weight: 700;
         letter-spacing: 0.16em;
@@ -1779,7 +1808,7 @@
         color: var(--fo-accent);
       }
       .ld-story-card__title {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: var(--type-h2);
         line-height: 1.15;
@@ -1902,7 +1931,7 @@
       .ld-why-card:hover .ld-why-card__body { opacity: 0.94; }
 
       .ld-why-card__num {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-style: italic;
         font-weight: 500;
         font-size: clamp(3.4rem, 5vw, 4.6rem);
@@ -1921,7 +1950,7 @@
         align-self: center;
       }
       .ld-why-card__chip {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: var(--type-eyebrow);
         font-weight: 700;
         letter-spacing: 0.16em;
@@ -1930,7 +1959,7 @@
       }
       body.gr-body .ld-why-card__chip { text-transform: uppercase; }
       .ld-why-card__title {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: clamp(1.45rem, 2vw, 1.85rem);
         line-height: 1.12;
@@ -2191,7 +2220,7 @@
         align-items: center;
         gap: 0.32rem;
         color: var(--fo-accent);
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-style: italic;
         font-weight: 500;
         font-size: 0.72rem;
@@ -2207,7 +2236,7 @@
       }
       /* Matches .ld-where-card__name so both cards open with the same heading style. */
       .ld-where-card__title {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: 1.1rem;
         color: var(--fo-text);
@@ -2224,7 +2253,7 @@
         background: var(--fo-accent);
         color: var(--fo-accent-on);
         display: inline-flex; align-items: center; justify-content: center;
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: 1.1rem;
         /* School initials (UF) are a proper noun, so they stay uppercase. */
@@ -2232,7 +2261,7 @@
         letter-spacing: -0.01em;
       }
       .ld-where-card__name {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: 1.1rem;
         color: var(--fo-text);
@@ -2251,7 +2280,7 @@
         margin: var(--space-3) 0 0;
       }
       .ld-where-card__amt {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: clamp(2.2rem, 4.5vw, 3rem);
         letter-spacing: -0.025em;
@@ -2287,7 +2316,7 @@
         border-radius: 999px;
         background: color-mix(in srgb, var(--ld-ui-gray-3) 22%, transparent);
         color: var(--fo-text);
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-weight: 700;
         font-size: 0.72rem;
         text-align: center;
@@ -2296,7 +2325,7 @@
       .ld-where-card__bullet--accent {
         background: var(--fo-accent);
         color: var(--fo-accent-on);
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-style: italic;
         font-weight: 600;
         font-size: 0.85rem;
@@ -2313,14 +2342,14 @@
         border-radius: 12px;
         background: color-mix(in srgb, var(--fo-bg) 65%, transparent);
         border-left: 3px solid var(--fo-accent);
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-style: italic;
         font-size: 0.98rem;
         color: var(--fo-text);
         line-height: 1.4;
       }
       .ld-where-card__note-mark {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-style: italic;
         font-size: 2rem;
         color: var(--fo-accent);
@@ -2334,7 +2363,7 @@
         margin-top: 0.45rem;
         font-style: normal;
         font-size: 0.72rem;
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         color: var(--fo-text-3);
         letter-spacing: 0.02em;
       }
@@ -2393,7 +2422,7 @@
         transform: translateY(-2px);
       }
       .ld-peek-card__eyebrow {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: var(--type-eyebrow); font-weight: 700;
         letter-spacing: 0.1em; text-transform: uppercase;
         color: var(--fo-text-3);
@@ -2406,7 +2435,7 @@
         margin-right: 0.45rem; vertical-align: 1px;
       }
       .ld-peek-card__title {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600; font-size: var(--type-h2);
         line-height: 1.18; color: var(--fo-text); margin: 0;
         letter-spacing: -0.015em;
@@ -2419,15 +2448,15 @@
         width: 64px; height: 64px; border-radius: 14px;
         background: var(--fo-accent-soft); color: var(--fo-accent);
         display: inline-flex; align-items: center; justify-content: center;
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600; font-size: 1.5rem;
       }
       .ld-peek-card__biz {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-weight: 600; font-size: 0.92rem; color: var(--fo-text);
       }
       .ld-peek-card__budget {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600; font-style: italic;
         font-size: 1.35rem; color: var(--fo-accent); line-height: 1.1;
       }
@@ -2520,7 +2549,7 @@
         opacity: 1; transform: scale(1.2);
       }
       .ld-escrow__party-label {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600; font-size: 1.05rem;
         color: var(--fo-text);
       }
@@ -2532,7 +2561,7 @@
       }
       body.gr-body .ld-escrow__party-cap { text-transform: uppercase; }
       .ld-escrow__party-balance {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-style: italic; font-weight: 600;
         font-size: 1.05rem;
         color: var(--fo-accent);
@@ -2646,7 +2675,7 @@
         color: var(--fo-text);
       }
       .ld-escrow__vault-amount {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-style: italic; font-weight: 600;
         font-size: 1.4rem;
         color: var(--fo-accent);
@@ -2661,7 +2690,7 @@
         opacity: 1; transform: translateY(0);
       }
       .ld-escrow__vault-state {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: 0.66rem;
         font-weight: 700;
         letter-spacing: 0.16em;
@@ -2688,7 +2717,7 @@
         background: var(--fo-surface);
         border: 1px solid var(--fo-accent);
         border-radius: 999px;
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: 0.78rem;
         font-weight: 700;
         color: var(--fo-accent);
@@ -2722,7 +2751,7 @@
         background: var(--fo-accent);
         color: var(--fo-accent-on);
         display: inline-flex; align-items: center; justify-content: center;
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-style: italic;
         font-weight: 700;
         font-size: 1.05rem;
@@ -2760,7 +2789,7 @@
         background: var(--fo-bg);
         border: 1px solid var(--fo-line);
         border-radius: 999px;
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: 0.82rem;
         font-weight: 600;
         color: var(--fo-text-3);
@@ -2830,7 +2859,7 @@
       .ld-review__head { max-width: 56ch; margin: 0 auto var(--space-4); }
       .ld-review__head .ld-eyebrow { display: inline-block; }
       .ld-review__title {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: clamp(1.6rem, 2.6vw, 2.1rem);
         line-height: 1.2;
@@ -2844,7 +2873,7 @@
         margin-bottom: var(--space-4);
       }
       .ld-review__chip {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: var(--type-meta); font-weight: 500;
         color: var(--fo-text);
         padding: 0.5rem 1rem;
@@ -2903,13 +2932,13 @@
         border-color: var(--fo-accent);
       }
       .ld-quote__mark {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-style: italic; font-weight: 500;
         font-size: 2.8rem; line-height: 0.7;
         color: var(--fo-accent); opacity: 0.7;
       }
       .ld-quote__body {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-style: italic; font-weight: 400;
         font-size: 1.18rem; line-height: 1.45;
         color: var(--fo-text); margin: 0;
@@ -2925,12 +2954,12 @@
         --gr-avatar-fg: var(--fo-accent);
       }
       .ld-quote__name {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: var(--type-meta); font-weight: 600;
         color: var(--fo-text); line-height: 1.3;
       }
       .ld-quote__role {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: var(--type-meta);
         color: var(--fo-text-3); line-height: 1.3;
       }
@@ -2968,7 +2997,7 @@
         position: relative;
       }
       .ld-students__title {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: clamp(1.8rem, 3.4vw, 2.8rem);
         line-height: 1.08;
@@ -3012,7 +3041,7 @@
         display: flex; align-items: center; justify-content: space-between;
         gap: var(--space-3); list-style: none; cursor: pointer;
         padding: var(--space-4) 0;
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600; font-size: var(--type-h2);
         color: var(--fo-text); letter-spacing: -0.01em;
         transition: color 0.2s ease;
@@ -3090,7 +3119,7 @@
 
       .ld-final__title {
         position: relative;
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: clamp(2.2rem, 5vw, 3.6rem);
         line-height: 1.05;
@@ -3126,7 +3155,7 @@
       .ld-foot__brand {
         display: inline-flex; align-items: center; gap: 0.5rem;
         color: var(--fo-text); text-decoration: none;
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600; font-size: var(--type-h2);
         letter-spacing: -0.02em; margin-bottom: var(--space-2);
       }
@@ -3136,7 +3165,7 @@
         color: var(--fo-text-3); line-height: 1.5;
       }
       .ld-foot__col-h {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: var(--type-eyebrow);
         font-weight: 700; letter-spacing: 0.14em;
         text-transform: uppercase; color: var(--fo-text-3);
@@ -3178,7 +3207,7 @@
       .ld-theme button {
         appearance: none; border: 0; background: transparent;
         color: var(--fo-text-3);
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: var(--type-eyebrow);
         font-weight: 700; letter-spacing: 0.1em;
         text-transform: uppercase;
@@ -3675,7 +3704,7 @@
       }
 
       .ld-cta__title {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: clamp(2.2rem, 5vw, 4rem);
         line-height: 1;
@@ -3689,7 +3718,7 @@
       :root:not([data-theme="light"]) .ld-cta__title .ld-italic { color: var(--fo-accent); }
 
       .ld-cta__sub {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: 1.1rem;
         line-height: 1.55;
         color: rgba(255,253,247,0.78);
@@ -3758,7 +3787,7 @@
         border-bottom: 1px dashed var(--fo-line);
       }
       .ld-cta__form-title {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: 1.4rem;
         line-height: 1;
@@ -3768,7 +3797,7 @@
       }
       :root:not([data-theme="light"]) .ld-cta__form-title { color: var(--fo-text); }
       .ld-cta__form-step {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: var(--type-meta);
         font-weight: 600;
         color: var(--fo-text-3);
@@ -3781,7 +3810,7 @@
         display: grid; gap: 0.35rem;
       }
       .ld-cta__field-label {
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: 0.78rem;
         font-weight: 600;
         color: var(--fo-text-2);
@@ -3793,7 +3822,7 @@
         border: 1.5px solid var(--fo-line-strong);
         border-radius: 10px;
         background: color-mix(in srgb, var(--fo-bg, #fff) 60%, transparent);
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: 1rem;
         color: var(--fo-ink, var(--fo-text));
         transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
@@ -3822,7 +3851,7 @@
         padding: 1.05rem 1.4rem;
         background: var(--fo-accent-deep, var(--fo-accent));
         color: #fffdf7;
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
         font-size: 1.05rem;
         font-weight: 700;
         border-radius: 12px;
@@ -3855,7 +3884,7 @@
         color: var(--fo-text-3);
         text-align: center;
         margin: 0;
-        font-family: "Manrope", system-ui, sans-serif;
+        font-family: var(--font-body);
       }
       .ld-cta__fine a { color: var(--fo-accent); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--fo-accent) 35%, transparent); text-underline-offset: 3px; }
 
@@ -3904,7 +3933,7 @@
       }
       .ld-cta__form-success-icon svg { width: 1.7rem; height: 1.7rem; }
       .ld-cta__form-success h4 {
-        font-family: "Fraunces", Georgia, serif;
+        font-family: var(--font-display);
         font-weight: 600;
         font-size: 1.5rem;
         margin: 0;

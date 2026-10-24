@@ -135,7 +135,7 @@
 body.gr-body {
   background: var(--fo-bg);
   color: var(--fo-text);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   text-transform: none;
 }
 
@@ -155,9 +155,11 @@ body.gr-body * {
 .cl-preview__bio-name,
 .pf-bv__name,
 .pf-resume-viewer__title {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   color: var(--fo-text);
   letter-spacing: -0.02em;
+  font-weight: 600;
+  font-style: normal;
 }
 
 /* Re-assert eyebrow-tracker uppercase on .gr-section-h. The earlier
@@ -188,14 +190,16 @@ body.gr-body .gr-section-h {
 .gr-nav__brand,
 .gr-nav__wordmark {
   color: var(--fo-text);
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   letter-spacing: -0.02em;
   font-weight: 600;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .gr-nav__links a {
   color: var(--fo-text-2);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
 }
 
 .gr-nav__links a:hover,
@@ -207,7 +211,7 @@ body.gr-body .gr-section-h {
   background: var(--fo-accent);
   color: var(--fo-accent-on) !important;
   border: 1px solid var(--fo-accent);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-weight: 700;
   letter-spacing: 0;
   box-shadow: 0 4px 18px var(--fo-accent-soft);
@@ -225,7 +229,7 @@ body.gr-body .gr-section-h {
 
 .gr-nav__menu-trigger {
   color: var(--fo-text-2);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
 }
 
 .gr-nav__menu-trigger:hover,
@@ -261,10 +265,12 @@ body.gr-body .gr-section-h {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--type-body);  color: var(--fo-accent);
   flex-shrink: 0;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .gr-nav__avatar--placeholder {
@@ -354,8 +360,10 @@ body.gr-body .gr-section-h {
 /* ── status / empty ────────────────────────────────────────────── */
 .gr-status {
   color: var(--fo-text-3);
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .gr-status.success {
@@ -377,9 +385,11 @@ body.gr-body .gr-section-h {
   border: 0;
   border-radius: 10px;
   padding: 0.85rem 1rem;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: var(--type-body);  line-height: 1.4;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .gr-empty-state[hidden] {
@@ -441,7 +451,7 @@ body.gr-body .gr-section-h {
   border: 1px solid var(--fo-line);
   color: var(--fo-text);
   border-radius: 999px;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-body);
   height: 2.5rem;
   box-sizing: border-box;
@@ -452,7 +462,7 @@ body.gr-body .gr-section-h {
 .gr-search-bar__select {
   padding: 0 1rem;
   font: inherit;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   outline: none;
 }
 
@@ -595,7 +605,7 @@ body.gr-body .gr-section-h {
 
 .fo-pill {
   font: inherit;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);  padding: 0.4rem 0.95rem;
   border-radius: 999px;
   border: 1px solid var(--fo-line-strong);
@@ -641,11 +651,13 @@ body.gr-body .gr-section-h {
 }
 
 .gr-marketplace-section__title {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-h2);  font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--fo-text);
   margin: 0;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .gr-marketplace-section__sub {
@@ -654,7 +666,7 @@ body.gr-body .gr-section-h {
 }
 
 .gr-marketplace-section__count {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);  font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -672,9 +684,11 @@ body.gr-body .gr-section-h {
   border: 1px dashed var(--fo-line-strong);
   background: var(--fo-surface);
   color: var(--fo-text-3);
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: var(--type-body);  text-align: center;
+  font-weight: 600;
+  font-style: normal;
 }
 
 /* horizontal scroll track of cards */
@@ -776,7 +790,7 @@ body.gr-body .gr-section-h {
 }
 
 :where(#listing-grid, #dash-listings-cards) .gr-listing-recency {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -806,7 +820,7 @@ body.gr-body .gr-section-h {
    token-aligned with the rest of the system. 2-line clamp keeps the
    card height bounded for sentence-length titles. */
 :where(#listing-grid, #dash-listings-cards) .gr-listing-title {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--type-h2);
   line-height: 1.15;
@@ -818,6 +832,8 @@ body.gr-body .gr-section-h {
   -webkit-box-orient: vertical;
   overflow: hidden;
   overflow-wrap: break-word;
+  font-weight: 600;
+  font-style: normal;
 }
 
 /* Identity row ─ 96px avatar tile | meta stack (biz / budget /
@@ -851,11 +867,13 @@ body.gr-body .gr-section-h {
   justify-content: center;
   flex-shrink: 0;
   overflow: hidden;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 2rem;
   letter-spacing: -0.02em;
   line-height: 1;
+  font-weight: 600;
+  font-style: normal;
 }
 
 :where(#listing-grid, #dash-listings-cards) .gr-listing-logo {
@@ -878,7 +896,7 @@ body.gr-body .gr-section-h {
 
 :where(#listing-grid, #dash-listings-cards) .gr-listing-biz-name {
   margin: 0;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-weight: 600;
   font-size: 0.95rem;
   color: var(--fo-text);
@@ -890,18 +908,20 @@ body.gr-body .gr-section-h {
 
 :where(#listing-grid, #dash-listings-cards) .gr-listing-budget {
   margin: 0;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: 1.5rem;
   font-weight: 600;
   font-style: italic;
   color: var(--fo-accent);
   letter-spacing: -0.01em;
   line-height: 1.05;
+  font-weight: 600;
+  font-style: normal;
 }
 
 :where(#listing-grid, #dash-listings-cards) .gr-listing-contract {
   margin: 0;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: 0.82rem;
   font-weight: 500;
   color: var(--fo-text-2);
@@ -932,7 +952,7 @@ body.gr-body .gr-section-h {
 }
 
 :where(#listing-grid, #dash-listings-cards) .gr-listing-tag {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: 0.78rem;
   background: transparent;
   color: var(--fo-text-2);
@@ -955,7 +975,7 @@ body.gr-body .gr-section-h {
 :where(#listing-grid, #dash-listings-cards) .gr-listing-cta-link {
   font-size: 0.82rem;
   color: var(--fo-text-2);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-weight: 600;
   white-space: nowrap;
   transition: color 0.18s ease, transform 0.18s ease;
@@ -989,7 +1009,7 @@ body.gr-body .gr-section-h {
   backdrop-filter: blur(14px) saturate(150%);
   -webkit-backdrop-filter: blur(14px) saturate(150%);
   color: var(--fo-text-2);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);
   line-height: 1.5;
   opacity: 0;
@@ -1018,8 +1038,10 @@ body.gr-body .gr-section-h {
 /* Featured card still uses the older .gr-listing-cta marker class. */
 .gr-listing-cta {
   font-size: var(--type-meta);  color: var(--fo-accent);
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
+  font-weight: 600;
+  font-style: normal;
 }
 
 /* ====================================================================
@@ -1075,11 +1097,13 @@ body.gr-body .gr-section-h {
 }
 
 .cdash-stat__value {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.65rem;
   font-weight: 600;
   color: var(--fo-text);
   line-height: 1.1;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .cdash-stat__detail {
@@ -1114,9 +1138,11 @@ body.gr-body .gr-section-h {
 }
 
 .cdash-pipeline__num {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.35rem;
   font-weight: 600;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .cdash-pipeline__label {
@@ -1326,13 +1352,15 @@ body.gr-body .gr-section-h {
   margin: 0.5rem 0;
   padding: 1.5rem 1rem;
   text-align: center;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
   color: var(--fo-accent);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .cdash__caught-up[hidden] {
@@ -1382,7 +1410,7 @@ body.gr-body .gr-section-h {
 
 .cdash__action-title {
   margin: 0;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-weight: 700;
   font-size: var(--type-body);  line-height: 1.3;
   color: var(--fo-text);
@@ -1390,7 +1418,7 @@ body.gr-body .gr-section-h {
 
 .cdash__action-cta {
   align-self: flex-end;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);  font-weight: 700;
   color: var(--fo-accent);
   white-space: nowrap;
@@ -1418,8 +1446,10 @@ body.gr-body .gr-section-h {
   --gr-avatar-radius: 8px;
   --gr-avatar-bg: var(--fo-surface-3);
   --gr-avatar-fg: var(--fo-text-2);
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .cdash__eng-meta {
@@ -1434,17 +1464,19 @@ body.gr-body .gr-section-h {
 }
 
 .cdash__eng-title {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--type-h3);  color: var(--fo-text);
   letter-spacing: -0.01em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .cdash__eng-status {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);  letter-spacing: 0.14em;
   text-transform: uppercase;
   font-weight: 700;
@@ -1455,11 +1487,13 @@ body.gr-body .gr-section-h {
 }
 
 .cdash__eng-amount {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 700;
   color: var(--fo-accent);
-  font-size: var(--type-h3);}
+  font-size: var(--type-h3);
+  font-weight: 600;
+  font-style: normal;}
 
 .cdash__eng-arrow {
   color: var(--fo-text-3);
@@ -1529,7 +1563,7 @@ body.gr-body .gr-section-h {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--fo-accent);
@@ -1672,8 +1706,10 @@ body.gr-body .gr-section-h {
 .ld-back {
   color: var(--fo-text-3);
   text-decoration: none;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .ld-back:hover {
@@ -1735,8 +1771,10 @@ body.gr-body .gr-section-h {
 
 .ld-budget {
   color: var(--fo-accent);
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .ld-tag {
@@ -1747,7 +1785,7 @@ body.gr-body .gr-section-h {
 .ld-tag--type {
   background: var(--fo-accent-soft);
   color: var(--fo-accent);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);  letter-spacing: 0.18em;
   text-transform: uppercase;
   font-weight: 700;
@@ -1788,7 +1826,7 @@ body.gr-body .gr-section-h {
 }
 
 .ld-section > .ld-section-h {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-h3);  letter-spacing: 0.04em;
   text-transform: lowercase;
   font-weight: 700;
@@ -1978,7 +2016,7 @@ body.gr-body .gr-section-h {
 
 .ld-offer-amount-label {
   color: var(--fo-text-3);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);  letter-spacing: 0.18em;
   text-transform: uppercase;
   font-weight: 700;
@@ -1998,13 +2036,17 @@ body.gr-body .gr-section-h {
   background: var(--fo-surface-2);
   border-right: 1px solid var(--fo-line-strong);
   color: var(--fo-text-3);
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .ld-offer-amount-input input {
   color: var(--fo-text);
-  font-family: "Fraunces", serif;
-  font-size: var(--type-h2);}
+  font-family: var(--font-display);
+  font-size: var(--type-h2);
+  font-weight: 600;
+  font-style: normal;}
 
 .ld-offer-msg-toggle {
   color: var(--fo-accent);
@@ -2257,7 +2299,7 @@ body.gr-body .gr-section-h {
 }
 
 .cl-progress__label {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--fo-text-3);
@@ -2288,7 +2330,7 @@ body.gr-body .gr-section-h {
   background: transparent;
   border: 1px dashed var(--fo-line-strong);
   color: var(--fo-text-2);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   border-radius: 8px;
   padding: 0.5rem 0.85rem;
   font-size: var(--type-meta);  cursor: pointer;
@@ -2330,7 +2372,9 @@ body.gr-body .gr-section-h {
 
 .cl-inline-money__prefix {
   color: var(--fo-text-3);
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .cl-inline-money input {
@@ -2523,7 +2567,7 @@ body.gr-body .gr-section-h {
 }
 
 .cl-preview__label {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--fo-text-3);
@@ -2538,8 +2582,10 @@ body.gr-body .gr-section-h {
 
 .cl-preview__bio-name {
   color: var(--fo-text);
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .cl-preview__bio-owner {
@@ -2892,7 +2938,7 @@ body.gr-body .gr-section-h {
 
 .ld-cv__work-section-title {
   margin: 0 0 0.55rem;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -2969,7 +3015,7 @@ body.gr-body .gr-section-h {
 
 .ld-cv__eyebrow {
   margin: 0 0 0.25rem;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);  letter-spacing: 0.16em;
   text-transform: uppercase;
   font-weight: 700;
@@ -2982,9 +3028,11 @@ body.gr-body .gr-section-h {
   align-items: center;
   gap: 0.6rem;
   flex-wrap: wrap;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--type-h2);  color: var(--fo-text);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .ld-cv__rating-grid {
@@ -3343,9 +3391,11 @@ body.gr-has-side-nav .bza__side {
   justify-content: center;
   gap: 0.5rem;
   padding: 2rem 1rem !important;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: var(--type-h3);  color: var(--fo-accent);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .dash-inbox-empty--caught-up::before {
@@ -3419,13 +3469,15 @@ body.gr-has-side-nav .bza__side {
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-h2);  font-weight: 600;
   color: var(--fo-text);
   letter-spacing: -0.02em;
   min-width: 0;
   text-decoration: none;
   transition: opacity 0.15s ease;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__brand:hover {
@@ -3485,10 +3537,12 @@ body.gr-has-side-nav .bza__side {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--type-h3);  flex-shrink: 0;
   overflow: hidden;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__biz-logo img {
@@ -3512,7 +3566,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__nav-section {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);  letter-spacing: 0.18em;
   text-transform: uppercase;
   font-weight: 700;
@@ -3933,8 +3987,10 @@ body.gr-has-side-nav .bza__side {
   --gr-avatar-radius: 8px;
   --gr-avatar-bg: var(--fo-accent);
   --gr-avatar-fg: var(--fo-accent-on);
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__user-meta {
@@ -3945,7 +4001,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__user-name {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-weight: 700;
   font-size: var(--type-body);  color: var(--fo-text);
   overflow: hidden;
@@ -3970,7 +4026,7 @@ body.gr-has-side-nav .bza__side {
   border: 0;
   background: transparent;
   color: var(--fo-text-2);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-body);  font-weight: 500;
   text-align: left;
   cursor: pointer;
@@ -4122,13 +4178,15 @@ body.gr-has-side-nav .bza__side {
 }
 
 .dash-page-h__main h1 {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--type-display);
   line-height: 1.1;
   letter-spacing: -0.02em;
   margin: 0;
   color: var(--fo-text);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .dash-page-h__main .bza__page-sub {
@@ -4144,10 +4202,12 @@ body.gr-has-side-nav .bza__side {
 }
 
 .dash-page-date {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: var(--type-body);  color: var(--fo-accent);
   letter-spacing: 0.01em;
+  font-weight: 600;
+  font-style: normal;
 }
 
 /* ── action item kind accents (left-edge stripe) ──────────────── */
@@ -4379,7 +4439,7 @@ body.gr-has-side-nav .bza__side {
 .ml-search-input {
   width: 100%;
   padding: 0.55rem 0.85rem;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-body);
   color: var(--fo-text);
   background: var(--fo-surface);
@@ -4411,7 +4471,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .ml-sort-select {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);
   color: var(--fo-text);
   background: var(--fo-surface);
@@ -4468,7 +4528,7 @@ body.gr-has-side-nav .bza__side {
      outline above the top border (same band as the marketplace v2
      recency pill). */
   margin-left: auto;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -4550,7 +4610,7 @@ body.gr-has-side-nav .bza__side {
   background: var(--fo-surface, transparent);
   border: 1px solid var(--fo-line, rgba(241, 232, 211, 0.18));
   border-radius: 999px;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -4590,7 +4650,7 @@ body.gr-has-side-nav .bza__side {
   margin-left: 0.55rem;
   padding: 0.1rem 0.5rem;
   border-radius: 999px;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -4619,7 +4679,7 @@ body.gr-has-side-nav .bza__side {
   align-items: center;
   padding: 0.15rem 0.55rem;
   border-radius: 999px;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -4747,7 +4807,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .dash-agenda-day__date {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -4755,9 +4815,11 @@ body.gr-has-side-nav .bza__side {
 }
 
 .dash-agenda-day__rel {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: var(--type-meta);  color: var(--fo-accent);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .dash-agenda-empty {
@@ -4815,7 +4877,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .dash-agenda-event__title {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);  font-weight: 600;
   color: var(--fo-text);
   white-space: nowrap;
@@ -4835,18 +4897,22 @@ body.gr-has-side-nav .bza__side {
 .dash-agenda-event--closing  { --agenda-event-accent: var(--fo-plan, #d97757); }
 
 .bza__page-h h1 {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--type-display);
   letter-spacing: -0.02em;
   margin: 0;
   color: var(--fo-text);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__page-h-meta {
   font-size: var(--type-meta);  color: var(--fo-text-3);
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__page-sub {
@@ -4909,7 +4975,7 @@ body.gr-has-side-nav .bza__side {
 
 .bza__panel-h-title {
   font-size: var(--type-body);  color: var(--fo-text-3);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
 }
 
 .bza__panel-h-title strong {
@@ -4922,7 +4988,7 @@ body.gr-has-side-nav .bza__side {
   background: transparent;
   border: 0;
   font: inherit;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);  font-weight: 600;
   color: var(--fo-accent);
   cursor: pointer;
@@ -4949,7 +5015,7 @@ body.gr-has-side-nav .bza__side {
   background: transparent;
   border: 0;
   font: inherit;
-  font-size: var(--type-meta);  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--type-meta);  font-family: var(--font-body);
   color: var(--fo-text-3);
   padding: 0.3rem 0.65rem;
   border-radius: 999px;
@@ -5017,7 +5083,7 @@ body.gr-has-side-nav .bza__side {
   border-radius: 999px;
   background: var(--fo-accent-soft);
   color: var(--fo-accent);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);  font-weight: 700;
   white-space: nowrap;
   text-decoration: none;
@@ -5074,7 +5140,7 @@ body.gr-has-side-nav .bza__side {
   background: transparent;
   border: 0;
   padding: 0.2rem 0;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);
   font-weight: 600;
   color: var(--fo-text-3);
@@ -5172,12 +5238,14 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__row-title {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-h3);  font-weight: 600;
   color: var(--fo-text);
   margin: 0;
   letter-spacing: -0.01em;
   line-height: 1.25;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__row-meta {
@@ -5190,7 +5258,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__listing-type-pill {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);  letter-spacing: 0.16em;
   text-transform: uppercase;
   font-weight: 700;
@@ -5214,7 +5282,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__row-state-label {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);  letter-spacing: 0.14em;
   text-transform: uppercase;
   font-weight: 700;
@@ -5257,11 +5325,13 @@ body.gr-has-side-nav .bza__side {
 
 .bza__row-budget {
   text-align: right;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-body);  color: var(--fo-text);
   font-weight: 600;
   letter-spacing: -0.01em;
   white-space: nowrap;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__row-metric-block {
@@ -5273,11 +5343,13 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__row-metric {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-h3);  color: var(--fo-text);
   font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__row-metric--accent {
@@ -5285,7 +5357,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__row-metric-sub {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);  letter-spacing: 0.14em;
   text-transform: uppercase;
   font-weight: 700;
@@ -5332,15 +5404,19 @@ body.gr-has-side-nav .bza__side {
   --gr-avatar-radius: 8px;
   --gr-avatar-bg: var(--fo-surface-3);
   --gr-avatar-fg: var(--fo-text);
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
-  font-size: var(--type-body);}
+  font-size: var(--type-body);
+  font-weight: 600;
+  font-style: normal;}
 
 .bza__inbox-listing {
   font-size: var(--type-eyebrow);  color: var(--fo-text-3);
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
   margin-bottom: 0.1rem;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__inbox-name {
@@ -5380,14 +5456,16 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__inbox-listing-h-title {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-h3);  font-weight: 600;
   color: var(--fo-text);
   letter-spacing: -0.01em;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__inbox-listing-h-pill {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);  letter-spacing: 0.16em;
   text-transform: uppercase;
   font-weight: 700;
@@ -5419,10 +5497,12 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__profile-stat-val {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-body);  color: var(--fo-text);
   font-weight: 600;
   letter-spacing: -0.01em;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__profile-bar {
@@ -5442,10 +5522,12 @@ body.gr-has-side-nav .bza__side {
 .bza__profile-cta {
   display: block;
   margin-top: 0.55rem;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: var(--type-meta);  color: var(--fo-accent);
   text-decoration: none;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__profile-cta:hover {
@@ -5460,11 +5542,13 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__health-loading {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
   color: var(--fo-text-3);
   margin: 0.5rem 0;
   text-align: center;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__health-top {
@@ -5581,7 +5665,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__health-bucket-pct {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-size: 2.4rem;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -5589,6 +5673,8 @@ body.gr-has-side-nav .bza__side {
   line-height: 1;
   text-shadow: 0 1px 3px rgba(15, 31, 26, 0.32);
   font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__health-bucket-pct small {
@@ -5601,7 +5687,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__health-bucket-fraction {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -5631,7 +5717,7 @@ body.gr-has-side-nav .bza__side {
   border-radius: 999px;
   background: color-mix(in srgb, currentColor 14%, transparent);
   border: 1px solid color-mix(in srgb, currentColor 32%, transparent);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -5649,12 +5735,14 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__health-name {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-h2);  font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--fo-text);
   margin: 0;
   line-height: 1.15;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__health-eyebrow {
@@ -5749,13 +5837,15 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__health-stat-val {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-h1);  font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--fo-accent);
   line-height: 1;
   position: relative;
   z-index: 1;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__health-stat:nth-child(2) .bza__health-stat-val {
@@ -5767,7 +5857,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__health-stat-label {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);  letter-spacing: 0.16em;
   text-transform: uppercase;
   font-weight: 700;
@@ -5799,7 +5889,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__health-rating__label {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -5831,7 +5921,7 @@ body.gr-has-side-nav .bza__side {
   margin: 0 0 0.55rem;
   border-radius: 10px;
   text-decoration: none;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);
   font-weight: 600;
   background: transparent;
@@ -5862,10 +5952,12 @@ body.gr-has-side-nav .bza__side {
 .bza__detail-back {
   font-size: var(--type-meta);  color: var(--fo-text-3);
   text-decoration: none;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
   margin-bottom: 1rem;
   display: inline-block;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__detail-back:hover {
@@ -5882,7 +5974,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__detail-tag {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);  letter-spacing: 0.18em;
   text-transform: uppercase;
   font-weight: 700;
@@ -5891,13 +5983,15 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__detail-title {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-display);
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--fo-text);
   margin: 0;
   line-height: 1.05;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__detail-actions {
@@ -5910,7 +6004,7 @@ body.gr-has-side-nav .bza__side {
   background: transparent;
   border: 1px solid var(--fo-line-strong);
   color: var(--fo-text);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-weight: 600;
   font-size: var(--type-meta);  padding: 0.5rem 0.95rem;
   border-radius: 999px;
@@ -5966,10 +6060,12 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__detail-meta strong {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-h3);  color: var(--fo-text);
   font-weight: 600;
   letter-spacing: -0.01em;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__offers-h {
@@ -5979,9 +6075,11 @@ body.gr-has-side-nav .bza__side {
   gap: 0.75rem;
   flex-wrap: wrap;
   margin-bottom: 0.85rem;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-h2);  font-weight: 600;
   color: var(--fo-text);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__offers-h-tabs {
@@ -5993,7 +6091,7 @@ body.gr-has-side-nav .bza__side {
   background: transparent;
   border: 0;
   font: inherit;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);  color: var(--fo-text-3);
   padding: 0.3rem 0.7rem;
   border-radius: 999px;
@@ -6050,9 +6148,11 @@ body.gr-has-side-nav .bza__side {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--type-h3);  flex-shrink: 0;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__offer-name {
@@ -6074,9 +6174,11 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__offer-price {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-body);  font-weight: 600;
   color: var(--fo-text);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__offer-status-dot {
@@ -6144,16 +6246,20 @@ body.gr-has-side-nav .bza__side {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
-  font-size: var(--type-h1);}
+  font-size: var(--type-h1);
+  font-weight: 600;
+  font-style: normal;}
 
 .bza__profile-name {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-h1);  font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--fo-text);
   margin: 0 0 0.2rem;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__profile-meta {
@@ -6167,7 +6273,7 @@ body.gr-has-side-nav .bza__side {
 .bza__profile-pill {
   background: var(--fo-surface-3);
   color: var(--fo-text-2);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);  letter-spacing: 0.14em;
   text-transform: uppercase;
   font-weight: 700;
@@ -6204,15 +6310,17 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__profile-stat-block-val {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-h2);  font-weight: 600;
   color: var(--fo-text);
   letter-spacing: -0.01em;
   line-height: 1;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__profile-stat-block-label {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);  letter-spacing: 0.14em;
   text-transform: uppercase;
   font-weight: 700;
@@ -6228,7 +6336,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__profile-message-h {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);  letter-spacing: 0.18em;
   text-transform: uppercase;
   font-weight: 700;
@@ -6239,8 +6347,10 @@ body.gr-has-side-nav .bza__side {
 .bza__profile-message-body {
   font-size: var(--type-body);  color: var(--fo-text);
   line-height: 1.55;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__profile-section {
@@ -6248,7 +6358,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__profile-section-h {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);  letter-spacing: 0.18em;
   text-transform: uppercase;
   font-weight: 700;
@@ -6304,8 +6414,10 @@ body.gr-has-side-nav .bza__side {
 .bza__work-date {
   font-size: var(--type-eyebrow);  color: var(--fo-text-3);
   white-space: nowrap;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__profile-actions {
@@ -6342,18 +6454,22 @@ body.gr-has-side-nav .bza__side {
 
 .bza__counter-input span {
   color: var(--fo-text-3);
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-h3);  margin-right: 0.4rem;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .bza__counter-input input {
   background: transparent;
   border: 0;
   color: var(--fo-text);
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-h3);  font-weight: 600;
   outline: none;
   width: 100%;
+  font-weight: 600;
+  font-style: normal;
 }
 
 /* ── consultant placeholder pages ──────────────────────────────── */
@@ -6364,15 +6480,19 @@ body.gr-has-side-nav .bza__side {
   padding: 2rem;
   text-align: center;
   color: var(--fo-text-2);
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .cp-placeholder h2 {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-h1);  font-weight: 600;
   color: var(--fo-text);
   margin: 0 0 0.5rem;
+  font-style: normal;
+  font-weight: 600;
   font-style: normal;
 }
 
@@ -6382,7 +6502,7 @@ body.gr-has-side-nav .bza__side {
 
 .cp-placeholder .cp-empty-tag {
   display: inline-block;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-style: normal;
   font-size: var(--type-eyebrow);  letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -6483,7 +6603,7 @@ body.gr-has-side-nav .bza__side {
   padding: 0.45rem 0.85rem;
   border-radius: 8px;
   font: inherit;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);
   font-weight: 500;
   color: var(--fo-text-2);
@@ -6513,7 +6633,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .settings-tab-soon {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -6558,12 +6678,14 @@ body.gr-has-side-nav .bza__side {
 }
 
 .settings-panel-h h2 {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--type-h2);
   margin: 0 0 0.15rem;
   color: var(--fo-text);
   letter-spacing: -0.015em;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .settings-panel-h p {
@@ -6603,7 +6725,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .settings-section-h h3 {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-h3);
   font-weight: 700;
   letter-spacing: -0.005em;
@@ -6922,7 +7044,7 @@ body.gr-has-side-nav .bza__side {
 
 .payout-balance__label {
   margin: 0;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -6932,11 +7054,13 @@ body.gr-has-side-nav .bza__side {
 
 .payout-balance__value {
   margin: 0.32rem 0 0;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--type-h1);
   letter-spacing: -0.02em;
   line-height: 1;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .payout-balance__sub {
@@ -6985,10 +7109,12 @@ body.gr-has-side-nav .bza__side {
 }
 
 .payout-list__amount {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-h3);
   font-weight: 600;
   color: var(--fo-text);
+  font-weight: 600;
+  font-style: normal;
 }
 
 /* theme grid */
@@ -7090,10 +7216,12 @@ body.gr-has-side-nav .bza__side {
 }
 
 .theme-card-name {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-h3);  font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--fo-text);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .theme-card-desc {
@@ -7195,11 +7323,13 @@ body.inbox-page .inbox {
 }
 
 .inbox__title {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-h1);  font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--fo-text);
   margin: 0;
+  font-weight: 600;
+  font-style: normal;
 }
 
 /* Quiet ghost-style action — sits at the right of the title row, only
@@ -7235,7 +7365,7 @@ body.inbox-page .inbox {
   background: transparent;
   border: 1px solid var(--fo-line);
   color: var(--fo-text-2);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -7269,7 +7399,7 @@ body.inbox-page .inbox {
   border-radius: 8px;
   padding: 0.55rem 0.75rem;
   color: var(--fo-text);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-body);}
 
 .inbox__search:focus {
@@ -7375,9 +7505,11 @@ body.inbox-page .inbox {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   color: var(--fo-text-2);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .inbox__thread-avatar img {
@@ -7401,7 +7533,7 @@ body.inbox-page .inbox {
 }
 
 .inbox__thread-name {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-weight: 700;
   font-size: var(--type-body);  color: var(--fo-text);
   overflow: hidden;
@@ -7417,11 +7549,13 @@ body.inbox-page .inbox {
 
 .inbox__thread-listing {
   font-size: var(--type-eyebrow);  color: var(--fo-text-3);
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .inbox__thread-preview {
@@ -7446,9 +7580,11 @@ body.inbox-page .inbox {
   padding: 1.5rem 1rem;
   text-align: center;
   color: var(--fo-text-3);
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
   margin: 0;
+  font-weight: 600;
+  font-style: normal;
 }
 
 /* right pane */
@@ -7494,9 +7630,11 @@ body.inbox-page .inbox {
 }
 
 .inbox__placeholder-title {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-h2);  color: var(--fo-text-2);
   margin: 0 0 0.3rem;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .inbox__placeholder-sub {
@@ -7557,10 +7695,12 @@ body.inbox-page .inbox {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   color: var(--fo-text-2);
   flex-shrink: 0;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .inbox__conv-avatar img {
@@ -7581,17 +7721,19 @@ body.inbox-page .inbox {
 }
 
 .inbox__conv-name {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-weight: 700;
   color: var(--fo-text);
   font-size: var(--type-body);}
 
 .inbox__conv-listing {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
   color: var(--fo-accent);
   text-decoration: none;
-  font-size: var(--type-meta);}
+  font-size: var(--type-meta);
+  font-weight: 600;
+  font-style: normal;}
 
 .inbox__conv-listing:hover {
   text-decoration: underline;
@@ -7625,7 +7767,7 @@ body.inbox-page .inbox {
 
 .inbox__day-divider {
   align-self: center;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);  letter-spacing: 0.18em;
   text-transform: uppercase;
   font-weight: 700;
@@ -7646,10 +7788,12 @@ body.inbox-page .inbox {
 }
 
 .inbox__msg-context {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: var(--type-eyebrow);  color: var(--fo-text-3);
   margin-bottom: 0.2rem;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .inbox__msg-bubble {
@@ -7711,7 +7855,7 @@ body.inbox-page .inbox {
   border-radius: 12px;
   padding: 0.6rem 0.85rem;
   font: inherit;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-body);
   line-height: 1.4;
   /* Match the send button's resting height so the row reads as one piece;
@@ -7731,7 +7875,7 @@ body.inbox-page .inbox {
   border: 0;
   border-radius: 999px;
   padding: 0.6rem 1.25rem;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-weight: 700;
   font-size: var(--type-body);  cursor: pointer;
   transition: all 0.15s ease;
@@ -7772,7 +7916,7 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
 }
 
 .settings-toggle-title {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-weight: 700;
   font-size: var(--type-body);  color: var(--fo-text);
 }
@@ -7859,7 +8003,7 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
 }
 
 .mr-overall__eyebrow {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -7868,12 +8012,14 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
 }
 
 .mr-overall__value {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: clamp(2.4rem, 5vw, 3.4rem);
   font-weight: 600;
   line-height: 1;
   color: var(--fo-text);
   letter-spacing: -0.02em;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .mr-overall__stars { font-size: 1.4em; }
@@ -7924,10 +8070,12 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
 
 .mr-section__head h2 {
   margin: 0;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--type-h2);
   color: var(--fo-text);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .mr-section__count {
@@ -7961,10 +8109,12 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
 }
 
 .mr-card__avg-num {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: 1.15rem;
   font-weight: 600;
   color: var(--fo-text);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .mr-card__date {
@@ -7983,11 +8133,13 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
   margin: 0;
   padding: 0.55rem 0 0.55rem 0.85rem;
   border-left: 3px solid var(--fo-accent);
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 1rem;
   line-height: 1.55;
   color: var(--fo-text);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .mr-card__no-quote {
@@ -8143,13 +8295,15 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
 }
 
 .pp-metric__value {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-size: clamp(1.6rem, 2.4vw, 2rem);
   font-weight: 600;
   line-height: 1.05;
   letter-spacing: -0.02em;
   color: var(--fo-text);
   font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-style: normal;
 }
 
 /* Inline row that pairs the big numeric value with a baseline-aligned
@@ -8184,7 +8338,7 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
 /* Quiet review-count chip that tags onto the inline rating row,
    sized + colored like .pp-metric__sub so it reads as metadata. */
 .pp-metric__rating-count {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);
   color: var(--fo-text-3);
   font-variant-numeric: tabular-nums;
@@ -8215,11 +8369,13 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
 
 .pp-section__head h2 {
   margin: 0;
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-size: var(--type-h1);
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--fo-text);
+  font-weight: 600;
+  font-style: normal;
 }
 
 /* The overall rating block (.pp-reviews-overall__primary) used to
@@ -8307,11 +8463,13 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
   margin: 0;
   padding: 0.4rem 0 0.4rem 0.85rem;
   border-left: 2px solid var(--fo-accent-soft);
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-size: var(--type-body);
   font-style: italic;
   line-height: 1.55;
   color: var(--fo-text);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .pp-review-card__author {
@@ -8359,7 +8517,7 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   animation: gr-confirm-modal-in 0.2s ease-out both;
 }
 
@@ -8391,11 +8549,13 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
 
 .gr-confirm-modal__title {
   margin: 0;
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.25rem;
   font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1.2;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .gr-confirm-modal__body {
