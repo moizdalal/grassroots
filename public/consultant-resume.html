@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,follow" />
-    <title>grassroots — consultant resume</title>
+    <title>Grassroots — consultant resume</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,42 +12,43 @@
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <script src="/theme.js"></script>
+    <script src="/cookie-banner.js" defer></script>
     <script src="/loading-overlay.js"></script>
   </head>
   <body class="gr-body"><main class="gr-shell gr-shell--wide">
-      <a href="/profile.html" class="ld-back">← back</a>
+      <a href="/profile.html" class="ld-back">← Back</a>
 
-      <p id="cr-gate" class="gr-status" data-loading="true" aria-live="polite">loading…</p>
+      <p id="cr-gate" class="gr-status" data-loading="true" aria-live="polite">Loading…</p>
 
       <div id="cr-shell" hidden>
         <div class="gr-page-intro">
-          <h1 class="gr-title" id="cr-name">consultant resume</h1>
+          <h1 class="gr-title" id="cr-name">Consultant resume</h1>
           <p class="gr-subtitle" id="cr-program"></p>
         </div>
 
         <div class="cp-placeholder" id="cr-placeholder">
-          <span class="cp-empty-tag">work in progress</span>
-          <h2>resume page coming soon</h2>
-          <p>this consultant hasn't built out a full resume page yet — for now, here's what's on file.</p>
+          <span class="cp-empty-tag">Work in progress</span>
+          <h2>Resume page coming soon</h2>
+          <p>This consultant hasn't built out a full resume page yet — for now, here's what's on file.</p>
         </div>
 
         <div id="cr-resume-card" class="bza__panel" hidden>
           <div class="bza__panel-h">
-            <span class="bza__panel-h-title"><strong>resume</strong></span>
+            <span class="bza__panel-h-title"><strong>Resume</strong></span>
           </div>
           <p id="cr-resume-link"></p>
         </div>
 
         <div id="cr-edu-card" class="bza__panel" hidden>
           <div class="bza__panel-h">
-            <span class="bza__panel-h-title"><strong>education</strong></span>
+            <span class="bza__panel-h-title"><strong>Education</strong></span>
           </div>
           <p id="cr-edu-line" style="color:var(--fo-text);font-size:0.95rem;line-height:1.6;margin:0"></p>
         </div>
 
         <div id="cr-links-card" class="bza__panel" hidden>
           <div class="bza__panel-h">
-            <span class="bza__panel-h-title"><strong>links</strong></span>
+            <span class="bza__panel-h-title"><strong>Links</strong></span>
           </div>
           <div id="cr-links" style="display:flex;gap:0.6rem;flex-wrap:wrap"></div>
         </div>
@@ -73,7 +74,7 @@
         const gate = $("cr-gate");
         const shell = $("cr-shell");
         if (!id) {
-          gate.textContent = "no consultant specified.";
+          gate.textContent = "No consultant specified.";
           gate.className = "gr-status error";
           return;
         }
@@ -82,12 +83,12 @@
           const client = await getSupabaseClient();
           const { data: profile, error: pErr } = await client
             .from("profiles")
-            .select("id, full_name, linkedin_url, resume_path")
+            .select("id, full_name, linkedin_url")
             .eq("id", id)
             .single();
           if (pErr) throw pErr;
 
-          $("cr-name").textContent = profile?.full_name || "consultant resume";
+          $("cr-name").textContent = profile?.full_name || "Consultant resume";
 
           let edu = null;
           const { data: cp, error: cpErr } = await client
@@ -108,24 +109,27 @@
             }
           }
 
-          if (profile?.resume_path) {
-            const url = client.storage.from("resumes").getPublicUrl(profile.resume_path).data?.publicUrl;
-            if (url) {
-              $("cr-resume-link").innerHTML = `<a href="${escape(url)}" target="_blank" rel="noopener" class="gr-btn gr-btn--primary" style="text-decoration:none">view resume PDF →</a>`;
-              $("cr-resume-card").hidden = false;
-              $("cr-placeholder").hidden = true;
-            }
+          // The resumes bucket is private, so the server hands out a short-
+          // lived signed link when the viewer is allowed to see it.
+          const { data: { session } } = await client.auth.getSession();
+          const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+          const resumeRes = await fetch(`/api/consultant-profile/${encodeURIComponent(id)}/resume`, { headers });
+          const resumeBody = await resumeRes.json().catch(() => ({}));
+          if (resumeRes.ok && resumeBody.url) {
+            $("cr-resume-link").innerHTML = `<a href="${escape(resumeBody.url)}" target="_blank" rel="noopener" class="gr-btn gr-btn--primary" style="text-decoration:none">View resume PDF →</a>`;
+            $("cr-resume-card").hidden = false;
+            $("cr-placeholder").hidden = true;
           }
 
           if (profile?.linkedin_url) {
-            $("cr-links").innerHTML = `<a href="${escape(profile.linkedin_url)}" target="_blank" rel="noopener" class="gr-btn gr-btn--ghost" style="text-decoration:none">linkedin →</a>`;
+            $("cr-links").innerHTML = `<a href="${escape(profile.linkedin_url)}" target="_blank" rel="noopener" class="gr-btn gr-btn--ghost" style="text-decoration:none">LinkedIn →</a>`;
             $("cr-links-card").hidden = false;
           }
 
           gate.hidden = true;
           shell.hidden = false;
         } catch (err) {
-          gate.textContent = err.message || "could not load resume.";
+          gate.textContent = err.message || "Could not load resume.";
           gate.className = "gr-status error";
         }
       }

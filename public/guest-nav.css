@@ -137,7 +137,6 @@
   font-family: var(--font-body);
   font-size: 0.72rem;
   font-weight: 700;
-  text-transform: lowercase;
   letter-spacing: 0.04em;
 }
 
@@ -175,7 +174,6 @@
   color: var(--fo-text-3, var(--fo-text-2));
   font-family: var(--font-body);
   font-size: 0.72rem;
-  text-transform: lowercase;
   letter-spacing: 0.08em;
 }
 

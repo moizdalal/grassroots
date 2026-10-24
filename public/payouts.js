@@ -59,26 +59,26 @@ function buildStripeAppearance() {
 // We don't translate everything — anything we miss falls back to a humanized
 // version of the original key.
 const REQUIREMENT_LABELS = {
-  "individual.id_number": "social security number (SSN) or ITIN",
-  "individual.ssn_last_4": "last 4 digits of your SSN",
-  "individual.first_name": "first name",
-  "individual.last_name": "last name",
-  "individual.dob.day": "date of birth",
-  "individual.dob.month": "date of birth",
-  "individual.dob.year": "date of birth",
-  "individual.address.line1": "home address",
-  "individual.address.city": "home address (city)",
-  "individual.address.state": "home address (state)",
-  "individual.address.postal_code": "home address (zip)",
-  "individual.email": "email address",
-  "individual.phone": "phone number",
-  "individual.verification.document": "government-issued ID photo",
-  "individual.verification.additional_document": "additional ID document",
-  "external_account": "bank account for payouts",
-  "tos_acceptance.date": "accept stripe's terms of service",
-  "business_profile.url": "website url",
-  "business_profile.product_description": "what kind of work you offer",
-  "business_profile.mcc": "industry / category",
+  "individual.id_number": "Social security number (SSN) or ITIN",
+  "individual.ssn_last_4": "Last 4 digits of your SSN",
+  "individual.first_name": "First name",
+  "individual.last_name": "Last name",
+  "individual.dob.day": "Date of birth",
+  "individual.dob.month": "Date of birth",
+  "individual.dob.year": "Date of birth",
+  "individual.address.line1": "Home address",
+  "individual.address.city": "Home address (city)",
+  "individual.address.state": "Home address (state)",
+  "individual.address.postal_code": "Home address (zip)",
+  "individual.email": "Email address",
+  "individual.phone": "Phone number",
+  "individual.verification.document": "Government-issued ID photo",
+  "individual.verification.additional_document": "Additional ID document",
+  "external_account": "Bank account for payouts",
+  "tos_acceptance.date": "Accept Stripe's terms of service",
+  "business_profile.url": "Website URL",
+  "business_profile.product_description": "What kind of work you offer",
+  "business_profile.mcc": "Industry / category",
 };
 
 function humanizeRequirement(key) {
@@ -138,7 +138,7 @@ function formatPayoutDate(arrivalDate) {
   const sameYear = d.getUTCFullYear() === now.getUTCFullYear();
   return d.toLocaleDateString("en-US", sameYear
     ? { month: "short", day: "numeric" }
-    : { month: "short", day: "numeric", year: "numeric" }).toLowerCase();
+    : { month: "short", day: "numeric", year: "numeric" });
 }
 async function refreshBalanceSummary(client) {
   const card = $("po-balance");
@@ -157,7 +157,7 @@ async function refreshBalanceSummary(client) {
         ? `${formatUsd(data.last_payout.amount_cents)} · ${when}`
         : formatUsd(data.last_payout.amount_cents);
     } else {
-      $("po-balance-last").textContent = "no payouts yet";
+      $("po-balance-last").textContent = "No payouts yet";
     }
   } catch (_) {
     // A transient stripe blip shouldn't leave a half-broken card up.
@@ -178,7 +178,7 @@ async function refreshStatus(client) {
     card.hidden = false;
     if (data.onboarded) {
       dot.dataset.state = "active";
-      label.textContent = "payouts active — you're all set.";
+      label.textContent = "Payouts active — you're all set.";
       // Active accounts don't need the "stripe still needs"
       // collapsible at all — hide the whole element.
       if (reqCollapsible) reqCollapsible.hidden = true;
@@ -187,9 +187,9 @@ async function refreshStatus(client) {
       // account is active — same page handles both states.
       const pageTitle = $("po-page-title");
       const pageSub = $("po-page-subtitle");
-      if (pageTitle) pageTitle.innerHTML = 'your <span class="fo-title-italic">payouts</span>';
-      if (pageSub) pageSub.textContent = "manage your bank, tax info, and recent transfers. funds release to your account when engagements complete.";
-      document.title = "grassroots — your payouts";
+      if (pageTitle) pageTitle.innerHTML = 'Your <span class="fo-title-italic">payouts</span>';
+      if (pageSub) pageSub.textContent = "Manage your bank, tax info, and recent transfers. Funds release to your account when engagements complete.";
+      document.title = "Grassroots — your payouts";
       $("po-onboarding-section").hidden = true;
       $("po-active-section").hidden = false;
       refreshBalanceSummary(client);
@@ -199,15 +199,15 @@ async function refreshStatus(client) {
     } else {
       dot.dataset.state = data.details_submitted ? "review" : "pending";
       label.textContent = data.details_submitted
-        ? "verification in progress"
-        : "finish setting up your account";
+        ? "Verification in progress"
+        : "Finish setting up your account";
       const due = dedupeRequirements(data.requirements_due || []);
       if (due.length) {
-        detail.textContent = "stripe still needs:";
+        detail.textContent = "Stripe still needs:";
         requirements.innerHTML = due.map((d) => `<li>${escapeHtml(d)}</li>`).join("");
         if (reqCollapsible) reqCollapsible.hidden = false;
       } else if (data.details_submitted) {
-        detail.textContent = "stripe is reviewing your submission. this can take a moment.";
+        detail.textContent = "Stripe is reviewing your submission. This can take a moment.";
         requirements.innerHTML = "";
         if (reqCollapsible) reqCollapsible.hidden = false;
       } else {
@@ -303,14 +303,14 @@ async function init() {
     }
     const { data: profile } = await client.from("profiles").select("role").eq("id", session.user.id).maybeSingle();
     if (profile?.role && profile.role !== "consultant") {
-      gate.textContent = "payouts setup is for consultants only.";
+      gate.textContent = "Payouts setup is for consultants only.";
       gate.className = "gr-status";
       return;
     }
 
     const sessionRes = await authedFetch(client, "/api/stripe/account-session", { method: "POST" });
     const sessionData = await sessionRes.json();
-    if (!sessionRes.ok) throw new Error(sessionData.error || "could not start onboarding.");
+    if (!sessionRes.ok) throw new Error(sessionData.error || "Could not start onboarding.");
 
     // The v1.0 script-tag SDK exposes `StripeConnect.init(...)` (sync,
     // returns the instance directly). The async `loadConnectAndInitialize`
@@ -354,7 +354,7 @@ async function init() {
     if (!status?.onboarded) startPolling(client);
   } catch (err) {
     console.error(err);
-    gate.textContent = err.message || "could not load payouts setup.";
+    gate.textContent = err.message || "Could not load payouts setup.";
     gate.className = "gr-status error";
   }
 }

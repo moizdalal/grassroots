@@ -4,7 +4,6 @@ create table if not exists public.profiles (
   role text not null check (role in ('business_owner', 'consultant')),
   full_name text not null,
   phone_number text,
-  employment_status text,
   linkedin_url text,
   resume_path text,
   resume_public boolean not null default false,

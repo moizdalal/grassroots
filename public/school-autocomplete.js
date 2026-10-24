@@ -21,7 +21,7 @@ async function loadSchools() {
   if (cachedList) return cachedList;
   if (!cachedPromise) {
     cachedPromise = fetch(DATA_URL).then((r) => {
-      if (!r.ok) throw new Error("could not load school list");
+      if (!r.ok) throw new Error("Could not load school list");
       return r.json();
     });
   }
@@ -93,7 +93,7 @@ export function wireSchoolAutocomplete(root) {
     if (!results.length) {
       const empty = document.createElement("li");
       empty.className = "reg-edu-school-ac__empty";
-      empty.textContent = "no matches.";
+      empty.textContent = "No matches.";
       list.appendChild(empty);
     } else {
       results.forEach((name, i) => {
@@ -108,7 +108,7 @@ export function wireSchoolAutocomplete(root) {
     const notListed = document.createElement("li");
     notListed.className = "reg-edu-school-ac__item reg-edu-school-ac__item--other";
     notListed.dataset.index = "other";
-    notListed.textContent = "my school isn't listed";
+    notListed.textContent = "My school isn't listed";
     list.appendChild(notListed);
   }
 

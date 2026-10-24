@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,follow" />
-    <title>grassroots — sign in</title>
+    <title>Grassroots — sign in</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <script src="/theme.js"></script>
+    <script src="/cookie-banner.js" defer></script>
   </head>
   <body class="gr-body">
     <nav class="gr-nav" aria-label="Primary">
@@ -21,28 +22,28 @@
           <span class="gr-nav__wordmark">grassroots</span>
         </a>
         <ul class="gr-nav__links">
-          <li><a href="/signin.html" aria-current="page">sign in</a></li>
-          <li><a href="/register.html" class="gr-nav__cta">register</a></li>
-          <li><a href="/profile.html">profile</a></li>
+          <li><a href="/signin.html" aria-current="page">Sign in</a></li>
+          <li><a href="/register.html" class="gr-nav__cta">Register</a></li>
+          <li><a href="/profile.html">Profile</a></li>
         </ul>
       </div>
     </nav>
 
     <main class="gr-shell">
       <div class="gr-page-intro">
-        <h1 class="gr-title">welcome back</h1>
-        <p class="gr-subtitle">use the email you registered with.</p>
+        <h1 class="gr-title">Welcome back</h1>
+        <p class="gr-subtitle">Use the email you registered with.</p>
       </div>
 
       <div class="gr-card gr-auth-card">
         <form id="signin-form">
           <div class="gr-field-stack">
             <label class="gr-label">
-              <span>email</span>
+              <span>Email</span>
               <input type="email" name="email" autocomplete="email" required />
             </label>
             <label class="gr-label">
-              <span>password</span>
+              <span>Password</span>
               <div class="gr-pw-field">
                 <input
                   type="password"
@@ -55,7 +56,7 @@
                   type="button"
                   class="gr-pw-toggle"
                   data-pw-toggle="signin-password"
-                  aria-label="show password"
+                  aria-label="Show password"
                   aria-pressed="false"
                 >
                   <svg class="gr-pw-toggle__eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -66,17 +67,22 @@
           </div>
 
           <div class="gr-auth-actions">
-            <a href="/forgot-password.html" class="gr-auth-forgot">forgot password?</a>
+            <a href="/forgot-password.html" class="gr-auth-forgot">Forgot password?</a>
             <button type="submit" class="gr-btn gr-btn--primary">
-              sign in
+              Sign in
             </button>
           </div>
+
+          <p class="gr-auth-disclosure">
+            See our <a href="/privacy.html" target="_blank" rel="noopener">privacy policy</a>
+            for how we handle your information.
+          </p>
         </form>
 
         <div id="oauth-slot"></div>
 
         <p class="gr-auth-footer">
-          i remember my first time…
+          I remember my first time…
           <a href="/register.html" class="gr-inline-link">register</a>
         </p>
       </div>

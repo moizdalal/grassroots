@@ -884,7 +884,7 @@ body.gr-body .gr-section-h {
 :where(#listing-grid, #dash-listings-cards) .gr-listing-logo-placeholder {
   background: var(--fo-accent-soft);
   color: var(--fo-accent);
-  text-transform: lowercase;
+  text-transform: uppercase;
 }
 
 :where(#listing-grid, #dash-listings-cards) .gr-listing-card-meta {
@@ -925,7 +925,6 @@ body.gr-body .gr-section-h {
   font-size: 0.82rem;
   font-weight: 500;
   color: var(--fo-text-2);
-  text-transform: lowercase;
 }
 
 /* Foot ─ tags (left) | view CTA (right). The view CTA is the only
@@ -959,7 +958,6 @@ body.gr-body .gr-section-h {
   padding: 0.32rem 0.75rem;
   border-radius: 999px;
   font-weight: 500;
-  text-transform: lowercase;
   letter-spacing: 0;
   border: 1px solid var(--fo-line-strong);
   line-height: 1.2;
@@ -1828,7 +1826,6 @@ body.gr-body .gr-section-h {
 .ld-section > .ld-section-h {
   font-family: var(--font-body);
   font-size: var(--type-h3);  letter-spacing: 0.04em;
-  text-transform: lowercase;
   font-weight: 700;
   color: var(--fo-text);
   margin: 0 0 0.55rem;
@@ -3055,7 +3052,6 @@ body.gr-body .gr-section-h {
 .ld-cv__rating-row__label {
   font-size: var(--type-meta);
   color: var(--fo-text-3);
-  text-transform: lowercase;
 }
 
 @media (max-width: 540px) {
@@ -8050,7 +8046,6 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
 .mr-dim__label {
   font-size: var(--type-meta);
   color: var(--fo-text-2);
-  text-transform: lowercase;
 }
 
 .mr-section {
@@ -8166,7 +8161,6 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
   font-size: var(--type-eyebrow);
   letter-spacing: 0.04em;
   color: var(--fo-text-3);
-  text-transform: lowercase;
 }
 
 .mr-card__dim strong {

@@ -22,7 +22,7 @@ async function mountEngagementJourneyFlowers(container, opts) {
   // arrives it overwrites the container's contents.
   if (container && !container.dataset.flowersLoading) {
     container.dataset.flowersLoading = "1";
-    container.innerHTML = '<p class="ej-loading">loading your garden…</p>';
+    container.innerHTML = '<p class="ej-loading">Loading your garden…</p>';
   }
   const mod = await loadFlowersModule();
   return mod.mountEngagementJourneyFlowers(container, opts);
@@ -44,7 +44,7 @@ function relTime(iso) {
   if (!iso) return "";
   const d = new Date(iso);
   const diff = (Date.now() - d.getTime()) / 1000;
-  if (diff < 60) return "just now";
+  if (diff < 60) return "Just now";
   if (diff < 3600) return `${Math.round(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.round(diff / 3600)}h ago`;
   if (diff < 604800) return `${Math.round(diff / 86400)}d ago`;
@@ -67,12 +67,14 @@ function publicAvatarUrl(client, path) {
 /* ============================================================== */
 
 async function loadData(client, userId) {
-  const [profileRes, consultantRes, portfolioRes] = await Promise.all([
+  const [profileRes, privateRes, consultantRes, portfolioRes] = await Promise.all([
     client
       .from("profiles")
-      .select("id, full_name, role, avatar_path, linkedin_url, resume_path, stripe_account_status")
+      .select("id, full_name, role, avatar_path, linkedin_url, stripe_account_status")
       .eq("id", userId)
       .single(),
+    // resume_path is private (column grants) — the owner reads it via RPC.
+    client.rpc("get_my_private_profile").maybeSingle(),
     client
       .from("consultant_profiles")
       .select("user_id, headline, bio, major, minor, school")
@@ -88,10 +90,10 @@ async function loadData(client, userId) {
   ]);
 
   if (profileRes.error) {
-    const e = new Error(profileRes.error.message || "could not load profile.");
+    const e = new Error(profileRes.error.message || "Could not load profile.");
     throw e;
   }
-  const profile = profileRes.data;
+  const profile = { ...profileRes.data, resume_path: privateRes.data?.resume_path ?? null };
   const consultant = consultantRes.data;
   const portfolioCount = portfolioRes.count || 0;
 
@@ -349,7 +351,7 @@ function renderRecommended(client, listing, ownerMap, ownerBizMap) {
       <div class="gr-listing-card-head">
         <div class="gr-listing-logo-wrap">${avatar}</div>
         <div class="gr-listing-card-biz">
-          <span class="gr-listing-biz-label">posted by</span>
+          <span class="gr-listing-biz-label">Posted by</span>
           <p class="gr-listing-biz-name">${escape(counterpart)}</p>
         </div>
       </div>
@@ -358,10 +360,10 @@ function renderRecommended(client, listing, ownerMap, ownerBizMap) {
         ${summary ? `<p class="gr-listing-summary">${escape(summary)}</p>` : ""}
       </div>
       <div class="gr-listing-foot">
-        ${tags.length ? `<div class="gr-listing-tags">${tags.slice(0, 2).map((t) => `<span class="gr-listing-tag">${escape(t)}</span>`).join("")}</div>` : "<span></span>"}
+        ${tags.length ? `<div class="gr-listing-tags">${tags.slice(0, 2).map((t) => `<span class="gr-listing-tag">${escape(capFirst(t))}</span>`).join("")}</div>` : "<span></span>"}
         <div class="gr-listing-foot-end">
           ${Number.isFinite(Number(listing.budget_cents)) ? `<p class="gr-listing-budget">${escape(fmtUSD(listing.budget_cents))}</p>` : ""}
-          <span class="gr-listing-cta-link">view →</span>
+          <span class="gr-listing-cta-link">View →</span>
         </div>
       </div>
     </a>
@@ -379,7 +381,7 @@ function renderInboxPreview(client, threads, unreadCount) {
   if (!threads.length) {
     root.innerHTML = "";
     empty.hidden = false;
-    empty.textContent = "you're all caught up.";
+    empty.textContent = "You're all caught up.";
     empty.classList.add("dash-inbox-empty--caught-up");
     return;
   }
@@ -393,7 +395,7 @@ function renderInboxPreview(client, threads, unreadCount) {
         <a class="bza__inbox-row" href="/inbox.html#thread=${escape(t.listingId)}:${escape(t.otherId)}" style="text-decoration:none">
           <span class="bza__inbox-avatar">${av}</span>
           <div style="flex:1;min-width:0">
-            ${t.listingTitle ? `<div class="bza__inbox-listing">re: ${escape(t.listingTitle)}</div>` : ""}
+            ${t.listingTitle ? `<div class="bza__inbox-listing">Re: ${escape(t.listingTitle)}</div>` : ""}
             <div class="bza__inbox-name">${escape(t.otherName || "")}<span class="bza__inbox-unread">${t.unread}</span></div>
             <div class="bza__inbox-msg">${escape(t.lastBody || "")}</div>
           </div>
@@ -422,15 +424,15 @@ const HEALTH_PALETTE = [
    and past-work samples carry the next-highest weight because that's the
    credibility evidence businesses scan first. */
 const HEALTH_FIELDS = [
-  { key: "payouts",     label: "payouts",       cta: "set up payouts",        weight: 25, href: "/payouts.html" },
-  { key: "resume",      label: "resume",        cta: "upload your resume",    weight: 15, href: "/settings.html#professional" },
-  { key: "portfolio",   label: "past work",     cta: "add past work samples", weight: 15, href: "/settings.html#professional" },
-  { key: "photo",       label: "profile photo", cta: "add a profile photo",   weight: 10, href: "/settings.html#personal" },
-  { key: "name",        label: "full name",     cta: "add your full name",    weight: 10, href: "/settings.html#personal" },
-  { key: "linkedin",    label: "linkedin",      cta: "link your linkedin",    weight:  8, href: "/settings.html#personal" },
-  { key: "school",      label: "school",        cta: "add your school",       weight:  7, href: "/settings.html#professional" },
-  { key: "major",       label: "major",         cta: "add your major",        weight:  5, href: "/settings.html#professional" },
-  { key: "minor",       label: "minor",         cta: "add your minor",        weight:  5, href: "/settings.html#professional" },
+  { key: "payouts",     label: "Payouts",       cta: "Set up payouts",        weight: 25, href: "/payouts.html" },
+  { key: "resume",      label: "Resume",        cta: "Upload your resume",    weight: 15, href: "/settings.html#professional" },
+  { key: "portfolio",   label: "Past work",     cta: "Add past work samples", weight: 15, href: "/settings.html#professional" },
+  { key: "photo",       label: "Profile photo", cta: "Add a profile photo",   weight: 10, href: "/settings.html#personal" },
+  { key: "name",        label: "Full name",     cta: "Add your full name",    weight: 10, href: "/settings.html#personal" },
+  { key: "linkedin",    label: "LinkedIn",      cta: "Link your LinkedIn",    weight:  8, href: "/settings.html#personal" },
+  { key: "school",      label: "School",        cta: "Add your school",       weight:  7, href: "/settings.html#professional" },
+  { key: "major",       label: "Major",         cta: "Add your major",        weight:  5, href: "/settings.html#professional" },
+  { key: "minor",       label: "Minor",         cta: "Add your minor",        weight:  5, href: "/settings.html#professional" },
 ];
 
 function consultantHealth(profile, consultant, portfolioCount) {
@@ -467,9 +469,9 @@ function consultantHealth(profile, consultant, portfolioCount) {
 
   let tierName;
   if (pct >= 100) tierName = "complete";
-  else if (pct >= 67) tierName = "almost there";
-  else if (pct >= 34) tierName = "needs attention";
-  else tierName = "needs love";
+  else if (pct >= 67) tierName = "Almost there";
+  else if (pct >= 34) tierName = "Needs attention";
+  else tierName = "Needs love";
 
   return { pct, done, total, fields, missing, tierName };
 }
@@ -483,8 +485,8 @@ function renderHealth(panel, health, consultantId) {
   let cta;
   let ctaHref;
   if (isComplete) {
-    copy = "your profile is complete. businesses can see exactly who they'd hire.";
-    cta = "open profile";
+    copy = "Your profile is complete. Businesses can see exactly who they'd hire.";
+    cta = "Open profile";
     ctaHref = "/profile.html";
   } else {
     // health.missing is sorted by weight DESC, so the first item is always
@@ -495,11 +497,11 @@ function renderHealth(panel, health, consultantId) {
     // Tone copy for the top three weight tiers; everything else gets a
     // generic line so we don't ship dozens of bespoke strings.
     if (next.key === "payouts") {
-      copy = "set up payouts so businesses can accept your offers.";
+      copy = "Set up payouts so businesses can accept your offers.";
     } else if (next.key === "resume") {
-      copy = "upload a resume so businesses can review your experience.";
+      copy = "Upload a resume so businesses can review your experience.";
     } else if (next.key === "portfolio") {
-      copy = "add a few past work samples so businesses can see your range.";
+      copy = "Add a few past work samples so businesses can see your range.";
     } else {
       copy = `${next.cta} so businesses know more about you.`;
     }
@@ -572,7 +574,7 @@ function renderConsultantStats(bids) {
     if (acceptDetailEl) acceptDetailEl.textContent = `${accepted.length} of ${decided} decided`;
   } else {
     if (acceptRateEl) acceptRateEl.textContent = "—";
-    if (acceptDetailEl) acceptDetailEl.textContent = "no decisions yet";
+    if (acceptDetailEl) acceptDetailEl.textContent = "No decisions yet";
   }
 
   // Average response time: how long it took the owner to act on an
@@ -601,10 +603,10 @@ function renderConsultantStats(bids) {
   if (released.length && payoutEl) {
     const avgCents = released.reduce((s, b) => s + (Number(b.amount_cents) || 0), 0) / released.length;
     payoutEl.textContent = fmtUSD(avgCents);
-    if (payoutDetailEl) payoutDetailEl.textContent = `across ${released.length} released offer${released.length === 1 ? "" : "s"}`;
+    if (payoutDetailEl) payoutDetailEl.textContent = `Across ${released.length} released offer${released.length === 1 ? "" : "s"}`;
   } else {
     if (payoutEl) payoutEl.textContent = "—";
-    if (payoutDetailEl) payoutDetailEl.textContent = "no released offers yet";
+    if (payoutDetailEl) payoutDetailEl.textContent = "No released offers yet";
   }
 
   // Active bids count
@@ -650,7 +652,7 @@ function renderDashboard(client, data) {
   const firstName = (profile?.full_name || "").split(" ")[0] || "there";
   const welcomeEl = $("cdash-welcome");
   if (welcomeEl) {
-    welcomeEl.innerHTML = `welcome back, ${escape(firstName)}.`;
+    welcomeEl.innerHTML = `Welcome back, ${escape(firstName)}.`;
   }
 
   // Build a map of bid_id → unread thread so each plant in the journey
@@ -732,7 +734,7 @@ function renderDashboard(client, data) {
     userAvatar.innerHTML = avatarUrl ? `<img src="${escape(avatarUrl)}" alt=""/>` : escape(ui);
   }
   const userName = $("cdash-user-name");
-  if (userName) userName.textContent = profile?.full_name || "your account";
+  if (userName) userName.textContent = profile?.full_name || "Your account";
 
   // Profile completion → bucket card beneath the journey.
   const healthPanel = $("cdash-health");
@@ -765,7 +767,7 @@ function setupShell() {
     shell.classList.toggle("bza--collapsed", collapsed);
     if (toggleBtn) {
       toggleBtn.setAttribute("aria-expanded", String(!collapsed));
-      toggleBtn.setAttribute("aria-label", collapsed ? "expand sidebar" : "collapse sidebar");
+      toggleBtn.setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
     }
   }
   let initialCollapsed = false;
@@ -889,30 +891,30 @@ function buildTutorialGardenFixture(userId) {
   const engagements = [
     eng("tut-1", {
       status: "submitted",
-      title: "instagram content sprint",
-      owner: "leah park",
+      title: "Instagram content sprint",
+      owner: "Leah Park",
       created_at: days(1),
     }),
     eng("tut-2", {
       status: "accepted",
-      title: "menu redesign",
-      owner: "amelia chen",
+      title: "Menu redesign",
+      owner: "Amelia Chen",
       created_at: days(7),
       accepted_at: days(2),
       schedule: { status: "awaiting_owner" },
     }),
     eng("tut-3", {
       status: "accepted",
-      title: "spring sale launch plan",
-      owner: "jordan ngo",
+      title: "Spring sale launch plan",
+      owner: "Jordan Ngo",
       created_at: days(12),
       accepted_at: days(8),
       schedule: { status: "scheduled" },
     }),
     eng("tut-4", {
       status: "accepted",
-      title: "loyalty program audit",
-      owner: "rae morales",
+      title: "Loyalty program audit",
+      owner: "Rae Morales",
       created_at: days(20),
       accepted_at: days(16),
       schedule: { status: "completed" },
@@ -920,8 +922,8 @@ function buildTutorialGardenFixture(userId) {
     eng("tut-5", {
       status: "accepted",
       payment_status: "released",
-      title: "summer pop-up debrief",
-      owner: "marcus liu",
+      title: "Summer pop-up debrief",
+      owner: "Marcus Liu",
       created_at: days(30),
       accepted_at: days(26),
       schedule: { status: "completed" },
@@ -929,8 +931,8 @@ function buildTutorialGardenFixture(userId) {
     eng("tut-6", {
       status: "accepted",
       payment_status: "released",
-      title: "weekend market push",
-      owner: "anika das",
+      title: "Weekend market push",
+      owner: "Anika Das",
       created_at: days(45),
       accepted_at: days(41),
       schedule: { status: "completed" },
@@ -938,8 +940,8 @@ function buildTutorialGardenFixture(userId) {
     eng("tut-7", {
       status: "accepted",
       payment_status: "released",
-      title: "brand voice cleanup",
-      owner: "noor abadi",
+      title: "Brand voice cleanup",
+      owner: "Noor Abadi",
       created_at: days(60),
       accepted_at: days(56),
       schedule: { status: "completed" },
@@ -978,7 +980,7 @@ async function runTutorialGarden(client, session) {
   // anchors. Profile completion + notifications are skipped because
   // they'd surface real data underneath the simulated garden.
   const welcome = $("cdash-welcome");
-  if (welcome) welcome.textContent = "your garden — a preview.";
+  if (welcome) welcome.textContent = "Your garden — a preview.";
 }
 
 async function init() {
@@ -1009,9 +1011,15 @@ async function init() {
     renderDashboard(client, data);
   } catch (err) {
     console.error(err);
-    gate.textContent = err.message || "could not load dashboard.";
+    gate.textContent = err.message || "Could not load dashboard.";
     gate.className = "gr-status error";
   }
 }
 
 init();
+
+// Categories and statuses are stored lowercase; show them in sentence case.
+function capFirst(value) {
+  const s = String(value || "");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}

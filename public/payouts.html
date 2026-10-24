@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,follow" />
-    <title>grassroots — set up payouts</title>
+    <title>Grassroots — set up payouts</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,18 +12,19 @@
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <script src="/theme.js"></script>
+    <script src="/cookie-banner.js" defer></script>
     <script src="/loading-overlay.js"></script>
   </head>
   <body class="gr-body gr-has-side-nav">
     <main class="gr-shell gr-shell--wide po-shell">
-      <a href="/consultant-dashboard.html" class="ld-back">← back</a>
+      <a href="/consultant-dashboard.html" class="ld-back">← Back</a>
 
       <div class="gr-page-intro">
-        <h1 class="gr-title" id="po-page-title">set up <span class="fo-title-italic">payouts</span></h1>
-        <p class="gr-subtitle" id="po-page-subtitle">verify your identity so grassroots can pay you when an engagement is marked complete.</p>
+        <h1 class="gr-title" id="po-page-title">Set up <span class="fo-title-italic">payouts</span></h1>
+        <p class="gr-subtitle" id="po-page-subtitle">Verify your identity so Grassroots can pay you when an engagement is marked complete.</p>
       </div>
 
-      <p id="po-gate" class="gr-status" aria-live="polite">loading…</p>
+      <p id="po-gate" class="gr-status" aria-live="polite">Loading…</p>
 
       <div id="po-shell" hidden>
         <!-- Status row (dot + headline label) sits at the very top so
@@ -34,7 +35,7 @@
         <div class="po-status" id="po-status-card" hidden>
           <div class="po-status__row">
             <span class="po-status__dot" id="po-status-dot"></span>
-            <span class="po-status__label" id="po-status-label">checking…</span>
+            <span class="po-status__label" id="po-status-label">Checking…</span>
           </div>
         </div>
 
@@ -51,7 +52,7 @@
              the page doesn't lead with a checklist. -->
         <details id="po-requirements-collapsible" class="po-requirements-collapsible" hidden>
           <summary class="po-requirements-collapsible__head">
-            <span class="po-requirements-collapsible__title" id="po-status-detail">stripe still needs:</span>
+            <span class="po-requirements-collapsible__title" id="po-status-detail">Stripe still needs:</span>
             <span class="po-requirements-collapsible__chevron" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </span>
@@ -62,18 +63,18 @@
         <!-- At-a-glance balance summary card. Active accounts only;
              reads the Stripe Balance + last payout via our server. -->
         <section id="po-balance" class="po-balance" hidden aria-labelledby="po-balance-h">
-          <h2 id="po-balance-h" class="po-balance__title gr-section-h">balance</h2>
+          <h2 id="po-balance-h" class="po-balance__title gr-section-h">Balance</h2>
           <div class="po-balance__row">
             <div class="po-balance__cell">
-              <span class="po-balance__label">available</span>
+              <span class="po-balance__label">Available</span>
               <span class="po-balance__value" id="po-balance-available">—</span>
             </div>
             <div class="po-balance__cell">
-              <span class="po-balance__label">pending</span>
+              <span class="po-balance__label">Pending</span>
               <span class="po-balance__value" id="po-balance-pending">—</span>
             </div>
             <div class="po-balance__cell">
-              <span class="po-balance__label">last payout</span>
+              <span class="po-balance__label">Last payout</span>
               <span class="po-balance__value" id="po-balance-last">—</span>
             </div>
           </div>
@@ -87,14 +88,14 @@
         <section id="po-active-section" hidden>
           <section class="po-collapsible" data-section-key="account-info">
             <button type="button" class="po-collapsible__head" aria-expanded="true" aria-controls="po-section-account-info">
-              <span class="po-collapsible__title gr-section-h">account &amp; tax info</span>
+              <span class="po-collapsible__title gr-section-h">Account &amp; tax info</span>
               <span class="po-collapsible__chevron" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
               </span>
             </button>
             <div class="po-collapsible__body" id="po-section-account-info">
               <div class="po-collapsible__inner">
-                <p class="gr-field-hint">update your tax id, business type, address, or bank info. stripe handles 1099 issuance automatically each january.</p>
+                <p class="gr-field-hint">Update your tax ID, business type, address, or bank info. Stripe handles 1099 issuance automatically each January.</p>
                 <div id="po-management" class="po-management"></div>
               </div>
             </div>
@@ -102,14 +103,14 @@
 
           <section class="po-collapsible" data-section-key="payouts-history">
             <button type="button" class="po-collapsible__head" aria-expanded="true" aria-controls="po-section-payouts-history">
-              <span class="po-collapsible__title gr-section-h">payouts</span>
+              <span class="po-collapsible__title gr-section-h">Payouts</span>
               <span class="po-collapsible__chevron" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
               </span>
             </button>
             <div class="po-collapsible__body" id="po-section-payouts-history">
               <div class="po-collapsible__inner">
-                <p class="gr-field-hint">history of transfers from your grassroots balance to your bank.</p>
+                <p class="gr-field-hint">History of transfers from your Grassroots balance to your bank.</p>
                 <div id="po-payouts" class="po-payouts"></div>
               </div>
             </div>

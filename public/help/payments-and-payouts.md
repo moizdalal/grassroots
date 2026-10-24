@@ -1,65 +1,110 @@
-# payments & payouts
+# Payments & payouts
 
-> grassroots uses **stripe connect** to move money from business owners to consultants. you don't enter card details on grassroots — stripe handles that and our servers never see them.
+> Grassroots charges the business, holds the money, and pays the consultant when the business releases it. Stripe processes every card and payout. Our servers never see card or bank numbers.
 
-## the flow at a glance
+This page summarizes [sections 6–10 of the terms](/terms.html#payments). If anything here differs, the terms win.
+
+## The flow at a glance
 
 ```
-owner accepts bid  →  card charged  →  funds routed to consultant
-                                         (held until review)
-                                         ↓
-owner submits review  →  engagement marked released
-                          ↓
-                          consultant's stripe payout schedule kicks in
-                          (typically 2 business days to bank)
+business accepts offer  →  card charged by grassroots
+                            ↓
+                            payment held in grassroots' stripe balance
+                            ↓
+business marks work complete + submits review  →  payment released
+                            ↓
+                            stripe transfer to the consultant's connected account
+                            ↓
+                            stripe pays out to the consultant's bank
 ```
 
-## what business owners pay
+Grassroots is the merchant of record. The charge appears on your card statement from Grassroots, not from the consultant or Stripe. The consultant appoints Grassroots as their agent to collect payment, so paying Grassroots counts as paying the consultant.
 
-1. you accept a consultant's bid
-2. a stripe payment modal opens — enter card details there
-3. the bid amount is captured immediately; **funds route directly to the consultant's connected stripe account** (no platform middleman)
-4. you finish the engagement and submit a review
-5. grassroots marks the bid `released` — your obligation is done
+Grassroots is not an escrow company or a bank. Held money sits in Grassroots' own Stripe balance until it's released or refunded.
 
-stripe is the merchant of record on your statement. line item reads "grassroots — [listing title]".
+## What business owners pay
 
-## what consultants receive
+1. You accept a consultant's offer.
+2. A Stripe payment form opens. You pay the offer plus the platform fee.
+3. Grassroots holds the payment while the work happens.
+4. The consultant marks the work delivered.
+5. You mark the work complete and submit your review. That releases the payment. If you do nothing for 14 days after delivery, it releases automatically.
 
-1. funds land on your connect account's **pending balance** the moment the owner pays
-2. once the owner submits their review, the bid flips to `released`
-3. stripe pays out on its normal cadence (default: 2 business days to your linked bank)
-4. you can change payout cadence inside your stripe-embedded settings (daily, weekly, monthly)
+Your rating doesn't change what the consultant is paid. The review is required, the score isn't.
 
-if you haven't completed payout setup, you **cannot receive bids** — the submit-offer button is disabled until stripe shows your account as fully active.
+Your card is saved with Stripe so retainer periods and future payments you approve can be charged without re-entering it. You can remove it any time.
 
-## bid payment states
+## Pricing models
 
-every bid carries a `payment_status` field. it moves like this:
+| Model | When you're charged | When it's released |
+|---|---|---|
+| **One-time** | Full offer at acceptance | When you mark it complete and review, or 14 days after delivery |
+| **Phased: proposal fee** | At acceptance, for one or more consultants at once | Once you've met and decided whether to move forward, either way |
+| **Phased: service fee** | When you move forward with a consultant | When you mark it complete and review, or 14 days after delivery |
+| **Retainer** | At the start of each period, to your saved card | When you release it, right away if auto-release is on, or 14 days after the period ends |
 
-| state | meaning |
+The consultant marks the work delivered when it's done. From then you have 14 days to review before it releases automatically. Proposal fees only release when you decide. Anything still held 90 days after the charge goes to our team for a manual review instead.
+
+Retainers stop billing after the number of periods in the offer. You can change the length, but not below the periods already paid. Either side can end it after the current period.
+
+## What consultants receive
+
+1. You finish Stripe payout setup before you can submit offers. See [Stripe onboarding](./stripe-onboarding.md).
+2. When the business pays, the money is held by Grassroots. It isn't in your Stripe balance yet.
+3. When the work is done, mark it delivered on the engagement page. The business has 14 days to review. Retainer periods don't need marking: the 14 days start when the period ends.
+4. When it's released, Grassroots transfers your payout to your connected account.
+5. Stripe pays out to your bank on your payout schedule, usually about 2 business days.
+
+Your payout is the offer minus an estimate of card processing: **2.9% + $0.30** per payment. If Stripe charges more on a card (international, amex), Grassroots absorbs the difference.
+
+## Fees
+
+| Who | Fee |
 |---|---|
-| `unpaid` | bid submitted, owner hasn't accepted yet |
-| `authorizing` | owner is in the payment modal — card not yet captured |
-| `held` | card captured, funds routed to consultant's pending balance, engagement underway |
-| `released` | owner submitted their review, grassroots considers the engagement closed |
-| `refunded` | (rare) owner-initiated refund; funds pulled back from consultant |
-| `failed` | card declined or stripe error |
+| Business | 10% platform fee on top of the offer, unless checkout shows a promotion or waiver. It's waived during launch. |
+| Consultant | Card processing, deducted from the payout (2.9% + $0.30) |
 
-## refunds
+We'll give at least 30 days' notice before raising a fee or ending a waiver.
 
-refunds are owner-initiated and only available before the engagement is marked released. once `released`, the consultant has been credited and the money is no longer recoverable from grassroots — you'd need to work out a return directly with the consultant.
+## Payment states
 
-we'll publish the formal refund window and dispute process here as policy when it lands.
+Every bid carries a `payment_status`:
 
-## why stripe handles it
+| State | Meaning |
+|---|---|
+| `unpaid` | Offer submitted, not accepted yet |
+| `authorizing` | Business is in the payment form |
+| `held` | Card charged, Grassroots is holding the payment |
+| `released` | Transferred to the consultant. Final. |
+| `refunded` | Returned to the business's card |
+| `failed` | Card declined or Stripe error |
 
-- we never store card numbers or bank info — fewer compliance obligations and a smaller blast radius if grassroots is ever breached
-- stripe issues 1099s to consultants automatically each january (no paperwork from you)
-- payouts use stripe's existing global rails, so consultants in different states get paid the same way
+## Refunds
 
-## faq
+This is the same policy as [section 7 of the terms](/terms.html#refunds). If anything here differs, the terms win.
 
-- **can i pay in installments?** not currently. the full bid amount is charged at acceptance.
-- **what cards work?** anything stripe accepts in your region: visa, mastercard, amex, discover, plus apple pay / google pay on supported devices.
-- **does grassroots take a cut?** not yet. for the current period the platform fee is 0% — consultants receive 100% of the bid amount.
+1. **Within 24 hours (one-time jobs):** cancel from the engagement page for a full refund, platform fee included. This only works while the payment is still held.
+2. **After 24 hours, before release:** report a problem from the engagement page during your 14-day review, or email [moiz@grassroots-marketplace.com](mailto:moiz@grassroots-marketplace.com) with the bid ID. This is also the only route for proposal fees, service fees, and retainer periods. The payment locks while we review. We then decide one of three things:
+   - **The work meets scope:** it's released to the consultant.
+   - **It falls short but can be fixed:** the consultant has 5 days to redo it once, or give the money back. A give-back refunds you minus card-processing fees. No answer in 5 days counts as a give-back.
+   - **Scope was breached:** you get a full refund. The consultant gets nothing.
+3. **After release:** no refund through Grassroots. The payment is final. Any return is between you and the consultant.
+4. **Retainers:** a period that's already been charged isn't refunded when either side ends the retainer. There's no proration.
+5. **14-day review window:** once the consultant marks the work delivered, you have 14 days to release it, request changes, or report a problem. After that it releases to the consultant automatically. You get a heads-up on day 7. For retainers, each period's 14 days start when the period ends.
+
+Refunds land on your original card, usually within 5–10 business days.
+
+## Chargebacks
+
+Contact us before disputing a charge with your bank. While a card dispute is open, we don't release that payment. If a dispute is lost after the payment was released, Grassroots recovers the amount from the consultant's connected account or future payouts.
+
+## Taxes & 1099s
+
+Grassroots, through Stripe, issues tax forms to consultants when the law requires it. Stripe doesn't do this on its own. See [Stripe onboarding](./stripe-onboarding.md#taxes--1099s).
+
+## FAQ
+
+- **Can I pay in installments?** Use a phased listing or a retainer. A one-time job is charged in full at acceptance.
+- **What cards work?** Anything Stripe accepts: visa, mastercard, amex, discover, plus apple pay and Google pay on supported devices.
+- **Does Grassroots take a cut?** Businesses pay a 10% platform fee, waived during launch. Consultants only lose card processing.
+- **Is this escrow?** No. Grassroots holds the payment in its own Stripe balance and releases it under the terms. No licensed escrow agent is involved.

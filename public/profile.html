@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,follow" />
-    <title>grassroots — your profile</title>
+    <title>Grassroots — your profile</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="/plant-animations.css" />
     <link rel="stylesheet" href="/garden.css" />
     <script src="/theme.js"></script>
+    <script src="/cookie-banner.js" defer></script>
     <script src="/loading-overlay.js"></script>
     <script defer src="/onboarding-shim.js"></script>
     <!-- consultant progression: parked — see parked/consultant-progression/.
@@ -22,20 +23,20 @@
   </head>
   <body class="gr-body gr-has-side-nav">
     <main class="gr-shell gr-shell--wide pp-shell">
-      <p id="pp-gate" class="gr-status" aria-live="polite">loading…</p>
+      <p id="pp-gate" class="gr-status" aria-live="polite">Loading…</p>
 
       <section id="pp-page" hidden>
         <!-- Header card: avatar, name, role, edit button -->
         <header class="pp-header">
           <span class="gr-avatar gr-avatar--xl gr-avatar--round" id="pp-avatar"></span>
           <div class="pp-header__copy">
-            <h1 class="gr-title" id="pp-name">your account</h1>
+            <h1 class="gr-title" id="pp-name">Your account</h1>
             <p class="pp-header__role" id="pp-role"></p>
             <p class="pp-header__bio" id="pp-bio" hidden></p>
           </div>
           <div class="pp-header__actions">
             <a class="gr-btn gr-btn--secondary" href="/settings.html#personal">
-              edit profile
+              Edit profile
             </a>
           </div>
         </header>
@@ -44,7 +45,7 @@
         <section class="pp-section pp-section--metrics hidden" id="pp-metrics-section">
           <div class="pp-metrics" role="list">
             <div class="pp-metric" role="listitem">
-              <span class="pp-metric__label">overall rating</span>
+              <span class="pp-metric__label">Overall rating</span>
               <span class="pp-metric__row">
                 <span class="pp-metric__value" id="pp-metric-rating">—</span>
                 <span class="pp-metric__rating-stars" aria-hidden="true">
@@ -56,14 +57,14 @@
               </span>
             </div>
             <div class="pp-metric" role="listitem">
-              <span class="pp-metric__label">engagements</span>
+              <span class="pp-metric__label">Engagements</span>
               <span class="pp-metric__row">
                 <span class="pp-metric__value" id="pp-metric-engagements">0</span>
-                <span class="pp-metric__sub">completed</span>
+                <span class="pp-metric__sub">Completed</span>
               </span>
             </div>
             <div class="pp-metric" role="listitem">
-              <span class="pp-metric__label">total earned</span>
+              <span class="pp-metric__label">Total earned</span>
               <span class="pp-metric__value" id="pp-metric-earned">$0</span>
             </div>
           </div>
@@ -85,8 +86,8 @@
         <!-- Consultant-only: reviews & ratings summary -->
         <section class="pp-section pp-section--reviews hidden" id="pp-reviews-section">
           <header class="pp-section__head">
-            <h2>ratings <span class="fo-title-italic">& reviews</span></h2>
-            <a class="gr-btn gr-btn--ghost gr-btn--sm" href="/my-reviews.html">see all reviews →</a>
+            <h2>Ratings <span class="fo-title-italic">& reviews</span></h2>
+            <a class="gr-btn gr-btn--ghost gr-btn--sm" href="/my-reviews.html">See all reviews →</a>
           </header>
 
           <div class="pp-reviews-overall">
@@ -94,23 +95,23 @@
           </div>
 
           <div class="pp-reviews-recent" id="pp-reviews-recent" hidden>
-            <p class="pp-reviews-recent__head">recent endorsements</p>
+            <p class="pp-reviews-recent__head">Recent endorsements</p>
             <div class="pp-reviews-recent__list" id="pp-reviews-recent-list"></div>
           </div>
           <p class="gr-empty-state" id="pp-reviews-empty" hidden>
-            no reviews yet — once a business endorses you, it'll appear here.
+            No reviews yet — once a business endorses you, it'll appear here.
           </p>
         </section>
 
         <!-- Owner-only: minimal pointer back to dashboard -->
         <section class="pp-section pp-section--owner hidden" id="pp-owner-section">
           <header class="pp-section__head">
-            <h2>your business</h2>
-            <a class="gr-btn gr-btn--ghost gr-btn--sm" href="/dashboard.html">open dashboard →</a>
+            <h2>Your business</h2>
+            <a class="gr-btn gr-btn--ghost gr-btn--sm" href="/dashboard.html">Open dashboard →</a>
           </header>
           <p class="pp-owner-copy">
-            your listings, bids, and engagements live on the owner dashboard.
-            this page collects everything tied to your account profile.
+            Your listings, bids, and engagements live on the owner dashboard.
+            This page collects everything tied to your account profile.
           </p>
         </section>
       </section>

@@ -156,7 +156,6 @@ img.gr-listing-logo {
     ),
     var(--sky);
   color: var(--ink);
-  text-transform: lowercase;
   -webkit-font-smoothing: antialiased;
   line-height: 1.5;
 }
@@ -541,7 +540,6 @@ img.gr-listing-logo {
   margin-bottom: 1.25rem;
   font-size: var(--type-meta);  font-weight: 500;
   color: var(--tagline-body);
-  text-transform: lowercase;
 }
 
 .gr-oauth__divider::before,
@@ -2503,6 +2501,24 @@ summary:focus-visible,
   font-size: var(--type-body);  color: var(--tagline-body);
 }
 
+.gr-auth-disclosure {
+  margin: 0.75rem 0 0;
+  font-size: var(--type-meta);
+  color: var(--fo-text-3, var(--tagline-body));
+  line-height: 1.45;
+}
+
+.gr-auth-disclosure a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.gr-auth-disclosure a:hover,
+.gr-auth-disclosure a:focus-visible {
+  color: var(--fo-accent);
+}
+
 .gr-action-spacer {
   flex: 1;
 }
@@ -3193,7 +3209,6 @@ summary:focus-visible,
   margin: 0 0 0.5rem;
   font-size: var(--type-meta);  font-weight: 700;
   letter-spacing: 0.06em;
-  text-transform: lowercase;
   color: var(--green-mid);
 }
 
@@ -3768,7 +3783,6 @@ button.gr-bid-link {
 .ld-biz-card__heading {
   font-size: var(--type-eyebrow);  font-weight: 700;
   letter-spacing: 0.06em;
-  text-transform: lowercase;
   color: var(--tagline-body);
   margin: 0;
 }
@@ -3958,7 +3972,7 @@ button.gr-bid-link {
   font-weight: 600;
   font-size: 1.6rem;
   color: var(--fo-accent, var(--green-mid));
-  text-transform: lowercase;
+  text-transform: uppercase;
   font-weight: 600;
   font-style: normal;
 }
@@ -4285,7 +4299,6 @@ button.gr-bid-link {
   font-size: var(--type-eyebrow);  font-weight: 700;
   letter-spacing: 0.04em;
   white-space: nowrap;
-  text-transform: lowercase;
 }
 
 .gr-pill::before {
@@ -4851,7 +4864,7 @@ button.gr-bid-link {
 /* "suggestion box" label that floats to the left of the floating
    button on hover/focus — clarifies what the icon-only chip is. */
 .gr-suggest-btn::after {
-  content: "suggestion box";
+  content: "Suggestion box";
   position: absolute;
   top: 50%;
   right: calc(100% + 10px);
@@ -5984,4 +5997,108 @@ h1, h2, h3, h4 {
 }
 button, input, select, textarea {
   font-family: var(--font-body);
+}
+
+/* --- Cookie notice banner ---
+   Light dismissible bottom-bar that explains we use cookies. Injected by
+   /cookie-banner.js once per visitor; remembered via localStorage. Pinned
+   bottom-right on desktop, full-width across the bottom on small screens.
+   z-index sits above page chrome but below modals (1500-1700) so opening
+   a modal hides it cleanly. */
+.gr-cookie-banner {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  left: auto;
+  z-index: 1400;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 28rem;
+  padding: 0.7rem 0.85rem 0.7rem 1rem;
+  background: var(--fo-surface);
+  color: var(--fo-text);
+  border: 1px solid var(--fo-line);
+  border-radius: 999px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  transform: translateY(0.75rem);
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+
+:root:not([data-theme="light"]) .gr-cookie-banner {
+  /* dark themes get a slightly different fill for legibility against the
+     transparent card pattern used elsewhere. */
+  background: var(--fo-surface-2);
+}
+
+.gr-cookie-banner.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.gr-cookie-banner.is-leaving {
+  opacity: 0;
+  transform: translateY(0.5rem);
+}
+
+.gr-cookie-banner__msg {
+  margin: 0;
+  font-size: var(--type-meta);
+  line-height: 1.4;
+  color: var(--fo-text-2);
+}
+
+.gr-cookie-banner__link {
+  color: var(--fo-accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  white-space: nowrap;
+}
+
+.gr-cookie-banner__link:hover,
+.gr-cookie-banner__link:focus-visible {
+  text-decoration: none;
+}
+
+.gr-cookie-banner__dismiss {
+  flex-shrink: 0;
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: var(--type-meta);
+  font-weight: 600;
+  background: var(--fo-accent);
+  color: var(--fo-accent-on);
+  transition: filter 0.15s ease;
+}
+
+.gr-cookie-banner__dismiss:hover,
+.gr-cookie-banner__dismiss:focus-visible {
+  filter: brightness(1.05);
+  outline: none;
+}
+
+@media (max-width: 560px) {
+  .gr-cookie-banner {
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    max-width: none;
+    border-radius: 16px;
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gr-cookie-banner {
+    transition: opacity 0.12s linear;
+    transform: none;
+  }
+  .gr-cookie-banner.is-leaving { transform: none; }
 }

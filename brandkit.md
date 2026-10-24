@@ -6,14 +6,18 @@ The single source of truth for how this product looks, sounds, and behaves. New 
 
 ## Voice
 
-Warm-direct. Lowercase always, second person, ~10-word sentences, no exclamation points.
+Warm-direct. Sentence case, second person, ~10-word sentences, no exclamation points.
 
-- "use the email you registered with." — yes
-- "Welcome Back! Sign In With The Email From Registration." — no
-- "thanks for the note. we read all of these." — yes
-- "Thank you for your feedback!" — no
+- "Use the email you registered with." — yes
+- "Welcome Back! Sign In With The Email From Registration." — no (title case, exclamation)
+- "Thanks for the note. We read all of these." — yes
+- "thank you for your feedback!" — no (all lowercase, exclamation)
 
-Headers, page titles, button labels, status messages, empty states, placeholders — all lowercase. The only capitals are proper nouns (school names, brand names like "LinkedIn") and inside user-generated content.
+**Case rule (changed 2026-10-24, replaces the old all-lowercase rule):** headers, page titles, button labels, status messages, empty states, and placeholders use sentence case. Capitalize the first word of each sentence or standalone label, and proper nouns (Stripe, LinkedIn, Gainesville, University of Florida), acronyms (PDF, URL, ID, SEO), months, and days. Don't use title case. Words after a mid-sentence dash or inside parentheses stay lowercase ("Decision saved — moving forward").
+
+**Brand name:** the wordmark/logo is the only lowercase text: `grassroots` in `.gr-nav__wordmark`, `.bza__brand-text`, `.ld-nav__brand-text`, and the other brand lockups. Everywhere else, in copy, titles, meta tags, emails, and legal text, write **Grassroots** or **Grassroots Marketplace** (legal entity: Grassroots Marketplace LLC).
+
+**Stored values:** categories, statuses, and contract types are stored lowercase in the database and used as keys. Don't change the stored values. Sentence-case them at render time with a `capFirst()` helper where they show on their own (tags, pills, filter options). Typed confirmation phrases ("delete my account") stay lowercase because the client lowercases input before it compares.
 
 ---
 
@@ -166,7 +170,7 @@ One container + one img rule + size/shape/tone modifiers.
 
 Aliases (`.bza__user-avatar`, `.gr-bid-avatar`, `.pf-bv__avatar`, `.gr-listing-logo`, etc.) inherit from the same base. Don't add new aliases — pick a modifier instead.
 
-**Fallback when no avatar image exists**: render the user/business's initials, **always lowercase**, via `getInitials(name)` from `/initials.js`. Two-word names → first + last initial (`"Moiz Dalal"` → `md`); single-word → first letter (`"Alice"` → `a`); empty/missing → `?`. Never use a person glyph (`👤`) or single uppercase letter — those patterns are deprecated.
+**Fallback when no avatar image exists**: render the user/business's initials, **always uppercase**, via `getInitials(name)` from `/initials.js`. Two-word names → first + last initial (`"Moiz Dalal"` → `MD`); single-word → first letter (`"Alice"` → `A`); empty/missing → `?`. Never use a person glyph (`👤`).
 
 ### `.gr-btn` — buttons
 
@@ -200,6 +204,14 @@ Theme-aware shimmer placeholder using `--fo-surface-2` → `--fo-surface-3`. Mod
 | First paint of a page | `loading-overlay.js` (auto-injected — full-screen frosted overlay with sprout, hides on `#…-gate` clear) |
 | Partial load inside a panel | `.gr-skeleton` rows or cards |
 | Action in flight on a button | `.is-loading` class on the button |
+
+### `.gr-cookie-banner` — cookie notice
+
+Auto-injecting dismissible bottom pill that explains we use cookies and links to `/privacy#cookies`. Rendered by `cookie-banner.js` (loaded `defer` on every page that imports `theme.js`). Renders once per visitor — dismissal is persisted to `localStorage["grassroots_cookies_acknowledged"] = "1"`. No opt-in/out controls; we don't load analytics or ad cookies, so the notice is purely disclosure.
+
+Pinned bottom-right on desktop (`max-width: 28rem`, pill shape), full-width across the bottom on screens ≤ 560 px. z-index `1400` — above page chrome, below modals (1500-1700) so opening a modal cleanly hides it.
+
+Don't render the banner on `/region-unavailable.html` (the geo-block page); the script skips that path. If you add other "no-account" landing pages, add their paths to the skip list in `cookie-banner.js`.
 
 ---
 

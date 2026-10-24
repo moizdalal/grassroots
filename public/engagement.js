@@ -114,11 +114,11 @@ const START_HOUR = 8;
 const END_HOUR = 20;
 const SLOT_COUNT = ((END_HOUR - START_HOUR) * 60) / SLOT_MINUTES;
 const RATING_DIMENSIONS = [
-  ["work_product_quality", "work product quality"],
+  ["work_product_quality", "Work product quality"],
   ["communication", "communication"],
   ["timeliness", "timeliness"],
   ["professionalism", "professionalism"],
-  ["cost_value", "cost value"],
+  ["cost_value", "Cost value"],
 ];
 
 let supabase;
@@ -161,15 +161,15 @@ function openRefundRequestModal({ engagementId, listingTitle } = {}) {
   modal.innerHTML = `
     <div class="gr-confirm-modal__backdrop" data-refund-action="cancel"></div>
     <div class="gr-confirm-modal__card" role="document">
-      <h2 id="${MODAL_ID}-title" class="gr-confirm-modal__title">request a refund</h2>
-      <p class="gr-confirm-modal__body">tell us what happened. we'll review and follow up by email within 2 business days.</p>
+      <h2 id="${MODAL_ID}-title" class="gr-confirm-modal__title">Request a refund</h2>
+      <p class="gr-confirm-modal__body">Tell us what happened. We'll review and follow up by email within 2 business days.</p>
       <label class="gr-label full-width" style="margin-top:0.85rem">
-        <span>what happened? <span class="gr-optional">required</span></span>
-        <textarea id="eg-refund-reason" rows="4" maxlength="1500" placeholder="describe the issue. include any specifics that'll help us review faster." required></textarea>
+        <span>What happened? <span class="gr-optional">Required</span></span>
+        <textarea id="eg-refund-reason" rows="4" maxlength="1500" placeholder="Describe the issue. Include any specifics that'll help us review faster." required></textarea>
       </label>
       <div class="gr-confirm-modal__actions">
-        <button type="button" class="gr-btn gr-btn--ghost" data-refund-action="cancel">cancel</button>
-        <button type="button" class="gr-btn gr-btn--primary" data-refund-action="submit">send request</button>
+        <button type="button" class="gr-btn gr-btn--ghost" data-refund-action="cancel">Cancel</button>
+        <button type="button" class="gr-btn gr-btn--primary" data-refund-action="submit">Send request</button>
       </div>
     </div>
   `;
@@ -196,15 +196,15 @@ function openRefundRequestModal({ engagementId, listingTitle } = {}) {
     }
     // Pre-fill mailto with engagement context so the support inbox has
     // everything it needs to triage without round-tripping.
-    const subject = `refund request — engagement ${engagementId || "unknown"}`;
+    const subject = `Refund request — engagement ${engagementId || "unknown"}`;
     const bodyLines = [
-      `engagement id: ${engagementId || "(unavailable)"}`,
+      `Engagement ID: ${engagementId || "(unavailable)"}`,
       `listing: ${listingTitle || "(unavailable)"}`,
       "",
-      "what happened:",
+      "What happened:",
       reason,
     ];
-    const href = `mailto:support@grassroots.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join("\n"))}`;
+    const href = `mailto:moiz@grassroots-marketplace.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join("\n"))}`;
     window.location.href = href;
     cleanup();
   }
@@ -335,7 +335,7 @@ function buildInviteHref() {
   if (!scheduleState?.selected_start || !scheduleState?.selected_end || !currentListing) return "#";
   const start = new Date(scheduleState.selected_start);
   const end = new Date(scheduleState.selected_end);
-  const ownerName = ownerProfile?.full_name || "business owner";
+  const ownerName = ownerProfile?.full_name || "Business owner";
   const consultantName = consultantProfile?.full_name || "Consultant";
   const body = [
     "BEGIN:VCALENDAR",
@@ -357,10 +357,10 @@ function buildInviteHref() {
 function setStatusPill(status) {
   statusPill.dataset.status = status;
   const labels = {
-    awaiting_owner: "awaiting availability",
-    awaiting_consultant: "awaiting consultant",
-    scheduled: "scheduled",
-    completed: "completed",
+    awaiting_owner: "Awaiting availability",
+    awaiting_consultant: "Awaiting consultant",
+    scheduled: "Scheduled",
+    completed: "Completed",
   };
   // Map engagement status → universal gr-pill kind so the pill picks up
   // the shared color tokens instead of bespoke CSS.
@@ -480,7 +480,7 @@ async function loadRetainerPeriods(bidId) {
 async function loadRetainerSubscription(bidId) {
   const { data, error } = await supabase
     .from("retainer_subscriptions")
-    .select("id, stripe_subscription_id, cadence, period_count, periods_billed, fee_cents, status, started_at, ends_at, canceled_at, offered_by, offered_at, accepted_at, declined_at, offer_message")
+    .select("id, stripe_subscription_id, cadence, period_count, periods_billed, fee_cents, status, started_at, ends_at, canceled_at, offered_by, offered_at, accepted_at, declined_at, offer_message, auto_release, terminates_at")
     .eq("bid_id", bidId)
     .maybeSingle();
   if (error) {
@@ -596,13 +596,24 @@ async function loadReview(bidId) {
 
 async function saveReview(payload) {
   if (reviewStore === "remote") {
+    // Reviews can't be edited once posted (no UPDATE grant). If one
+    // already exists — e.g. retrying release after a failed transfer —
+    // keep it instead of re-submitting.
+    if (reviewState?.id) return reviewState;
     const { data, error } = await supabase
       .from("consultant_reviews")
-      .upsert(payload, { onConflict: "bid_id" })
+      .insert(payload)
       .select()
       .single();
 
-    if (error && isMissing(error)) {
+    if (error?.code === "23505") {
+      const existing = await loadReview(payload.bid_id);
+      if (existing) {
+        reviewState = existing;
+        return existing;
+      }
+      throw error;
+    } else if (error && isMissing(error)) {
       reviewStore = "local";
     } else if (error) {
       throw error;
@@ -715,7 +726,7 @@ function renderMeetingSummary() {
     meetingSummaryEl.classList.remove("hidden");
     meetingTimeEl.textContent = formatDateTimeRange(scheduleState.selected_start, scheduleState.selected_end);
     meetingBodyEl.textContent =
-      "grassroots wishes you both the best of luck on this engagement. we're excited to hear back.";
+      "Grassroots wishes you both the best of luck on this engagement. We're excited to hear back.";
   } else {
     meetingSummaryEl.classList.add("hidden");
   }
@@ -739,11 +750,11 @@ function renderRatings() {
   ratingGrid.innerHTML = RATING_DIMENSIONS.map(([key, label]) => {
     const value = Number(reviewRatings[key]) || 0;
     const fillPct = Math.max(0, Math.min(5, value)) / 5 * 100;
-    const valueLabel = value ? `${value} of 5` : "not yet rated";
+    const valueLabel = value ? `${value} of 5` : "Not yet rated";
     const hits = Array.from({ length: 10 }, (_, i) => {
       const v = (i + 1) / 2;
       const star = v === 1 ? "star" : "stars";
-      return `<button type="button" class="eg-stars__hit" data-rating-key="${key}" data-rating-value="${v}" aria-label="rate ${v} ${star}"></button>`;
+      return `<button type="button" class="eg-stars__hit" data-rating-key="${key}" data-rating-value="${v}" aria-label="Rate ${v} ${star}"></button>`;
     }).join("");
     return `
       <div class="eg-rating-row">
@@ -763,11 +774,11 @@ function renderRatings() {
 
 function hydrateSummary() {
   titleEl.textContent = currentListing.title;
-  ownerNameEl.textContent = ownerProfile?.full_name || "business owner";
+  ownerNameEl.textContent = ownerProfile?.full_name || "Business owner";
   const consultantName = consultantProfile?.full_name || "Consultant";
   consultantNameEl.textContent = consultantName;
   amountEl.textContent = formatUsd(currentBid.amount_cents);
-  listingStatusEl.textContent = currentListing.status || "open";
+  listingStatusEl.textContent = capFirst(currentListing.status || "open");
   reviewOffersLink.href = `/listing.html?id=${currentListing.id}`;
 
   // Inbox shortcut — drops the user into the right thread in /inbox.html.
@@ -806,7 +817,7 @@ function renderRetainerPeriodsPanel() {
 
   // Show the panel as soon as there's a subscription on file — even
   // before the first invoice fires — so the owner can configure
-  // auto-release / termination date / cancel from day one.
+  // auto-release / retainer length / cancel from day one.
   const hasSub = retainerSub && ["active", "pending", "canceled", "completed"].includes(retainerSub.status);
   if (!hasSub) {
     retainerPeriodsPanel.classList.add("hidden");
@@ -818,7 +829,7 @@ function renderRetainerPeriodsPanel() {
   if (retainerPeriods.length === 0) {
     const empty = document.createElement("li");
     empty.className = "eg-period eg-period--empty";
-    empty.innerHTML = `<span class="eg-period__label">no periods billed yet — the first invoice fires at the start of the next billing cycle.</span>`;
+    empty.innerHTML = `<span class="eg-period__label">No periods billed yet — the first invoice fires at the start of the next billing cycle.</span>`;
     periodListEl.appendChild(empty);
   }
   for (const p of retainerPeriods) {
@@ -827,8 +838,8 @@ function renderRetainerPeriodsPanel() {
     const pillKind = p.status === "released" ? "accepted" : p.status === "held" ? "warn" : "muted";
     li.innerHTML = `
       <div class="eg-period__head">
-        <span class="eg-period__label">period ${p.period_index + 1}</span>
-        <span class="gr-pill gr-pill--${pillKind} gr-pill--no-dot">${p.status}</span>
+        <span class="eg-period__label">Period ${p.period_index + 1}</span>
+        <span class="gr-pill gr-pill--${pillKind} gr-pill--no-dot">${capFirst(p.status)}</span>
       </div>
       <div class="eg-period__row">
         <span class="eg-period__amount">${formatUsd(p.amount_cents)}</span>
@@ -840,7 +851,7 @@ function renderRetainerPeriodsPanel() {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "gr-btn gr-btn--primary gr-btn--sm";
-      btn.textContent = "release";
+      btn.textContent = "Release";
       btn.addEventListener("click", () => releaseRetainerPeriod(p.period_index, btn));
       actionsSlot.appendChild(btn);
     }
@@ -848,7 +859,7 @@ function renderRetainerPeriodsPanel() {
   }
 
   // Settings + cancel controls. Owner sees the full settings (auto-release
-  // toggle + termination date). Either party gets the "end after current
+  // toggle + retainer length). Either party gets the "end after current
   // period" button. Both panels stay hidden once the sub is canceled or
   // completed — nothing left to control.
   renderRetainerControls();
@@ -866,28 +877,35 @@ function renderRetainerControls() {
   host.classList.remove("hidden");
   const isOwner = viewRole === "owner";
   const auto = !!retainerSub.auto_release;
-  const terminates = retainerSub.terminates_at
-    ? new Date(retainerSub.terminates_at).toISOString().slice(0, 10)
+  const paid = Number(retainerSub.periods_billed) || 0;
+  const minLength = Math.max(1, paid);
+  const length = retainerSub.period_count || "";
+  const endsOn = retainerSub.terminates_at
+    ? new Date(retainerSub.terminates_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
     : "";
+  const lengthHint = length && endsOn
+    ? `Billing stops after period ${length}, on ${endsOn}. You can go as low as ${minLength}.`
+    : "No end set. Billing continues until you or the consultant end it.";
 
   const settingsBlock = isOwner ? `
     <div class="eg-retainer-controls__settings">
-      <p class="eg-retainer-controls__title">retainer settings</p>
+      <p class="eg-retainer-controls__title">Retainer settings</p>
       <label class="settings-toggle eg-retainer-controls__toggle">
         <span class="settings-toggle-copy">
-          <span class="settings-toggle-title">auto-release each period</span>
-          <span class="settings-toggle-sub">funds release to the consultant the moment each invoice is paid. you can toggle this off any time.</span>
+          <span class="settings-toggle-title">Auto-release each period</span>
+          <span class="settings-toggle-sub">Funds release to the consultant the moment each invoice is paid. You can toggle this off any time.</span>
         </span>
         <input type="checkbox" id="eg-retainer-auto-release" ${auto ? "checked" : ""} />
         <span class="settings-toggle-switch" aria-hidden="true"></span>
       </label>
-      <label class="gr-label eg-retainer-controls__date">
-        <span>termination date <span class="gr-optional">optional</span></span>
-        <input type="date" id="eg-retainer-terminates-at" value="${terminates}" />
+      <label class="gr-label eg-retainer-controls__length">
+        <span>Retainer length (periods)</span>
+        <input type="number" id="eg-retainer-period-count" min="${minLength}" max="120" step="1" inputmode="numeric" value="${length}" />
+        <span class="eg-retainer-controls__hint">${lengthHint}</span>
       </label>
       <div class="eg-retainer-controls__actions">
         <p id="eg-retainer-controls-status" class="gr-status" aria-live="polite"></p>
-        <button type="button" class="gr-btn gr-btn--secondary gr-btn--sm" id="eg-retainer-save-settings">save settings</button>
+        <button type="button" class="gr-btn gr-btn--secondary gr-btn--sm" id="eg-retainer-save-settings">Save settings</button>
       </div>
     </div>
   ` : "";
@@ -895,9 +913,9 @@ function renderRetainerControls() {
   const cancelBlock = `
     <div class="eg-retainer-controls__cancel">
       <p class="eg-retainer-controls__cancel-copy">${isOwner
-        ? "ending the retainer after the current period keeps this month's work and payment in place. no future invoices."
-        : "you can end your end of the retainer after the current period. your current period's work and pay stay in place."}</p>
-      <button type="button" class="gr-btn gr-btn--danger gr-btn--sm" id="eg-retainer-cancel-btn">end after current period</button>
+        ? "Ending the retainer after the current period keeps this month's work and payment in place. No future invoices."
+        : "You can end your end of the retainer after the current period. Your current period's work and pay stay in place."}</p>
+      <button type="button" class="gr-btn gr-btn--danger gr-btn--sm" id="eg-retainer-cancel-btn">End after current period</button>
     </div>
   `;
 
@@ -913,16 +931,14 @@ async function saveRetainerSettings() {
   const btn = document.getElementById("eg-retainer-save-settings");
   if (!currentBid?.id) return;
   if (btn) btn.disabled = true;
-  if (status) { status.textContent = "saving…"; status.className = "gr-status"; }
+  if (status) { status.textContent = "Saving…"; status.className = "gr-status"; }
   try {
     const autoEl = document.getElementById("eg-retainer-auto-release");
-    const dateEl = document.getElementById("eg-retainer-terminates-at");
+    const lengthEl = document.getElementById("eg-retainer-period-count");
     const body = { bid_id: currentBid.id };
     if (autoEl) body.auto_release = !!autoEl.checked;
-    if (dateEl) {
-      body.terminates_at = dateEl.value
-        ? new Date(`${dateEl.value}T23:59:59Z`).toISOString()
-        : null;
+    if (lengthEl?.value && Number(lengthEl.value) !== Number(retainerSub.period_count)) {
+      body.period_count = Number(lengthEl.value);
     }
     const { data: { session } } = await supabase.auth.getSession();
     const headers = { "Content-Type": "application/json" };
@@ -932,22 +948,30 @@ async function saveRetainerSettings() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      if (status) { status.textContent = data.error || "could not save."; status.className = "gr-status error"; }
+      if (status) { status.textContent = data.error || "Could not save."; status.className = "gr-status error"; }
       if (btn) btn.disabled = false;
       return;
     }
-    retainerSub = { ...retainerSub, ...(data.auto_release !== undefined ? { auto_release: data.auto_release } : {}), terminates_at: data.terminates_at };
+    retainerSub = {
+      ...retainerSub,
+      ...(data.auto_release !== undefined ? { auto_release: data.auto_release } : {}),
+      terminates_at: data.terminates_at,
+      period_count: data.period_count ?? retainerSub.period_count,
+    };
     // Catch-up releases (auto_release flipped on) may have changed period rows.
     retainerPeriods = await loadRetainerPeriods(currentBid.id);
     renderRetainerPeriodsPanel();
+    // Re-render so the length hint shows the new end date; that replaces
+    // the status node, so write the message to the fresh one.
+    renderRetainerControls();
     const catchUp = (data.catch_up_released || []).filter((r) => r.ok).length;
     const msg = catchUp > 0
-      ? `saved. released ${catchUp} held period${catchUp === 1 ? "" : "s"}.`
-      : "saved.";
-    if (status) { status.textContent = msg; status.className = "gr-status success"; }
-    if (btn) btn.disabled = false;
+      ? `Saved. Released ${catchUp} held period${catchUp === 1 ? "" : "s"}.`
+      : "Saved.";
+    const freshStatus = document.getElementById("eg-retainer-controls-status");
+    if (freshStatus) { freshStatus.textContent = msg; freshStatus.className = "gr-status success"; }
   } catch (err) {
-    if (status) { status.textContent = err.message || "could not reach the payment server."; status.className = "gr-status error"; }
+    if (status) { status.textContent = err.message || "Could not reach the payment server."; status.className = "gr-status error"; }
     if (btn) btn.disabled = false;
   }
 }
@@ -955,8 +979,8 @@ async function saveRetainerSettings() {
 async function endRetainerAfterPeriod() {
   if (!currentBid?.id) return;
   const confirmCopy = viewRole === "owner"
-    ? "end this retainer after the current period? this month's work and payment continue normally, then no further invoices."
-    : "stop your end of this retainer after the current period? you'll finish out this month's work and payment.";
+    ? "End this retainer after the current period? This month's work and payment continue normally, then no further invoices."
+    : "Stop your end of this retainer after the current period? You'll finish out this month's work and payment.";
   if (!window.confirm(confirmCopy)) return;
   const status = document.getElementById("eg-retainer-controls-status");
   try {
@@ -968,22 +992,22 @@ async function endRetainerAfterPeriod() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      showError(data.error || "could not end retainer.");
+      showError(data.error || "Could not end retainer.");
       return;
     }
-    showSuccess("retainer will end at the end of the current period.", { duration: 5000 });
+    showSuccess("Retainer will end at the end of the current period.", { duration: 5000 });
     // The DB row stays 'active' (intent recorded on Stripe); periods continue
     // until the webhook flips us to canceled. Re-render to surface state.
     retainerPeriods = await loadRetainerPeriods(currentBid.id);
     renderRetainerPeriodsPanel();
   } catch (err) {
-    showError(err.message || "could not reach the payment server.");
+    showError(err.message || "Could not reach the payment server.");
   }
 }
 
 async function releaseRetainerPeriod(periodIndex, btnEl) {
   if (!currentBid?.id) return;
-  if (!window.confirm(`release period ${periodIndex + 1}'s escrow to the consultant?`)) return;
+  if (!window.confirm(`Release period ${periodIndex + 1}'s payment to the consultant?`)) return;
   if (btnEl) btnEl.disabled = true;
   periodStatusEl.textContent = "";
   periodStatusEl.className = "gr-status";
@@ -998,16 +1022,17 @@ async function releaseRetainerPeriod(periodIndex, btnEl) {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      periodStatusEl.textContent = data.error || "could not release period.";
+      periodStatusEl.textContent = data.error || "Could not release period.";
       periodStatusEl.className = "gr-status error";
       if (btnEl) btnEl.disabled = false;
       return;
     }
     retainerPeriods = await loadRetainerPeriods(currentBid.id);
-    showSuccess(`period ${periodIndex + 1} released.`);
+    window.dispatchEvent(new Event("eg:payments-changed"));
+    showSuccess(`Period ${periodIndex + 1} released.`);
     renderRetainerPeriodsPanel();
   } catch (err) {
-    periodStatusEl.textContent = err.message || "could not reach the payment server.";
+    periodStatusEl.textContent = err.message || "Could not reach the payment server.";
     periodStatusEl.className = "gr-status error";
     if (btnEl) btnEl.disabled = false;
   }
@@ -1032,14 +1057,14 @@ function renderRetainerOfferPanel() {
   if (!status) {
     retainerOfferPanel.classList.remove("hidden");
     if (viewRole === "owner") {
-      offerTitleEl.textContent = "keep this consultant on retainer?";
-      offerStatusPill.textContent = "no offer yet";
+      offerTitleEl.textContent = "Keep this consultant on retainer?";
+      offerStatusPill.textContent = "No offer yet";
       offerStatusPill.className = "gr-pill gr-pill--muted gr-pill--no-dot";
-      offerBodyEl.textContent = "you can offer this consultant ongoing retainer work for repeatable tasks. they'll bill on a cadence you set, and you can cancel any time.";
+      offerBodyEl.textContent = "You can offer this consultant ongoing retainer work for repeatable tasks. They'll bill on a cadence you set, and you can cancel any time.";
       offerActionsEl.classList.remove("hidden");
       offerDeclineBtn.classList.add("hidden");
       offerPrimaryBtn.classList.remove("hidden");
-      offerPrimaryBtn.textContent = offerFormVisible ? "send offer" : "offer retainer";
+      offerPrimaryBtn.textContent = offerFormVisible ? "Send offer" : "Offer retainer";
       offerFormEl.classList.toggle("hidden", !offerFormVisible);
     } else {
       // No offer for the consultant to see yet.
@@ -1052,24 +1077,24 @@ function renderRetainerOfferPanel() {
   if (status === "offered") {
     retainerOfferPanel.classList.remove("hidden");
     offerFormEl.classList.add("hidden");
-    offerStatusPill.textContent = "offer pending";
+    offerStatusPill.textContent = "Offer pending";
     offerStatusPill.className = "gr-pill gr-pill--warn gr-pill--no-dot";
     const feeLabel = retainerSub.fee_cents ? formatUsd(Number(retainerSub.fee_cents)) : "—";
     const summary = `${feeLabel} every ${cadenceLabel(retainerSub.cadence)} for ${retainerSub.period_count} period${retainerSub.period_count === 1 ? "" : "s"}`;
     if (viewRole === "owner") {
-      offerTitleEl.textContent = "offer sent";
-      offerBodyEl.textContent = `waiting for the consultant to accept or decline: ${summary}.`;
+      offerTitleEl.textContent = "Offer sent";
+      offerBodyEl.textContent = `Waiting for the consultant to accept or decline: ${summary}.`;
       offerActionsEl.classList.add("hidden");
     } else {
-      offerTitleEl.textContent = "retainer offer";
+      offerTitleEl.textContent = "Retainer offer";
       const note = retainerSub.offer_message
-        ? ` they wrote: "${retainerSub.offer_message}"`
+        ? ` They wrote: "${retainerSub.offer_message}"`
         : "";
-      offerBodyEl.textContent = `the business is offering ${summary}.${note}`;
+      offerBodyEl.textContent = `The business is offering ${summary}.${note}`;
       offerActionsEl.classList.remove("hidden");
       offerDeclineBtn.classList.remove("hidden");
       offerPrimaryBtn.classList.remove("hidden");
-      offerPrimaryBtn.textContent = "accept retainer";
+      offerPrimaryBtn.textContent = "Accept retainer";
     }
     return;
   }
@@ -1078,16 +1103,16 @@ function renderRetainerOfferPanel() {
   if (status === "active" || status === "pending") {
     retainerOfferPanel.classList.remove("hidden");
     offerFormEl.classList.add("hidden");
-    offerStatusPill.textContent = status === "pending" ? "starting…" : "active";
+    offerStatusPill.textContent = status === "pending" ? "Starting…" : "Active";
     offerStatusPill.className = "gr-pill gr-pill--accepted gr-pill--no-dot";
-    offerTitleEl.textContent = "retainer is live";
+    offerTitleEl.textContent = "Retainer is live";
     const feeLabel = retainerSub.fee_cents ? formatUsd(Number(retainerSub.fee_cents)) : "—";
-    offerBodyEl.textContent = `billing ${feeLabel} every ${cadenceLabel(retainerSub.cadence)} — period ${retainerSub.periods_billed} of ${retainerSub.period_count}. each period escrows on payment and releases after the work is marked delivered.`;
+    offerBodyEl.textContent = `Billing ${feeLabel} every ${cadenceLabel(retainerSub.cadence)} — period ${retainerSub.periods_billed} of ${retainerSub.period_count}. Each period is held on payment and releases when the business releases it, or 14 days after the period ends.`;
     if (viewRole === "owner") {
       offerActionsEl.classList.remove("hidden");
       offerDeclineBtn.classList.add("hidden");
       offerPrimaryBtn.classList.remove("hidden");
-      offerPrimaryBtn.textContent = "cancel retainer";
+      offerPrimaryBtn.textContent = "Cancel retainer";
     } else {
       offerActionsEl.classList.add("hidden");
     }
@@ -1098,12 +1123,12 @@ function renderRetainerOfferPanel() {
   if (status === "declined") {
     retainerOfferPanel.classList.remove("hidden");
     offerFormEl.classList.add("hidden");
-    offerStatusPill.textContent = "declined";
+    offerStatusPill.textContent = "Declined";
     offerStatusPill.className = "gr-pill gr-pill--muted gr-pill--no-dot";
-    offerTitleEl.textContent = "offer declined";
+    offerTitleEl.textContent = "Offer declined";
     offerBodyEl.textContent = viewRole === "owner"
-      ? "the consultant declined the retainer offer."
-      : "you declined this retainer offer.";
+      ? "The consultant declined the retainer offer."
+      : "You declined this retainer offer.";
     offerActionsEl.classList.add("hidden");
     return;
   }
@@ -1112,10 +1137,10 @@ function renderRetainerOfferPanel() {
   if (status === "canceled" || status === "completed") {
     retainerOfferPanel.classList.remove("hidden");
     offerFormEl.classList.add("hidden");
-    offerStatusPill.textContent = status;
+    offerStatusPill.textContent = capFirst(status);
     offerStatusPill.className = "gr-pill gr-pill--muted gr-pill--no-dot";
-    offerTitleEl.textContent = "retainer ended";
-    offerBodyEl.textContent = `the retainer ran for ${retainerSub.periods_billed} period${retainerSub.periods_billed === 1 ? "" : "s"} and is now closed.`;
+    offerTitleEl.textContent = "Retainer ended";
+    offerBodyEl.textContent = `The retainer ran for ${retainerSub.periods_billed} period${retainerSub.periods_billed === 1 ? "" : "s"} and is now closed.`;
     offerActionsEl.classList.add("hidden");
     return;
   }
@@ -1136,17 +1161,19 @@ function renderRetainerDecisionPanel() {
   retainerDecisionPanel.classList.remove("hidden");
 
   if (retainerSub?.status === "active" || retainerSub?.status === "pending") {
-    retainerTitleEl.textContent = "retainer is live";
-    retainerStatusPill.textContent = retainerSub.status === "pending" ? "starting…" : "active";
+    retainerTitleEl.textContent = "Retainer is live";
+    retainerStatusPill.textContent = retainerSub.status === "pending" ? "Starting…" : "Active";
     retainerStatusPill.className = "gr-pill gr-pill--accepted gr-pill--no-dot";
-    // Open-ended now: subscriptions run until either party cancels at
-    // end of period (or `terminates_at` hits, set in the controls panel
-    // below). Surface the next-bill cadence + how many periods have
-    // settled so far.
-    const periodsLine = retainerSub.periods_billed
-      ? `${retainerSub.periods_billed} period${retainerSub.periods_billed === 1 ? "" : "s"} billed so far.`
-      : "first period bills at the start of the next cycle.";
-    retainerBodyEl.textContent = `billing every ${cadenceLabel(retainerSub.cadence)}. ${periodsLine} each period escrows on payment and releases after you mark the work delivered.`;
+    // Billing stops after `period_count` periods (the business can change
+    // the length in the controls panel below), or earlier if either party
+    // ends it after the current period.
+    const billed = retainerSub.periods_billed || 0;
+    const periodsLine = retainerSub.period_count
+      ? `Period ${billed} of ${retainerSub.period_count} billed.`
+      : billed
+        ? `${billed} period${billed === 1 ? "" : "s"} billed so far.`
+        : "First period bills at the start of the next cycle.";
+    retainerBodyEl.textContent = `Billing every ${cadenceLabel(retainerSub.cadence)}. ${periodsLine} Each period is held on payment and releases when you release it, or 14 days after the period ends.`;
     retainerTermsForm.classList.add("hidden");
     // The cancel control moved to the retainer-controls panel under the
     // period list (handles both owner + consultant). Suppress the old
@@ -1155,19 +1182,19 @@ function renderRetainerDecisionPanel() {
     return;
   }
   if (retainerSub?.status === "canceled") {
-    retainerTitleEl.textContent = "retainer ended";
-    retainerStatusPill.textContent = "canceled";
+    retainerTitleEl.textContent = "Retainer ended";
+    retainerStatusPill.textContent = "Canceled";
     retainerStatusPill.className = "gr-pill gr-pill--muted gr-pill--no-dot";
-    retainerBodyEl.textContent = `the retainer ran for ${retainerSub.periods_billed} period${retainerSub.periods_billed === 1 ? "" : "s"} and is now closed. the consultant keeps whatever was paid out.`;
+    retainerBodyEl.textContent = `The retainer ran for ${retainerSub.periods_billed} period${retainerSub.periods_billed === 1 ? "" : "s"} and is now closed. The consultant keeps whatever was paid out.`;
     retainerActionsEl.classList.add("hidden");
     retainerTermsForm.classList.add("hidden");
     return;
   }
   if (retainerDeclined) {
-    retainerTitleEl.textContent = "closed as one-off";
+    retainerTitleEl.textContent = "Closed as one-off";
     retainerStatusPill.textContent = "one-off";
     retainerStatusPill.className = "gr-pill gr-pill--muted gr-pill--no-dot";
-    retainerBodyEl.textContent = "you chose not to continue. this engagement closes here, with just the first period paid out.";
+    retainerBodyEl.textContent = "You chose not to continue. This engagement closes here, with just the first period paid out.";
     retainerActionsEl.classList.add("hidden");
     retainerTermsForm.classList.add("hidden");
     return;
@@ -1175,21 +1202,21 @@ function renderRetainerDecisionPanel() {
 
   // No subscription yet. Owner sees the decision; consultant sees status only.
   if (viewRole !== "owner") {
-    retainerTitleEl.textContent = "first period delivered";
-    retainerStatusPill.textContent = "owner deciding";
+    retainerTitleEl.textContent = "First period delivered";
+    retainerStatusPill.textContent = "Owner deciding";
     retainerStatusPill.className = "gr-pill gr-pill--warn gr-pill--no-dot";
-    retainerBodyEl.textContent = "the business is deciding whether to continue billing on a retainer cadence or close out as a one-off.";
+    retainerBodyEl.textContent = "The business is deciding whether to continue billing on a retainer cadence or close out as a one-off.";
     retainerActionsEl.classList.add("hidden");
     retainerTermsForm.classList.add("hidden");
     return;
   }
 
-  retainerTitleEl.textContent = "continue as a retainer?";
-  retainerStatusPill.textContent = "decision pending";
+  retainerTitleEl.textContent = "Continue as a retainer?";
+  retainerStatusPill.textContent = "Decision pending";
   retainerStatusPill.className = "gr-pill gr-pill--warn gr-pill--no-dot";
   retainerActionsEl.classList.remove("hidden");
   retainerContinueBtn.classList.remove("hidden");
-  retainerOneoffBtn.textContent = "close as one-off";
+  retainerOneoffBtn.textContent = "Close as one-off";
   retainerOneoffBtn.classList.remove("hidden");
 
   const fixed = currentListing.retainer_terms !== "tentative"
@@ -1199,13 +1226,13 @@ function renderRetainerDecisionPanel() {
 
   if (fixed) {
     const feeLabel = formatUsd(Number(currentListing.retainer_fee_cents));
-    retainerBodyEl.textContent = `continue billing ${feeLabel} every ${cadenceLabel(currentListing.retainer_cadence)} for ${currentListing.retainer_period_count} period${currentListing.retainer_period_count === 1 ? "" : "s"}, or close as a one-off.`;
+    retainerBodyEl.textContent = `Continue billing ${feeLabel} every ${cadenceLabel(currentListing.retainer_cadence)} for ${currentListing.retainer_period_count} period${currentListing.retainer_period_count === 1 ? "" : "s"}, or close as a one-off.`;
     retainerTermsForm.classList.add("hidden");
-    retainerContinueBtn.textContent = "continue retainer";
+    retainerContinueBtn.textContent = "Continue retainer";
   } else {
-    retainerBodyEl.textContent = "no terms were locked in at listing. fill them in below to start the retainer, or close as a one-off.";
+    retainerBodyEl.textContent = "No terms were locked in at listing. Fill them in below to start the retainer, or close as a one-off.";
     retainerTermsForm.classList.remove("hidden");
-    retainerContinueBtn.textContent = "start retainer";
+    retainerContinueBtn.textContent = "Start retainer";
   }
 }
 
@@ -1230,47 +1257,47 @@ function renderServicePhasePanel() {
   const status = servicePhase?.status || null;
 
   if (status === "released") {
-    serviceTitleEl.textContent = "service fee released";
-    serviceStatusPill.textContent = "released";
+    serviceTitleEl.textContent = "Service fee released";
+    serviceStatusPill.textContent = "Released";
     serviceStatusPill.className = "gr-pill gr-pill--accepted gr-pill--no-dot";
-    serviceBodyEl.textContent = "the service fee was paid out to the consultant. engagement complete.";
+    serviceBodyEl.textContent = "The service fee was paid out to the consultant. Engagement complete.";
     serviceActionsEl.classList.add("hidden");
     return;
   }
   if (status === "held") {
-    serviceTitleEl.textContent = "service fee in escrow";
-    serviceStatusPill.textContent = "in escrow";
+    serviceTitleEl.textContent = "Service fee held";
+    serviceStatusPill.textContent = "Held";
     serviceStatusPill.className = "gr-pill gr-pill--warn gr-pill--no-dot";
     serviceBodyEl.textContent = viewRole === "owner"
-      ? "the service fee is locked in. mark the work complete and submit your review below to release it to the consultant."
-      : "the service fee is in escrow. it releases to you once the business marks the work complete and submits their review.";
+      ? "The service fee is locked in. Mark the work complete and submit your review below to release it to the consultant."
+      : "Grassroots is holding the service fee. It releases to you once the business marks the work complete and submits their review.";
     serviceActionsEl.classList.add("hidden");
     return;
   }
   if (status === "authorizing") {
-    serviceTitleEl.textContent = "service fee — payment in flight";
-    serviceStatusPill.textContent = "authorizing";
+    serviceTitleEl.textContent = "Service fee — payment in flight";
+    serviceStatusPill.textContent = "Authorizing";
     serviceStatusPill.className = "gr-pill gr-pill--warn gr-pill--no-dot";
-    serviceBodyEl.textContent = "a payment is in progress. if it doesn't complete, the owner can retry from here.";
+    serviceBodyEl.textContent = "A payment is in progress. If it doesn't complete, the owner can retry from here.";
     serviceActionsEl.classList.toggle("hidden", viewRole !== "owner");
     return;
   }
 
   // No service phase row yet → owner sees the cta, consultant sees waiting copy.
   if (viewRole === "owner") {
-    serviceTitleEl.textContent = "collect the service fee";
-    serviceStatusPill.textContent = "pending";
+    serviceTitleEl.textContent = "Collect the service fee";
+    serviceStatusPill.textContent = "Pending";
     serviceStatusPill.className = "gr-pill gr-pill--muted gr-pill--no-dot";
     const fee = Number(currentBid?.service_fee_cents);
-    const feeLabel = Number.isFinite(fee) ? formatUsd(fee) : "the service fee";
-    serviceBodyEl.textContent = `you moved forward with this consultant. ${Number.isFinite(fee) ? `${feeLabel} ` : ""}goes into escrow and releases once you submit your review.`;
-    servicePayBtn.textContent = Number.isFinite(fee) ? `pay ${feeLabel}` : "pay service fee";
+    const feeLabel = Number.isFinite(fee) ? formatUsd(fee) : "The service fee";
+    serviceBodyEl.textContent = `You moved forward with this consultant. ${Number.isFinite(fee) ? `${feeLabel} ` : ""}is held by Grassroots and releases once you submit your review.`;
+    servicePayBtn.textContent = Number.isFinite(fee) ? `Pay ${feeLabel}` : "Pay service fee";
     serviceActionsEl.classList.remove("hidden");
   } else {
-    serviceTitleEl.textContent = "service phase";
-    serviceStatusPill.textContent = "awaiting payment";
+    serviceTitleEl.textContent = "Service phase";
+    serviceStatusPill.textContent = "Awaiting payment";
     serviceStatusPill.className = "gr-pill gr-pill--muted gr-pill--no-dot";
-    serviceBodyEl.textContent = "the business is moving forward with you. they'll collect the service fee next, then the work begins.";
+    serviceBodyEl.textContent = "The business is moving forward with you. They'll collect the service fee next, then the work begins.";
     serviceActionsEl.classList.add("hidden");
   }
 }
@@ -1289,13 +1316,13 @@ function renderProposalDecisionPanel() {
 
   // Render the status pill based on where we are in the lifecycle.
   if (phaseStatus === "released") {
-    proposalStatusPill.textContent = "released";
+    proposalStatusPill.textContent = "Released";
     proposalStatusPill.className = "gr-pill gr-pill--accepted gr-pill--no-dot";
   } else if (phaseStatus === "held") {
-    proposalStatusPill.textContent = "in escrow";
+    proposalStatusPill.textContent = "Held";
     proposalStatusPill.className = "gr-pill gr-pill--warn gr-pill--no-dot";
   } else if (phaseStatus === "refunded") {
-    proposalStatusPill.textContent = "refunded";
+    proposalStatusPill.textContent = "Refunded";
     proposalStatusPill.className = "gr-pill gr-pill--muted gr-pill--no-dot";
   } else {
     proposalStatusPill.textContent = phaseStatus || "pending";
@@ -1306,22 +1333,22 @@ function renderProposalDecisionPanel() {
   if (decided) {
     proposalActionsEl.classList.add("hidden");
     if (currentBid.move_forward_status === "selected") {
-      proposalBodyEl.textContent = "you moved forward with this consultant. the proposal payment was released — service phase is up next.";
+      proposalBodyEl.textContent = "You moved forward with this consultant. The proposal payment was released — service phase is up next.";
     } else {
-      proposalBodyEl.textContent = "you closed out at the proposal phase. the consultant was paid for their proposal work. no further charges.";
+      proposalBodyEl.textContent = "You closed out at the proposal phase. The consultant was paid for their proposal work. No further charges.";
     }
     return;
   }
 
   if (viewRole !== "owner") {
     proposalActionsEl.classList.add("hidden");
-    proposalBodyEl.textContent = "your proposal fee is in escrow. the business will release it once they've met with you and decided whether to move forward with the full job.";
+    proposalBodyEl.textContent = "Grassroots is holding your proposal fee. The business will release it once they've met with you and decided whether to move forward with the full job.";
     return;
   }
 
   // Owner, pending decision.
   proposalActionsEl.classList.remove("hidden");
-  proposalBodyEl.textContent = "this consultant's proposal fee is in escrow. once you've met, decide whether to continue with the full job. either way, the proposal fee releases to the consultant now — they earned it.";
+  proposalBodyEl.textContent = "Grassroots is holding this consultant's proposal fee. Once you've met, decide whether to continue with the full job. Either way, the proposal fee releases to the consultant now — they earned it.";
 }
 
 function renderRefundCta() {
@@ -1361,35 +1388,35 @@ function renderOwnerActions() {
   setBtnUnavailable(
     workCompletedBtn,
     !engagementOngoing,
-    "you'll be able to mark work completed once a kickoff time is locked in.",
+    "You'll be able to mark work completed once a kickoff time is locked in.",
   );
   setBtnUnavailable(
     closeListingBtn,
     currentListing.status === "closed",
-    "this listing is already closed.",
+    "This listing is already closed.",
   );
   renderRefundCta();
 
   if (reviewState) {
-    workCompletedBtn.textContent = "review submitted";
+    workCompletedBtn.textContent = "Review submitted";
     setBtnUnavailable(
       workCompletedBtn,
       true,
-      "you've already submitted a review for this engagement.",
+      "You've already submitted a review for this engagement.",
     );
     reviewPanel.classList.remove("hidden");
     reviewForm.classList.add("hidden");
-    reviewStatusEl.textContent = "thank you from grassroots. your review has been saved.";
+    reviewStatusEl.textContent = "Thank you from Grassroots. Your review has been saved.";
     reviewStatusEl.className = "gr-status success";
   } else if (engagementOngoing) {
     // Engagement is in flight — review is required to mark it complete.
-    workCompletedBtn.textContent = "submit review to complete";
+    workCompletedBtn.textContent = "Submit review to complete";
     reviewPanel.classList.remove("hidden");
     reviewForm.classList.remove("hidden");
     reviewStatusEl.textContent = "";
     reviewStatusEl.className = "gr-status";
   } else {
-    workCompletedBtn.textContent = "work completed";
+    workCompletedBtn.textContent = "Work completed";
     reviewPanel.classList.add("hidden");
     reviewForm.classList.remove("hidden");
     reviewStatusEl.textContent = "";
@@ -1417,9 +1444,9 @@ function renderByState() {
   consultantChosen = null;
 
   if (schedule.status === "scheduled" || schedule.status === "completed") {
-    panelTitleEl.textContent = "meeting confirmed";
+    panelTitleEl.textContent = "Meeting confirmed";
     panelCopyEl.textContent =
-      "your kickoff is locked in and the calendar invite is ready for both sides.";
+      "Your kickoff is locked in and the calendar invite is ready for both sides.";
     // Calendar grid stays collapsed once the meeting is on the books —
     // the meeting summary below (date + time) is all that's needed.
     // Owner can still see the meeting length via the read-only label.
@@ -1434,9 +1461,9 @@ function renderByState() {
 
   if (viewRole === "owner") {
     if (schedule.status === "awaiting_owner") {
-      panelTitleEl.textContent = "share times that work";
+      panelTitleEl.textContent = "Share times that work";
       panelCopyEl.textContent =
-        "pick how long the kickoff should be, then highlight the time ranges that work for you this week. the consultant will pick one of those options from their inbox.";
+        "Pick how long the kickoff should be, then highlight the time ranges that work for you this week. The consultant will pick one of those options from their inbox.";
       ownerTools.classList.remove("hidden");
       // Owner picks the duration on first run. Pre-select whatever's
       // already persisted (in case they revisit this step).
@@ -1449,9 +1476,9 @@ function renderByState() {
       return;
     }
 
-    panelTitleEl.textContent = "waiting on consultant";
+    panelTitleEl.textContent = "Waiting on consultant";
     panelCopyEl.textContent =
-      "your availability has been shared. the consultant can now choose a time within the ranges you marked.";
+      "Your availability has been shared. The consultant can now choose a time within the ranges you marked.";
     // Show the duration the owner locked in (read-only) so they can see it.
     showDurationReadonly();
     renderCalendar("scheduled");
@@ -1459,16 +1486,16 @@ function renderByState() {
   }
 
   if (schedule.status === "awaiting_owner") {
-    panelTitleEl.textContent = "waiting on business availability";
+    panelTitleEl.textContent = "Waiting on business availability";
     panelCopyEl.textContent =
-      "the business has accepted your offer and will share times that work for them here next.";
+      "The business has accepted your offer and will share times that work for them here next.";
     renderCalendar("scheduled");
     return;
   }
 
-  panelTitleEl.textContent = "pick your kickoff time";
+  panelTitleEl.textContent = "Pick your kickoff time";
   panelCopyEl.textContent =
-    "choose one meeting time inside the availability the business highlighted, then submit it to generate the calendar invite.";
+    "Choose one meeting time inside the availability the business highlighted, then submit it to generate the calendar invite.";
   // Consultant doesn't pick a duration — the business owner locked it in
   // when they shared availability. Show it as a read-only line instead.
   showDurationReadonly();
@@ -1493,7 +1520,7 @@ function selectedMeetingTimes() {
 
 async function saveOwnerAvailability() {
   if (!ownerSelection.size) {
-    showError("highlight at least one time block first.");
+    showError("Highlight at least one time block first.");
     return;
   }
 
@@ -1512,20 +1539,20 @@ async function saveOwnerAvailability() {
   await saveSchedule(next);
   await insertNotification(
     currentBid.consultant_id,
-    "pick a kickoff time",
-    `your offer for "${currentListing.title}" was accepted. choose a meeting time within the business's availability.`,
+    "Pick a kickoff time",
+    `Your offer for "${currentListing.title}" was accepted. Choose a meeting time within the business's availability.`,
     `/engagement.html?bid=${currentBid.id}`,
     "meeting_availability"
   );
 
   renderByState();
-  showSuccess("availability shared. the consultant can now choose a meeting time.");
+  showSuccess("Availability shared. The consultant can now choose a meeting time.");
 }
 
 async function confirmConsultantTime() {
   const times = selectedMeetingTimes();
   if (!times) {
-    showError("choose a start time first.");
+    showError("Choose a start time first.");
     return;
   }
 
@@ -1544,18 +1571,18 @@ async function confirmConsultantTime() {
     await saveSchedule(next);
 
     const when = formatDateTimeRange(next.selected_start, next.selected_end);
-    const body = `${when}. grassroots wishes you both the best of luck, and we're excited to hear back.`;
+    const body = `${when}. Grassroots wishes you both the best of luck, and we're excited to hear back.`;
     await Promise.all([
       insertNotification(
         currentListing.owner_id,
-        "kickoff meeting confirmed",
+        "Kickoff meeting confirmed",
         body,
         `/engagement.html?bid=${currentBid.id}`,
         "meeting_scheduled"
       ),
       insertNotification(
         currentBid.consultant_id,
-        "kickoff meeting confirmed",
+        "Kickoff meeting confirmed",
         body,
         `/engagement.html?bid=${currentBid.id}`,
         "meeting_scheduled"
@@ -1563,10 +1590,10 @@ async function confirmConsultantTime() {
     ]);
 
     renderByState();
-    showSuccess("meeting confirmed. the calendar invite is ready.");
+    showSuccess("Meeting confirmed. The calendar invite is ready.");
   } catch (err) {
     console.error("confirmConsultantTime failed", err);
-    showError(err?.message || "could not confirm meeting time. try again in a moment.");
+    showError(err?.message || "Could not confirm meeting time. Try again in a moment.");
   } finally {
     confirmTimeBtn.disabled = false;
   }
@@ -1575,19 +1602,19 @@ async function confirmConsultantTime() {
 async function closeListing() {
   const { error } = await supabase.from("listings").update({ status: "closed" }).eq("id", currentListing.id);
   if (error) {
-    showError(error.message || "could not close listing.");
+    showError(error.message || "Could not close listing.");
     return;
   }
   currentListing.status = "closed";
-  listingStatusEl.textContent = "closed";
-  setBtnUnavailable(closeListingBtn, true, "this listing is already closed.");
-  showSuccess("opportunity closed. you can still manage this engagement here.");
+  listingStatusEl.textContent = "Closed";
+  setBtnUnavailable(closeListingBtn, true, "This listing is already closed.");
+  showSuccess("Opportunity closed. You can still manage this engagement here.");
 }
 
 async function submitReview() {
   const ready = RATING_DIMENSIONS.every(([key]) => isValidRating(reviewRatings[key]));
   if (!ready) {
-    showError("rate the consultant on all five dimensions before submitting.");
+    showError("Rate the consultant on all five dimensions before submitting.");
     return;
   }
 
@@ -1635,26 +1662,27 @@ async function submitReview() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      releaseMessage = ` payout pending: ${data.error || "could not release escrow yet."}`;
+      releaseMessage = ` Payout pending: ${data.error || "could not release the payment yet."}`;
     } else {
-      releaseMessage = " escrow released to the consultant.";
+      releaseMessage = " Payment released to the consultant.";
     }
   } catch (err) {
-    releaseMessage = " escrow release will retry — couldn't reach the payment server.";
+    releaseMessage = " Payment release will retry — couldn't reach the payment server.";
   }
 
-  showSuccess(`thank you for the thoughtful review.${releaseMessage}`, { duration: 5000 });
+  showSuccess(`Thank you for the thoughtful review.${releaseMessage}`, { duration: 5000 });
   renderOwnerActions();
   // renderOwnerActions resets reviewStatusEl to the generic post-review
   // message. Append the release outcome so the in-page status surfaces it
   // too — toast disappears in 5s, the status row sticks around.
   if (reviewStatusEl && releaseMessage) {
-    reviewStatusEl.textContent = `thank you from grassroots. your review has been saved.${releaseMessage}`;
+    reviewStatusEl.textContent = `Thank you from Grassroots. Your review has been saved.${releaseMessage}`;
     reviewStatusEl.className = releaseMessage.includes("released to the consultant")
       ? "gr-status success"
       : "gr-status";
   }
   setStatusPill(scheduleState.status);
+  window.dispatchEvent(new Event("eg:payments-changed"));
 }
 
 function bindCalendarInteractions() {
@@ -1714,7 +1742,7 @@ function bindCalendarInteractions() {
     if (viewRole === "consultant" && scheduleState?.status === "awaiting_consultant") {
       const available = new Set(scheduleState?.owner_availability?.slots || []);
       if (!canFitDuration(id, getSelectedDuration(), available)) {
-        showError("choose a start time that fits inside the highlighted range.");
+        showError("Choose a start time that fits inside the highlighted range.");
         return;
       }
       consultantChosen = id;
@@ -1801,7 +1829,7 @@ function bindReviewInteractions() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        proposalStatusEl.textContent = data.error || "could not record decision.";
+        proposalStatusEl.textContent = data.error || "Could not record decision.";
         proposalStatusEl.className = "gr-status error";
         proposalSelectBtn.disabled = false;
         proposalDeclineBtn.disabled = false;
@@ -1817,11 +1845,11 @@ function bindReviewInteractions() {
         servicePhase = await loadServicePhase(currentBid.id);
       }
       const verbed = decision === "selected" ? "moving forward" : "closing out at proposal phase";
-      showSuccess(`decision saved — ${verbed}. proposal payment released.`, { duration: 5000 });
+      showSuccess(`Decision saved — ${verbed}. Proposal payment released.`, { duration: 5000 });
       renderProposalDecisionPanel();
       renderServicePhasePanel();
     } catch (err) {
-      proposalStatusEl.textContent = err.message || "could not reach the payment server.";
+      proposalStatusEl.textContent = err.message || "Could not reach the payment server.";
       proposalStatusEl.className = "gr-status error";
       proposalSelectBtn.disabled = false;
       proposalDeclineBtn.disabled = false;
@@ -1851,17 +1879,17 @@ function bindReviewInteractions() {
       const fee = Number(offerFeeInput?.value);
       const message = offerMessageInput?.value?.trim() || null;
       if (!cadence) {
-        offerStatusEl.textContent = "pick a cadence.";
+        offerStatusEl.textContent = "Pick a cadence.";
         offerStatusEl.className = "gr-status error";
         return;
       }
       if (!Number.isFinite(periods) || periods < 1) {
-        offerStatusEl.textContent = "enter how many periods.";
+        offerStatusEl.textContent = "Enter how many periods.";
         offerStatusEl.className = "gr-status error";
         return;
       }
       if (!Number.isFinite(fee) || fee < 1) {
-        offerStatusEl.textContent = "enter the fee per period.";
+        offerStatusEl.textContent = "Enter the fee per period.";
         offerStatusEl.className = "gr-status error";
         return;
       }
@@ -1883,15 +1911,15 @@ function bindReviewInteractions() {
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          offerStatusEl.textContent = data.error || "could not send offer.";
+          offerStatusEl.textContent = data.error || "Could not send offer.";
           offerStatusEl.className = "gr-status error";
           return;
         }
         offerFormVisible = false;
-        showSuccess("offer sent — waiting on the consultant.");
+        showSuccess("Offer sent — waiting on the consultant.");
         await refreshRetainerAndRender();
       } catch (err) {
-        offerStatusEl.textContent = err.message || "could not reach the server.";
+        offerStatusEl.textContent = err.message || "Could not reach the server.";
         offerStatusEl.className = "gr-status error";
       } finally {
         offerPrimaryBtn.disabled = false;
@@ -1914,14 +1942,14 @@ function bindReviewInteractions() {
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          offerStatusEl.textContent = data.error || "could not accept.";
+          offerStatusEl.textContent = data.error || "Could not accept.";
           offerStatusEl.className = "gr-status error";
           return;
         }
-        showSuccess("retainer accepted — billing starts now.");
+        showSuccess("Retainer accepted — billing starts now.");
         await refreshRetainerAndRender();
       } catch (err) {
-        offerStatusEl.textContent = err.message || "could not reach the server.";
+        offerStatusEl.textContent = err.message || "Could not reach the server.";
         offerStatusEl.className = "gr-status error";
       } finally {
         offerPrimaryBtn.disabled = false;
@@ -1932,7 +1960,7 @@ function bindReviewInteractions() {
 
     // Owner cancelling an active subscription.
     if (viewRole === "owner" && (retainerSub?.status === "active" || retainerSub?.status === "pending")) {
-      const confirmed = window.confirm("cancel this retainer? no further periods will be billed.");
+      const confirmed = window.confirm("Cancel this retainer? No further periods will be billed.");
       if (!confirmed) return;
       offerPrimaryBtn.disabled = true;
       try {
@@ -1946,14 +1974,14 @@ function bindReviewInteractions() {
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          offerStatusEl.textContent = data.error || "could not cancel.";
+          offerStatusEl.textContent = data.error || "Could not cancel.";
           offerStatusEl.className = "gr-status error";
           return;
         }
-        showSuccess("retainer canceled.");
+        showSuccess("Retainer canceled.");
         await refreshRetainerAndRender();
       } catch (err) {
-        offerStatusEl.textContent = err.message || "could not reach the server.";
+        offerStatusEl.textContent = err.message || "Could not reach the server.";
         offerStatusEl.className = "gr-status error";
       } finally {
         offerPrimaryBtn.disabled = false;
@@ -1976,13 +2004,13 @@ function bindReviewInteractions() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        offerStatusEl.textContent = data.error || "could not decline.";
+        offerStatusEl.textContent = data.error || "Could not decline.";
         offerStatusEl.className = "gr-status error";
         return;
       }
       await refreshRetainerAndRender();
     } catch (err) {
-      offerStatusEl.textContent = err.message || "could not reach the server.";
+      offerStatusEl.textContent = err.message || "Could not reach the server.";
       offerStatusEl.className = "gr-status error";
     } finally {
       offerPrimaryBtn.disabled = false;
@@ -2008,21 +2036,21 @@ function bindReviewInteractions() {
       const periods = Number(retainerPeriodsInput?.value);
       const fee = Number(retainerFeeInput?.value);
       if (!cadence) {
-        retainerStatusEl.textContent = "pick a cadence.";
+        retainerStatusEl.textContent = "Pick a cadence.";
         retainerStatusEl.className = "gr-status error";
         retainerContinueBtn.disabled = false;
         retainerOneoffBtn.disabled = false;
         return;
       }
       if (!Number.isFinite(periods) || periods < 1) {
-        retainerStatusEl.textContent = "enter how many periods.";
+        retainerStatusEl.textContent = "Enter how many periods.";
         retainerStatusEl.className = "gr-status error";
         retainerContinueBtn.disabled = false;
         retainerOneoffBtn.disabled = false;
         return;
       }
       if (!Number.isFinite(fee) || fee < 1) {
-        retainerStatusEl.textContent = "enter the fee per period.";
+        retainerStatusEl.textContent = "Enter the fee per period.";
         retainerStatusEl.className = "gr-status error";
         retainerContinueBtn.disabled = false;
         retainerOneoffBtn.disabled = false;
@@ -2044,17 +2072,17 @@ function bindReviewInteractions() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        retainerStatusEl.textContent = data.error || "could not start retainer.";
+        retainerStatusEl.textContent = data.error || "Could not start retainer.";
         retainerStatusEl.className = "gr-status error";
         retainerContinueBtn.disabled = false;
         retainerOneoffBtn.disabled = false;
         return;
       }
       retainerSub = await loadRetainerSubscription(currentBid.id);
-      showSuccess(`retainer started — ${data.cadence} × ${data.period_count}.`);
+      showSuccess(`Retainer started — ${data.cadence} × ${data.period_count}.`);
       renderRetainerDecisionPanel();
     } catch (err) {
-      retainerStatusEl.textContent = err.message || "could not reach the payment server.";
+      retainerStatusEl.textContent = err.message || "Could not reach the payment server.";
       retainerStatusEl.className = "gr-status error";
       retainerContinueBtn.disabled = false;
       retainerOneoffBtn.disabled = false;
@@ -2069,7 +2097,7 @@ function bindReviewInteractions() {
     // and re-render. (Persisted state is implicit: no retainer_subscriptions
     // row means the engagement is a one-off.)
     if (retainerSub?.status === "active" || retainerSub?.status === "pending") {
-      const confirmed = window.confirm("cancel this retainer? no further periods will be billed. periods already paid will remain with the consultant.");
+      const confirmed = window.confirm("Cancel this retainer? No further periods will be billed. Periods already paid will remain with the consultant.");
       if (!confirmed) return;
       retainerContinueBtn.disabled = true;
       retainerOneoffBtn.disabled = true;
@@ -2084,17 +2112,17 @@ function bindReviewInteractions() {
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          retainerStatusEl.textContent = data.error || "could not cancel.";
+          retainerStatusEl.textContent = data.error || "Could not cancel.";
           retainerStatusEl.className = "gr-status error";
           retainerContinueBtn.disabled = false;
           retainerOneoffBtn.disabled = false;
           return;
         }
         retainerSub = await loadRetainerSubscription(currentBid.id);
-        showSuccess("retainer canceled.");
+        showSuccess("Retainer canceled.");
         renderRetainerDecisionPanel();
       } catch (err) {
-        retainerStatusEl.textContent = err.message || "could not reach the payment server.";
+        retainerStatusEl.textContent = err.message || "Could not reach the payment server.";
         retainerStatusEl.className = "gr-status error";
         retainerContinueBtn.disabled = false;
         retainerOneoffBtn.disabled = false;
@@ -2113,11 +2141,11 @@ function bindReviewInteractions() {
     try {
       const result = await payAndStartService({ client: supabase, bid: currentBid, listing: currentListing });
       if (result?.ok) {
-        showSuccess("service fee in escrow. reloading…");
+        showSuccess("Service fee held. Reloading…");
         window.location.reload();
       }
     } catch (err) {
-      showError(err?.message || "could not start payment.");
+      showError(err?.message || "Could not start payment.");
     } finally {
       servicePayBtn.disabled = false;
     }
@@ -2125,7 +2153,7 @@ function bindReviewInteractions() {
 
   proposalDeclineBtn?.addEventListener("click", () => {
     const confirmed = window.confirm(
-      "stay at proposal only? the consultant will be paid for their proposal work and the engagement closes here. you won't be charged the full service fee."
+      "Stay at proposal only? The consultant will be paid for their proposal work and the engagement closes here. You won't be charged the full service fee."
     );
     if (!confirmed) return;
     submitProposalDecision("declined");
@@ -2145,7 +2173,7 @@ function bindReviewInteractions() {
 
   refundBtn?.addEventListener("click", async () => {
     const confirmed = window.confirm(
-      "refund this engagement? the funds will return to your payment method and the consultant will be notified. this cannot be undone."
+      "Refund this engagement? The funds will return to your payment method and the consultant will be notified. This cannot be undone."
     );
     if (!confirmed) return;
     refundBtn.disabled = true;
@@ -2161,19 +2189,19 @@ function bindReviewInteractions() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         if (data.windowExpired) {
-          showError(data.error || "refund window expired.");
+          showError(data.error || "Refund window expired.");
           currentBid.payment_status = currentBid.payment_status; // no-op; re-render so helper shows
           renderRefundCta();
         } else {
-          showError(data.error || "could not process refund.");
+          showError(data.error || "Could not process refund.");
         }
         return;
       }
       currentBid.payment_status = "refunded";
-      showSuccess("refund issued. funds will return within a few days.", { duration: 5000 });
+      showSuccess("Refund issued. Funds will return within a few days.", { duration: 5000 });
       renderOwnerActions();
     } catch (err) {
-      showError("could not reach the payment server.");
+      showError("Could not reach the payment server.");
     } finally {
       refundBtn.disabled = false;
     }
@@ -2188,7 +2216,7 @@ function bindReviewInteractions() {
 async function init() {
   const bidId = getBidId();
   if (!bidId) {
-    gate.textContent = "no accepted bid was provided.";
+    gate.textContent = "No accepted bid was provided.";
     gate.className = "gr-status error";
     return;
   }
@@ -2208,14 +2236,14 @@ async function init() {
 
     const { data: bid, error: bidError } = await loadBid(bidId);
     if (bidError) throw bidError;
-    if (!bid) throw new Error("accepted offer not found.");
+    if (!bid) throw new Error("Accepted offer not found.");
     currentBid = bid;
 
     const { data: listing, error: listingError } = await loadListing(bid.listing_id);
     if (listingError) throw listingError;
-    if (!listing) throw new Error("listing not found.");
+    if (!listing) throw new Error("Listing not found.");
     currentListing = listing;
-    document.title = `grassroots — ongoing work for ${listing.title}`;
+    document.title = `Grassroots — ongoing work for ${listing.title}`;
 
     const [{ data: owner }, { data: consultant }] = await Promise.all([
       loadProfile(listing.owner_id),
@@ -2226,7 +2254,7 @@ async function init() {
 
     if (sessionUserId === listing.owner_id) viewRole = "owner";
     else if (sessionUserId === bid.consultant_id) viewRole = "consultant";
-    else throw new Error("you do not have access to this engagement.");
+    else throw new Error("You do not have access to this engagement.");
 
     scheduleState = (await loadSchedule(bidId)) || getDefaultSchedule();
     reviewState = await loadReview(bidId);
@@ -2253,8 +2281,13 @@ async function init() {
 
     gate.hidden = true;
     detail.hidden = false;
+
+    // Delivery + review panel (mark delivered, 14-day review, holds).
+    import("/delivery-panel.js")
+      .then((m) => m.mountDeliveryPanel({ supabase, bidId, title: listing.title }))
+      .catch((err) => console.warn("delivery panel failed to load", err));
   } catch (err) {
-    gate.textContent = err.message || "could not load ongoing work.";
+    gate.textContent = err.message || "Could not load ongoing work.";
     gate.className = "gr-status error";
   }
 }
@@ -2293,7 +2326,7 @@ ownerActionsPanel?.addEventListener(
     e.preventDefault();
     e.stopImmediatePropagation();
     e.stopPropagation();
-    const reason = btn.dataset.disabledReason || "this action isn't available right now.";
+    const reason = btn.dataset.disabledReason || "This action isn't available right now.";
     showInfo(reason, { duration: 4500 });
   },
   true,
@@ -2302,3 +2335,9 @@ ownerActionsPanel?.addEventListener(
 bindCalendarInteractions();
 bindReviewInteractions();
 init();
+
+// Categories and statuses are stored lowercase; show them in sentence case.
+function capFirst(value) {
+  const s = String(value || "");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}

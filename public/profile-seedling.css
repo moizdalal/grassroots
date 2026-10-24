@@ -209,7 +209,6 @@
   line-height: 1.04;
   color: var(--green-deep);
   letter-spacing: -0.03em;
-  text-transform: lowercase;
   font-weight: 600;
   font-style: normal;
 }

@@ -28,20 +28,20 @@ function renderFeeBreakdown(fees) {
     ? "pay-modal__line-value pay-modal__line-value--strike"
     : "pay-modal__line-value";
   return `
-    <div class="pay-modal__breakdown" role="group" aria-label="payment breakdown">
+    <div class="pay-modal__breakdown" role="group" aria-label="Payment breakdown">
       <div class="pay-modal__line">
-        <span class="pay-modal__line-label">offer amount</span>
+        <span class="pay-modal__line-label">Offer amount</span>
         <span class="pay-modal__line-value">${escapeHtml(formatUsd(fees.amountCents))}</span>
       </div>
       <div class="pay-modal__line">
         <span class="pay-modal__line-label">
-          platform fee (10%)
-          ${fees.platformFeeWaived ? `<span class="pay-modal__line-hint">waived during launch</span>` : ""}
+          Platform fee (10%)
+          ${fees.platformFeeWaived ? `<span class="pay-modal__line-hint">Waived during launch</span>` : ""}
         </span>
         <span class="${platformLineClass}">${escapeHtml(platformValueStr)}</span>
       </div>
       <div class="pay-modal__line pay-modal__line--total">
-        <span class="pay-modal__line-label">you'll be charged</span>
+        <span class="pay-modal__line-label">You'll be charged</span>
         <span class="pay-modal__line-value">${escapeHtml(formatUsd(fees.businessTotalCents))}</span>
       </div>
     </div>
@@ -81,7 +81,7 @@ async function loadStripe() {
       fetch("/api/public-config").then((r) => r.json()),
     ]);
     if (!cfg.stripePublishableKey) {
-      throw new Error("payments aren't configured on the server.");
+      throw new Error("Payments aren't configured on the server.");
     }
     if (!window.Stripe) {
       throw new Error("stripe.js failed to load.");
@@ -102,7 +102,7 @@ function buildModal({ amount, title, feeBreakdown }) {
     ? renderFeeBreakdown(feeBreakdown)
     : `
         <div class="pay-modal__amount">
-          <span>amount</span>
+          <span>Amount</span>
           <strong>${escapeHtml(formatUsd(amount))}</strong>
         </div>
       `;
@@ -111,20 +111,20 @@ function buildModal({ amount, title, feeBreakdown }) {
     <div class="pay-modal" role="dialog" aria-modal="true" aria-labelledby="pay-title">
       <header class="pay-modal__head">
         <div>
-          <p class="pay-modal__eyebrow">accept &amp; pay · sandbox</p>
+          <p class="pay-modal__eyebrow">Accept &amp; pay · sandbox</p>
           <h2 id="pay-title" class="pay-modal__title">${escapeHtml(title || "engagement")}</h2>
         </div>
-        <button type="button" class="pay-modal__close" data-pay-close aria-label="close">&times;</button>
+        <button type="button" class="pay-modal__close" data-pay-close aria-label="Close">&times;</button>
       </header>
       <p class="pay-modal__intro">
-        funds are <strong>held in escrow by grassroots</strong> until you mark the work complete and submit your review. test card: <code>4242 4242 4242 4242</code>, any future date, any cvc.
+        Grassroots <strong>holds your payment</strong> until you mark the work complete and submit your review. Your card is saved for payments you approve later. See the <a href="/terms.html#refunds" target="_blank" rel="noopener">refund policy</a>. Test card: <code>4242 4242 4242 4242</code>, any future date, any CVC.
       </p>
       ${amountBlock}
       <div id="pay-element" class="pay-modal__element"></div>
       <p id="pay-status" class="gr-status" aria-live="polite"></p>
       <div class="pay-modal__actions">
-        <button type="button" class="gr-btn gr-btn--ghost" data-pay-close>cancel</button>
-        <button type="button" class="gr-btn gr-btn--primary" id="pay-submit" disabled>pay &amp; accept</button>
+        <button type="button" class="gr-btn gr-btn--ghost" data-pay-close>Cancel</button>
+        <button type="button" class="gr-btn gr-btn--primary" id="pay-submit" disabled>Pay &amp; accept</button>
       </div>
     </div>
   `;
@@ -182,7 +182,7 @@ export async function payAndAcceptBid({ client, bid, listing }) {
           body: JSON.stringify({ bid_id: bid.id }),
         });
         const intentData = await intentRes.json();
-        if (!intentRes.ok) throw new Error(intentData.error || "could not start payment.");
+        if (!intentRes.ok) throw new Error(intentData.error || "Could not start payment.");
 
         const stripe = await loadStripe();
         const css = getComputedStyle(document.documentElement);
@@ -279,7 +279,7 @@ export async function payAndAcceptBid({ client, bid, listing }) {
 
         submitBtn.addEventListener("click", async () => {
           submitBtn.disabled = true;
-          statusEl.textContent = "processing payment…";
+          statusEl.textContent = "Processing payment…";
           statusEl.className = "gr-status";
 
           const { error: confirmErr } = await stripe.confirmPayment({
@@ -287,7 +287,7 @@ export async function payAndAcceptBid({ client, bid, listing }) {
             redirect: "if_required",
           });
           if (confirmErr) {
-            statusEl.textContent = confirmErr.message || "payment failed.";
+            statusEl.textContent = confirmErr.message || "Payment failed.";
             statusEl.className = "gr-status error";
             submitBtn.disabled = false;
             return;
@@ -301,18 +301,18 @@ export async function payAndAcceptBid({ client, bid, listing }) {
           });
           const confirmData = await confirmRes.json();
           if (!confirmRes.ok) {
-            statusEl.textContent = confirmData.error || "payment captured but server failed to confirm. contact support.";
+            statusEl.textContent = confirmData.error || "Payment captured but server failed to confirm. Contact support.";
             statusEl.className = "gr-status error";
             submitBtn.disabled = false;
             return;
           }
 
-          statusEl.textContent = "payment held in escrow. redirecting to engagement…";
+          statusEl.textContent = "Payment held. Redirecting to engagement…";
           statusEl.className = "gr-status success";
           setTimeout(() => cleanup({ ok: true }), 700);
         });
       } catch (err) {
-        statusEl.textContent = err.message || "something went wrong.";
+        statusEl.textContent = err.message || "Something went wrong.";
         statusEl.className = "gr-status error";
       }
     })();
@@ -332,7 +332,7 @@ export async function payAndAcceptBid({ client, bid, listing }) {
 export async function payAndAcceptProposals({ client, bids, listing }) {
   const totalAmount = bids.reduce((sum, b) => sum + Number(b.proposal_fee_cents || 0), 0);
   const titleLabel = bids.length === 1
-    ? `proposal fee · ${listing?.title || "engagement"}`
+    ? `Proposal fee · ${listing?.title || "engagement"}`
     : `${bids.length} proposal fees · ${listing?.title || "engagement"}`;
   // Show the aggregate breakdown (sum of all proposal offers + their
   // platform fees) so the business sees the total markup as one row.
@@ -345,9 +345,9 @@ export async function payAndAcceptProposals({ client, bids, listing }) {
   // Reframe the intro copy for the proposal phase.
   const intro = overlay.querySelector(".pay-modal__intro");
   if (intro) {
-    intro.innerHTML = `proposal fees go <strong>into escrow</strong> as soon as you pay. consultants are paid out only after they deliver their proposal and you mark it accepted. test card: <code>4242 4242 4242 4242</code>.`;
+    intro.innerHTML = `Grassroots <strong>holds proposal fees</strong> as soon as you pay. Consultants are paid out only after they deliver their proposal and you mark it accepted. Test card: <code>4242 4242 4242 4242</code>.`;
   }
-  submitBtn.textContent = bids.length === 1 ? "pay proposal fee" : `pay ${bids.length} proposal fees`;
+  submitBtn.textContent = bids.length === 1 ? "Pay proposal fee" : `Pay ${bids.length} proposal fees`;
 
   return new Promise((resolve) => {
     let cleanedUp = false;
@@ -374,7 +374,7 @@ export async function payAndAcceptProposals({ client, bids, listing }) {
           body: JSON.stringify({ bid_ids: bids.map((b) => b.id) }),
         });
         const intentData = await intentRes.json();
-        if (!intentRes.ok) throw new Error(intentData.error || "could not start payment.");
+        if (!intentRes.ok) throw new Error(intentData.error || "Could not start payment.");
 
         const stripe = await loadStripe();
         const css = getComputedStyle(document.documentElement);
@@ -419,7 +419,7 @@ export async function payAndAcceptProposals({ client, bids, listing }) {
 
         submitBtn.addEventListener("click", async () => {
           submitBtn.disabled = true;
-          statusEl.textContent = "processing payment…";
+          statusEl.textContent = "Processing payment…";
           statusEl.className = "gr-status";
 
           const { error: confirmErr } = await stripe.confirmPayment({
@@ -427,7 +427,7 @@ export async function payAndAcceptProposals({ client, bids, listing }) {
             redirect: "if_required",
           });
           if (confirmErr) {
-            statusEl.textContent = confirmErr.message || "payment failed.";
+            statusEl.textContent = confirmErr.message || "Payment failed.";
             statusEl.className = "gr-status error";
             submitBtn.disabled = false;
             return;
@@ -440,18 +440,18 @@ export async function payAndAcceptProposals({ client, bids, listing }) {
           });
           const confirmData = await confirmRes.json();
           if (!confirmRes.ok) {
-            statusEl.textContent = confirmData.error || "payment captured but server failed to confirm. contact support.";
+            statusEl.textContent = confirmData.error || "Payment captured but server failed to confirm. Contact support.";
             statusEl.className = "gr-status error";
             submitBtn.disabled = false;
             return;
           }
 
-          statusEl.textContent = "proposal fees held in escrow. reloading…";
+          statusEl.textContent = "Proposal fees held. Reloading…";
           statusEl.className = "gr-status success";
           setTimeout(() => cleanup({ ok: true, bid_ids: confirmData.bid_ids }), 700);
         });
       } catch (err) {
-        statusEl.textContent = err.message || "something went wrong.";
+        statusEl.textContent = err.message || "Something went wrong.";
         statusEl.className = "gr-status error";
       }
     })();
@@ -468,7 +468,7 @@ export async function payAndStartService({ client, bid, listing }) {
   const feeBreakdown = computeFees(amount);
   const overlay = buildModal({
     amount,
-    title: `service fee · ${listing?.title || "engagement"}`,
+    title: `Service fee · ${listing?.title || "engagement"}`,
     feeBreakdown,
   });
   const submitBtn = overlay.querySelector("#pay-submit");
@@ -477,9 +477,9 @@ export async function payAndStartService({ client, bid, listing }) {
 
   const intro = overlay.querySelector(".pay-modal__intro");
   if (intro) {
-    intro.innerHTML = `the service fee goes <strong>into escrow</strong> as soon as you pay. it releases to the consultant once you mark the work complete and submit your review. test card: <code>4242 4242 4242 4242</code>.`;
+    intro.innerHTML = `Grassroots <strong>holds the service fee</strong> as soon as you pay. It releases to the consultant once you mark the work complete and submit your review. Test card: <code>4242 4242 4242 4242</code>.`;
   }
-  submitBtn.textContent = "pay service fee";
+  submitBtn.textContent = "Pay service fee";
 
   return new Promise((resolve) => {
     let cleanedUp = false;
@@ -506,7 +506,7 @@ export async function payAndStartService({ client, bid, listing }) {
           body: JSON.stringify({ bid_id: bid.id }),
         });
         const intentData = await intentRes.json();
-        if (!intentRes.ok) throw new Error(intentData.error || "could not start payment.");
+        if (!intentRes.ok) throw new Error(intentData.error || "Could not start payment.");
 
         const stripe = await loadStripe();
         const css = getComputedStyle(document.documentElement);
@@ -550,7 +550,7 @@ export async function payAndStartService({ client, bid, listing }) {
 
         submitBtn.addEventListener("click", async () => {
           submitBtn.disabled = true;
-          statusEl.textContent = "processing payment…";
+          statusEl.textContent = "Processing payment…";
           statusEl.className = "gr-status";
 
           const { error: confirmErr } = await stripe.confirmPayment({
@@ -558,7 +558,7 @@ export async function payAndStartService({ client, bid, listing }) {
             redirect: "if_required",
           });
           if (confirmErr) {
-            statusEl.textContent = confirmErr.message || "payment failed.";
+            statusEl.textContent = confirmErr.message || "Payment failed.";
             statusEl.className = "gr-status error";
             submitBtn.disabled = false;
             return;
@@ -571,18 +571,18 @@ export async function payAndStartService({ client, bid, listing }) {
           });
           const confirmData = await confirmRes.json();
           if (!confirmRes.ok) {
-            statusEl.textContent = confirmData.error || "payment captured but server failed to confirm. contact support.";
+            statusEl.textContent = confirmData.error || "Payment captured but server failed to confirm. Contact support.";
             statusEl.className = "gr-status error";
             submitBtn.disabled = false;
             return;
           }
 
-          statusEl.textContent = "service fee held in escrow. reloading…";
+          statusEl.textContent = "Service fee held. Reloading…";
           statusEl.className = "gr-status success";
           setTimeout(() => cleanup({ ok: true }), 700);
         });
       } catch (err) {
-        statusEl.textContent = err.message || "something went wrong.";
+        statusEl.textContent = err.message || "Something went wrong.";
         statusEl.className = "gr-status error";
       }
     })();

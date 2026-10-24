@@ -54,8 +54,8 @@ export async function mountGarden(container, { client, userId }) {
   container.innerHTML = `
     ${skyDom()}
     <div class="pp-garden__head">
-      <p class="pf-level-kicker">your garden</p>
-      <h2 class="pp-garden__title">bloomed engagements</h2>
+      <p class="pf-level-kicker">Your garden</p>
+      <h2 class="pp-garden__title">Bloomed engagements</h2>
       <p class="pp-garden__copy" id="pp-garden-copy"></p>
     </div>
     <div class="pp-garden__bed" id="pp-garden-bed"></div>
@@ -131,7 +131,7 @@ export async function mountGarden(container, { client, userId }) {
     const bidIds = Object.keys(gardenIds);
     const landscapeMarkup = `<div class="pp-garden__landscape">${landscapeSvg()}</div>`;
     if (bidIds.length === 0) {
-      bedEl.innerHTML = `${landscapeMarkup}<p class="pp-garden__empty">no bloomed plants here yet — drag a bloomed plant from your engagement journey on the dashboard.</p>`;
+      bedEl.innerHTML = `${landscapeMarkup}<p class="pp-garden__empty">No bloomed plants here yet — drag a bloomed plant from your engagement journey on the dashboard.</p>`;
       if (copyEl) copyEl.textContent = "";
       spawnBugs();
       return;
@@ -269,7 +269,7 @@ export async function mountGarden(container, { client, userId }) {
           delete gardenIds[id];
           saveGardenForUser(userId, gardenIds);
           showToast(
-            `uprooted ${eng?.counterpart || "plant"} — back in your engagement journey.`,
+            `Uprooted ${eng?.counterpart || "plant"} — back in your engagement journey.`,
             { duration: 2400 }
           );
           render();
@@ -435,8 +435,8 @@ export async function mountGarden(container, { client, userId }) {
            role="button" tabindex="0"
            aria-label="${escapeHtml(eng.counterpart)} — ${escapeHtml(eng.listing?.title || "engagement")} — drag to position, click to open listing">
         <button type="button" class="pp-garden__plant-remove" data-bid-id="${escapeHtml(eng.id)}"
-                aria-label="move ${escapeHtml(eng.counterpart)} back to your journey"
-                title="move back to journey">
+                aria-label="Move ${escapeHtml(eng.counterpart)} back to your journey"
+                title="Move back to journey">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <line x1="6" y1="6" x2="18" y2="18"/>
@@ -754,7 +754,7 @@ function skyDom() {
   // and offset to carve the crescent. Shadow uses var(--fo-bg) so it
   // blends with whatever dark theme is active.
   const moon = `
-    <button type="button" class="pp-garden__moon" aria-label="moon">
+    <button type="button" class="pp-garden__moon" aria-label="Moon">
       <svg viewBox="0 0 64 64" width="100%" height="100%" aria-hidden="true">
         <defs>
           <radialGradient id="pp-garden-moon-glow" cx="38%" cy="40%" r="60%">
@@ -776,7 +776,7 @@ function skyDom() {
     return `<rect x="38.5" y="4" width="3" height="9" rx="1.5" transform="rotate(${deg} 40 40)" fill="#f6c457"/>`;
   }).join("");
   const sun = `
-    <button type="button" class="pp-garden__sun" aria-label="sun">
+    <button type="button" class="pp-garden__sun" aria-label="Sun">
       <svg viewBox="0 0 80 80" width="100%" height="100%" aria-hidden="true">
         <defs>
           <radialGradient id="pp-garden-sun-glow" cx="50%" cy="50%" r="50%">
