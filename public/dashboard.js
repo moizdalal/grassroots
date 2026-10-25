@@ -51,8 +51,9 @@ const escape = (s) =>
 const STATE_LABELS = {
   open: "Live",
   hired: "In progress",
-  paused: "Paused",
-  closed: "Closed",
+  locked: "Locked",
+  completed: "Completed",
+  unlisted: "Removed",
   draft: "Draft",
 };
 
@@ -87,15 +88,22 @@ function parseBudgetRangeFromDetails(details) {
 }
 
 function listingState(row) {
-  // Map listing.status to a display state. Open = live; if any bid is accepted, that's "hired".
-  if (row.__hired) return "hired";
+  // Map listing.status to a display state. Open = live; accepted work that
+  // hasn't been paid out is "hired" whatever the listing's lock state.
   const s = (row.status || "").toLowerCase();
+  if (s === "completed") return "completed";
+  if (row.__hired) return "hired";
   if (s === "open") return "open";
-  if (s === "paused") return "paused";
-  if (s === "closed") return "closed";
+  if (s === "locked") return "locked";
+  if (s === "unlisted") return "unlisted";
   if (s === "draft") return "draft";
   return s || "open";
 }
+
+// Filter chips / tabs that cover more than one state. "Past" holds
+// completed projects and listings the owner removed from the marketplace.
+const LISTING_STATE_GROUPS = { past: ["completed", "unlisted"] };
+const listingStatesFor = (s) => LISTING_STATE_GROUPS[s] || [s];
 
 const HEALTH_PALETTE = [
   "var(--fo-accent)",
@@ -190,7 +198,7 @@ async function loadData(client, userId) {
       client
         .from("bids")
         .select(
-          "id, listing_id, consultant_id, amount_cents, message, status, created_at, proposal_due_at, accepted_at, profiles!bids_consultant_id_fkey ( full_name, avatar_path )"
+          "id, listing_id, consultant_id, amount_cents, message, status, payment_status, created_at, proposal_due_at, accepted_at, profiles!bids_consultant_id_fkey ( full_name, avatar_path )"
         )
         .in("listing_id", ids)
         .order("created_at", { ascending: false }),
@@ -219,7 +227,9 @@ async function loadData(client, userId) {
   // Mark hired listings
   for (const l of listings) {
     const bids = bidsByListing[l.id] || [];
-    if (bids.some((b) => b.status === "accepted")) l.__hired = true;
+    if (bids.some((b) => b.status === "accepted" && !["released", "refunded"].includes(b.payment_status))) {
+      l.__hired = true;
+    }
     l.__bidCount = bids.length;
     l.__bids = bids;
   }
@@ -356,17 +366,16 @@ function shortRecency(createdAt) {
 // State → status dot. Semantic mapping:
 //   live / open       → green active (collecting bids)
 //   hired / in flight → warm orange (work happening, attention warranted)
-//   paused            → muted (calm pause)
-//   closed/cancelled  → terminal red (uses --fo-status-closed token so the
-//                       light theme doesn't collapse it into --fo-accent-warm;
-//                       see Pass 1 notes in field-office.css)
+//   locked            → muted (public, not taking offers)
+//   completed         → soft text (past project, stays public)
+//   unlisted          → line grey (removed from the marketplace)
 //   draft             → soft violet (private/owner-only)
 const STATE_DOT_COLORS = {
   open: "var(--fo-accent)",          // live — active, collecting bids
   hired: "var(--fo-accent-warm)",    // in progress — warm, work in flight
-  paused: "var(--fo-text-3)",        // paused — muted, on hold
-  closed: "var(--fo-status-closed)", // closed — terminal red
-  cancelled: "var(--fo-status-closed)",
+  locked: "var(--fo-text-3)",        // locked — muted, not taking offers
+  completed: "var(--fo-text-2)",     // completed — past project
+  unlisted: "var(--fo-line-strong)", // removed — hidden from the public
   draft: "var(--fo-draft)",          // draft — soft violet, owner-only
 };
 
@@ -627,10 +636,6 @@ function mountMyListingsView(listings, schedulesByBidId) {
     budget: withActionFirst((a, b) => ownerBudgetSortValue(b) - ownerBudgetSortValue(a)),
   };
 
-  // `closed` chip filters both 'closed' and 'cancelled' states so the
-  // legend label matches what an owner thinks of as "closed."
-  const STATE_GROUPS = { closed: ["closed", "cancelled"] };
-  const groupStatesFor = (s) => STATE_GROUPS[s] || [s];
 
   const activeStates = new Set();
 
@@ -639,9 +644,9 @@ function mountMyListingsView(listings, schedulesByBidId) {
     const sortKey = sortEl?.value || "newest";
     const sorter = SORTERS[sortKey] || SORTERS.newest;
 
-    // Expand grouped chips (e.g. "closed" → ["closed", "cancelled"]).
+    // Expand grouped chips (e.g. "past" → ["completed", "unlisted"]).
     const stateMatch = activeStates.size
-      ? new Set([...activeStates].flatMap(groupStatesFor))
+      ? new Set([...activeStates].flatMap(listingStatesFor))
       : null;
 
     const filtered = listings
@@ -979,9 +984,11 @@ function renderDashboard(client, data) {
   renderOwnerAgenda(agendaEvents);
 
   // listings count + tabs
-  const counts = { all: listings.length, open: 0, hired: 0, paused: 0, closed: 0, draft: 0 };
+  const counts = { all: listings.length, open: 0, hired: 0, locked: 0, past: 0, draft: 0 };
   for (const l of listings) {
-    counts[listingState(l)] = (counts[listingState(l)] || 0) + 1;
+    const state = listingState(l);
+    counts[state] = (counts[state] || 0) + 1;
+    if (LISTING_STATE_GROUPS.past.includes(state)) counts.past += 1;
   }
   $("dash-listings-count").textContent = String(listings.length);
   document.querySelectorAll("[data-count]").forEach((el) => {
@@ -1015,7 +1022,9 @@ function renderDashboard(client, data) {
       tabsHost.querySelectorAll("button").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       const state = btn.dataset.state;
-      const filtered = state === "all" ? listings : listings.filter((l) => listingState(l) === state);
+      const filtered = state === "all"
+        ? listings
+        : listings.filter((l) => listingStatesFor(state).includes(listingState(l)));
       listingsRows.innerHTML = filtered.length ? filtered.map(renderRow).join("") : `<p class="gr-empty-state" style="padding:1rem">No listings in this state.</p>`;
     });
     tabsHost.dataset.bound = "1";
@@ -1070,10 +1079,10 @@ function renderDashboard(client, data) {
     engageRows.innerHTML = inProgress.map(renderRow).join("");
   }
 
-  // archive (closed)
+  // archive (completed hires)
   const archiveRows = $("dash-archive-rows");
   const archiveEmpty = $("dash-archive-empty");
-  const archive = listings.filter((l) => listingState(l) === "closed");
+  const archive = listings.filter((l) => listingState(l) === "completed");
   if (!archive.length) {
     archiveEmpty.hidden = false;
     archiveRows.innerHTML = "";

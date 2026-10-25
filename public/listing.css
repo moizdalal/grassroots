@@ -563,10 +563,17 @@ body.ld-modal-open { overflow: hidden; }
   background: var(--fo-accent-warm, #e88e5a);
 }
 
-/* --- Sticky sidebar --- */
+/* --- Sticky sidebar ---
+   Capped at the viewport so the bottom of a tall panel (the remove-
+   listing form plus the proposals list) stays reachable without first
+   scrolling the whole page. */
 .ld-sidebar {
   position: sticky;
   top: 5rem;
+  max-height: calc(100vh - 6rem);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--fo-line-strong) transparent;
 }
 
 .ld-rail {
@@ -645,13 +652,16 @@ body.ld-modal-open { overflow: hidden; }
   overflow-y: auto;
 }
 
-/* owner-actions sits bare — no card chrome */
+/* owner-actions sits bare — no card chrome. No height cap either: the
+   panel's overflow is visible, so a cap let the expanded remove form
+   spill over the proposals list. The sticky sidebar scrolls instead. */
 #ld-owner-actions.ld-sidebar__panel {
   background: none;
   border: none;
   border-radius: 0;
   box-shadow: none;
   padding: 0.25rem 0;
+  max-height: none;
 }
 
 /* bids-owner: drop the card chrome too — each .ld-bid-card inside
@@ -775,16 +785,24 @@ body.ld-modal-open { overflow: hidden; }
   display: none;
 }
 
+/* 8rem basis lets a third button (mark as completed) wrap onto its own
+   row instead of squeezing all three into the sidebar width. */
 .ld-owner-actions__btn {
-  flex: 1 1 0;
+  flex: 1 1 8rem;
+}
+
+.ld-owner-actions__btn[hidden] {
+  display: none;
 }
 
 /* Listing controls — restrained, theme-coherent ghost buttons.
-   Pause is reversible (hover swaps to soft accent green). Close is
-   destructive but communicates that role through placement + a
-   confirm dialog, not by a screaming red fill. */
-#ld-pause-listing-btn,
-#ld-close-listing-btn {
+   Lock and complete are constructive (hover swaps to soft accent
+   green). Remove is heavier but communicates that role through
+   placement + a reason form, not by a screaming red fill. It is
+   disabled while accepted work is active. */
+#ld-lock-listing-btn,
+#ld-complete-listing-btn,
+#ld-unlist-listing-btn {
   background: transparent;
   border: 1px solid var(--fo-line-strong);
   color: var(--fo-text-2);
@@ -793,19 +811,21 @@ body.ld-modal-open { overflow: hidden; }
   transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, transform 0.15s ease;
 }
 
-#ld-pause-listing-btn:hover {
+#ld-lock-listing-btn:hover:not(:disabled),
+#ld-complete-listing-btn:hover:not(:disabled) {
   border-color: var(--fo-accent);
   color: var(--fo-accent);
   background: var(--fo-accent-soft);
   transform: translateY(-1px);
 }
 
-#ld-pause-listing-btn:active,
-#ld-close-listing-btn:active {
+#ld-lock-listing-btn:active,
+#ld-complete-listing-btn:active,
+#ld-unlist-listing-btn:active {
   transform: translateY(0);
 }
 
-#ld-close-listing-btn:hover {
+#ld-unlist-listing-btn:hover:not(:disabled) {
   border-color: var(--fo-plan, #c46f44);
   color: var(--fo-plan, #c46f44);
   background: rgba(196, 111, 68, 0.08);

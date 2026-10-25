@@ -46,8 +46,8 @@ export function detectFlowerStage(bid, _listing, schedule) {
 // being paid. We treat any of these as premature:
 //   - bid was rejected / withdrawn / declined
 //   - payment was refunded
-//   - listing has been closed while the bid never reached the
-//     "released" payment state (work never completed for this bid)
+//   - listing was completed or removed while this bid was never
+//     accepted (a locked listing can still accept pending offers)
 // A bid whose payment_status is "released" is the terminal happy
 // path — once paid, it permanently claims its species slot.
 export function isPremature(bid, listing, _schedule) {
@@ -55,7 +55,7 @@ export function isPremature(bid, listing, _schedule) {
   if (bid.payment_status === "released") return false;
   if (bid.payment_status === "refunded") return true;
   if (["rejected", "withdrawn", "declined"].includes(bid.status)) return true;
-  if (listing?.status === "closed" && bid.status !== "accepted") return true;
+  if (["completed", "unlisted"].includes(listing?.status) && bid.status !== "accepted") return true;
   return false;
 }
 
