@@ -60,7 +60,7 @@
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <link rel="stylesheet" href="/home/nav.css?v=3" />
-    <link rel="stylesheet" href="/home/about.css?v=13" />
+    <link rel="stylesheet" href="/home/about.css?v=15" />
     <script src="/theme.js?v=2"></script>
     <script src="/cookie-banner.js" defer></script>
     <script src="/home/theme-default.js"></script>
@@ -140,25 +140,64 @@
       </div>
     </header>
 
-    <!-- ── WHO WE ARE / WHAT WE DO / OUR MISSION ── three short headed blocks -->
+    <!-- ── WHO WE ARE / WHAT WE DO / OUR MISSION ── an anatomy plate: the logo
+         in the middle, labeled like a field guide drawing. Left leaf = who we
+         are, right leaf = what we do, stem = our mission. Hovering a label or
+         a plant part highlights the pair (script below); the plant sways
+         gently and leans toward the cursor. -->
     <section class="ab-section ab-basics" id="mission" aria-label="Who we are, what we do, and our mission">
       <div class="ab-shell">
         <div class="ab-basics__grid">
-          <article class="ab-basics__item ab-reveal">
+          <div class="ab-basics__plant" aria-hidden="true">
+            <svg class="ab-basics__logo" viewBox="-20 -10 203 295" overflow="visible">
+              <g class="ab-basics__sway">
+                <g class="ab-basics__part ab-basics__part--stem" data-part="mission">
+                  <path transform="translate(72 130)" d="M19 10.15C19 4.54431 14.7467 0 9.5 0C4.25329 0 0 4.54431 0 10.15C7.91804 91.2467 8.44249 120.691 0 134.85C0 140.456 4.25329 145 9.5 145C14.7467 145 19 140.456 19 134.85C16.2169 71.2734 12.3479 23.288 19 10.15Z"/>
+                </g>
+                <g class="ab-basics__part ab-basics__part--leaf-l" data-part="who">
+                  <path transform="translate(0 65)" d="M84 87C21 71.5333 -6.5625 42.5333 1.3125 0C56.4375 3.86667 84 32.8667 84 87Z"/>
+                </g>
+                <g class="ab-basics__part ab-basics__part--leaf-r" data-part="what">
+                  <path transform="translate(82 0)" d="M0 147C48.6 116.053 75.6 67.0526 81 0C27 5.1579 0 54.1579 0 147Z"/>
+                </g>
+              </g>
+            </svg>
+          </div>
+          <article class="ab-basics__item ab-reveal" data-part="who">
             <h2 class="ab-basics__title">Who we <span class="ab-italic">are</span></h2>
-            <p class="ab-basics__body">Grassroots is a local marketplace that connects small businesses with college students nearby. It's built for the towns where local students and local businesses live and work side by side.</p>
+            <p class="ab-basics__body">A local marketplace for small businesses and the college students down the street.</p>
           </article>
-          <article class="ab-basics__item ab-reveal">
+          <article class="ab-basics__item ab-reveal" data-part="what">
             <h2 class="ab-basics__title">What we <span class="ab-italic">do</span></h2>
-            <p class="ab-basics__body">Businesses post the projects they need help with, like logos, menus, websites, and social posts. Students nearby bid with a price and a plan, the business picks the best fit, and Grassroots holds the payment, processed by Stripe, until the work is done.</p>
+            <p class="ab-basics__body">Businesses post projects. Students nearby bid with a price and a plan. Grassroots holds the payment, processed by Stripe, until the work is done.</p>
           </article>
-          <article class="ab-basics__item ab-reveal">
+          <article class="ab-basics__item ab-reveal" data-part="mission">
             <h2 class="ab-basics__title">Our <span class="ab-italic">mission</span></h2>
-            <p class="ab-basics__body">Small businesses keep a town running, but good help is hard to afford. College students want real work, but internships and jobs are so competitive that many never get the chance to build experience. Our mission is to connect the two, so businesses get affordable help and students get experience that sets them apart.</p>
+            <p class="ab-basics__body">Give students real experience and small businesses affordable help, so the whole town grows.</p>
           </article>
         </div>
       </div>
     </section>
+    <script>
+      // Anatomy plate: hover a label or a plant part to highlight the pair,
+      // and lean the plant a few degrees toward the cursor.
+      (function () {
+        var sec = document.querySelector(".ab-basics");
+        if (!sec) return;
+        sec.querySelectorAll("[data-part]").forEach(function (el) {
+          el.addEventListener("mouseenter", function () { sec.dataset.focus = el.dataset.part; });
+          el.addEventListener("mouseleave", function () { delete sec.dataset.focus; });
+        });
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        var plant = sec.querySelector(".ab-basics__plant");
+        sec.addEventListener("mousemove", function (e) {
+          var r = plant.getBoundingClientRect();
+          var dx = (e.clientX - (r.left + r.width / 2)) / (sec.clientWidth / 2);
+          sec.style.setProperty("--lean", (Math.max(-1, Math.min(1, dx)) * 5).toFixed(2) + "deg");
+        });
+        sec.addEventListener("mouseleave", function () { sec.style.setProperty("--lean", "0deg"); });
+      })();
+    </script>
 
     <!-- ── FOUNDER ── Moiz's story and photo (public/home/assets/moiz.jpg, 4:5).
          First person, in Moiz's voice: background, why Grassroots, the mission. -->

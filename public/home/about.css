@@ -226,32 +226,138 @@
       .ab-hero__toc a:hover,
       .ab-hero__toc a:focus-visible { color: var(--fo-accent); padding-left: 0.35rem; }
 
-      /* Who we are / what we do / our mission: three headed blocks side by side,
-         stacked on narrow screens. */
+      /* ── basics: anatomy plate ──
+         The logo in the middle with three labels joined by dashed leader
+         lines: left leaf = who we are, right leaf = what we do, stem = our
+         mission. Sized to fit one viewport. */
+      .ab-section.ab-basics {
+        min-height: min(100svh, 860px);
+        display: grid;
+        align-items: center;
+        padding-block: clamp(40px, 6vh, 72px);
+        --lean: 0deg;
+      }
       .ab-basics__grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: clamp(28px, 4vw, 56px);
+        grid-template-columns: minmax(0, 1fr) clamp(150px, min(18vw, 28vh), 230px) minmax(0, 1fr);
+        grid-template-areas: "who plant what" "mission mission mission";
+        align-items: center;
+        column-gap: clamp(28px, 4vw, 56px);
+        row-gap: clamp(20px, 3vh, 36px);
       }
-      @media (max-width: 900px) { .ab-basics__grid { grid-template-columns: 1fr; } }
+      .ab-basics__plant { grid-area: plant; }
+      .ab-basics__logo { display: block; width: 100%; height: auto; overflow: visible; }
+
+      /* Plant colors: logo green, left leaf in shade, right leaf in light. */
+      .ab-basics__part path { transition: fill 0.3s ease, filter 0.3s ease; }
+      .ab-basics__part--stem path   { fill: color-mix(in srgb, var(--fo-accent) 92%, #0a1f16); }
+      .ab-basics__part--leaf-l path { fill: color-mix(in srgb, var(--fo-accent) 86%, #0a1f16); }
+      .ab-basics__part--leaf-r path { fill: var(--fo-accent); }
+
+      /* Motion. Rotation pivots are in the SVG's own units (transform-box:
+         view-box), since fill-box drifts with bezier control points. The
+         whole plant sways from the stem base and leans toward the cursor
+         (--lean, set by JS); each leaf flutters from where it meets the stem. */
+      .ab-basics__sway,
+      .ab-basics__part--leaf-l,
+      .ab-basics__part--leaf-r { transform-box: view-box; }
+      .ab-basics__sway {
+        transform-origin: 81px 275px;
+        transform: rotate(var(--lean));
+        transition: transform 0.6s cubic-bezier(.2,.8,.2,1);
+      }
+      .ab-basics__sway > * { transform-box: view-box; }
+      .ab-basics__part--stem { transform-origin: 81px 275px; animation: ab-sway 6s ease-in-out infinite; }
+      .ab-basics__part--leaf-l { transform-origin: 84px 152px; animation: ab-leaf-l 4.8s ease-in-out infinite; }
+      .ab-basics__part--leaf-r { transform-origin: 82px 147px; animation: ab-leaf-r 5.4s ease-in-out infinite; }
+      @keyframes ab-sway   { 0%, 100% { transform: rotate(-1deg); } 50% { transform: rotate(1deg); } }
+      @keyframes ab-leaf-l { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-4deg); } }
+      @keyframes ab-leaf-r { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(3.5deg); } }
+      @media (prefers-reduced-motion: reduce) {
+        .ab-basics__part { animation: none !important; }
+        .ab-basics__sway { transition: none; }
+      }
+
+      /* Labels */
       .ab-basics__item {
-        padding-top: 1.4rem;
-        border-top: 2px solid var(--fo-accent);
+        position: relative;
+        transition: opacity 0.3s ease;
       }
       .ab-basics__title {
-        margin: 0 0 0.9rem;
+        margin: 0 0 0.5rem;
         font-family: var(--font-display);
         font-weight: 600;
-        font-size: clamp(1.8rem, 3vw, 2.5rem);
+        font-size: clamp(1.6rem, 2.6vw, 2.2rem);
         line-height: 1.05;
         letter-spacing: -0.02em;
         color: var(--fo-text);
       }
       .ab-basics__body {
         margin: 0;
-        font-size: clamp(1rem, 1.3vw, 1.1rem);
-        line-height: 1.6;
+        max-width: 34ch;
+        font-size: clamp(1rem, 1.25vw, 1.08rem);
+        line-height: 1.55;
         color: var(--fo-text);
+      }
+      .ab-basics__item[data-part="who"]     { grid-area: who; text-align: right; justify-self: end; }
+      .ab-basics__item[data-part="what"]    { grid-area: what; }
+      .ab-basics__item[data-part="mission"] {
+        grid-area: mission;
+        justify-self: center;
+        padding-top: clamp(32px, 5vh, 56px);
+        text-align: center;
+      }
+      .ab-basics__item[data-part="mission"] .ab-basics__body { max-width: 44ch; margin-inline: auto; }
+
+      /* Dashed leader lines from each label toward its plant part. */
+      .ab-basics__item::after {
+        content: "";
+        position: absolute;
+        border: 0 dashed color-mix(in srgb, var(--fo-accent) 55%, transparent);
+        transition: border-color 0.3s ease;
+      }
+      .ab-basics__item[data-part="who"]::after,
+      .ab-basics__item[data-part="what"]::after {
+        top: 1.1rem;
+        width: clamp(28px, 4vw, 56px);
+        border-top-width: 1px;
+      }
+      .ab-basics__item[data-part="who"]::after  { right: calc(-1 * clamp(28px, 4vw, 56px)); }
+      .ab-basics__item[data-part="what"]::after { left: calc(-1 * clamp(28px, 4vw, 56px)); }
+      .ab-basics__item[data-part="mission"]::after {
+        top: 0;
+        left: 50%;
+        height: clamp(24px, 4vh, 44px);
+        border-left-width: 1px;
+      }
+
+      /* Hover highlight: the focused pair stays bright, the rest steps back. */
+      .ab-basics[data-focus] .ab-basics__item { opacity: 0.4; }
+      .ab-basics[data-focus="who"] .ab-basics__item[data-part="who"],
+      .ab-basics[data-focus="what"] .ab-basics__item[data-part="what"],
+      .ab-basics[data-focus="mission"] .ab-basics__item[data-part="mission"] { opacity: 1; }
+      .ab-basics[data-focus] .ab-basics__item::after { border-color: var(--fo-accent); }
+      .ab-basics[data-focus] .ab-basics__part path { fill: color-mix(in srgb, var(--fo-accent) 35%, transparent); }
+      .ab-basics[data-focus="who"] .ab-basics__part--leaf-l path,
+      .ab-basics[data-focus="what"] .ab-basics__part--leaf-r path,
+      .ab-basics[data-focus="mission"] .ab-basics__part--stem path {
+        fill: var(--fo-accent);
+        filter: drop-shadow(0 0 10px color-mix(in srgb, var(--fo-accent) 60%, transparent));
+      }
+      .ab-basics__part { cursor: default; }
+
+      /* Phones: plant on top, labels stacked, no leader lines. */
+      @media (max-width: 760px) {
+        .ab-section.ab-basics { min-height: 0; padding-block: 56px; }
+        .ab-basics__grid {
+          grid-template-columns: 1fr;
+          grid-template-areas: "plant" "who" "what" "mission";
+          row-gap: 1.5rem;
+        }
+        .ab-basics__plant { width: 110px; justify-self: center; }
+        .ab-basics__item[data-part] { text-align: left; justify-self: stretch; padding-top: 0; }
+        .ab-basics__item[data-part="mission"] .ab-basics__body { margin-inline: 0; }
+        .ab-basics__item::after { display: none; }
       }
 
       /* Founder section: photo frame + Moiz's story. The dashed prompt boxes are
