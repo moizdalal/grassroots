@@ -60,7 +60,7 @@
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <link rel="stylesheet" href="/home/nav.css?v=3" />
-    <link rel="stylesheet" href="/home/about.css?v=11" />
+    <link rel="stylesheet" href="/home/about.css?v=13" />
     <script src="/theme.js?v=2"></script>
     <script src="/cookie-banner.js" defer></script>
     <script src="/home/theme-default.js"></script>
@@ -122,11 +122,20 @@
 
     <!-- ── COVER ── one big title and one line, on the same light panel as the
          home page's quote section. -->
-    <header class="ab-cover" aria-labelledby="ab-cover-title">
+    <!-- ── HERO ── the old magazine cover's big "About." with the tagline beside
+         it across a faint divider, then a short contents list. -->
+    <header class="ab-hero" aria-labelledby="ab-cover-title">
       <div class="ab-shell">
-        <div class="ab-cover__panel ab-reveal">
-          <h1 class="ab-cover__panel-title" id="ab-cover-title">About us</h1>
-          <p class="ab-cover__panel-sub">The local marketplace connecting small businesses with college students nearby.</p>
+        <div class="ab-reveal">
+          <h1 class="ab-hero__title" id="ab-cover-title">
+            <span class="ab-hero__word">About<em>.</em></span>
+            <span class="ab-hero__line2">How small businesses <em>down the street</em> meet the students next door.</span>
+          </h1>
+          <nav class="ab-hero__toc" aria-label="On this page">
+            <a href="#mission"><span>01</span>Who we are</a>
+            <a href="#founder"><span>02</span>Meet Moiz</a>
+            <a href="#contact"><span>03</span>Get in touch</a>
+          </nav>
         </div>
       </div>
     </header>

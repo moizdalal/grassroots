@@ -164,6 +164,68 @@
         color: #14201a;
       }
 
+      /* ── hero ── the old cover's big "About." on the left, the tagline on
+         the right across a faint vertical divider (stacked on phones), then
+         a short contents list. Sits on the page background, no panel. */
+      .ab-hero { padding: clamp(48px, 7vw, 96px) 0 clamp(24px, 4vw, 48px); }
+      .ab-hero__title {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        margin: 0;
+        font-family: var(--font-display);
+        font-weight: 600;
+        color: var(--fo-text);
+      }
+      .ab-hero__title em { font-style: normal; color: var(--fo-accent); }
+      .ab-hero__word {
+        padding-right: clamp(24px, 4vw, 56px);
+        font-size: clamp(4.5rem, 13vw, 10.5rem);
+        line-height: 0.9;
+        letter-spacing: -0.05em;
+      }
+      .ab-hero__line2 {
+        padding: 0.4em 0 0.4em clamp(24px, 4vw, 56px);
+        border-left: 1px solid var(--fo-line);
+        max-width: 18ch;
+        font-size: clamp(1.6rem, 3.4vw, 3rem);
+        line-height: 1.08;
+        letter-spacing: -0.035em;
+        text-wrap: balance;
+      }
+      @media (max-width: 640px) {
+        .ab-hero__title { grid-template-columns: 1fr; }
+        .ab-hero__word { padding: 0 0 0.25em; }
+        .ab-hero__line2 { padding: 0.5em 0 0; border-left: 0; border-top: 1px solid var(--fo-line); }
+      }
+      .ab-hero__toc {
+        display: grid;
+        margin-top: clamp(2.25rem, 5vw, 3.5rem);
+        border-top: 1px solid var(--fo-line);
+      }
+      .ab-hero__toc a {
+        display: flex;
+        align-items: baseline;
+        gap: 0.9rem;
+        padding: 0.55rem 0;
+        border-bottom: 1px dashed var(--fo-line);
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: var(--fo-text);
+        text-decoration: none;
+        transition: color 0.2s ease, padding-left 0.25s ease;
+      }
+      .ab-hero__toc a:last-child { border-bottom: 0; }
+      .ab-hero__toc a span {
+        font-family: var(--font-body);
+        font-size: 0.8rem;
+        font-variant-numeric: tabular-nums;
+        color: var(--fo-accent);
+      }
+      .ab-hero__toc a:hover,
+      .ab-hero__toc a:focus-visible { color: var(--fo-accent); padding-left: 0.35rem; }
+
       /* Who we are / what we do / our mission: three headed blocks side by side,
          stacked on narrow screens. */
       .ab-basics__grid {
