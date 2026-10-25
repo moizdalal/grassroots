@@ -1618,15 +1618,20 @@ app.get("/api/listings/:id/owner-bids", async (req, res) => {
       return res.status(403).json({ error: "You do not have access to these proposals." });
     }
 
-    const { data: bids, error: bidsError } = await supabase
-      .from("bids")
-      .select(
-        `id, listing_id, consultant_id, amount_cents, proposal_fee_cents, service_fee_cents, move_forward_status, message, status,
+    const bidCols = `id, listing_id, consultant_id, amount_cents, proposal_fee_cents, service_fee_cents, move_forward_status, message, status,
          counter_offer_cents, counter_offer_message, accepted_at, proposal_due_at, proposal_path, created_at,
-         profiles!bids_consultant_id_fkey ( id, full_name, linkedin_url, avatar_path )`
-      )
+         profiles!bids_consultant_id_fkey ( id, full_name, linkedin_url, avatar_path )`;
+    const loadBids = (cols) => supabase
+      .from("bids")
+      .select(cols)
       .eq("listing_id", listingId)
       .order("created_at", { ascending: true });
+    // Pitch columns come from add_bid_pitch_timeline_files.sql; fall back
+    // to the base set until that migration is applied.
+    let { data: bids, error: bidsError } = await loadBids(`${bidCols}, timeline_days, pitch_files`);
+    if (bidsError?.code === "42703") {
+      ({ data: bids, error: bidsError } = await loadBids(bidCols));
+    }
 
     if (bidsError) {
       return res.status(500).json({ error: bidsError.message || "Could not load proposals." });
@@ -1646,9 +1651,34 @@ app.get("/api/listings/:id/owner-bids", async (req, res) => {
       }
     }
 
+    // Sign pitch files for the owner. Only paths under this bid's own
+    // consultant/listing folder are signed — pitch_files is consultant-
+    // written, so a path pointing anywhere else is dropped.
+    const signedPitchFiles = new Map();
+    const pitchPaths = [];
+    for (const bid of bids || []) {
+      const prefix = `${bid.consultant_id}/${bid.listing_id}/`;
+      const files = (Array.isArray(bid.pitch_files) ? bid.pitch_files : [])
+        .filter((f) => typeof f?.path === "string" && f.path.startsWith(prefix) && !f.path.includes(".."));
+      signedPitchFiles.set(bid.id, files);
+      pitchPaths.push(...files.map((f) => f.path));
+    }
+    const urlByPath = new Map();
+    if (pitchPaths.length) {
+      const { data: signed } = await supabase.storage.from("bid-files").createSignedUrls(pitchPaths, 60 * 60);
+      for (const row of signed || []) {
+        if (row?.path && row.signedUrl) urlByPath.set(row.path, row.signedUrl);
+      }
+    }
+
     return res.json({
       bids: (bids || []).map((bid) => ({
         ...bid,
+        pitch_files: (signedPitchFiles.get(bid.id) || []).map((f) => ({
+          name: f.name || getStorageFileName(f.path),
+          size: Number(f.size) || null,
+          url: urlByPath.get(f.path) || null,
+        })),
         education: educationMap.get(bid.consultant_id) || null,
       })),
     });
@@ -1674,7 +1704,7 @@ app.get("/api/consultant-profile/:id", async (req, res) => {
     {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, linkedin_url, avatar_path, resume_path, resume_public")
+        .select("id, full_name, linkedin_url, avatar_path, resume_path, resume_public, created_at")
         .eq("id", consultantId)
         .eq("role", "consultant")
         .maybeSingle();
@@ -1684,7 +1714,7 @@ app.get("/api/consultant-profile/:id", async (req, res) => {
         // Column likely missing — retry without resume_public
         const { data: fallback, error: fbErr } = await supabase
           .from("profiles")
-          .select("id, full_name, linkedin_url, avatar_path, resume_path")
+          .select("id, full_name, linkedin_url, avatar_path, resume_path, created_at")
           .eq("id", consultantId)
           .eq("role", "consultant")
           .maybeSingle();
@@ -1707,6 +1737,30 @@ app.get("/api/consultant-profile/:id", async (req, res) => {
         .eq("user_id", consultantId)
         .maybeSingle();
       if (!error) consultantProfile = data;
+    } catch (_) {}
+
+    // Bio meta row: city lives on consultant_profiles (own query so a
+    // missing column can't take education down with it); completed count
+    // is delivered standard bids.
+    let city = null;
+    try {
+      const { data, error } = await supabase
+        .from("consultant_profiles")
+        .select("city")
+        .eq("user_id", consultantId)
+        .maybeSingle();
+      if (!error) city = data?.city || null;
+    } catch (_) {}
+
+    let completedCount = 0;
+    try {
+      const { count, error } = await supabase
+        .from("bids")
+        .select("id", { count: "exact", head: true })
+        .eq("consultant_id", consultantId)
+        .eq("status", "accepted")
+        .not("delivered_at", "is", null);
+      if (!error) completedCount = count || 0;
     } catch (_) {}
 
     let portfolioItems = [];
@@ -1760,6 +1814,9 @@ app.get("/api/consultant-profile/:id", async (req, res) => {
         resume_on_file: profile.resume_public && Boolean(profile.resume_path),
         resume_available: canViewResume,
         resume_file_name: profile.resume_path ? getStorageFileName(profile.resume_path) : null,
+        city,
+        member_since: profile.created_at || null,
+        completed_count: completedCount,
       },
       education: consultantProfile || {},
       portfolio: portfolioWithUrls,

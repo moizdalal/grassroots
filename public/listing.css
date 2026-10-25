@@ -1868,3 +1868,179 @@ body.ld-modal-open { overflow: hidden; }
     height: 88px;
   }
 }
+
+/* ---- Offer viewer: deal block (amount + timeline) ---------------------- */
+.ld-cv__deal {
+  display: flex;
+  gap: 0.75rem;
+  margin: 0.85rem 0 0;
+}
+
+.ld-cv__deal-item {
+  min-width: 8.5rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--fo-line);
+  border-radius: 12px;
+}
+
+[data-theme="light"] .ld-cv__deal-item {
+  background: var(--fo-surface-2);
+}
+
+.ld-cv__deal-label {
+  margin: 0 0 0.15rem;
+  font-size: var(--type-eyebrow);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fo-text-3);
+}
+
+.ld-cv__deal-value {
+  margin: 0;
+  font-size: var(--type-h2);
+  font-weight: 600;
+  color: var(--fo-text);
+  font-variant-numeric: tabular-nums;
+}
+
+#ld-cv-amount {
+  color: var(--fo-accent);
+}
+
+/* ---- Offer viewer: pitch panel ----------------------------------------- */
+.ld-cv__pitch-body {
+  margin: 0 0 1.25rem;
+  font-size: var(--type-body);
+  line-height: 1.6;
+  color: var(--fo-text);
+  white-space: normal;
+}
+
+.ld-cv__file {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--fo-line);
+  border-radius: 12px;
+  color: var(--fo-text);
+  text-decoration: none;
+}
+
+[data-theme="light"] .ld-cv__file {
+  background: var(--fo-surface-2);
+}
+
+.ld-cv__file:hover {
+  border-color: var(--fo-line-strong);
+}
+
+.ld-cv__file-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ld-cv__file-size {
+  font-size: var(--type-meta);
+  color: var(--fo-text-3);
+}
+
+.ld-cv__file-open {
+  font-size: var(--type-meta);
+  color: var(--fo-accent);
+}
+
+/* ---- Bio header meta row (location · projects · joined · LinkedIn) ----- */
+.pf-bv__meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.35rem 0 0;
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+}
+
+.pf-bv__dot {
+  color: var(--fo-text-3);
+}
+
+.pf-bv__link {
+  color: var(--fo-accent);
+  text-decoration: none;
+}
+
+.pf-bv__link:hover {
+  text-decoration: underline;
+}
+
+/* ---- Offer form: timeline + supporting files --------------------------- */
+.ld-offer-timeline-row input {
+  flex: 1;
+}
+
+.ld-offer-unit {
+  padding: 0 0.75rem;
+  font-size: var(--type-meta);
+  color: var(--fo-text-3);
+  pointer-events: none;
+}
+
+.ld-offer-files {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.ld-offer-files__add {
+  cursor: pointer;
+}
+
+.ld-offer-files__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ld-offer-files__list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ld-offer-files__list:empty {
+  display: none;
+}
+
+.ld-offer-files__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--fo-line);
+  border-radius: 10px;
+  font-size: var(--type-meta);
+}
+
+.ld-offer-files__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fo-text);
+}
+
+.ld-offer-files__size {
+  color: var(--fo-text-3);
+}
+
+@media (max-width: 540px) {
+  .ld-cv__deal-item { flex: 1; min-width: 0; }
+}

@@ -292,23 +292,41 @@
                   </div>
                 </div>
 
+                <div class="ld-offer-amount-row ld-offer-timeline-row">
+                  <label class="ld-offer-amount-label" for="ld-bid-timeline">
+                    <span class="ld-offer-amount-label-row">Timeline</span>
+                    <span class="ld-offer-amount-sub">How many days you need to deliver</span>
+                  </label>
+                  <div class="ld-offer-amount-input">
+                    <input id="ld-bid-timeline" type="number" min="1" max="365" step="1" placeholder="10" />
+                    <span class="ld-offer-unit" aria-hidden="true">days</span>
+                  </div>
+                </div>
+
                 <div class="ld-offer-msg-section" id="ld-offer-msg-section">
                   <button type="button" class="cl-add-btn ld-offer-msg-toggle" id="ld-offer-msg-toggle">
-                    + Attach a message
+                    + Add a pitch
                   </button>
                   <div class="ld-offer-msg-wrap hidden" id="ld-offer-msg-wrap">
                     <textarea
                       id="ld-bid-message"
                       class="ld-offer-msg-input"
                       rows="3"
-                      maxlength="250"
-                      placeholder="Briefly describe why you're a strong fit…"
+                      maxlength="1000"
+                      placeholder="Your approach, what you'll deliver, and why you're a fit."
                     ></textarea>
                     <div class="ld-offer-char-row">
-                      <span class="ld-offer-char-count" id="ld-offer-char-count">250</span>
+                      <span class="ld-offer-char-count" id="ld-offer-char-count">1000</span>
                       <button type="button" class="ld-offer-msg-remove" id="ld-offer-msg-remove" aria-label="Remove message">&times;</button>
                     </div>
                   </div>
+                </div>
+
+                <div class="ld-offer-files" id="ld-offer-files">
+                  <label class="cl-add-btn ld-offer-files__add" for="ld-bid-files">+ Attach supporting files</label>
+                  <input id="ld-bid-files" class="ld-offer-files__input" type="file" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg" />
+                  <ul class="ld-offer-files__list" id="ld-offer-files-list"></ul>
+                  <p class="ld-offer-amount-sub">Up to 3 files, 10 MB each. Scope docs, samples, or mockups.</p>
                 </div>
 
                 <button id="ld-bid-submit" type="button" class="gr-btn gr-btn--primary ld-offer-submit">Submit offer</button>
@@ -394,18 +412,29 @@
             <div class="ld-cv__bar-meta">
               <p class="ld-cv__eyebrow">Proposal <span id="ld-cv-index">1</span> of <span id="ld-cv-total">1</span></p>
               <h2 class="ld-cv__title" id="ld-cv-title">Consultant profile</h2>
-              <p class="ld-cv__offer" id="ld-cv-offer"></p>
+              <dl class="ld-cv__deal" id="ld-cv-deal">
+                <div class="ld-cv__deal-item">
+                  <dt class="ld-cv__deal-label">Offer</dt>
+                  <dd class="ld-cv__deal-value" id="ld-cv-amount">—</dd>
+                </div>
+                <div class="ld-cv__deal-item">
+                  <dt class="ld-cv__deal-label">Timeline</dt>
+                  <dd class="ld-cv__deal-value" id="ld-cv-timeline">—</dd>
+                </div>
+              </dl>
             </div>
             <button type="button" class="ld-cv__close" data-cv-close aria-label="Close">&times;</button>
           </div>
           <div class="ld-cv__tabs" role="tablist" aria-label="Consultant profile sections">
-            <button type="button" class="ld-cv__tab is-active" role="tab" data-cv-tab="bio" id="ld-cv-tab-bio" aria-selected="true" aria-controls="ld-cv-panel-bio">Bio</button>
+            <button type="button" class="ld-cv__tab is-active" role="tab" data-cv-tab="pitch" id="ld-cv-tab-pitch" aria-selected="true" aria-controls="ld-cv-panel-pitch">Pitch</button>
+            <button type="button" class="ld-cv__tab" role="tab" data-cv-tab="bio" id="ld-cv-tab-bio" aria-selected="false" aria-controls="ld-cv-panel-bio">Bio</button>
             <button type="button" class="ld-cv__tab" role="tab" data-cv-tab="resume" id="ld-cv-tab-resume" aria-selected="false" aria-controls="ld-cv-panel-resume">Resume</button>
             <button type="button" class="ld-cv__tab" role="tab" data-cv-tab="work" id="ld-cv-tab-work" aria-selected="false" aria-controls="ld-cv-panel-work">Past work</button>
           </div>
           <div class="ld-cv__body" id="ld-cv-body">
             <p class="gr-status" id="ld-cv-status" aria-live="polite">Loading…</p>
-            <div class="ld-cv__panel is-active" role="tabpanel" id="ld-cv-panel-bio" aria-labelledby="ld-cv-tab-bio" data-cv-panel="bio">
+            <div class="ld-cv__panel is-active" role="tabpanel" id="ld-cv-panel-pitch" aria-labelledby="ld-cv-tab-pitch" data-cv-panel="pitch"></div>
+            <div class="ld-cv__panel" role="tabpanel" id="ld-cv-panel-bio" aria-labelledby="ld-cv-tab-bio" data-cv-panel="bio" hidden>
               <div id="ld-cv-content"></div>
             </div>
             <div class="ld-cv__panel" role="tabpanel" id="ld-cv-panel-resume" aria-labelledby="ld-cv-tab-resume" data-cv-panel="resume" hidden></div>

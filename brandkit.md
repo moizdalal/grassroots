@@ -213,6 +213,12 @@ Pinned bottom-right on desktop (`max-width: 28rem`, pill shape), full-width acro
 
 Don't render the banner on `/region-unavailable.html` (the geo-block page); the script skips that path. If you add other "no-account" landing pages, add their paths to the skip list in `cookie-banner.js`.
 
+### `.ld-cv__deal` — offer terms block
+
+The headline of the consultant offer viewer (`listing.html`): two side-by-side `.ld-cv__deal-item` boxes, **Offer** (amount, `--type-h2`, `--fo-accent`) and **Timeline** (days, `--type-h2`, `--fo-text`). Labels are `--type-eyebrow` uppercase in `--fo-text-3`. Border-only in dark themes; `--fo-surface-2` fill in light only. The pitch message never goes here — it lives in the default **Pitch** tab with its supporting files (`.ld-cv__file` rows, same border-only rule).
+
+Bio tab order is fixed: header (name, degree line, `.pf-bv__meta-row` with city · completed projects · joined · short `LinkedIn ↗` link) → education → ratings last. Never print a full URL in the meta row.
+
 ---
 
 ## Page shell

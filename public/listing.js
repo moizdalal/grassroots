@@ -105,6 +105,10 @@ function publicAvatarUrl(client, path) {
   return data?.publicUrl ?? null;
 }
 
+const PITCH_MAX_CHARS = 1000;
+const PITCH_MAX_FILES = 3;
+const PITCH_MAX_FILE_BYTES = 10 * 1024 * 1024;
+
 function getListingId() {
   return new URLSearchParams(window.location.search).get("id");
 }
@@ -1575,6 +1579,36 @@ async function showConsultantView(client, session, listing, existingBid) {
   const phasedRow = document.getElementById("ld-offer-phased-row");
   const proposalBudgetHint = document.getElementById("ld-bid-proposal-budget-hint");
   const msgInput = document.getElementById("ld-bid-message");
+  const timelineInput = document.getElementById("ld-bid-timeline");
+  const filesInput = document.getElementById("ld-bid-files");
+  const filesList = document.getElementById("ld-offer-files-list");
+  let pitchFiles = [];
+  const renderPitchFiles = () => {
+    if (!filesList) return;
+    filesList.innerHTML = pitchFiles.map((f, i) => `
+      <li class="ld-offer-files__item">
+        <span class="ld-offer-files__name">${escapeHtml(f.name)}</span>
+        <span class="ld-offer-files__size">${escapeHtml(formatFileSize(f.size))}</span>
+        <button type="button" class="ld-offer-msg-remove" data-file-remove="${i}" aria-label="Remove ${escapeAttr(f.name)}">&times;</button>
+      </li>
+    `).join("");
+  };
+  filesInput?.addEventListener("change", () => {
+    const incoming = Array.from(filesInput.files || []);
+    for (const f of incoming) {
+      if (pitchFiles.length >= PITCH_MAX_FILES) { showError(`You can attach up to ${PITCH_MAX_FILES} files.`); break; }
+      if (f.size > PITCH_MAX_FILE_BYTES) { showError(`${f.name} is over 10 MB.`); continue; }
+      pitchFiles.push(f);
+    }
+    filesInput.value = "";
+    renderPitchFiles();
+  });
+  filesList?.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-file-remove]");
+    if (!btn) return;
+    pitchFiles.splice(Number(btn.getAttribute("data-file-remove")), 1);
+    renderPitchFiles();
+  });
   const msgToggleBtn = document.getElementById("ld-offer-msg-toggle");
   const msgWrap = document.getElementById("ld-offer-msg-wrap");
   const msgRemoveBtn = document.getElementById("ld-offer-msg-remove");
@@ -1742,11 +1776,11 @@ async function showConsultantView(client, session, listing, existingBid) {
     msgWrap.classList.add("hidden");
     msgToggleBtn.classList.remove("hidden");
     msgInput.value = "";
-    charCount.textContent = "250";
+    charCount.textContent = String(PITCH_MAX_CHARS);
   });
 
   msgInput.addEventListener("input", () => {
-    const remaining = 250 - msgInput.value.length;
+    const remaining = PITCH_MAX_CHARS - msgInput.value.length;
     charCount.textContent = remaining;
     charCount.classList.toggle("ld-offer-char-count--low", remaining < 40);
   });
@@ -1829,10 +1863,18 @@ async function showConsultantView(client, session, listing, existingBid) {
       return;
     }
 
+    const timelineDays = parseInt(timelineInput?.value, 10);
+    if (!Number.isFinite(timelineDays) || timelineDays < 1 || timelineDays > 365) {
+      showError("Enter how many days you need to deliver.");
+      timelineInput?.focus();
+      return;
+    }
+
     const payload = {
       listing_id: listingId,
       consultant_id: myId,
       message: msgInput.value.trim() || null,
+      timeline_days: timelineDays,
     };
 
     if (isPhased) {
@@ -1876,6 +1918,24 @@ async function showConsultantView(client, session, listing, existingBid) {
 
     submitBtn.disabled = true;
     submitBtn.classList.add("is-loading");
+    // Upload pitch files first so the bid row only ever references files
+    // that exist. First path segment is the uploader's id (storage policy).
+    if (pitchFiles.length) {
+      const uploaded = [];
+      for (const f of pitchFiles) {
+        const path = `${myId}/${listingId}/${Date.now()}-${f.name.replace(/[^\w.\-]+/g, "_")}`;
+        const { error: upErr } = await client.storage.from("bid-files").upload(path, f, { upsert: false });
+        if (upErr) {
+          showError(`Could not upload ${f.name}: ${upErr.message}`);
+          submitBtn.disabled = false;
+          submitBtn.classList.remove("is-loading");
+          return;
+        }
+        uploaded.push({ path, name: f.name, size: f.size });
+      }
+      payload.pitch_files = uploaded;
+    }
+
     // Insert-only: offers can't be edited once submitted (enforced in the DB).
     const { error } = await client.from("bids").insert(payload);
     if (error) {
@@ -2093,7 +2153,7 @@ const consultantViewerState = {
   resumeCache: new Map(),
   engagementsCache: new Map(),
   wired: false,
-  activeTab: "bio",
+  activeTab: "pitch",
   // Element that had focus before the viewer opened — used to restore
   // focus when the viewer closes (a11y best practice for modals).
   returnFocusEl: null,
@@ -2212,14 +2272,13 @@ function openConsultantViewer(index) {
   if (nextBtn) nextBtn.hidden = total <= 1;
 
   const titleEl = document.getElementById("ld-cv-title");
-  const offerEl = document.getElementById("ld-cv-offer");
   const consultantName = bid.profiles?.full_name || "consultant";
   if (titleEl) titleEl.textContent = consultantName;
-  if (offerEl) {
-    const amount = formatUsd(bid.amount_cents);
-    const msg = bid.message ? ` — “${bid.message}”` : "";
-    offerEl.textContent = `offer: ${amount}${msg}`;
-  }
+  const amountEl = document.getElementById("ld-cv-amount");
+  const timelineEl = document.getElementById("ld-cv-timeline");
+  if (amountEl) amountEl.textContent = formatUsd(bid.amount_cents);
+  if (timelineEl) timelineEl.textContent = formatTimelineDays(bid.timeline_days);
+  renderPitchPanel(bid);
 
   const statusEl = document.getElementById("ld-cv-status");
   const contentEl = document.getElementById("ld-cv-content");
@@ -2234,7 +2293,7 @@ function openConsultantViewer(index) {
   if (resumePanel) resumePanel.innerHTML = "";
   if (workPanel) workPanel.innerHTML = "";
 
-  selectConsultantViewerTab("bio");
+  selectConsultantViewerTab("pitch");
 
   loadConsultantProfile(bid.consultant_id)
     .then((data) => {
@@ -2289,6 +2348,40 @@ async function loadConsultantProfile(consultantId) {
   return data;
 }
 
+function formatTimelineDays(days) {
+  const n = Number(days);
+  if (!Number.isFinite(n) || n <= 0) return "Not set";
+  return `${n} day${n === 1 ? "" : "s"}`;
+}
+
+// Pitch = the consultant's message + any files they attached to the offer.
+// Amount and timeline live in the header block, so this panel is prose only.
+function renderPitchPanel(bid) {
+  const panel = document.getElementById("ld-cv-panel-pitch");
+  if (!panel) return;
+  const files = Array.isArray(bid.pitch_files) ? bid.pitch_files : [];
+  const messageHtml = bid.message
+    ? `<div class="ld-cv__pitch-body">${escapeHtml(bid.message).replace(/\n/g, "<br />")}</div>`
+    : `<p class="ld-cv__panel-empty">This consultant didn't include a pitch with their offer.</p>`;
+  const filesHtml = files.length
+    ? `
+      <div class="ld-cv__work-section">
+        <p class="ld-cv__work-section-title">Supporting files</p>
+        <div class="ld-cv__work-list">
+          ${files.map((f) => `
+            <a class="ld-cv__file" href="${escapeAttr(f.url || "#")}" target="_blank" rel="noopener noreferrer">
+              <span class="ld-cv__file-name">${escapeHtml(f.name || "file")}</span>
+              ${f.size ? `<span class="ld-cv__file-size">${escapeHtml(formatFileSize(f.size))}</span>` : ""}
+              <span class="ld-cv__file-open" aria-hidden="true">Open ↗</span>
+            </a>
+          `).join("")}
+        </div>
+      </div>
+    `
+    : "";
+  panel.innerHTML = `${messageHtml}${filesHtml}`;
+}
+
 function renderConsultantViewerContent({ profile, education, rating }) {
   const contentEl = document.getElementById("ld-cv-content");
   if (!contentEl) return;
@@ -2300,9 +2393,9 @@ function renderConsultantViewerContent({ profile, education, rating }) {
 
   const dims = [
     ["Work product", rating?.work_product_quality_avg],
-    ["communication", rating?.communication_avg],
-    ["timeliness", rating?.timeliness_avg],
-    ["professionalism", rating?.professionalism_avg],
+    ["Communication", rating?.communication_avg],
+    ["Timeliness", rating?.timeliness_avg],
+    ["Professionalism", rating?.professionalism_avg],
     ["Cost value", rating?.cost_value_avg],
   ];
   const ratingBreakdown = rating?.review_count
@@ -2321,10 +2414,26 @@ function renderConsultantViewerContent({ profile, education, rating }) {
     `
     : "";
 
-  // Header sub-line uses the first education entry (degree + major + school).
+  // Header: name, primary degree line, then a compact meta row (location,
+  // tenure, LinkedIn as a short link). Education detail sits directly under
+  // the header; ratings close out the panel.
   const headerLine = formatConsultantEducationLine(edu);
-  // Full education section lists every entry in the array (or falls back).
   const eduEntriesHtml = renderEducationEntriesList(edu);
+  const metaBits = [];
+  if (profile.city) metaBits.push(`<span>${escapeHtml(profile.city)}</span>`);
+  if (profile.completed_count) {
+    metaBits.push(`<span>${profile.completed_count} completed project${profile.completed_count === 1 ? "" : "s"}</span>`);
+  }
+  if (profile.member_since) {
+    const since = new Date(profile.member_since).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+    metaBits.push(`<span>Joined ${escapeHtml(since)}</span>`);
+  }
+  if (profile.linkedin_url) {
+    metaBits.push(`<a class="pf-bv__link" href="${escapeAttr(profile.linkedin_url)}" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>`);
+  }
+  const metaRow = metaBits.length
+    ? `<p class="pf-bv__meta-row">${metaBits.join('<span class="pf-bv__dot" aria-hidden="true">·</span>')}</p>`
+    : "";
 
   contentEl.innerHTML = `
     <div class="pf-bv">
@@ -2333,21 +2442,16 @@ function renderConsultantViewerContent({ profile, education, rating }) {
         <div>
           <h2 class="pf-bv__name">${escapeHtml(profile.full_name)}</h2>
           ${headerLine ? `<p class="pf-bv__meta">${escapeHtml(headerLine)}</p>` : ""}
+          ${metaRow}
         </div>
       </div>
-      ${ratingBreakdown}
       ${eduEntriesHtml ? `
         <div class="pf-bv__section">
           <p class="pf-bv__section-title">Education</p>
           ${eduEntriesHtml}
         </div>
       ` : ""}
-      ${profile.linkedin_url ? `
-        <div class="pf-bv__section">
-          <p class="pf-bv__section-title">LinkedIn</p>
-          <p class="pf-bv__detail"><a href="${escapeAttr(profile.linkedin_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(profile.linkedin_url)}</a></p>
-        </div>
-      ` : ""}
+      ${ratingBreakdown}
       ${(!profile.linkedin_url && !eduEntriesHtml && !ratingBreakdown) ? `
         <p class="pf-bv__empty">This consultant hasn't shared any public bio details yet.</p>
       ` : ""}
@@ -2633,7 +2737,7 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
            <div class="ld-bid-card__amount-row"><strong class="ld-bid-card__amount-value">${formatUsd(b.service_fee_cents || 0)}</strong><span class="ld-bid-card__amount-tag">Full job</span></div>
          </div>`
       : `<div class="ld-bid-card__amounts">
-           <div class="ld-bid-card__amount-row"><strong class="ld-bid-card__amount-value">${formatUsd(b.amount_cents)}</strong><span class="ld-bid-card__amount-tag">Offer</span></div>
+           <div class="ld-bid-card__amount-row"><strong class="ld-bid-card__amount-value">${formatUsd(b.amount_cents)}</strong><span class="ld-bid-card__amount-tag">Offer${b.timeline_days ? ` · ${escapeHtml(formatTimelineDays(b.timeline_days))}` : ""}</span></div>
          </div>`;
 
     // "view profile →" link in the bottom-right of the foot. Uses the
