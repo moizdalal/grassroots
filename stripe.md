@@ -842,16 +842,22 @@ if an owner refunds one consultant's proposal fee out of a batch of three, we'd 
 
 retainer subscriptions are now open-ended. the `period_count` column on `retainer_subscriptions` is kept on the row as a legacy soft hint but is no longer used to auto-cancel. termination happens via either party's "end after current period" click (sets stripe `cancel_at_period_end: true`) or an owner-set `terminates_at` (mirrors to stripe's `cancel_at`). see §11 for the current retainer model.
 
-### 11. stranded held funds
+### 11. held funds: delivery-anchored release
 
-bids and retainer periods sit in `payment_status = 'held'` (or `bid_phase_payments.status = 'held'`) until the owner submits a review or releases the period. if the owner forgets, the money sits indefinitely — there is no automatic sweep yet. the consultant has done the work and is waiting.
+held payments release on a delivery-anchored review window, run daily by `GET /api/cron/auto-release` (vercel cron, `Bearer $CRON_SECRET`). migration: `supabase/migrations/add_delivery_release.sql`.
 
-**detection today:** call the sql function `public.stranded_funds_report(min_days int default 7)` for a list of every held charge older than `min_days`. one row per stranded bid or period with `kind`, `bid_id`, `owner_id`, `consultant_id`, `amount_cents`, `paid_at`, `days_held`, `context`. example: `select * from stranded_funds_report(14);`
+- **one-time jobs + phased service fees:** the consultant marks the work delivered (`POST /api/engagement/mark-delivered`, optional note + link). the owner has 14 days to release (mark complete + review), request changes (`POST /api/engagement/request-changes`, clears the delivered mark; the window restarts on the next mark), or contact support. day 7: in-app heads-up to the owner. day 14: auto-release, both sides notified. nothing delivered → never auto-releases.
+- **retainers:** each period's window opens at the end of the period (`bid_phase_payments.period_end_at` from the invoice line, fallback `paid_at` + cadence). the consultant may mark a period delivered early to open it sooner. once the owner requests changes on a period, only a new delivered mark reopens it. a retainer listing's first period (paid on the bid) uses the listing cadence. the owner's `auto_release` toggle still releases each period at `invoice.paid`.
+- **phased proposal fees:** released only by the owner's move-forward decision; backstop only.
+- **90-day backstop:** anything still held 90 days after its charge is flagged once (`backstop_flagged_at`, admin notification `held_payment_backstop`, ops alert) and never auto-released.
+- **support hold:** admin only, `POST /api/admin/payments/hold` / `clear-hold` (`bid_id`, optional `payment_id`, `reason`). pauses auto-release; both parties notified. open 14+ days → `support_hold_stale` ops alert every run + one admin notification. owner-initiated release still works during a hold.
+- **disputes:** open or lost card disputes block every release path (unchanged).
+- **partial refunds:** `charge.refunded` with a partial amount stamps the charge-level `refunded_cents` on every held row of that payment intent and notifies admins. every release path claims with `refunded_cents = 0`, so a partially refunded payment can't release for the full amount (owner or job). support settles it by hand.
+- every auto-release claim is compare-and-set on the delivery / hold state the job read, so a hold or change request landing mid-run wins.
 
-**recommended follow-ups, in order of cost:**
-1. supabase cron job (pg_cron / scheduled edge function) that runs the report nightly and writes any rows into a `payment_nudges` table. one email per stranded engagement, max one per week per bid.
-2. surface a banner on `/engagement.html` when the bid's `paid_at` is older than 14 days and there's no `consultant_reviews` row yet — gentle in-product nudge before email.
-3. (more controversial) auto-release after 90 days with a 7-day "we're about to release these funds" warning email. matches the spirit of escrow (consultant did the work) and prevents indefinite stranding.
+**detection:** `select * from stranded_funds_report(14);` (service role / sql editor only) or `GET /api/admin/payments/held?min_days=14` (admin). one row per held bid or phase row with delivery, hold, backstop and refund state; backstop-flagged rows first.
+
+**harness:** `node scripts/test-payment-release.js` (in-memory supabase + fake stripe, real app.js over http). grants: `node scripts/test-delivery-release-grants.mjs` (needs `npm i --no-save @electric-sql/pglite@0.2.17`).
 
 ### 12. stripe `invoice.charge` is null on newer api versions
 

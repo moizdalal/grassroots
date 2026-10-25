@@ -33,10 +33,10 @@ function renderNav() {
   const nav = document.createElement("nav");
   nav.className = "ld-nav gr-guest-nav";
   nav.id = "ld-nav";
-  nav.setAttribute("aria-label", "guest navigation");
+  nav.setAttribute("aria-label", "Guest navigation");
   nav.innerHTML = `
     <div class="ld-nav__inner">
-      <a class="ld-nav__brand" href="/" title="grassroots — home">
+      <a class="ld-nav__brand" href="/" title="Grassroots — home">
         <span class="ld-nav__brand-mark" aria-hidden="true">
           <svg class="ld-sprout" viewBox="0 0 163 275" fill="currentColor" aria-hidden="true">
             <path transform="translate(72, 130)" d="M19 10.15C19 4.54431 14.7467 0 9.5 0C4.25329 0 0 4.54431 0 10.15C7.91804 91.2467 8.44249 120.691 0 134.85C0 140.456 4.25329 145 9.5 145C14.7467 145 19 140.456 19 134.85C16.2169 71.2734 12.3479 23.288 19 10.15Z"/>
@@ -47,11 +47,11 @@ function renderNav() {
         <span class="ld-nav__brand-text"><span>grassroots</span></span>
       </a>
       <ul class="ld-nav__links">
-        <li class="gr-guest-nav__chip" aria-hidden="true">browsing as guest</li>
-        <li><a class="ld-nav__link" href="/signin.html">sign in</a></li>
-        <li class="ld-nav__hide-sm"><a class="ld-nav__link" href="/home/for-students.html">for students</a></li>
+        <li class="gr-guest-nav__chip" aria-hidden="true">Browsing as guest</li>
+        <li><a class="ld-nav__link" href="/signin.html">Sign in</a></li>
+        <li class="ld-nav__hide-sm"><a class="ld-nav__link" href="/home/for-students.html">For students</a></li>
         <li>
-          <button class="ld-nav__theme" id="ld-nav-theme" type="button" aria-label="toggle dark mode" title="toggle dark mode">
+          <button class="ld-nav__theme" id="ld-nav-theme" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
             <svg class="ld-nav__theme-sun" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <circle cx="12" cy="12" r="4.4" stroke="currentColor" stroke-width="1.8"/>
               <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.5 5.5l1.4 1.4M17.1 17.1l1.4 1.4M5.5 18.5l1.4-1.4M17.1 6.9l1.4-1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
@@ -63,7 +63,7 @@ function renderNav() {
         </li>
         <li>
           <a class="ld-nav__cta" href="/register.html?role=owner">
-            <span>post a project</span>
+            <span>Post a project</span>
             <span class="ld-nav__cta-arrow" aria-hidden="true">
               <svg viewBox="0 0 16 16" fill="none">
                 <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>

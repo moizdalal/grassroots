@@ -1,34 +1,34 @@
-# grassroots help center
+# Grassroots help center
 
-short articles explaining how grassroots works — the payment flow, what a kickoff is, how reviews affect progression, and the rest.
+Short articles explaining how Grassroots works — the payment flow, what a kickoff is, how reviews affect progression, and the rest.
 
-## getting started
+## Getting started
 
-- [accounts & roles](./accounts-and-roles.md) — consultant vs business owner
-- [your profile](./profile-and-portfolio.md) — photo, headline, resume, work samples
+- [Accounts & roles](./accounts-and-roles.md) — consultant vs business owner
+- [Your profile](./profile-and-portfolio.md) — photo, headline, resume, work samples
 
-## for businesses
+## For businesses
 
-- [listings](./listings.md) — posting work, pausing, closing
-- [paying for work](./payments-and-payouts.md#what-business-owners-pay) — how you fund an engagement
-- [reviewing a consultant](./reviews-and-ratings.md) — the five dimensions you rate
+- [Listings](./listings.md) — posting work, pausing, closing
+- [Paying for work](./payments-and-payouts.md#what-business-owners-pay) — how you fund an engagement
+- [Reviewing a consultant](./reviews-and-ratings.md) — the five dimensions you rate
 
-## for consultants
+## For consultants
 
-- [stripe onboarding](./stripe-onboarding.md) — setting up payouts
-- [bids](./bids.md) — submitting offers, getting accepted, counter-offers
-- [getting paid](./payments-and-payouts.md#what-consultants-receive) — when money lands
-- [stage progression](./stage-progression.md) — seedling, sprout, small tree, giant sequoia
+- [Stripe onboarding](./stripe-onboarding.md) — setting up payouts
+- [Bids](./bids.md) — submitting offers, getting accepted, counter-offers
+- [Getting paid](./payments-and-payouts.md#what-consultants-receive) — when money lands
+- [Stage progression](./stage-progression.md) — seedling, sprout, small tree, giant sequoia
 
-## shared flows
+## Shared flows
 
-- [engagements](./engagements.md) — what happens after a bid is accepted
-- [kickoff meetings](./engagements.md#the-kickoff-meeting) — picking a time, calendar invites
-- [messaging](./messaging.md) — inbox, threading, read receipts
+- [Engagements](./engagements.md) — what happens after a bid is accepted
+- [Kickoff meetings](./engagements.md#the-kickoff-meeting) — picking a time, calendar invites
+- [Messaging](./messaging.md) — inbox, threading, read receipts
 
-## reference
+## Reference
 
-- [payment states explained](./payments-and-payouts.md#bid-payment-states) — `unpaid` → `held` → `released`
-- [policy: what we don't allow](./policies.md) — content rules, scope abuse, refund posture
+- [Payment states explained](./payments-and-payouts.md#bid-payment-states) — `unpaid` → `held` → `released`
+- [Policy: what we don't allow](./policies.md) — content rules, scope abuse, refunds, disputes
 
-something missing? email [help@grassroots.com](mailto:help@grassroots.com).
+Something missing? Email [moiz@grassroots-marketplace.com](mailto:moiz@grassroots-marketplace.com).

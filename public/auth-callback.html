@@ -4,21 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,follow" />
-    <title>grassroots — signing you in</title>
+    <title>Grassroots — signing you in</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="stylesheet" href="/fonts.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <script src="/theme.js"></script>
+    <script src="/cookie-banner.js" defer></script>
   </head>
   <body class="gr-body">
     <main class="gr-shell">
       <div class="gr-page-intro gr-page-intro--center">
-        <h1 class="gr-title">signing you in...</h1>
-        <p class="gr-subtitle">we're verifying your account and getting your session ready.</p>
+        <h1 class="gr-title">Signing you in...</h1>
+        <p class="gr-subtitle">We're verifying your account and getting your session ready.</p>
       </div>
       <div class="gr-status-panel gr-status-panel--center">
-        <p class="gr-status" id="status">verifying your account.</p>
+        <p class="gr-status" id="status">Verifying your account.</p>
       </div>
     </main>
 
@@ -32,7 +35,7 @@
           const { data: { session }, error } = await supabase.auth.getSession();
 
           if (error || !session?.user) {
-            statusEl.textContent = "sign-in failed — redirecting to sign in.";
+            statusEl.textContent = "Sign-in failed — redirecting to sign in.";
             statusEl.className = "gr-status error";
             setTimeout(() => (window.location.href = "/signin.html"), 2000);
             return;
@@ -52,7 +55,7 @@
             window.location.href = "/register.html?oauth=1";
           }
         } catch (err) {
-          statusEl.textContent = err.message || "something went wrong.";
+          statusEl.textContent = err.message || "Something went wrong.";
           statusEl.className = "gr-status error";
         }
       })();

@@ -27,11 +27,11 @@ export const FLOWERS = [
 ];
 export const STAGES = [1, 2, 3, 4, 5];
 export const STAGE_META = {
-  1: { name: "offer submitted",   plant: "seed" },
-  2: { name: "offer accepted",    plant: "germinating" },
-  3: { name: "kickoff scheduled", plant: "young plant" },
-  4: { name: "work delivered",    plant: "budding" },
-  5: { name: "payout received",   plant: "in bloom" },
+  1: { name: "Offer submitted",   plant: "seed" },
+  2: { name: "Offer accepted",    plant: "germinating" },
+  3: { name: "Kickoff scheduled", plant: "young plant" },
+  4: { name: "Work delivered",    plant: "budding" },
+  5: { name: "Payout received",   plant: "in bloom" },
 };
 
 const VIEW_W = 100;

@@ -30,11 +30,11 @@ function categorize(type) {
 }
 
 const FILTER_LABELS = {
-  all: "all",
-  bids: "bids",
-  messages: "messages",
-  meetings: "meetings",
-  updates: "updates",
+  all: "All",
+  bids: "Bids",
+  messages: "Messages",
+  meetings: "Meetings",
+  updates: "Updates",
 };
 
 function startOfDay(d) {
@@ -52,13 +52,13 @@ function bucketFor(notif) {
   weekStart.setDate(today.getDate() - 6);
 
   const c = startOfDay(created);
-  if (c.getTime() === today.getTime()) return "today";
-  if (c.getTime() === yesterday.getTime()) return "yesterday";
-  if (c >= weekStart) return "earlier this week";
-  return "earlier";
+  if (c.getTime() === today.getTime()) return "Today";
+  if (c.getTime() === yesterday.getTime()) return "Yesterday";
+  if (c >= weekStart) return "Earlier this week";
+  return "Earlier";
 }
 
-const BUCKET_ORDER = ["today", "yesterday", "earlier this week", "earlier"];
+const BUCKET_ORDER = ["Today", "Yesterday", "Earlier this week", "Earlier"];
 
 function fmtTime(iso) {
   const d = new Date(iso);
@@ -139,7 +139,7 @@ function renderFeed() {
     : _notifs.filter((n) => categorize(n.type) === _activeFilter);
 
   if (!filtered.length) {
-    list.innerHTML = `<p class="gr-empty-state">nothing in ${escapeHtml(_activeFilter)} right now.</p>`;
+    list.innerHTML = `<p class="gr-empty-state">Nothing in ${escapeHtml(_activeFilter)} right now.</p>`;
     return;
   }
 
@@ -237,13 +237,13 @@ function renderGroupHtml(group, startOpen) {
 
 function renderCardHtml(n) {
   const unread = !n.read ? "gr-notification-card--unread" : "";
-  const badge = !n.read ? '<span class="gr-notification-card__badge">new</span>' : "";
+  const badge = !n.read ? '<span class="gr-notification-card__badge">New</span>' : "";
   const link = n.link
-    ? `<a href="${escapeHtml(n.link)}" class="gr-notification-card__action">open item &rarr;</a>`
+    ? `<a href="${escapeHtml(n.link)}" class="gr-notification-card__action">Open item &rarr;</a>`
     : "";
   return `
     <article class="gr-notification-card ${unread}" data-id="${escapeHtml(n.id)}">
-      <button type="button" class="gr-notif-dismiss" data-dismiss-id="${escapeHtml(n.id)}" aria-label="dismiss notification" title="dismiss">
+      <button type="button" class="gr-notif-dismiss" data-dismiss-id="${escapeHtml(n.id)}" aria-label="Dismiss notification" title="Dismiss">
         <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
       </button>
       <div class="gr-notification-card__top">
@@ -267,7 +267,7 @@ async function dismissNotification(id) {
   // reappear; in practice with the delete policy applied that's rare.
   _notifs = _notifs.filter((n) => n.id !== id);
   if (!_notifs.length) {
-    list.innerHTML = '<p class="gr-empty-card">no notifications yet. once bids, messages, or meeting updates come in, they will appear here.</p>';
+    list.innerHTML = '<p class="gr-empty-card">No notifications yet. Once bids, messages, or meeting updates come in, they will appear here.</p>';
     controls.hidden = true;
   } else {
     renderFilters();
@@ -332,7 +332,7 @@ async function init() {
     _notifs = notifs || [];
 
     if (!_notifs.length) {
-      list.innerHTML = '<p class="gr-empty-card">no notifications yet. once bids, messages, or meeting updates come in, they will appear here.</p>';
+      list.innerHTML = '<p class="gr-empty-card">No notifications yet. Once bids, messages, or meeting updates come in, they will appear here.</p>';
       return;
     }
 
@@ -346,7 +346,7 @@ async function init() {
       markRead(ids);
     });
   } catch (err) {
-    gate.textContent = err.message || "could not load notifications.";
+    gate.textContent = err.message || "Could not load notifications.";
     gate.className = "gr-status error";
   }
 }

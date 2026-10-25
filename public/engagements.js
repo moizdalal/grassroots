@@ -115,21 +115,21 @@ function engagementState(eng) {
   if (scheduleStatus === "completed") {
     return {
       bucket: "past",
-      label: "completed",
+      label: "Completed",
       pill: "completed",
       action: null,
       summary: schedule?.selected_start
-        ? `kicked off ${fmtDate(schedule.selected_start)}`
-        : `accepted ${fmtDate(bid.accepted_at)}`,
+        ? `Kicked off ${fmtDate(schedule.selected_start)}`
+        : `Accepted ${fmtDate(bid.accepted_at)}`,
     };
   }
   if (listingClosed) {
     return {
       bucket: "past",
-      label: "closed",
+      label: "Closed",
       pill: "muted",
       action: null,
-      summary: `accepted ${fmtDate(bid.accepted_at)}`,
+      summary: `Accepted ${fmtDate(bid.accepted_at)}`,
     };
   }
 
@@ -137,45 +137,45 @@ function engagementState(eng) {
   if (scheduleStatus === "scheduled") {
     return {
       bucket: "current",
-      label: "kickoff scheduled",
+      label: "Kickoff scheduled",
       pill: "accepted",
       action: null,
       summary: schedule.selected_start
-        ? `kickoff ${fmtDateTime(schedule.selected_start)}`
-        : `accepted ${fmtDate(bid.accepted_at)}`,
+        ? `Kickoff ${fmtDateTime(schedule.selected_start)}`
+        : `Accepted ${fmtDate(bid.accepted_at)}`,
     };
   }
   if (scheduleStatus === "awaiting_consultant") {
     return {
       bucket: "current",
-      label: "your move",
+      label: "Your move",
       pill: "warn",
       action: {
         kind: "pick_time",
-        title: "pick a kickoff time",
-        copy: "the business shared their availability. choose a time that works for you.",
-        cta: "pick a time",
+        title: "Pick a kickoff time",
+        copy: "The business shared their availability. Choose a time that works for you.",
+        cta: "Pick a time",
         href: `/engagement.html?bid=${bid.id}`,
       },
-      summary: `accepted ${fmtDate(bid.accepted_at)}`,
+      summary: `Accepted ${fmtDate(bid.accepted_at)}`,
     };
   }
   if (scheduleStatus === "awaiting_owner") {
     return {
       bucket: "current",
-      label: "waiting on business",
+      label: "Waiting on business",
       pill: "pending",
       action: null,
-      summary: `accepted ${fmtDate(bid.accepted_at)}`,
+      summary: `Accepted ${fmtDate(bid.accepted_at)}`,
     };
   }
   // No engagement_schedule yet — owner hasn't shared availability.
   return {
     bucket: "current",
-    label: "awaiting kickoff",
+    label: "Awaiting kickoff",
     pill: "pending",
     action: null,
-    summary: `accepted ${fmtDate(bid.accepted_at)}`,
+    summary: `Accepted ${fmtDate(bid.accepted_at)}`,
   };
 }
 
@@ -223,8 +223,8 @@ function renderList(client, rows, view) {
     empty.hidden = false;
     empty.textContent =
       view === "past"
-        ? "no past engagements yet. once work wraps up, completed engagements will live here."
-        : "no active engagements right now. accepted offers will show up here.";
+        ? "No past engagements yet. Once work wraps up, completed engagements will live here."
+        : "No active engagements right now. Accepted offers will show up here.";
     return;
   }
   empty.hidden = true;
@@ -372,7 +372,7 @@ async function init() {
 
     if (profile?.role !== "consultant") {
       // Owners don't have an "engagements" surface in this iteration.
-      gate.textContent = "engagements is a consultant-only view for now.";
+      gate.textContent = "Engagements is a consultant-only view for now.";
       gate.className = "gr-status";
       return;
     }
@@ -411,7 +411,7 @@ async function init() {
     window.addEventListener("popstate", () => applyView(readViewFromUrl()));
   } catch (err) {
     console.error("engagements load failed", err);
-    gate.textContent = err?.message || "could not load engagements.";
+    gate.textContent = err?.message || "Could not load engagements.";
     gate.className = "gr-status error";
   }
 }

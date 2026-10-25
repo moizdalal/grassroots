@@ -43,7 +43,7 @@ function buildProfileMenu(profileItem, currentPath, onSignOut, opts) {
       type="button"
       class="gr-nav__menu-trigger gr-nav__menu-trigger--avatar"
       aria-haspopup="menu"
-      aria-label="account menu"
+      aria-label="Account menu"
       aria-expanded="false"
       ${onSettingsLikePath ? 'aria-current="page"' : ""}
     >
@@ -51,8 +51,8 @@ function buildProfileMenu(profileItem, currentPath, onSignOut, opts) {
       <span class="gr-nav__menu-caret" aria-hidden="true">▾</span>
     </button>
     <div class="gr-nav__menu-panel" role="menu" hidden>
-      <a class="gr-nav__menu-item" href="/settings.html" role="menuitem" ${currentPath === "/settings.html" ? 'aria-current="page"' : ""}>settings</a>
-      <button type="button" class="gr-nav__menu-item" role="menuitem" data-nav-signout>sign out</button>
+      <a class="gr-nav__menu-item" href="/settings.html" role="menuitem" ${currentPath === "/settings.html" ? 'aria-current="page"' : ""}>Settings</a>
+      <button type="button" class="gr-nav__menu-item" role="menuitem" data-nav-signout>Sign out</button>
     </div>
   `;
 

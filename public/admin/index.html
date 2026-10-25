@@ -4,9 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,follow" />
-    <title>grassroots — admin</title>
+    <title>Grassroots — admin</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="stylesheet" href="/fonts.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <link rel="stylesheet" href="./admin.css" />
@@ -33,9 +35,10 @@
       })();
     </script>
     <script src="/theme.js"></script>
+    <script src="/cookie-banner.js" defer></script>
   </head>
   <body class="adm-body">
-    <p id="adm-gate" class="adm-gate">verifying admin access…</p>
+    <p id="adm-gate" class="adm-gate">Verifying admin access…</p>
     <div class="adm-layout" id="adm-shell" hidden>
       <!-- ===== sidebar ===== -->
       <aside class="adm-side">
@@ -43,11 +46,11 @@
           <img src="/home/assets/grassroots-icon-syne.svg" alt="" width="22" height="22" />
           <div>
             <div class="adm-brand__name">grassroots</div>
-            <div class="adm-brand__tag">admin</div>
+            <div class="adm-brand__tag">Admin</div>
           </div>
         </a>
 
-        <nav class="adm-nav" aria-label="admin sections">
+        <nav class="adm-nav" aria-label="Admin sections">
           <button type="button" class="adm-nav__item" data-tab="overview">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="7" height="9" rx="1"/>
@@ -55,7 +58,7 @@
               <rect x="14" y="12" width="7" height="9" rx="1"/>
               <rect x="3" y="16" width="7" height="5" rx="1"/>
             </svg>
-            <span>overview</span>
+            <span>Overview</span>
           </button>
           <button type="button" class="adm-nav__item" data-tab="users">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -64,13 +67,13 @@
               <circle cx="17" cy="6" r="3"/>
               <path d="M22 17v-1a4 4 0 0 0-4-4h-1"/>
             </svg>
-            <span>users</span>
+            <span>Users</span>
           </button>
           <button type="button" class="adm-nav__item" data-tab="engagements">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 6h18M3 12h18M3 18h18"/>
             </svg>
-            <span>engagements</span>
+            <span>Engagements</span>
           </button>
           <button type="button" class="adm-nav__item" data-tab="calendar">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -79,20 +82,20 @@
               <line x1="8" y1="3" x2="8" y2="7"/>
               <line x1="16" y1="3" x2="16" y2="7"/>
             </svg>
-            <span>calendar</span>
+            <span>Calendar</span>
           </button>
           <button type="button" class="adm-nav__item" data-tab="health">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 12h4l2-7 4 14 2-7h6"/>
             </svg>
-            <span>health</span>
+            <span>Health</span>
           </button>
         </nav>
 
         <div class="adm-side__foot">
-          <div class="adm-demo-banner">demo data</div>
+          <div class="adm-demo-banner">Demo data</div>
           <p style="margin: 0.6rem 0 0; line-height: 1.4;">
-            this view runs entirely on seeded fixtures. once we wire to live data, each tab keeps the same shape — only the source swaps.
+            This view runs entirely on seeded fixtures. Once we wire to live data, each tab keeps the same shape — only the source swaps.
           </p>
         </div>
       </aside>
@@ -104,14 +107,14 @@
         <section class="adm-section" data-section="overview" hidden>
           <header class="adm-page-h">
             <div>
-              <h1 class="adm-page-h__title">platform overview</h1>
-              <p class="adm-page-h__sub">snapshot of users, engagements, and money moved · <span id="adm-now-stamp"></span></p>
+              <h1 class="adm-page-h__title">Platform overview</h1>
+              <p class="adm-page-h__sub">Snapshot of users, engagements, and money moved · <span id="adm-now-stamp"></span></p>
             </div>
-            <div class="adm-range" role="tablist" aria-label="money-moved range">
-              <button type="button" class="adm-range__btn" data-range="day">today</button>
+            <div class="adm-range" role="tablist" aria-label="Money-moved range">
+              <button type="button" class="adm-range__btn" data-range="day">Today</button>
               <button type="button" class="adm-range__btn is-active" data-range="month">30d</button>
               <button type="button" class="adm-range__btn" data-range="week">7d</button>
-              <button type="button" class="adm-range__btn" data-range="ytd">ytd</button>
+              <button type="button" class="adm-range__btn" data-range="ytd">YTD</button>
             </div>
           </header>
 
@@ -121,16 +124,16 @@
           <div class="adm-grid-2">
             <section class="adm-card">
               <header class="adm-card__head">
-                <h2 class="adm-card__title">money moved</h2>
-                <p class="adm-card__sub">released payouts in the selected window</p>
+                <h2 class="adm-card__title">Money moved</h2>
+                <p class="adm-card__sub">Released payouts in the selected window</p>
               </header>
               <div id="adm-money-chart"></div>
             </section>
 
             <section class="adm-card">
               <header class="adm-card__head">
-                <h2 class="adm-card__title">funnel</h2>
-                <p class="adm-card__sub">listing → payout</p>
+                <h2 class="adm-card__title">Funnel</h2>
+                <p class="adm-card__sub">Listing → payout</p>
               </header>
               <div id="adm-funnel"></div>
             </section>
@@ -140,16 +143,16 @@
           <div class="adm-grid-2-eq">
             <section class="adm-card">
               <header class="adm-card__head">
-                <h2 class="adm-card__title">engagements by stage</h2>
-                <p class="adm-card__sub">distribution of every engagement to date</p>
+                <h2 class="adm-card__title">Engagements by stage</h2>
+                <p class="adm-card__sub">Distribution of every engagement to date</p>
               </header>
               <div id="adm-status-donut"></div>
             </section>
 
             <section class="adm-card">
               <header class="adm-card__head">
-                <h2 class="adm-card__title">offer rate by category</h2>
-                <p class="adm-card__sub">avg offers received per posted listing</p>
+                <h2 class="adm-card__title">Offer rate by category</h2>
+                <p class="adm-card__sub">Avg offers received per posted listing</p>
               </header>
               <div id="adm-category-chart"></div>
             </section>
@@ -159,16 +162,16 @@
           <div class="adm-grid-2">
             <section class="adm-card">
               <header class="adm-card__head">
-                <h2 class="adm-card__title">new users · last 10 weeks</h2>
-                <p class="adm-card__sub">consultants vs business owners</p>
+                <h2 class="adm-card__title">New users · last 10 weeks</h2>
+                <p class="adm-card__sub">Consultants vs business owners</p>
               </header>
               <div id="adm-growth-chart"></div>
             </section>
 
             <section class="adm-card">
               <header class="adm-card__head">
-                <h2 class="adm-card__title">top consultants</h2>
-                <p class="adm-card__sub">released volume</p>
+                <h2 class="adm-card__title">Top consultants</h2>
+                <p class="adm-card__sub">Released volume</p>
               </header>
               <ul class="adm-top-list" id="adm-top-list"></ul>
             </section>
@@ -178,16 +181,16 @@
           <div class="adm-grid-2-eq">
             <section class="adm-card">
               <header class="adm-card__head">
-                <h2 class="adm-card__title">upcoming kickoffs</h2>
-                <p class="adm-card__sub">click to drill into the engagement</p>
+                <h2 class="adm-card__title">Upcoming kickoffs</h2>
+                <p class="adm-card__sub">Click to drill into the engagement</p>
               </header>
               <ul class="adm-up-list" id="adm-upcoming-list"></ul>
             </section>
 
             <section class="adm-card">
               <header class="adm-card__head">
-                <h2 class="adm-card__title">recent activity</h2>
-                <p class="adm-card__sub">listings, offers, kickoffs, payouts</p>
+                <h2 class="adm-card__title">Recent activity</h2>
+                <p class="adm-card__sub">Listings, offers, kickoffs, payouts</p>
               </header>
               <ul class="adm-activity-feed" id="adm-activity-feed"></ul>
             </section>
@@ -198,20 +201,20 @@
         <section class="adm-section" data-section="users" hidden>
           <header class="adm-page-h">
             <div>
-              <h1 class="adm-page-h__title">users</h1>
-              <p class="adm-page-h__sub">search consultants and business owners · click a row for details</p>
+              <h1 class="adm-page-h__title">Users</h1>
+              <p class="adm-page-h__sub">Search consultants and business owners · click a row for details</p>
             </div>
             <span class="adm-results-count" id="adm-users-count"></span>
           </header>
 
           <div class="adm-toolbar">
             <div class="adm-search">
-              <input type="search" id="adm-users-search" placeholder="search by name, business, school, or city" />
+              <input type="search" id="adm-users-search" placeholder="Search by name, business, school, or city" />
             </div>
             <div class="adm-chips">
-              <button type="button" class="adm-chip is-active" data-role-filter="all">all</button>
-              <button type="button" class="adm-chip" data-role-filter="consultant">consultants</button>
-              <button type="button" class="adm-chip" data-role-filter="business_owner">business owners</button>
+              <button type="button" class="adm-chip is-active" data-role-filter="all">All</button>
+              <button type="button" class="adm-chip" data-role-filter="consultant">Consultants</button>
+              <button type="button" class="adm-chip" data-role-filter="business_owner">Business owners</button>
             </div>
           </div>
 
@@ -219,12 +222,12 @@
             <table class="adm-table">
               <thead>
                 <tr>
-                  <th>name</th>
-                  <th>role</th>
-                  <th>city</th>
-                  <th>joined</th>
-                  <th>engagements</th>
-                  <th>volume</th>
+                  <th>Name</th>
+                  <th>Role</th>
+                  <th>City</th>
+                  <th>Joined</th>
+                  <th>Engagements</th>
+                  <th>Volume</th>
                 </tr>
               </thead>
               <tbody id="adm-users-tbody"></tbody>
@@ -236,22 +239,22 @@
         <section class="adm-section" data-section="engagements" hidden>
           <header class="adm-page-h">
             <div>
-              <h1 class="adm-page-h__title">engagements</h1>
-              <p class="adm-page-h__sub">every accepted offer · click a row for full details</p>
+              <h1 class="adm-page-h__title">Engagements</h1>
+              <p class="adm-page-h__sub">Every accepted offer · click a row for full details</p>
             </div>
             <span class="adm-results-count" id="adm-eng-count"></span>
           </header>
 
           <div class="adm-toolbar">
             <div class="adm-search">
-              <input type="search" id="adm-eng-search" placeholder="search by listing, consultant, business, or category" />
+              <input type="search" id="adm-eng-search" placeholder="Search by listing, consultant, business, or category" />
             </div>
             <div class="adm-chips">
-              <button type="button" class="adm-chip is-active" data-stage-filter="all">all</button>
-              <button type="button" class="adm-chip" data-stage-filter="2">offer accepted</button>
-              <button type="button" class="adm-chip" data-stage-filter="3">kickoff scheduled</button>
-              <button type="button" class="adm-chip" data-stage-filter="4">work delivered</button>
-              <button type="button" class="adm-chip" data-stage-filter="5">payout released</button>
+              <button type="button" class="adm-chip is-active" data-stage-filter="all">All</button>
+              <button type="button" class="adm-chip" data-stage-filter="2">Offer accepted</button>
+              <button type="button" class="adm-chip" data-stage-filter="3">Kickoff scheduled</button>
+              <button type="button" class="adm-chip" data-stage-filter="4">Work delivered</button>
+              <button type="button" class="adm-chip" data-stage-filter="5">Payout released</button>
             </div>
           </div>
 
@@ -259,12 +262,12 @@
             <table class="adm-table">
               <thead>
                 <tr>
-                  <th>listing</th>
-                  <th>business</th>
-                  <th>consultant</th>
-                  <th>stage</th>
-                  <th>kickoff</th>
-                  <th>value</th>
+                  <th>Listing</th>
+                  <th>Business</th>
+                  <th>Consultant</th>
+                  <th>Stage</th>
+                  <th>Kickoff</th>
+                  <th>Value</th>
                 </tr>
               </thead>
               <tbody id="adm-eng-tbody"></tbody>
@@ -276,8 +279,8 @@
         <section class="adm-section" data-section="calendar" hidden>
           <header class="adm-page-h">
             <div>
-              <h1 class="adm-page-h__title">kickoff calendar</h1>
-              <p class="adm-page-h__sub">every scheduled kickoff · click a day to see what's on it</p>
+              <h1 class="adm-page-h__title">Kickoff calendar</h1>
+              <p class="adm-page-h__sub">Every scheduled kickoff · click a day to see what's on it</p>
             </div>
           </header>
 
@@ -291,53 +294,53 @@
         <section class="adm-section" data-section="health" hidden>
           <header class="adm-page-h">
             <div>
-              <h1 class="adm-page-h__title">platform health</h1>
-              <p class="adm-page-h__sub">real-user page speed + business funnel · live data</p>
+              <h1 class="adm-page-h__title">Platform health</h1>
+              <p class="adm-page-h__sub">Real-user page speed + business funnel · live data</p>
             </div>
-            <div class="adm-range" role="tablist" aria-label="health window">
-              <button type="button" class="adm-range__btn" data-health-range="1">today</button>
+            <div class="adm-range" role="tablist" aria-label="Health window">
+              <button type="button" class="adm-range__btn" data-health-range="1">Today</button>
               <button type="button" class="adm-range__btn is-active" data-health-range="7">7d</button>
               <button type="button" class="adm-range__btn" data-health-range="30">30d</button>
               <button type="button" class="adm-range__btn" data-health-range="90">90d</button>
             </div>
           </header>
 
-          <p id="adm-health-loading" class="adm-gate" hidden>loading…</p>
+          <p id="adm-health-loading" class="adm-gate" hidden>Loading…</p>
           <p id="adm-health-error" class="adm-gate adm-gate--error" hidden></p>
 
           <div id="adm-health-body" hidden>
             <!-- ── BUSINESS KPIs ── -->
-            <h2 class="adm-section-h">business kpis</h2>
+            <h2 class="adm-section-h">Business KPIs</h2>
 
             <div class="adm-kpis" id="adm-health-business-tiles"></div>
 
             <div class="adm-grid-2-eq">
               <section class="adm-card">
                 <header class="adm-card__head">
-                  <h2 class="adm-card__title">conversion funnel</h2>
-                  <p class="adm-card__sub">sign-ups all the way through to accepted offers</p>
+                  <h2 class="adm-card__title">Conversion funnel</h2>
+                  <p class="adm-card__sub">Sign-ups all the way through to accepted offers</p>
                 </header>
                 <div id="adm-health-conversion"></div>
               </section>
 
               <section class="adm-card">
                 <header class="adm-card__head">
-                  <h2 class="adm-card__title">money flow</h2>
-                  <p class="adm-card__sub">funds in escrow + released payouts</p>
+                  <h2 class="adm-card__title">Money flow</h2>
+                  <p class="adm-card__sub">Funds in escrow + released payouts</p>
                 </header>
                 <div id="adm-health-money"></div>
               </section>
             </div>
 
             <!-- ── PAGE PERFORMANCE ── -->
-            <h2 class="adm-section-h">page performance</h2>
+            <h2 class="adm-section-h">Page performance</h2>
             <p class="adm-card__sub" id="adm-health-perf-sub" style="margin-top:-0.5rem;margin-bottom:1rem;"></p>
 
             <div class="adm-kpis" id="adm-health-perf-tiles"></div>
 
             <section class="adm-card">
               <header class="adm-card__head">
-                <h2 class="adm-card__title">lcp trend by day</h2>
+                <h2 class="adm-card__title">LCP trend by day</h2>
                 <p class="adm-card__sub">75th-percentile largest-contentful-paint, lower is faster</p>
               </header>
               <div id="adm-health-trend-chart"></div>
@@ -345,20 +348,20 @@
 
             <section class="adm-card">
               <header class="adm-card__head">
-                <h2 class="adm-card__title">per-page breakdown</h2>
-                <p class="adm-card__sub">routes ranked by traffic · click columns to sort</p>
+                <h2 class="adm-card__title">Per-page breakdown</h2>
+                <p class="adm-card__sub">Routes ranked by traffic · click columns to sort</p>
               </header>
               <div class="adm-table-wrap">
                 <table class="adm-table">
                   <thead>
                     <tr>
-                      <th>page</th>
-                      <th>samples</th>
-                      <th>p50 lcp</th>
-                      <th>p75 lcp</th>
-                      <th>p95 lcp</th>
-                      <th>p75 cls</th>
-                      <th>p75 inp</th>
+                      <th>Page</th>
+                      <th>Samples</th>
+                      <th>P50 LCP</th>
+                      <th>P75 LCP</th>
+                      <th>P95 LCP</th>
+                      <th>P75 CLS</th>
+                      <th>P75 INP</th>
                     </tr>
                   </thead>
                   <tbody id="adm-health-route-tbody"></tbody>
@@ -368,19 +371,19 @@
 
             <section class="adm-card">
               <header class="adm-card__head">
-                <h2 class="adm-card__title">slowest individual loads</h2>
-                <p class="adm-card__sub">top 20 worst page loads in the window — spot-check what broke</p>
+                <h2 class="adm-card__title">Slowest individual loads</h2>
+                <p class="adm-card__sub">Top 20 worst page loads in the window — spot-check what broke</p>
               </header>
               <div class="adm-table-wrap">
                 <table class="adm-table">
                   <thead>
                     <tr>
-                      <th>when</th>
-                      <th>page</th>
-                      <th>device</th>
-                      <th>network</th>
-                      <th>lcp</th>
-                      <th>cls</th>
+                      <th>When</th>
+                      <th>Page</th>
+                      <th>Device</th>
+                      <th>Network</th>
+                      <th>LCP</th>
+                      <th>CLS</th>
                     </tr>
                   </thead>
                   <tbody id="adm-health-slowest-tbody"></tbody>
@@ -398,8 +401,8 @@
       <div class="adm-drawer__backdrop" id="adm-drawer-backdrop"></div>
       <div class="adm-drawer__panel" role="dialog" aria-modal="true" aria-labelledby="adm-drawer-title">
         <header class="adm-drawer__head">
-          <h2 class="adm-drawer__title" id="adm-drawer-title">details</h2>
-          <button type="button" class="adm-drawer__close" id="adm-drawer-close" aria-label="close">
+          <h2 class="adm-drawer__title" id="adm-drawer-title">Details</h2>
+          <button type="button" class="adm-drawer__close" id="adm-drawer-close" aria-label="Close">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
               <line x1="6" y1="6" x2="18" y2="18"/>
               <line x1="18" y1="6" x2="6" y2="18"/>

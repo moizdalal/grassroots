@@ -30,7 +30,7 @@ export function mountCalendar(host, { events, today, onSelect }) {
     const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
     const gridStart = new Date(monthStart);
     gridStart.setDate(monthStart.getDate() - monthStart.getDay());
-    const monthLabel = monthStart.toLocaleDateString(undefined, { month: "long", year: "numeric" }).toLowerCase();
+    const monthLabel = monthStart.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 
     let cells = "";
     const cursorDay = new Date(gridStart);
@@ -67,14 +67,14 @@ export function mountCalendar(host, { events, today, onSelect }) {
     host.innerHTML = `
       <div class="cal">
         <header class="cal-head">
-          <button type="button" class="cal-nav" data-act="prev" aria-label="previous month">
+          <button type="button" class="cal-nav" data-act="prev" aria-label="Previous month">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
           <h3 class="cal-title">${esc(monthLabel)}</h3>
-          <button type="button" class="cal-nav" data-act="next" aria-label="next month">
+          <button type="button" class="cal-nav" data-act="next" aria-label="Next month">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
-          <button type="button" class="cal-today" data-act="today">today</button>
+          <button type="button" class="cal-today" data-act="today">Today</button>
         </header>
         <div class="cal-dow">
           ${DOW.map((d) => `<span>${d}</span>`).join("")}

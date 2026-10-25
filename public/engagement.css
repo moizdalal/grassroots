@@ -35,9 +35,11 @@
 .eg-title,
 .eg-panel__title {
   margin: 0;
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--font-display);
   color: var(--green-deep);
   letter-spacing: -0.02em;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .eg-title {
@@ -58,7 +60,6 @@
   color: var(--green-deep);
   font-size: var(--type-meta);
   font-weight: 700;
-  text-transform: lowercase;
   white-space: nowrap;
 }
 
@@ -217,7 +218,7 @@
 .eg-retainer-controls.hidden { display: none; }
 .eg-retainer-controls__title {
   margin: 0 0 0.4rem;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -229,8 +230,12 @@
   flex-direction: column;
   gap: 0.75rem;
 }
-.eg-retainer-controls__date input[type="date"] {
-  width: fit-content;
+.eg-retainer-controls__length input[type="number"] {
+  width: 6rem;
+}
+.eg-retainer-controls__hint {
+  font-size: 0.8125rem;
+  color: var(--fo-text-2);
 }
 .eg-retainer-controls__actions {
   display: flex;
@@ -293,15 +298,59 @@
 }
 
 .eg-period__amount {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--type-h3);
   color: var(--fo-text, var(--green-deep));
+  font-weight: 600;
+  font-style: normal;
 }
 
 .eg-retainer-terms.hidden {
   display: none;
 }
+
+/* Delivery + review panel (delivery-panel.js). Items reuse .eg-period. */
+.eg-delivery__line {
+  margin: 0;
+  font-size: var(--type-meta);
+  line-height: 1.5;
+  color: var(--fo-text-2);
+}
+.eg-delivery__quote {
+  margin: 0;
+  padding-left: var(--space-2);
+  border-left: 2px solid var(--fo-line);
+  font-size: var(--type-meta);
+  line-height: 1.5;
+  color: var(--fo-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.eg-delivery__link {
+  align-self: flex-start;
+  font-size: var(--type-meta);
+  font-weight: 600;
+  color: var(--fo-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.eg-delivery__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+.eg-delivery__actions.hidden,
+.eg-delivery__form.hidden { display: none; }
+.eg-delivery__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+.eg-delivery__form textarea,
+.eg-delivery__form input { width: 100%; }
 
 .eg-retainer-terms__grid {
   display: grid;
@@ -507,9 +556,11 @@
 
 .eg-meeting-summary__time {
   margin: 0 0 0.35rem;
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--font-display);
   font-size: var(--type-h3);
   color: var(--green-deep);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .eg-panel__actions {
@@ -555,7 +606,7 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   line-height: 1;
 }
 

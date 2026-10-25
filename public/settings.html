@@ -4,14 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,follow" />
-    <title>grassroots — settings</title>
+    <title>Grassroots — settings</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="stylesheet" href="/fonts.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <link rel="stylesheet" href="/profile-seedling.css" />
     <link rel="stylesheet" href="/avatar-cropper.css" />
     <script src="/theme.js"></script>
+    <script src="/cookie-banner.js" defer></script>
     <script src="/loading-overlay.js"></script>
     <script defer src="/onboarding-shim.js"></script>
   </head>
@@ -22,26 +25,26 @@
         <div class="pf-welcome-icon" aria-hidden="true">
           <img src="/home/assets/grassroots-icon-syne.svg" width="34" height="52" alt="" />
         </div>
-        <h2 class="pf-welcome-title">welcome to grassroots.</h2>
-        <p class="pf-welcome-body">your account is ready. complete your profile to get noticed on the marketplace.</p>
-        <button type="button" class="gr-btn gr-btn--primary" id="welcome-dismiss">get started</button>
+        <h2 class="pf-welcome-title">Welcome to Grassroots.</h2>
+        <p class="pf-welcome-body">Your account is ready. Complete your profile to get noticed on the marketplace.</p>
+        <button type="button" class="gr-btn gr-btn--primary" id="welcome-dismiss">Get started</button>
       </div>
     </div>
 
     <main class="gr-shell gr-shell--wide settings-shell">
       <div class="gr-page-intro">
-        <h1 class="gr-title">settings</h1>
+        <h1 class="gr-title">Settings</h1>
       </div>
 
       <div class="settings-layout">
         <!-- ===== tabs ===== -->
         <aside class="settings-tabs" id="settings-tabs">
-          <button type="button" class="settings-tab active" data-tab="general">general</button>
-          <button type="button" class="settings-tab" data-tab="personal">personal</button>
-          <button type="button" class="settings-tab" data-tab="professional">professional</button>
-          <button type="button" class="settings-tab" data-tab="security">security</button>
-          <button type="button" class="settings-tab" data-tab="notifications">notifications</button>
-          <button type="button" class="settings-tab" data-tab="payout">payout</button>
+          <button type="button" class="settings-tab active" data-tab="general">General</button>
+          <button type="button" class="settings-tab" data-tab="personal">Personal</button>
+          <button type="button" class="settings-tab" data-tab="professional">Professional</button>
+          <button type="button" class="settings-tab" data-tab="security">Security</button>
+          <button type="button" class="settings-tab" data-tab="notifications">Notifications</button>
+          <button type="button" class="settings-tab" data-tab="payout">Payout</button>
         </aside>
 
         <!-- ===== panels ===== -->
@@ -52,8 +55,8 @@
 
             <section class="settings-section">
               <div class="settings-section-h">
-                <h3>theme</h3>
-                <p>pick the look that's easiest on your eyes. saved to this browser only.</p>
+                <h3>Theme</h3>
+                <p>Pick the look that's easiest on your eyes. Saved to this browser only.</p>
               </div>
 
               <div class="settings-section__body">
@@ -65,7 +68,7 @@
                       <span class="theme-card-accent"></span>
                     </span>
                     <span class="theme-card-body">
-                      <span class="theme-card-name">dark forest</span>
+                      <span class="theme-card-name">Dark forest</span>
                     </span>
                     <span class="theme-card-check" aria-hidden="true">✓</span>
                   </button>
@@ -77,7 +80,7 @@
                       <span class="theme-card-accent"></span>
                     </span>
                     <span class="theme-card-body">
-                      <span class="theme-card-name">lighter forest</span>
+                      <span class="theme-card-name">Lighter forest</span>
                     </span>
                     <span class="theme-card-check" aria-hidden="true">✓</span>
                   </button>
@@ -89,7 +92,7 @@
                       <span class="theme-card-accent"></span>
                     </span>
                     <span class="theme-card-body">
-                      <span class="theme-card-name">dark</span>
+                      <span class="theme-card-name">Dark</span>
                     </span>
                     <span class="theme-card-check" aria-hidden="true">✓</span>
                   </button>
@@ -101,7 +104,7 @@
                       <span class="theme-card-accent"></span>
                     </span>
                     <span class="theme-card-body">
-                      <span class="theme-card-name">light</span>
+                      <span class="theme-card-name">Light</span>
                     </span>
                     <span class="theme-card-check" aria-hidden="true">✓</span>
                   </button>
@@ -115,12 +118,12 @@
                  onboarded_at stamp so a fresh run is logged. -->
             <section class="settings-section">
               <div class="settings-section-h">
-                <h3>onboarding</h3>
-                <p>haven't found everything yet? replay the new-user tour any time.</p>
+                <h3>Onboarding</h3>
+                <p>Haven't found everything yet? Replay the new-user tour any time.</p>
               </div>
               <div class="settings-section__body">
                 <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="settings-replay-onboarding">
-                  replay onboarding tutorial
+                  Replay onboarding tutorial
                 </button>
               </div>
             </section>
@@ -134,14 +137,14 @@
 
             <section class="settings-section">
               <div class="settings-section-h">
-                <h3>messaging</h3>
-                <p>control how others see your activity in the inbox.</p>
+                <h3>Messaging</h3>
+                <p>Control how others see your activity in the inbox.</p>
               </div>
               <div class="settings-section__body">
                 <label class="settings-toggle" id="read-receipts-toggle">
                   <span class="settings-toggle-copy">
-                    <span class="settings-toggle-title">read receipts</span>
-                    <span class="settings-toggle-sub">when on, senders can see when you've read their messages.</span>
+                    <span class="settings-toggle-title">Read receipts</span>
+                    <span class="settings-toggle-sub">When on, senders can see when you've read their messages.</span>
                   </span>
                   <input type="checkbox" id="read-receipts-checkbox" />
                   <span class="settings-toggle-switch" aria-hidden="true"></span>
@@ -167,7 +170,7 @@
               <!-- Profile photo -->
               <section class="settings-section">
                 <div class="settings-section-h">
-                  <h3>profile photo</h3>
+                  <h3>Profile photo</h3>
                 </div>
                 <div class="settings-section__body settings-section__body--avatar">
                   <div class="gr-profile-avatar-ring">
@@ -183,7 +186,7 @@
                   <div class="pf-avatar-controls">
                     <!-- Empty state: file picker (no avatar yet) -->
                     <label class="gr-label pf-file-label" id="pf-avatar-upload-label">
-                      <span class="gr-label__hidden-text">upload profile photo</span>
+                      <span class="gr-label__hidden-text">Upload profile photo</span>
                       <input
                         id="avatar-input"
                         type="file"
@@ -192,8 +195,8 @@
                     </label>
                     <!-- Has-avatar state: change / remove -->
                     <div class="pf-avatar-actions hidden" id="pf-avatar-actions">
-                      <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="pf-avatar-change-btn">change photo</button>
-                      <button type="button" class="gr-btn gr-btn--danger gr-btn--sm" id="pf-avatar-remove-btn">remove</button>
+                      <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="pf-avatar-change-btn">Change photo</button>
+                      <button type="button" class="gr-btn gr-btn--danger gr-btn--sm" id="pf-avatar-remove-btn">Remove</button>
                     </div>
                     <p id="avatar-status" class="gr-status pf-avatar-status" aria-live="polite"></p>
                   </div>
@@ -203,25 +206,25 @@
               <!-- Personal details -->
               <section class="settings-section">
                 <div class="settings-section-h">
-                  <h3>personal details</h3>
+                  <h3>Personal details</h3>
                 </div>
                 <div class="settings-section__body">
                   <label class="gr-label">
-                    <span>full name</span>
+                    <span>Full name</span>
                     <input type="text" name="fullName" id="field-full-name" required />
                   </label>
                   <div class="settings-grid-2">
                     <label class="gr-label">
-                      <span>email</span>
+                      <span>Email</span>
                       <input type="text" id="field-email" readonly />
                     </label>
                     <label class="gr-label">
-                      <span>phone number</span>
-                      <input type="text" id="field-phone" readonly />
+                      <span>Phone number</span>
+                      <input type="tel" name="phoneNumber" id="field-phone" autocomplete="tel" />
                     </label>
                   </div>
                   <label class="gr-label" id="field-linkedin-wrap">
-                    <span>linkedin <span class="gr-optional">optional</span></span>
+                    <span>LinkedIn <span class="gr-optional">Optional</span></span>
                     <input
                       type="url"
                       name="linkedinUrl"
@@ -234,13 +237,13 @@
                        carry the canonical "City, ST" label + lat + lng;
                        the visible search input is just for typing. -->
                   <div class="gr-label" id="field-city-wrap" data-city-autocomplete>
-                    <span>city you're based in</span>
+                    <span>City you're based in</span>
                     <div class="reg-city-ac">
                       <input
                         type="text"
                         class="reg-city-search"
                         id="field-city-search"
-                        placeholder="start typing your city…"
+                        placeholder="Start typing your city…"
                         autocomplete="off"
                         autocapitalize="words"
                       />
@@ -266,7 +269,7 @@
                    consultant sees exactly what a business sees. -->
               <p class="pf-preview-bar hidden" id="pf-preview-bar">
                 <button type="button" class="pf-preview-trigger" id="pf-preview-trigger">
-                  preview how businesses see you
+                  Preview how businesses see you
                   <span aria-hidden="true">→</span>
                 </button>
               </p>
@@ -274,22 +277,22 @@
               <!-- Education (consultants only) -->
               <section class="settings-section hidden" id="consultant-education-section">
                 <div class="settings-section-h">
-                  <h3>education</h3>
+                  <h3>Education</h3>
                 </div>
                 <div class="settings-section__body">
                   <div class="settings-grid-2">
                     <label class="gr-label">
-                      <span>major</span>
-                      <input type="text" id="field-major" placeholder="e.g. marketing" />
+                      <span>Major</span>
+                      <input type="text" id="field-major" placeholder="E.g. marketing" />
                     </label>
                     <label class="gr-label">
-                      <span>minor <span class="gr-optional">optional</span></span>
-                      <input type="text" id="field-minor" placeholder="e.g. data analytics" />
+                      <span>Minor <span class="gr-optional">Optional</span></span>
+                      <input type="text" id="field-minor" placeholder="E.g. data analytics" />
                     </label>
                   </div>
                   <label class="gr-label">
-                    <span>school</span>
-                    <input type="text" id="field-school" placeholder="e.g. University of Michigan" />
+                    <span>School</span>
+                    <input type="text" id="field-school" placeholder="E.g. University of Michigan" />
                   </label>
                 </div>
               </section>
@@ -297,12 +300,12 @@
               <!-- Resume (consultants only) -->
               <section class="settings-section hidden" id="consultant-section">
                 <div class="settings-section-h">
-                  <h3>resume</h3>
-                  <p>upload a pdf so businesses can review your experience. toggle public any time.</p>
+                  <h3>Resume</h3>
+                  <p>Upload a PDF so businesses can review your experience. Toggle public any time.</p>
                 </div>
                 <div class="settings-section__body">
                   <label class="gr-label pf-file-label" id="pf-resume-upload-label">
-                    <span>upload your resume — pdf only</span>
+                    <span>Upload your resume — PDF only</span>
                     <input
                       id="resume-input"
                       type="file"
@@ -317,14 +320,14 @@
               <!-- Past experience / portfolio (consultants only) -->
               <section class="settings-section hidden" id="consultant-portfolio-section">
                 <div class="settings-section-h">
-                  <h3>past experience</h3>
-                  <p>add work samples — documents, images, videos, or decks. toggle public per item.</p>
+                  <h3>Past experience</h3>
+                  <p>Add work samples — documents, images, videos, or decks. Toggle public per item.</p>
                 </div>
                 <div class="settings-section__body">
                   <div id="portfolio-list" class="pf-portfolio-list"></div>
                   <div class="pf-portfolio-add">
                     <label class="gr-label pf-file-label">
-                      <span>add work sample</span>
+                      <span>Add work sample</span>
                       <input
                         id="portfolio-input"
                         type="file"
@@ -335,16 +338,16 @@
                       id="portfolio-desc"
                       class="pf-portfolio-desc"
                       maxlength="300"
-                      placeholder="brief explanation of this work (max 300 chars)"
+                      placeholder="Brief explanation of this work (max 300 chars)"
                       rows="2"
                     ></textarea>
                     <div class="pf-portfolio-add-actions">
                       <label class="pf-toggle-label">
                         <input type="checkbox" id="portfolio-public-toggle" />
                         <span class="pf-toggle-switch"></span>
-                        <span>public</span>
+                        <span>Visible to businesses you've contacted</span>
                       </label>
-                      <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="portfolio-upload-btn">upload</button>
+                      <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="portfolio-upload-btn">Upload</button>
                     </div>
                   </div>
                 </div>
@@ -353,24 +356,24 @@
               <!-- Business profile (business owners only) -->
               <section class="settings-section hidden" id="business-section">
                 <div class="settings-section-h">
-                  <h3>business profile</h3>
+                  <h3>Business profile</h3>
                 </div>
                 <div class="settings-section__body">
                   <label class="gr-label">
-                    <span>business name</span>
+                    <span>Business name</span>
                     <input type="text" name="businessName" id="field-biz-name" />
                   </label>
                   <label class="gr-label">
-                    <span>business address</span>
+                    <span>Business address <span class="gr-optional">Public — anyone can see it on your profile and listings</span></span>
                     <input
                       type="text"
                       name="businessAddress"
                       id="field-biz-address"
-                      placeholder="street, city, state, zip"
+                      placeholder="Street, city, state, zip"
                     />
                   </label>
                   <label class="gr-label">
-                    <span>website <span class="gr-optional">optional</span></span>
+                    <span>Website <span class="gr-optional">Optional</span></span>
                     <input
                       type="url"
                       name="websiteUrl"
@@ -379,12 +382,12 @@
                     />
                   </label>
                   <label class="gr-label">
-                    <span>about your business</span>
+                    <span>About your business</span>
                     <textarea
                       name="businessDetails"
                       id="field-biz-details"
                       rows="3"
-                      placeholder="context, stage, goals…"
+                      placeholder="Context, stage, goals…"
                     ></textarea>
                   </label>
                 </div>
@@ -393,7 +396,7 @@
               <!-- Social profiles (business owners only) -->
               <section class="settings-section hidden" id="business-social-section">
                 <div class="settings-section-h">
-                  <h3>social profiles</h3>
+                  <h3>Social profiles</h3>
                 </div>
                 <div class="settings-section__body">
                   <div class="gr-social-stack">
@@ -413,7 +416,7 @@
                         </span>
                         <label class="gr-social-platform__check">
                           <input type="checkbox" id="biz-social-instagram-on" />
-                          <span>instagram</span>
+                          <span>Instagram</span>
                         </label>
                       </div>
                       <div id="biz-social-instagram-field" class="gr-social-platform__field hidden">
@@ -437,7 +440,7 @@
                         </span>
                         <label class="gr-social-platform__check">
                           <input type="checkbox" id="biz-social-facebook-on" />
-                          <span>facebook</span>
+                          <span>Facebook</span>
                         </label>
                       </div>
                       <div id="biz-social-facebook-field" class="gr-social-platform__field hidden">
@@ -461,7 +464,7 @@
                         </span>
                         <label class="gr-social-platform__check">
                           <input type="checkbox" id="biz-social-linkedin-on" />
-                          <span>linkedin (company)</span>
+                          <span>LinkedIn (company)</span>
                         </label>
                       </div>
                       <div id="biz-social-linkedin-field" class="gr-social-platform__field hidden">
@@ -488,7 +491,7 @@
             <div class="settings-form__actions">
               <p id="status" class="gr-status" aria-live="polite"></p>
               <button type="submit" class="gr-btn gr-btn--primary" id="save-btn">
-                save changes
+                Save changes
               </button>
             </div>
           </form>
@@ -504,13 +507,13 @@
             <!-- Password -->
             <section class="settings-section">
               <div class="settings-section-h">
-                <h3>change password</h3>
-                <p>use a long passphrase you don't reuse elsewhere.</p>
+                <h3>Change password</h3>
+                <p>Use a long passphrase you don't reuse elsewhere.</p>
               </div>
               <div class="settings-section__body">
                 <form id="sec-password-form" class="sec-form">
                   <label class="gr-label">
-                    <span>current password</span>
+                    <span>Current password</span>
                     <input
                       type="password"
                       id="sec-current-password"
@@ -520,7 +523,7 @@
                     />
                   </label>
                   <label class="gr-label">
-                    <span>new password</span>
+                    <span>New password</span>
                     <input
                       type="password"
                       id="sec-new-password"
@@ -531,7 +534,7 @@
                     />
                   </label>
                   <label class="gr-label">
-                    <span>confirm new password</span>
+                    <span>Confirm new password</span>
                     <input
                       type="password"
                       id="sec-confirm-password"
@@ -544,7 +547,7 @@
                   <div class="sec-form__actions">
                     <p class="gr-status" id="sec-password-status" aria-live="polite"></p>
                     <button type="submit" class="gr-btn gr-btn--primary" id="sec-password-save">
-                      update password
+                      Update password
                     </button>
                   </div>
                 </form>
@@ -554,29 +557,62 @@
             <!-- Sign out of other devices -->
             <section class="settings-section">
               <div class="settings-section-h">
-                <h3>other devices</h3>
-                <p>sign out everywhere except this browser. useful if you ever shared a device.</p>
+                <h3>Other devices</h3>
+                <p>Sign out everywhere except this browser. Useful if you ever shared a device.</p>
               </div>
               <div class="settings-section__body">
                 <div class="sec-form__actions">
                   <p class="gr-status" id="sec-signout-status" aria-live="polite"></p>
                   <button type="button" class="gr-btn gr-btn--secondary" id="sec-signout-others">
-                    sign out other devices
+                    Sign out other devices
                   </button>
                 </div>
+              </div>
+            </section>
+
+            <!-- Data export request — request-only for v1. Server logs the
+                 request and emails admin; admin runs the export script and
+                 sends the user a download link manually. Doc:
+                 docs/data-export-process.md -->
+            <section class="settings-section">
+              <div class="settings-section-h">
+                <h3>Request a copy of your data</h3>
+                <p>We'll email you a portable copy of the personal information we hold about you, within 30 days.</p>
+              </div>
+              <div class="settings-section__body">
+                <form id="sec-export-form" class="sec-form">
+                  <label class="gr-label">
+                    <span>Type <em>export my data</em> to confirm</span>
+                    <input
+                      type="text"
+                      id="sec-export-confirm"
+                      name="confirmPhrase"
+                      autocomplete="off"
+                      autocapitalize="off"
+                      spellcheck="false"
+                      required
+                    />
+                  </label>
+                  <div class="sec-form__actions">
+                    <p class="gr-status" id="sec-export-status" aria-live="polite"></p>
+                    <button type="submit" class="gr-btn gr-btn--secondary" id="sec-export-btn">
+                      Request data export
+                    </button>
+                  </div>
+                </form>
               </div>
             </section>
 
             <!-- Danger zone: delete account (request-only for now) -->
             <section class="settings-section settings-section--danger">
               <div class="settings-section-h">
-                <h3>delete account</h3>
-                <p>permanently delete your account and all your data. this can't be undone.</p>
+                <h3>Delete account</h3>
+                <p>Permanently delete your account and all your data. This can't be undone.</p>
               </div>
               <div class="settings-section__body">
                 <form id="sec-delete-form" class="sec-form">
                   <label class="gr-label">
-                    <span>type <em>delete my account</em> to confirm</span>
+                    <span>Type <em>delete my account</em> to confirm</span>
                     <input
                       type="text"
                       id="sec-delete-confirm"
@@ -590,7 +626,7 @@
                   <div class="sec-form__actions">
                     <p class="gr-status" id="sec-delete-status" aria-live="polite"></p>
                     <button type="submit" class="gr-btn gr-btn--danger" id="sec-delete-btn">
-                      request account deletion
+                      Request account deletion
                     </button>
                   </div>
                 </form>
@@ -603,12 +639,12 @@
 
             <section class="settings-section" id="payout-status-section">
               <div class="settings-section-h">
-                <h3>payout account</h3>
-                <p>where grassroots sends your earnings. powered by stripe connect.</p>
+                <h3>Payout account</h3>
+                <p>Where Grassroots sends your earnings. Powered by Stripe Connect.</p>
               </div>
               <div class="settings-section__body">
                 <div class="payout-status-card" id="payout-status-card">
-                  <p class="payout-status-card__copy" id="payout-status-copy">checking your stripe account…</p>
+                  <p class="payout-status-card__copy" id="payout-status-copy">Checking your Stripe account…</p>
                   <div class="gr-skeleton-stack" id="payout-status-skeleton">
                     <span class="gr-skeleton gr-skeleton--row" style="width: 70%"></span>
                     <span class="gr-skeleton gr-skeleton--line" style="width: 50%"></span>
@@ -618,11 +654,11 @@
                 <!-- Empty state: no Stripe Connect account yet. -->
                 <section class="payout-empty hidden" id="payout-empty">
                   <p class="gr-profile-hint">
-                    you'll be redirected to stripe to verify your identity and link a bank.
-                    this takes about 2 minutes.
+                    You'll be redirected to Stripe to verify your identity and link a bank.
+                    This takes about 2 minutes.
                   </p>
                   <button type="button" class="gr-btn gr-btn--primary" id="payout-connect-btn">
-                    set up with stripe
+                    Set up with Stripe
                   </button>
                   <p class="gr-status" id="payout-connect-status" aria-live="polite"></p>
                 </section>
@@ -635,8 +671,8 @@
             <div class="payout-active hidden" id="payout-active">
               <section class="settings-section">
                 <div class="settings-section-h">
-                  <h3>available balance</h3>
-                  <p>ready to be paid out to your bank.</p>
+                  <h3>Available balance</h3>
+                  <p>Ready to be paid out to your bank.</p>
                 </div>
                 <div class="settings-section__body">
                   <div class="payout-balance">
@@ -647,12 +683,12 @@
 
               <section class="settings-section">
                 <div class="settings-section-h">
-                  <h3>manage account</h3>
-                  <p>view your full payout history, schedule, and update bank or tax info on the dedicated payouts page.</p>
+                  <h3>Manage account</h3>
+                  <p>View your full payout history, schedule, and update bank or tax info on the dedicated payouts page.</p>
                 </div>
                 <div class="settings-section__body">
                   <button type="button" class="gr-btn gr-btn--primary" id="payout-manage-btn">
-                    go to payouts page →
+                    Go to payouts page →
                   </button>
                   <p class="gr-status" id="payout-manage-status" aria-live="polite"></p>
                 </div>
@@ -683,8 +719,8 @@
       <div class="pf-resume-viewer__dialog" role="dialog" aria-modal="true" aria-labelledby="pf-resume-viewer-title">
         <div class="pf-resume-viewer__bar">
           <div>
-            <p class="pf-resume-viewer__eyebrow">resume preview</p>
-            <h2 class="pf-resume-viewer__title" id="pf-resume-viewer-title">resume</h2>
+            <p class="pf-resume-viewer__eyebrow">Resume preview</p>
+            <h2 class="pf-resume-viewer__title" id="pf-resume-viewer-title">Resume</h2>
           </div>
           <div class="pf-resume-viewer__controls">
             <a
@@ -694,7 +730,7 @@
               target="_blank"
               rel="noopener noreferrer"
               download
-              aria-label="download resume"
+              aria-label="Download resume"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M12 4v10"></path>
@@ -702,13 +738,13 @@
                 <path d="M5 19h14"></path>
               </svg>
             </a>
-            <button type="button" class="pf-resume-viewer__close" data-resume-viewer-close aria-label="close preview">
+            <button type="button" class="pf-resume-viewer__close" data-resume-viewer-close aria-label="Close preview">
               &times;
             </button>
           </div>
         </div>
         <div class="pf-resume-viewer__stage">
-          <iframe id="pf-resume-viewer-frame" class="pf-resume-viewer__frame" title="resume preview"></iframe>
+          <iframe id="pf-resume-viewer-frame" class="pf-resume-viewer__frame" title="Resume preview"></iframe>
         </div>
       </div>
     </div>
@@ -816,7 +852,7 @@
         const { data: { session } } = await client.auth.getSession();
         if (!session?.user) {
           checkbox.disabled = true;
-          status.textContent = "sign in to manage messaging settings.";
+          status.textContent = "Sign in to manage messaging settings.";
         } else {
           const { data } = await client
             .from("profiles")
@@ -827,7 +863,7 @@
           checkbox.addEventListener("change", async () => {
             const next = checkbox.checked;
             checkbox.disabled = true;
-            status.textContent = "saving…";
+            status.textContent = "Saving…";
             const { error } = await client
               .from("profiles")
               .update({ read_receipts_enabled: next })
@@ -835,9 +871,9 @@
             checkbox.disabled = false;
             if (error) {
               checkbox.checked = !next;
-              status.textContent = "could not save. try again.";
+              status.textContent = "Could not save. Try again.";
             } else {
-              status.textContent = next ? "read receipts on." : "read receipts off.";
+              status.textContent = next ? "Read receipts on." : "Read receipts off.";
               setTimeout(() => { status.textContent = ""; }, 1800);
             }
           });
@@ -894,15 +930,20 @@
           const { data: { session } } = await client.auth.getSession();
           if (!session?.user) {
             setLoading(false);
-            copy.textContent = "sign in to manage payouts.";
+            copy.textContent = "Sign in to manage payouts.";
             return;
           }
 
           const { data: profile, error } = await client
             .from("profiles")
-            .select("role, stripe_account_id, stripe_account_status")
+            .select("role, stripe_account_status")
             .eq("id", session.user.id)
             .single();
+          // stripe_account_id is private (column grants) — read via RPC.
+          if (profile) {
+            const { data: priv } = await client.rpc("get_my_private_profile").maybeSingle();
+            profile.stripe_account_id = priv?.stripe_account_id ?? null;
+          }
 
           // Business owners don't collect payouts — hide the tab + panel
           // entirely and bounce off #payout if that's where they landed
@@ -935,9 +976,9 @@
           // /payouts.html to finish the embedded flow.
           if (profile.stripe_account_status !== "active") {
             card.hidden = false;
-            copy.textContent = "stripe onboarding is incomplete. open the payouts page to finish.";
+            copy.textContent = "Stripe onboarding is incomplete. Open the payouts page to finish.";
             empty.classList.remove("hidden");
-            connectBtn.textContent = "continue with stripe";
+            connectBtn.textContent = "Continue with Stripe";
             return;
           }
 
@@ -946,7 +987,7 @@
           active.classList.remove("hidden");
         } catch (err) {
           setLoading(false);
-          copy.textContent = "could not load payout status. try refreshing.";
+          copy.textContent = "Could not load payout status. Try refreshing.";
         }
       }
 

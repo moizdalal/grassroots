@@ -13,6 +13,10 @@ const avatarInput = document.getElementById("avatar-input");
 const avatarStatusEl = document.getElementById("avatar-status");
 
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
+// Matches the portfolio bucket's file_size_limit (supabase/migrations/rls_lockdown.sql).
+const PORTFOLIO_MAX_BYTES = 50 * 1024 * 1024;
+// The bucket rejects types a browser would render as a page.
+const PORTFOLIO_BLOCKED_EXT = /\.(html?|xhtml|svgz?|js|mjs|xml)$/i;
 const AVATAR_ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 // Avatar upload/remove feedback now routes through the app-wide toast
@@ -46,11 +50,11 @@ function setAvatarStatus(text, kind) {
 }
 
 function validateAvatarFile(file) {
-  if (!file) return "no file selected.";
-  if (file.size > AVATAR_MAX_BYTES) return "image must be 5 mb or smaller.";
+  if (!file) return "No file selected.";
+  if (file.size > AVATAR_MAX_BYTES) return "Image must be 5 MB or smaller.";
   const ext = String(file.name || "").toLowerCase().split(".").pop();
   const extOk = ["jpg", "jpeg", "png", "webp", "gif"].includes(ext);
-  if (!AVATAR_ACCEPTED_TYPES.has(file.type) && !extOk) return "use a jpg, png, webp, or gif image.";
+  if (!AVATAR_ACCEPTED_TYPES.has(file.type) && !extOk) return "Use a JPG, PNG, WebP, or GIF image.";
   return null;
 }
 const resumeInput = document.getElementById("resume-input");
@@ -349,14 +353,14 @@ function renderOwnerListingItems(container, items, emptyMessage, mode) {
       const metaText =
         mode === "past"
           ? item.acceptedDisplay
-            ? `accepted for ${escapeHtml(item.acceptedDisplay)}`
+            ? `Accepted for ${escapeHtml(item.acceptedDisplay)}`
             : "accepted amount not available"
-          : escapeHtml(item.budgetDisplay || "budget not available");
+          : escapeHtml(item.budgetDisplay || "Budget not available");
 
       return `
         <a class="pf-owner-item" href="/listing.html?id=${escapeAttr(item.id)}">
           <div class="pf-owner-item__head">
-            <span class="pf-owner-item__title">${escapeHtml(item.title || "untitled listing")}</span>
+            <span class="pf-owner-item__title">${escapeHtml(item.title || "Untitled listing")}</span>
             <span class="pf-owner-item__state pf-owner-item__state--${escapeAttr(item.state)}">${escapeHtml(item.state)}</span>
           </div>
           <span class="pf-owner-item__meta">${metaText}</span>
@@ -454,8 +458,8 @@ async function renderOwnerListingSidebar() {
   if (!ownerCurrentList || !ownerPastList) return;
 
   const { current, past } = await loadOwnerListingSummary();
-  renderOwnerListingItems(ownerCurrentList, current, "no current listings yet.", "current");
-  renderOwnerListingItems(ownerPastList, past, "no past listings yet.", "past");
+  renderOwnerListingItems(ownerCurrentList, current, "No current listings yet.", "current");
+  renderOwnerListingItems(ownerPastList, past, "No past listings yet.", "past");
 
   if (ownerHistoryToggle && ownerHistory) {
     const hasPast = past.length > 0;
@@ -477,7 +481,7 @@ async function renderOwnerListingSidebar() {
 function setAvatarPreview(src) {
   if (src) {
     avatarPreview.src = src;
-    avatarPreview.alt = "profile photo";
+    avatarPreview.alt = "Profile photo";
   } else {
     avatarPreview.src = PLACEHOLDER;
     avatarPreview.alt = "";
@@ -498,8 +502,8 @@ function renderAvatarState() {
 }
 
 async function uploadAvatarFile(file) {
-  if (!supabase || !userId) throw new Error("not signed in.");
-  if (file.size > AVATAR_MAX_BYTES) throw new Error("image must be 5 mb or smaller.");
+  if (!supabase || !userId) throw new Error("Not signed in.");
+  if (file.size > AVATAR_MAX_BYTES) throw new Error("Image must be 5 MB or smaller.");
 
   const safe = sanitizeFileName(file.name);
   const path = `${userId}/${Date.now()}-${safe}`;
@@ -536,7 +540,7 @@ async function uploadAvatarFile(file) {
 
 async function removeAvatarFile() {
   if (!currentAvatarPath) return;
-  if (!window.confirm("remove your profile photo? you can upload a new one any time.")) return;
+  if (!window.confirm("Remove your profile photo? You can upload a new one any time.")) return;
 
   const removeBtn = document.getElementById("pf-avatar-remove-btn");
   if (removeBtn instanceof HTMLButtonElement) removeBtn.disabled = true;
@@ -557,9 +561,9 @@ async function removeAvatarFile() {
     if (avatarInput) avatarInput.value = "";
     setAvatarPreview(null);
     renderAvatarState();
-    setAvatarStatus("profile photo removed.", "success");
+    setAvatarStatus("Profile photo removed.", "success");
   } catch (err) {
-    setAvatarStatus(err.message || "could not remove photo.", "error");
+    setAvatarStatus(err.message || "Could not remove photo.", "error");
   } finally {
     if (removeBtn instanceof HTMLButtonElement) removeBtn.disabled = false;
   }
@@ -583,7 +587,7 @@ function getStorageFileName(filePath) {
 
 function getResumeActionMarkup(fileName, options = {}) {
   const {
-    previewLabel = "preview resume",
+    previewLabel = "Preview resume",
     source = "self",
     consultantId = "",
     manage = false,
@@ -595,12 +599,12 @@ function getResumeActionMarkup(fileName, options = {}) {
         type="button"
         class="pf-bv__resume-btn pf-bv__resume-btn--manage"
         data-resume-action="replace"
-      >replace</button>
+      >Replace</button>
       <button
         type="button"
         class="pf-bv__resume-btn pf-bv__resume-btn--danger"
         data-resume-action="remove"
-      >remove</button>
+      >Remove</button>
     `
     : "";
   return `
@@ -620,7 +624,7 @@ function getResumeActionMarkup(fileName, options = {}) {
         data-resume-source="${escapeAttr(source)}"
         ${consultantId ? `data-resume-consultant-id="${escapeAttr(consultantId)}"` : ""}
         data-resume-file-name="${escapeAttr(safeFileName)}"
-        aria-label="download resume"
+        aria-label="Download resume"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M12 4v10"></path>
@@ -705,7 +709,7 @@ async function renderResumeCurrentLabel(/* legacy arg ignored */) {
     <div class="pf-portfolio-item__info">
       <div class="pf-portfolio-item__name-row">
         <button type="button" class="pf-portfolio-item__name pf-portfolio-item__name--clickable" data-resume-action="preview" data-resume-source="self" data-resume-file-name="${escapeAttr(fileName)}">${escapeHtml(fileName)}</button>
-        <button type="button" class="pf-portfolio-item__download" data-resume-action="download" data-resume-source="self" data-resume-file-name="${escapeAttr(fileName)}" aria-label="download resume">
+        <button type="button" class="pf-portfolio-item__download" data-resume-action="download" data-resume-source="self" data-resume-file-name="${escapeAttr(fileName)}" aria-label="Download resume">
           ${getDownloadIconSvg()}
         </button>
       </div>
@@ -713,9 +717,9 @@ async function renderResumeCurrentLabel(/* legacy arg ignored */) {
     <label class="pf-toggle-label">
       <input type="checkbox" id="resume-public-toggle" ${isPublic ? "checked" : ""} />
       <span class="pf-toggle-switch"></span>
-      <span>public</span>
+      <span>Visible to businesses you've contacted</span>
     </label>
-    <button type="button" class="pf-portfolio-item__delete" data-resume-action="remove">remove</button>
+    <button type="button" class="pf-portfolio-item__delete" data-resume-action="remove">Remove</button>
   `;
 }
 
@@ -730,8 +734,8 @@ function resumeIsPublicState() {
 async function uploadResumeFile(file) {
   const fileName = String(file?.name || "").toLowerCase();
   const isPdf = (file?.type === "application/pdf") || fileName.endsWith(".pdf");
-  if (!isPdf) throw new Error("resume must be a pdf.");
-  if (file.size > 5 * 1024 * 1024) throw new Error("resume must be 5 mb or smaller.");
+  if (!isPdf) throw new Error("Resume must be a PDF.");
+  if (file.size > 5 * 1024 * 1024) throw new Error("Resume must be 5 MB or smaller.");
 
   const safe = sanitizeFileName(file.name);
   const rpath = `${userId}/${Date.now()}-${safe}`;
@@ -758,7 +762,7 @@ async function uploadResumeFile(file) {
 
 async function removeResume() {
   if (!currentResumePath) return;
-  if (!window.confirm("remove your resume? you can upload a new one any time.")) return;
+  if (!window.confirm("Remove your resume? You can upload a new one any time.")) return;
 
   const removeBtn = resumeCurrent?.querySelector('[data-resume-action="remove"]');
   if (removeBtn instanceof HTMLButtonElement) removeBtn.disabled = true;
@@ -778,13 +782,13 @@ async function removeResume() {
     currentResumePath = null;
     if (resumeInput) resumeInput.value = "";
     await renderResumeCurrentLabel();
-    showSuccess("resume removed.");
+    showSuccess("Resume removed.");
 
     if (role === "consultant" && isPreviewOpen()) {
       await renderBusinessPreview();
     }
   } catch (err) {
-    showError(err.message || "could not remove resume.");
+    showError(err.message || "Could not remove resume.");
     if (removeBtn instanceof HTMLButtonElement) removeBtn.disabled = false;
   }
 }
@@ -806,7 +810,7 @@ async function loadPortfolioItems() {
 function renderPortfolioList() {
   if (!portfolioList) return;
   if (!portfolioItems.length) {
-    portfolioList.innerHTML = '<p class="gr-profile-hint">no work samples uploaded yet.</p>';
+    portfolioList.innerHTML = '<p class="gr-profile-hint">No work samples uploaded yet.</p>';
     return;
   }
   portfolioList.innerHTML = portfolioItems.map((item) => {
@@ -818,7 +822,7 @@ function renderPortfolioList() {
         <div class="pf-portfolio-item__info">
           <div class="pf-portfolio-item__name-row">
             <button type="button" class="pf-portfolio-item__name pf-portfolio-item__name--clickable" data-portfolio-action="preview" data-id="${id}" data-file-name="${escapeAttr(fileName)}">${safeName}</button>
-            <button type="button" class="pf-portfolio-item__download" data-portfolio-action="download" data-id="${id}" data-file-name="${escapeAttr(fileName)}" aria-label="download work sample">
+            <button type="button" class="pf-portfolio-item__download" data-portfolio-action="download" data-id="${id}" data-file-name="${escapeAttr(fileName)}" aria-label="Download work sample">
               ${getDownloadIconSvg()}
             </button>
           </div>
@@ -827,9 +831,9 @@ function renderPortfolioList() {
         <label class="pf-toggle-label">
           <input type="checkbox" class="pf-portfolio-public-cb" data-id="${id}" ${item.is_public ? "checked" : ""} />
           <span class="pf-toggle-switch"></span>
-          <span>public</span>
+          <span>Visible to businesses you've contacted</span>
         </label>
-        <button type="button" class="pf-portfolio-item__delete" data-id="${id}">remove</button>
+        <button type="button" class="pf-portfolio-item__delete" data-id="${id}">Remove</button>
       </div>
     `;
   }).join("");
@@ -856,7 +860,7 @@ function renderPortfolioList() {
         portfolioItems = portfolioItems.filter((i) => i.id !== item.id);
         renderPortfolioList();
       } catch (err) {
-        showError(err.message || "could not delete item.");
+        showError(err.message || "Could not delete item.");
       }
     });
   });
@@ -878,16 +882,25 @@ async function getPortfolioSignedUrl(filePath) {
 async function handlePortfolioUpload() {
   const file = portfolioInput?.files?.[0];
   if (!file) {
-    showError("please choose a file first.");
+    showError("Please choose a file first.");
     return;
   }
-  if (file.size > 25 * 1024 * 1024) {
-    showError("file must be 25 mb or smaller.");
+  if (file.size > PORTFOLIO_MAX_BYTES) {
+    const isDeck = /\.(pptx?|key)$/i.test(file.name);
+    showError(
+      isDeck
+        ? "This deck is over 50 MB. Export it as a PDF (File → Export → PDF) and upload that."
+        : "File must be 50 MB or smaller."
+    );
+    return;
+  }
+  if (PORTFOLIO_BLOCKED_EXT.test(file.name)) {
+    showError("Web pages, SVGs and scripts can't be uploaded. Try a PDF or image instead.");
     return;
   }
 
   portfolioUploadBtn.disabled = true;
-  portfolioUploadBtn.textContent = "uploading…";
+  portfolioUploadBtn.textContent = "Uploading…";
 
   try {
     const safe = sanitizeFileName(file.name);
@@ -919,12 +932,12 @@ async function handlePortfolioUpload() {
     portfolioInput.value = "";
     portfolioDesc.value = "";
     if (portfolioPublicToggle) portfolioPublicToggle.checked = false;
-    showSuccess("work sample uploaded.");
+    showSuccess("Work sample uploaded.");
   } catch (err) {
-    showError(err.message || "upload failed.");
+    showError(err.message || "Upload failed.");
   } finally {
     portfolioUploadBtn.disabled = false;
-    portfolioUploadBtn.textContent = "upload";
+    portfolioUploadBtn.textContent = "Upload";
   }
 }
 
@@ -956,7 +969,7 @@ async function renderBusinessPreview() {
   const school = cp?.school || "";
   const eduParts = [];
   if (major) eduParts.push(major);
-  if (minor) eduParts.push(`minor in ${minor}`);
+  if (minor) eduParts.push(`Minor in ${minor}`);
   if (school) eduParts.push(school);
   const eduLine = eduParts.join(" · ");
 
@@ -980,16 +993,16 @@ async function renderBusinessPreview() {
     : `<div class="pf-bv__avatar-placeholder" aria-hidden="true">${escapeHtml(getInitials(name))}</div>`;
 
   const dims = [
-    ["work product", rating?.work_product_quality_avg],
+    ["Work product", rating?.work_product_quality_avg],
     ["communication", rating?.communication_avg],
     ["timeliness", rating?.timeliness_avg],
     ["professionalism", rating?.professionalism_avg],
-    ["cost value", rating?.cost_value_avg],
+    ["Cost value", rating?.cost_value_avg],
   ];
   const ratingBreakdown = rating?.review_count
     ? `
       <div class="pf-bv__section">
-        <p class="pf-bv__section-title">ratings · ${rating.review_count} review${rating.review_count === 1 ? "" : "s"}</p>
+        <p class="pf-bv__section-title">Ratings · ${rating.review_count} review${rating.review_count === 1 ? "" : "s"}</p>
         <div class="ld-cv__rating-grid">
           ${dims.map(([label, val]) => `
             <div class="ld-cv__rating-row">
@@ -1014,18 +1027,18 @@ async function renderBusinessPreview() {
       ${ratingBreakdown}
       ${eduLine ? `
         <div class="pf-bv__section">
-          <p class="pf-bv__section-title">education</p>
+          <p class="pf-bv__section-title">Education</p>
           <p class="pf-bv__detail">${escapeHtml(eduLine)}</p>
         </div>
       ` : ""}
       ${linkedin ? `
         <div class="pf-bv__section">
-          <p class="pf-bv__section-title">linkedin</p>
+          <p class="pf-bv__section-title">LinkedIn</p>
           <p class="pf-bv__detail"><a href="${escapeHtml(linkedin)}" target="_blank" rel="noopener noreferrer">${escapeHtml(linkedin)}</a></p>
         </div>
       ` : ""}
       ${(!linkedin && !eduLine && !ratingBreakdown) ? `
-        <p class="pf-bv__empty">this consultant hasn't shared any public bio details yet.</p>
+        <p class="pf-bv__empty">This consultant hasn't shared any public bio details yet.</p>
       ` : ""}
     </div>
   `;
@@ -1038,7 +1051,7 @@ async function renderBusinessPreview() {
     const resumeFileName = getStorageFileName(currentResumePath);
     resumePanelHtml = `
       <div class="pf-bv__section">
-        <p class="pf-bv__section-title">resume</p>
+        <p class="pf-bv__section-title">Resume</p>
         <div class="pf-bv__resume-row">
           ${resumeFileName ? `<span class="pf-bv__detail">${escapeHtml(resumeFileName)}</span>` : ""}
           ${getResumeActionMarkup(resumeFileName, { source: "self" })}
@@ -1047,8 +1060,8 @@ async function renderBusinessPreview() {
     `;
   } else {
     const reason = currentResumePath
-      ? "your resume is uploaded but kept private. flip 'visible to businesses' to share it."
-      : "this consultant has not made a resume publicly visible.";
+      ? "Your resume is uploaded but kept private. Flip 'visible to businesses' to share it."
+      : "This consultant has not made a resume publicly visible.";
     resumePanelHtml = `<p class="ld-cv__panel-empty">${reason}</p>`;
   }
 
@@ -1057,7 +1070,7 @@ async function renderBusinessPreview() {
   if (publicPortfolio.length) {
     workPanelHtml = `
       <div class="ld-cv__work-section">
-        <p class="ld-cv__work-section-title">shared files</p>
+        <p class="ld-cv__work-section-title">Shared files</p>
         <div class="ld-cv__work-list">
           ${publicPortfolio.map((item) => {
             const fileName = (item.file_path || "").split("/").pop() || "file";
@@ -1067,7 +1080,7 @@ async function renderBusinessPreview() {
                 <div>
                   <p class="ld-cv__work-row__title">${escapeHtml(fileName)}</p>
                   ${item.description ? `<p class="ld-cv__work-row__scope">${escapeHtml(item.description)}</p>` : ""}
-                  <a class="ld-cv__work-row__file" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">open file ↗</a>
+                  <a class="ld-cv__work-row__file" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Open file ↗</a>
                 </div>
               </div>
             `;
@@ -1076,7 +1089,7 @@ async function renderBusinessPreview() {
       </div>
     `;
   } else {
-    workPanelHtml = `<p class="ld-cv__panel-empty">no past engagements or shared files yet.</p>`;
+    workPanelHtml = `<p class="ld-cv__panel-empty">No past engagements or shared files yet.</p>`;
   }
 
   const titleHtml = `${escapeHtml(name)} ${renderRatingMarkup(rating, { size: "md" })}`;
@@ -1085,15 +1098,15 @@ async function renderBusinessPreview() {
     <div class="ld-cv__inner">
       <div class="ld-cv__bar">
         <div class="ld-cv__bar-meta">
-          <p class="ld-cv__eyebrow">preview as business</p>
+          <p class="ld-cv__eyebrow">Preview as business</p>
           <h2 class="ld-cv__title" id="pf-preview-modal-title">${titleHtml}</h2>
         </div>
-        <button type="button" class="ld-cv__close" data-pf-preview-close aria-label="close preview">&times;</button>
+        <button type="button" class="ld-cv__close" data-pf-preview-close aria-label="Close preview">&times;</button>
       </div>
-      <div class="ld-cv__tabs" role="tablist" aria-label="profile preview sections">
-        <button type="button" class="ld-cv__tab is-active" role="tab" data-pf-bv-tab="bio" aria-selected="true">bio</button>
-        <button type="button" class="ld-cv__tab" role="tab" data-pf-bv-tab="resume" aria-selected="false">resume</button>
-        <button type="button" class="ld-cv__tab" role="tab" data-pf-bv-tab="work" aria-selected="false">past work</button>
+      <div class="ld-cv__tabs" role="tablist" aria-label="Profile preview sections">
+        <button type="button" class="ld-cv__tab is-active" role="tab" data-pf-bv-tab="bio" aria-selected="true">Bio</button>
+        <button type="button" class="ld-cv__tab" role="tab" data-pf-bv-tab="resume" aria-selected="false">Resume</button>
+        <button type="button" class="ld-cv__tab" role="tab" data-pf-bv-tab="work" aria-selected="false">Past work</button>
       </div>
       <div class="ld-cv__body">
         <div class="ld-cv__panel is-active" role="tabpanel" data-pf-bv-panel="bio">${bioPanel}</div>
@@ -1151,7 +1164,7 @@ async function persistResumeVisibilityPreference(nextValue) {
     if (error) {
       if (isMissingResumePublic(error)) {
         throw new Error(
-          "resume visibility settings need the latest Supabase migration before they can be stored."
+          "Resume visibility settings need the latest Supabase migration before they can be stored."
         );
       }
       throw error;
@@ -1161,8 +1174,8 @@ async function persistResumeVisibilityPreference(nextValue) {
       profileRow.resume_public = nextValue;
     }
     showSuccess(nextValue
-      ? "resume is now visible to businesses."
-      : "resume is now hidden from businesses.");
+      ? "Resume is now visible to businesses."
+      : "Resume is now hidden from businesses.");
 
     if (isPreviewOpen()) {
       await renderBusinessPreview();
@@ -1171,7 +1184,7 @@ async function persistResumeVisibilityPreference(nextValue) {
   } catch (err) {
     const t = getResumePublicToggle();
     if (t) t.checked = previousValue;
-    showError(err.message || "could not update resume visibility.");
+    showError(err.message || "Could not update resume visibility.");
     return false;
   } finally {
     const t = getResumePublicToggle();
@@ -1267,7 +1280,7 @@ avatarInput.addEventListener("change", async () => {
     toUpload = await cropToSquare(file);
   } catch (err) {
     avatarInput.value = "";
-    setAvatarStatus(err?.message || "could not open photo editor.", "error");
+    setAvatarStatus(err?.message || "Could not open photo editor.", "error");
     return;
   }
   if (!toUpload) {
@@ -1277,11 +1290,11 @@ avatarInput.addEventListener("change", async () => {
 
   // Optimistic preview using the cropped blob, then auto-upload.
   setAvatarPreview(URL.createObjectURL(toUpload));
-  setAvatarStatus("uploading photo…");
+  setAvatarStatus("Uploading photo…");
 
   try {
     await uploadAvatarFile(toUpload);
-    setAvatarStatus("profile photo updated.", "success");
+    setAvatarStatus("Profile photo updated.", "success");
     if (role === "consultant" && isPreviewOpen()) {
       await renderBusinessPreview();
     }
@@ -1290,7 +1303,7 @@ avatarInput.addEventListener("change", async () => {
     setAvatarPreview(currentAvatarPath
       ? supabase?.storage.from("avatars").getPublicUrl(currentAvatarPath).data?.publicUrl
       : null);
-    setAvatarStatus(err.message || "could not upload photo.", "error");
+    setAvatarStatus(err.message || "Could not upload photo.", "error");
   }
 });
 
@@ -1315,7 +1328,7 @@ document.addEventListener("click", (event) => {
 let profileRow = null;
 
 async function loadProfile() {
-  gateEl.textContent = "loading…";
+  gateEl.textContent = "Loading…";
 
   const {
     data: { session },
@@ -1342,7 +1355,7 @@ async function loadProfile() {
   } = await supabase
     .from("profiles")
     .select(
-      "*, consultant_profiles ( * ), business_profiles ( business_name, business_address, website_url, business_details, social_links, instagram_url, facebook_url, company_linkedin_url )"
+      "id, role, full_name, avatar_path, linkedin_url, resume_public, read_receipts_enabled, stripe_account_status, onboarded_at, created_at, consultant_profiles ( * ), business_profiles ( business_name, business_address, website_url, business_details, social_links, instagram_url, facebook_url, company_linkedin_url )"
     )
     .eq("id", userId)
     .single());
@@ -1355,7 +1368,7 @@ async function loadProfile() {
     } = await supabase
       .from("profiles")
       .select(
-        "*, consultant_profiles ( * ), business_profiles ( business_name, website_url, business_details, social_links, instagram_url, facebook_url, company_linkedin_url )"
+        "id, role, full_name, avatar_path, linkedin_url, resume_public, read_receipts_enabled, stripe_account_status, onboarded_at, created_at, consultant_profiles ( * ), business_profiles ( business_name, website_url, business_details, social_links, instagram_url, facebook_url, company_linkedin_url )"
       )
       .eq("id", userId)
       .single());
@@ -1366,10 +1379,15 @@ async function loadProfile() {
   if (error) {
     gateEl.textContent =
       error.message ||
-      "could not load your profile. run supabase migrations if this is a new column.";
+      "Could not load your profile. Run Supabase migrations if this is a new column.";
     gateEl.className = "gr-status error";
     return;
   }
+
+  // Phone, resume path and stripe ids aren't selectable from the table
+  // (column grants), so the owner's own copy comes from an RPC.
+  const { data: priv } = await supabase.rpc("get_my_private_profile").maybeSingle();
+  if (priv) Object.assign(row, priv);
 
   profileRow = row;
   role = row.role;
@@ -1409,7 +1427,7 @@ async function loadProfile() {
 
     if (!businessAddressSupported) {
       statusEl.textContent =
-        "business address is in the UI, but your database still needs `supabase/migrations/add_business_address.sql` before that field can load or save.";
+        "Business address is in the UI, but your database still needs `supabase/migrations/add_business_address.sql` before that field can load or save.";
       statusEl.className = "gr-status";
     }
   } else {
@@ -1417,7 +1435,7 @@ async function loadProfile() {
   }
 
   if (role === "consultant") {
-    await renderResumeCurrentLabel("current resume on file —");
+    await renderResumeCurrentLabel("Current resume on file —");
 
     // Education fields
     const cp = getRelatedRow(row.consultant_profiles);
@@ -1466,7 +1484,7 @@ form.addEventListener("submit", async (e) => {
   statusEl.textContent = "";
   statusEl.className = "gr-status";
   saveBtn.disabled = true;
-  saveBtn.textContent = "saving…";
+  saveBtn.textContent = "Saving…";
 
   try {
     let avatarPath = currentAvatarPath;
@@ -1491,9 +1509,11 @@ form.addEventListener("submit", async (e) => {
     const linkedinUrl =
       role === "consultant" ? document.getElementById("field-linkedin").value.trim() : "";
 
+    const phoneField = document.getElementById("field-phone");
     const profileUpdate = {
       full_name: fullName,
     };
+    if (phoneField) profileUpdate.phone_number = phoneField.value.trim() || null;
     if (role === "consultant") {
       profileUpdate.linkedin_url = linkedinUrl || null;
     }
@@ -1658,7 +1678,7 @@ form.addEventListener("submit", async (e) => {
 
     if (role === "consultant" && resumeInput.files?.[0]) {
       await uploadResumeFile(resumeInput.files[0]);
-      await renderResumeCurrentLabel("current resume on file —");
+      await renderResumeCurrentLabel("Current resume on file —");
     }
 
     if (!profileAvatarMigrationWarning) {
@@ -1672,15 +1692,15 @@ form.addEventListener("submit", async (e) => {
     if (!profileAvatarMigrationWarning) {
       if (resumePublicMissingWarning) {
         showSuccess(
-          "saved. resume visibility settings need the latest supabase migration before they can be stored.",
+          "Saved. Resume visibility settings need the latest Supabase migration before they can be stored.",
         );
       } else if (businessAddressMissingWarning) {
         showSuccess(
-          "saved, but business address could not be stored yet. run supabase/migrations/add_business_address.sql, then save again.",
+          "Saved, but business address could not be stored yet. Run supabase/migrations/add_business_address.sql, then save again.",
         );
       } else {
         showSuccess(
-          instagramAvatarApplied ? "saved. profile photo updated from instagram." : "saved.",
+          instagramAvatarApplied ? "Saved. Profile photo updated from Instagram." : "Saved.",
         );
       }
     }
@@ -1729,10 +1749,10 @@ form.addEventListener("submit", async (e) => {
       await renderOwnerListingSidebar();
     }
   } catch (err) {
-    showError(err.message || "save failed.");
+    showError(err.message || "Save failed.");
   } finally {
     saveBtn.disabled = false;
-    saveBtn.textContent = "save changes";
+    saveBtn.textContent = "Save changes";
   }
 });
 
@@ -1806,19 +1826,19 @@ if (resumeInput) {
     if (!file) return;
     if (!currentResumePath) return;
 
-    const loadingToast = showLoading("uploading resume…");
+    const loadingToast = showLoading("Uploading resume…");
     try {
       await uploadResumeFile(file);
-      await renderResumeCurrentLabel("current resume on file —");
+      await renderResumeCurrentLabel("Current resume on file —");
       loadingToast?.dismiss();
-      showSuccess("resume replaced.");
+      showSuccess("Resume replaced.");
       if (role === "consultant" && isPreviewOpen()) {
         await renderBusinessPreview();
       }
     } catch (err) {
       resumeInput.value = "";
       loadingToast?.dismiss();
-      showError(err.message || "could not upload resume.");
+      showError(err.message || "Could not upload resume.");
     }
   });
 }
@@ -1862,7 +1882,7 @@ document.addEventListener("click", async (event) => {
     if (!item) return;
     const url = await getPortfolioSignedUrl(item.file_path);
     if (!url) {
-      showError("could not load this work sample.");
+      showError("Could not load this work sample.");
       return;
     }
     if (action === "download") {
@@ -1908,7 +1928,7 @@ async function boot() {
     supabase = await getSupabaseClient();
     await loadProfile();
   } catch (err) {
-    gateEl.textContent = err.message || "could not connect.";
+    gateEl.textContent = err.message || "Could not connect.";
     gateEl.className = "gr-status error";
   }
 }

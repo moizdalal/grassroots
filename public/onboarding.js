@@ -82,17 +82,17 @@ const CONFIRM_ID = "gr-onboarding-confirm";
 const BUSINESS_STEPS = [
   {
     id: "edit-profile",
-    label: "profile",
+    label: "Profile",
     path: "/profile.html",
     targetSelector: '.pp-header__actions a[href*="settings"]',
     placement: "left",
     advanceOn: "target",
-    title: "let's set you up.",
-    body: "first thing — tap edit profile. we'll fill in the rest from there.",
+    title: "Let's set you up.",
+    body: "First thing — tap edit profile. We'll fill in the rest from there.",
   },
   {
     id: "upload-photo",
-    label: "photo",
+    label: "Photo",
     path: "/settings.html",
     hash: "#personal",
     // First selector covers the no-avatar state (upload label visible).
@@ -120,22 +120,22 @@ const BUSINESS_STEPS = [
     ],
     placement: "right",
     advanceOn: "next",
-    title: "show your face.",
-    body: "drop in a profile photo, then tap next when you're ready.",
+    title: "Show your face.",
+    body: "Drop in a profile photo, then tap next when you're ready.",
   },
   {
     id: "nav-general",
-    label: "general",
+    label: "General",
     path: "/settings.html",
     targetSelector: '.settings-tab[data-tab="general"]',
     placement: "bottom",
     advanceOn: "target",
-    title: "next stop — themes.",
-    body: "head over to the general tab to pick how grassroots looks for you.",
+    title: "Next stop — themes.",
+    body: "Head over to the general tab to pick how Grassroots looks for you.",
   },
   {
     id: "themes",
-    label: "themes",
+    label: "Themes",
     path: "/settings.html",
     hash: "#general",
     targetSelector: "#theme-grid",
@@ -145,22 +145,22 @@ const BUSINESS_STEPS = [
     allowedInteractive: "#theme-grid .theme-card",
     placement: "bottom",
     advanceOn: "next",
-    title: "pick a vibe.",
-    body: "try the themes — tap one to apply it. hit next when you've settled.",
+    title: "Pick a vibe.",
+    body: "Try the themes — tap one to apply it. Hit next when you've settled.",
   },
   {
     id: "nav-professional",
-    label: "professional",
+    label: "Professional",
     path: "/settings.html",
     targetSelector: '.settings-tab[data-tab="professional"]',
     placement: "bottom",
     advanceOn: "target",
-    title: "now the important one.",
-    body: "click the professional tab — this is where your business identity lives.",
+    title: "Now the important one.",
+    body: "Click the professional tab — this is where your business identity lives.",
   },
   {
     id: "business-info",
-    label: "business",
+    label: "Business",
     path: "/settings.html",
     hash: "#professional",
     targetSelector: "#business-section",
@@ -173,12 +173,12 @@ const BUSINESS_STEPS = [
     allowedInteractive: ["#save-btn", "#business-social-section"],
     placement: "right",
     advanceOn: "next",
-    title: "the big one.",
-    body: "tell consultants about your business, add your socials, then save.",
+    title: "The big one.",
+    body: "Tell consultants about your business, add your socials, then save.",
   },
   {
     id: "listing-choice",
-    label: "listing",
+    label: "Listing",
     path: "/settings.html",
     targetSelector: null,
     placement: "center",
@@ -188,11 +188,11 @@ const BUSINESS_STEPS = [
     // listing (with a final confirm); following the example parks a
     // draft you'll delete at the end. Either way the user can stop at
     // a draft mid-flow. Encourages the "own" path by leading with it.
-    title: "have something in mind?",
-    body: "bring your own idea and we'll walk you through posting it (save as draft any time you want). or follow our example to see how it works — you'll park it as a draft and delete it from your dashboard at the end.",
+    title: "Have something in mind?",
+    body: "Bring your own idea and we'll walk you through posting it (save as draft any time you want). Or follow our example to see how it works — you'll park it as a draft and delete it from your dashboard at the end.",
     choices: [
-      { id: "own", label: "i've got an idea", primary: true, href: "/create-listing.html" },
-      { id: "example", label: "show me an example", href: "/create-listing.html?example=1" },
+      { id: "own", label: "I've got an idea", primary: true, href: "/create-listing.html" },
+      { id: "example", label: "Show me an example", href: "/create-listing.html?example=1" },
     ],
   },
   // Listing walkthrough — one tooltip per field so the user learns what
@@ -204,7 +204,7 @@ const BUSINESS_STEPS = [
   // listens and fills the matching field idempotently.
   {
     id: "lw-title",
-    label: "title",
+    label: "Title",
     path: "/create-listing.html",
     slide: 0,
     targetSelector: 'input[name="title"]',
@@ -214,10 +214,10 @@ const BUSINESS_STEPS = [
       "#next-btn", "#back-btn", "#save-draft-btn",
       'input[name="title"]',
     ],
-    title: "title — name the work.",
+    title: "Title — name the work.",
     body: {
-      own: "name the work in plain language. short and concrete reads best — consultants scan this list quickly.",
-      example: "we filled in a sample title. notice it names the work and the audience in eight words. short and concrete is best.",
+      own: "Name the work in plain language. Short and concrete reads best — consultants scan this list quickly.",
+      example: "We filled in a sample title. Notice it names the work and the audience in eight words. Short and concrete is best.",
     },
     example: {
       type: "value",
@@ -231,7 +231,7 @@ const BUSINESS_STEPS = [
     // makes the "this is live, it updates as you type" point land
     // with a concrete change they just caused.
     id: "lw-preview",
-    label: "preview",
+    label: "Preview",
     path: "/create-listing.html",
     slide: 0,
     targetSelector: "#cl-preview",
@@ -240,15 +240,15 @@ const BUSINESS_STEPS = [
     allowedInteractive: [
       "#next-btn", "#back-btn", "#save-draft-btn",
     ],
-    title: "your live preview.",
+    title: "Your live preview.",
     body: {
-      own: "the right rail mirrors what consultants see in the marketplace. it updates as you type, so use it as a sanity check.",
-      example: "the right rail mirrors what consultants see — your title already showed up. it updates as you fill in the rest.",
+      own: "The right rail mirrors what consultants see in the marketplace. It updates as you type, so use it as a sanity check.",
+      example: "The right rail mirrors what consultants see — your title already showed up. It updates as you fill in the rest.",
     },
   },
   {
     id: "lw-contract",
-    label: "contract",
+    label: "Contract",
     path: "/create-listing.html",
     slide: 0,
     targetSelector: ".ct-options",
@@ -262,16 +262,16 @@ const BUSINESS_STEPS = [
       'input[name="contract_type"]', 'input[name="retainer_terms"]',
       "#ct-retainer-cadence", "#ct-retainer-periods", "#ct-retainer-fee",
     ],
-    title: "contract type — how you'll work together.",
+    title: "Contract type — how you'll work together.",
     body: {
-      own: "standard is one delivery for one fee. phased adds proposal → solution → optional maintenance. retainer is a recurring engagement.",
-      example: "we'll stick with standard — one well-scoped delivery. open 'advanced contracts' later when an engagement needs phases or a recurring cadence.",
+      own: "Standard is one delivery for one fee. Phased adds proposal → solution → optional maintenance. Retainer is a recurring engagement.",
+      example: "We'll stick with standard — one well-scoped delivery. Open 'advanced contracts' later when an engagement needs phases or a recurring cadence.",
     },
     // No fill — contract_type defaults to "standard" already.
   },
   {
     id: "lw-context",
-    label: "context",
+    label: "Context",
     path: "/create-listing.html",
     slide: 1,
     targetSelector: 'textarea[name="issue_context"]',
@@ -281,10 +281,10 @@ const BUSINESS_STEPS = [
       "#next-btn", "#back-btn", "#save-draft-btn",
       'textarea[name="issue_context"]',
     ],
-    title: "context — the back-story.",
+    title: "Context — the back-story.",
     body: {
-      own: "what is happening in the business right now? give a consultant enough background to read in.",
-      example: "context anchors the work. without it, a consultant has to guess what's already been tried or why the work matters.",
+      own: "What is happening in the business right now? Give a consultant enough background to read in.",
+      example: "Context anchors the work. Without it, a consultant has to guess what's already been tried or why the work matters.",
     },
     example: {
       type: "value",
@@ -294,7 +294,7 @@ const BUSINESS_STEPS = [
   },
   {
     id: "lw-problem",
-    label: "problem",
+    label: "Problem",
     path: "/create-listing.html",
     slide: 1,
     targetSelector: 'textarea[name="business_problem"]',
@@ -304,10 +304,10 @@ const BUSINESS_STEPS = [
       "#next-btn", "#back-btn", "#save-draft-btn",
       'textarea[name="business_problem"]',
     ],
-    title: "business problem — the goal.",
+    title: "Business problem — the goal.",
     body: {
-      own: "name the specific thing you want to fix or move. one concrete outcome beats a vague description.",
-      example: "this is the goal in one sentence. notice the example pins a specific number — 'twenty percent' — and a window — 'four weeks'.",
+      own: "Name the specific thing you want to fix or move. One concrete outcome beats a vague description.",
+      example: "This is the goal in one sentence. Notice the example pins a specific number — 'twenty percent' — and a window — 'four weeks'.",
     },
     example: {
       type: "value",
@@ -317,7 +317,7 @@ const BUSINESS_STEPS = [
   },
   {
     id: "lw-output",
-    label: "output",
+    label: "Output",
     path: "/create-listing.html",
     slide: 1,
     targetSelector: 'textarea[name="expected_output"]',
@@ -327,10 +327,10 @@ const BUSINESS_STEPS = [
       "#next-btn", "#back-btn", "#save-draft-btn",
       'textarea[name="expected_output"]',
     ],
-    title: "standards of work — what good looks like.",
+    title: "Standards of work — what good looks like.",
     body: {
-      own: "what does good output look like? say the format, the rigor, and how you plan to use it.",
-      example: "this sets the bar. naming a format — google doc, pdf — and a quality threshold saves a back-and-forth later.",
+      own: "What does good output look like? Say the format, the rigor, and how you plan to use it.",
+      example: "This sets the bar. Naming a format — Google doc, PDF — and a quality threshold saves a back-and-forth later.",
     },
     example: {
       type: "value",
@@ -340,7 +340,7 @@ const BUSINESS_STEPS = [
   },
   {
     id: "lw-details",
-    label: "details",
+    label: "Details",
     path: "/create-listing.html",
     slide: 1,
     targetSelector: 'textarea[name="additional_details"]',
@@ -350,10 +350,10 @@ const BUSINESS_STEPS = [
       "#next-btn", "#back-btn", "#save-draft-btn",
       'textarea[name="additional_details"]',
     ],
-    title: "additional details — anything else.",
+    title: "Additional details — anything else.",
     body: {
-      own: "constraints, previous attempts, audience notes, brand voice. optional, but it helps a consultant scope better.",
-      example: "this is for context that didn't fit above — past attempts, audience details, brand voice.",
+      own: "Constraints, previous attempts, audience notes, brand voice. Optional, but it helps a consultant scope better.",
+      example: "This is for context that didn't fit above — past attempts, audience details, brand voice.",
     },
     example: {
       type: "value",
@@ -363,7 +363,7 @@ const BUSINESS_STEPS = [
   },
   {
     id: "lw-attachments",
-    label: "files",
+    label: "Files",
     path: "/create-listing.html",
     slide: 1,
     // `:has()` picks the whole <label> wrapping the file input so the
@@ -376,17 +376,17 @@ const BUSINESS_STEPS = [
       "#next-btn", "#back-btn", "#save-draft-btn",
       "#listing-attachments",
     ],
-    title: "supporting files — optional context.",
+    title: "Supporting files — optional context.",
     body: {
-      own: "attach files that help a consultant scope — briefs, designs, brand guides, csv data. up to 3 files, 5mb each.",
-      example: "file uploads are optional. we're skipping them in this sample — add them later when you have something to share.",
+      own: "Attach files that help a consultant scope — briefs, designs, brand guides, CSV data. Up to 3 files, 5mb each.",
+      example: "File uploads are optional. We're skipping them in this sample — add them later when you have something to share.",
     },
     // No `example` payload — file inputs can't be programmatically
     // populated, and the sample doesn't ship with real attachments.
   },
   {
     id: "lw-categories",
-    label: "tags",
+    label: "Tags",
     path: "/create-listing.html",
     slide: 2,
     targetSelector: "#cat-multiselect",
@@ -396,10 +396,10 @@ const BUSINESS_STEPS = [
       "#submit-btn", "#back-btn", "#save-draft-btn",
       "#cat-multiselect", "#cat-search", ".ms-option", "[data-remove-cat]",
     ],
-    title: "categories — tag the work.",
+    title: "Categories — tag the work.",
     body: {
-      own: "tag the work so the right consultants find it. one or two focused tags beat a long list of broad ones.",
-      example: "we tagged sales and marketing. specific tags help students filter the marketplace and self-select.",
+      own: "Tag the work so the right consultants find it. One or two focused tags beat a long list of broad ones.",
+      example: "We tagged sales and marketing. Specific tags help students filter the marketplace and self-select.",
     },
     example: {
       type: "categories",
@@ -408,7 +408,7 @@ const BUSINESS_STEPS = [
   },
   {
     id: "lw-budget",
-    label: "budget",
+    label: "Budget",
     path: "/create-listing.html",
     slide: 2,
     targetSelector: ".gr-money-range",
@@ -418,10 +418,10 @@ const BUSINESS_STEPS = [
       "#submit-btn", "#back-btn", "#save-draft-btn",
       'input[name="budget_min"]', 'input[name="budget_max"]',
     ],
-    title: "budget range — the scope you can fund.",
+    title: "Budget range — the scope you can fund.",
     body: {
-      own: "set the floor and ceiling. consultants size their proposals against this — too tight and you'll get few bids.",
-      example: "$200–$450 reads as 'small project, room to negotiate'. the range gives consultants space to scope honestly.",
+      own: "Set the floor and ceiling. Consultants size their proposals against this — too tight and you'll get few bids.",
+      example: "$200–$450 reads as 'small project, room to negotiate'. The range gives consultants space to scope honestly.",
     },
     example: {
       type: "value-multi",
@@ -430,7 +430,7 @@ const BUSINESS_STEPS = [
   },
   {
     id: "lw-turnaround",
-    label: "time",
+    label: "Time",
     path: "/create-listing.html",
     slide: 2,
     targetSelector: 'input[name="turnaround_days"]',
@@ -440,9 +440,9 @@ const BUSINESS_STEPS = [
       "#submit-btn", "#back-btn", "#save-draft-btn",
       'input[name="turnaround_days"]',
     ],
-    title: "turnaround — days from accept to delivery.",
+    title: "Turnaround — days from accept to delivery.",
     body: {
-      own: "how many days do you actually need? include some buffer for revisions.",
+      own: "How many days do you actually need? Include some buffer for revisions.",
       example: "ten days is realistic for this scope. too short kills good bids; too long invites scope creep.",
     },
     example: {
@@ -453,7 +453,7 @@ const BUSINESS_STEPS = [
   },
   {
     id: "lw-quals",
-    label: "skills",
+    label: "Skills",
     path: "/create-listing.html",
     slide: 2,
     targetSelector: "#qual-list",
@@ -463,22 +463,22 @@ const BUSINESS_STEPS = [
       "#submit-btn", "#back-btn", "#save-draft-btn",
       "#qual-list", ".cl-qual-input", "#add-qual-btn",
     ],
-    title: "qualifications — skills you'd want.",
+    title: "Qualifications — skills you'd want.",
     body: {
-      own: "two or three concrete skills, not generic 'experience in marketing'. specific helps students decide if they're a fit.",
-      example: "two qualifications is enough. notice both name a concrete skill — that's what students can actually evaluate.",
+      own: "Two or three concrete skills, not generic 'experience in marketing'. Specific helps students decide if they're a fit.",
+      example: "Two qualifications is enough. Notice both name a concrete skill — that's what students can actually evaluate.",
     },
     example: {
       type: "quals",
       values: [
-        "familiarity with local food businesses",
-        "experience writing short-form sales scripts",
+        "Familiarity with local food businesses",
+        "Experience writing short-form sales scripts",
       ],
     },
   },
   {
     id: "lw-publish",
-    label: "publish",
+    label: "Publish",
     path: "/create-listing.html",
     slide: 2,
     // Per-variant target: the vine points at the button the user is
@@ -492,12 +492,12 @@ const BUSINESS_STEPS = [
     advanceOn: "next",
     allowedInteractive: ["#submit-btn", "#back-btn", "#save-draft-btn"],
     title: {
-      own: "publish — go live.",
-      example: "park it as a draft.",
+      own: "Publish — go live.",
+      example: "Park it as a draft.",
     },
     body: {
       own: "review the right-rail preview. ready? tap post listing — we'll ask for a final confirmation. not ready? tap save as a draft below; you can finish it later.",
-      example: "give the right-rail preview a final read, then tap save as a draft. live listings stay on the record, so we'll park this sample as a draft and you'll delete it from your dashboard next.",
+      example: "Give the right-rail preview a final read, then tap save as a draft. Live listings stay on the record, so we'll park this sample as a draft and you'll delete it from your dashboard next.",
     },
   },
   // Example-only coda — appears on /listing.html after the example
@@ -510,16 +510,16 @@ const BUSINESS_STEPS = [
   // owners who brought their own idea straight to `complete`.
   {
     id: "example-cleanup",
-    label: "wrap up",
+    label: "Wrap up",
     path: null,
     targetSelector: null,
     placement: "center",
     kind: "choice",
     advanceOn: "next",
-    title: "tidy up the example.",
-    body: "live listings stay on the record once posted — only drafts can be deleted. tap below to send this back to draft state, then delete it from your dashboard.",
+    title: "Tidy up the example.",
+    body: "Live listings stay on the record once posted — only drafts can be deleted. Tap below to send this back to draft state, then delete it from your dashboard.",
     choices: [
-      { id: "save-draft", label: "save as a draft", primary: true, action: "exampleSaveDraft" },
+      { id: "save-draft", label: "Save as a draft", primary: true, action: "exampleSaveDraft" },
     ],
   },
   // Example coda — appears on the dashboard once the example listing
@@ -529,7 +529,7 @@ const BUSINESS_STEPS = [
   // the dashboard delete affordance so they finish the clean-up.
   {
     id: "example-saved-draft",
-    label: "delete",
+    label: "Delete",
     path: null,
     targetSelector: null,
     placement: "center",
@@ -554,8 +554,8 @@ const BUSINESS_STEPS = [
       ".bza__row",
       ".ml-card-wrap",
     ],
-    title: "now delete the draft.",
-    body: "your example listing is parked as a draft below. tap delete on it to clean up — drafts are the only thing you can remove from the record.",
+    title: "Now delete the draft.",
+    body: "Your example listing is parked as a draft below. Tap delete on it to clean up — drafts are the only thing you can remove from the record.",
   },
   // Dashboard walkthrough — the "manage" chapter. Lands the user on
   // /dashboard.html after the example coda and walks them through
@@ -563,25 +563,25 @@ const BUSINESS_STEPS = [
   // real DOM ids so the spotlight follows the panels exactly.
   {
     id: "dash-home-intro",
-    label: "home",
+    label: "Home",
     path: "/dashboard.html",
     hash: "#dashboard",
     targetSelector: null,
     placement: "center",
     advanceOn: "next",
-    title: "welcome to your dashboard.",
-    body: "this is the first thing you'll see every time you log in. let's walk through the panels so you know where everything lives.",
+    title: "Welcome to your dashboard.",
+    body: "This is the first thing you'll see every time you log in. Let's walk through the panels so you know where everything lives.",
   },
   {
     id: "dash-listings-panel",
-    label: "listings",
+    label: "Listings",
     path: "/dashboard.html",
     hash: "#dashboard",
     targetSelector: ".dash-listings-panel",
     placement: "right",
     advanceOn: "next",
-    title: "your listings at a glance.",
-    body: "every listing you've posted shows up here, grouped by state — drafts, live, in progress, paused, closed. the tabs above filter the rows.",
+    title: "Your listings at a glance.",
+    body: "Every listing you've posted shows up here, grouped by state — drafts, live, in progress, paused, closed. The tabs above filter the rows.",
   },
   {
     // Vine points directly at the pulsing state dot so the visual
@@ -589,46 +589,46 @@ const BUSINESS_STEPS = [
     // panel when nothing is pulsing (e.g. fresh account with no
     // pending actions) so the bubble still has somewhere to anchor.
     id: "dash-listings-cta",
-    label: "action",
+    label: "Action",
     path: "/dashboard.html",
     hash: "#dashboard",
     targetSelector: [".bza__row-state--pulse", ".dash-listings-panel"],
     placement: "right",
     advanceOn: "next",
-    title: "pulsing means you're up.",
-    body: "a row with a pulsing dot is waiting on you — an offer to review, a kickoff to confirm, work to mark complete. the action button on the row's right edge takes you straight to the next step, so most of the time you never have to dig.",
+    title: "Pulsing means you're up.",
+    body: "A row with a pulsing dot is waiting on you — an offer to review, a kickoff to confirm, work to mark complete. The action button on the row's right edge takes you straight to the next step, so most of the time you never have to dig.",
   },
   {
     id: "dash-analytics",
-    label: "stats",
+    label: "Stats",
     path: "/dashboard.html",
     hash: "#dashboard",
     targetSelector: "#dash-analytics",
     placement: "top",
     advanceOn: "next",
-    title: "performance summary.",
-    body: "unique viewers and offer rate across every listing. the bar chart shows daily views — handy for spotting which days bring traffic.",
+    title: "Performance summary.",
+    body: "Unique viewers and offer rate across every listing. The bar chart shows daily views — handy for spotting which days bring traffic.",
   },
   {
     id: "dash-profile-health",
-    label: "health",
+    label: "Health",
     path: "/dashboard.html",
     hash: "#dashboard",
     targetSelector: "#dash-profile-health",
     placement: "top",
     advanceOn: "next",
-    title: "profile health.",
-    body: "a quick checklist of what's missing on your profile. a complete profile reads more credible to consultants — chip away as you have time.",
+    title: "Profile health.",
+    body: "A quick checklist of what's missing on your profile. A complete profile reads more credible to consultants — chip away as you have time.",
   },
   {
     id: "dash-garden",
-    label: "garden",
+    label: "Garden",
     path: "/dashboard.html",
     hash: "#dashboard",
     targetSelector: "#dash-garden",
     placement: "left",
     advanceOn: "next",
-    title: "your garden.",
+    title: "Your garden.",
     body: "every time an engagement fully completes, a new root stems from the seedling — a small metaphor for your business getting stronger with each one. tap and tug the seedling or its roots if you feel like it; they're meant to be played with.",
   },
   {
@@ -636,35 +636,35 @@ const BUSINESS_STEPS = [
     // by dashboard.js view-switcher). advanceOn:"target" so the user's
     // click both switches the view and advances the tutorial.
     id: "dash-open-listings",
-    label: "open",
+    label: "Open",
     path: "/dashboard.html",
     hash: "#dashboard",
     targetSelector: '.bza__nav-item[data-view="listings"]',
     placement: "right",
     advanceOn: "target",
-    title: "open my listings.",
-    body: "the side nav jumps between sections. tap here to open the full management view — every listing as a card with search, sort, and state filters.",
+    title: "Open my listings.",
+    body: "The side nav jumps between sections. Tap here to open the full management view — every listing as a card with search, sort, and state filters.",
   },
   {
     id: "dash-my-listings-view",
-    label: "manage",
+    label: "Manage",
     path: "/dashboard.html",
     hash: "#listings",
     targetSelector: "#dash-listings-cards",
     placement: "top",
     advanceOn: "next",
-    title: "manage your listings.",
+    title: "Manage your listings.",
     body: "every listing as a card. search by title, sort, or filter by state. drafts get a delete button on hover; live listings have pause and close controls on the listing page itself.",
   },
   {
     id: "complete",
-    label: "done",
+    label: "Done",
     path: null,
     targetSelector: null,
     placement: "center",
     advanceOn: "next",
-    title: "you're set.",
-    body: "find this tutorial any time in settings → general if you want a refresh.",
+    title: "You're set.",
+    body: "Find this tutorial any time in Settings → General if you want a refresh.",
   },
 ];
 
@@ -684,296 +684,296 @@ const CONSULTANT_STEPS = [
   // ── chapter 1: profile setup ──
   {
     id: "c-edit-profile",
-    label: "profile",
+    label: "Profile",
     path: "/profile.html",
     targetSelector: '.pp-header__actions a[href*="settings"]',
     placement: "left",
     advanceOn: "target",
-    title: "let's set you up.",
-    body: "tap edit profile. consultants live or die by their profile — businesses read every word.",
+    title: "Let's set you up.",
+    body: "Tap edit profile. Consultants live or die by their profile — businesses read every word.",
   },
   {
     id: "c-upload-photo",
-    label: "photo",
+    label: "Photo",
     path: "/settings.html",
     hash: "#personal",
     targetSelector: ["#pf-avatar-upload-label:not(.hidden)", "#pf-avatar-change-btn"],
     placement: "right",
     advanceOn: "next",
-    title: "show your face.",
-    body: "a real photo earns trust. a clean headshot beats a logo every time.",
+    title: "Show your face.",
+    body: "A real photo earns trust. A clean headshot beats a logo every time.",
   },
   {
     id: "c-nav-general",
-    label: "general",
+    label: "General",
     path: "/settings.html",
     targetSelector: '.settings-tab[data-tab="general"]',
     placement: "bottom",
     advanceOn: "target",
-    title: "next stop — themes.",
-    body: "open the general tab to pick how grassroots looks for you.",
+    title: "Next stop — themes.",
+    body: "Open the general tab to pick how Grassroots looks for you.",
   },
   {
     id: "c-themes",
-    label: "themes",
+    label: "Themes",
     path: "/settings.html",
     hash: "#general",
     targetSelector: "#theme-grid",
     allowedInteractive: "#theme-grid .theme-card",
     placement: "bottom",
     advanceOn: "next",
-    title: "pick a vibe.",
-    body: "try the themes — tap one to apply it. hit next when you've settled.",
+    title: "Pick a vibe.",
+    body: "Try the themes — tap one to apply it. Hit next when you've settled.",
   },
   {
     id: "c-nav-professional",
-    label: "professional",
+    label: "Professional",
     path: "/settings.html",
     targetSelector: '.settings-tab[data-tab="professional"]',
     placement: "bottom",
     advanceOn: "target",
-    title: "now the important one.",
-    body: "click the professional tab — this is where your consultant story lives.",
+    title: "Now the important one.",
+    body: "Click the professional tab — this is where your consultant story lives.",
   },
   {
     id: "c-education",
-    label: "education",
+    label: "Education",
     path: "/settings.html",
     hash: "#professional",
     targetSelector: "#consultant-education-section",
     allowedInteractive: ["#save-btn", "#consultant-education-section input", "#consultant-education-section textarea"],
     placement: "right",
     advanceOn: "next",
-    title: "education.",
-    body: "tell businesses where you study. major and school carry the most weight.",
+    title: "Education.",
+    body: "Tell businesses where you study. Major and school carry the most weight.",
   },
   {
     id: "c-resume",
-    label: "resume",
+    label: "Resume",
     path: "/settings.html",
     hash: "#professional",
     targetSelector: "#consultant-section",
     allowedInteractive: ["#save-btn", "#resume-input", "#pf-resume-upload-label", "#resume-current"],
     placement: "right",
     advanceOn: "next",
-    title: "drop in a resume.",
-    body: "pdf only. you can toggle it public or private any time — start hidden if it's still rough.",
+    title: "Drop in a resume.",
+    body: "PDF only. You can toggle it public or private any time — start hidden if it's still rough.",
   },
   {
     id: "c-portfolio",
-    label: "work",
+    label: "Work",
     path: "/settings.html",
     hash: "#professional",
     targetSelector: "#consultant-portfolio-section",
     allowedInteractive: ["#save-btn", "#portfolio-input", "#portfolio-desc", "#portfolio-list"],
     placement: "right",
     advanceOn: "next",
-    title: "past work.",
-    body: "add a few samples — decks, docs, images, video. real artifacts build trust faster than copy.",
+    title: "Past work.",
+    body: "Add a few samples — decks, docs, images, video. Real artifacts build trust faster than copy.",
   },
   {
     id: "c-preview-as-business",
-    label: "preview",
+    label: "Preview",
     path: "/settings.html",
     hash: "#professional",
     targetSelector: "#pf-preview-bar",
     allowedInteractive: ["#pf-preview-trigger", "#pf-preview-modal", "[data-pf-preview-close]"],
     placement: "right",
     advanceOn: "next",
-    title: "see yourself like a business does.",
-    body: "tap preview to open the same view businesses see when reading your proposals. iterate until it looks sharp.",
+    title: "See yourself like a business does.",
+    body: "Tap preview to open the same view businesses see when reading your proposals. Iterate until it looks sharp.",
   },
 
   // ── chapter 2: stripe payouts ──
   {
     id: "c-payouts-intro",
-    label: "payouts",
+    label: "Payouts",
     path: "/settings.html",
     targetSelector: null,
     placement: "center",
     advanceOn: "next",
-    title: "set up payouts — about 5 minutes.",
-    body: "we'll head to stripe next. you need this to make offers and get paid — no payout setup, no money in. it's fast: a few identity questions and a bank account.",
+    title: "Set up payouts — about 5 minutes.",
+    body: "We'll head to Stripe next. You need this to make offers and get paid — no payout setup, no money in. It's fast: a few identity questions and a bank account.",
   },
   {
     id: "c-nav-payouts",
-    label: "stripe",
+    label: "Stripe",
     path: "/payouts.html",
     targetSelector: "#po-onboarding-section, #po-status-card",
     allowedInteractive: ["#po-onboarding", "#po-onboarding *", "#po-onboarding-section"],
     placement: "right",
     advanceOn: "next",
-    title: "connect with stripe.",
-    body: "stripe runs identity + bank info for us. follow the prompts in the embedded form — when it says active, you're good. tap next here once you're done (or come back later).",
+    title: "Connect with Stripe.",
+    body: "Stripe runs identity + bank info for us. Follow the prompts in the embedded form — when it says active, you're good. Tap next here once you're done (or come back later).",
   },
 
   // ── chapter 3: dashboard journey ──
   {
     id: "c-dashboard-intro",
-    label: "home",
+    label: "Home",
     path: "/consultant-dashboard.html",
     targetSelector: "#cdash-welcome",
     placement: "bottom",
     advanceOn: "next",
-    title: "welcome to your home.",
-    body: "your dashboard tracks every active opportunity at a glance. let's walk through it.",
+    title: "Welcome to your home.",
+    body: "Your dashboard tracks every active opportunity at a glance. Let's walk through it.",
   },
   {
     id: "c-journey-panel",
-    label: "journey",
+    label: "Journey",
     path: "/consultant-dashboard.html",
     targetSelector: "#cdash-journey-panel",
     placement: "bottom",
     advanceOn: "next",
-    title: "the engagement journey.",
-    body: "every offer you submit shows up here as a plant. it grows across five stages — offer sent, accepted, kickoff scheduled, work delivered, payout received — and blooms when you're paid.",
+    title: "The engagement journey.",
+    body: "Every offer you submit shows up here as a plant. It grows across five stages — offer sent, accepted, kickoff scheduled, work delivered, payout received — and blooms when you're paid.",
   },
   {
     id: "c-journey-signals",
-    label: "signals",
+    label: "Signals",
     path: "/consultant-dashboard.html",
     targetSelector: "#cdash-journey-panel",
     placement: "bottom",
     advanceOn: "next",
-    title: "reading the signals.",
-    body: "stage tells you where the work stands. a leaf turning amber means a deadline is near. a pulsing badge on a plant means the business sent you a message. click any plant to jump to that engagement.",
+    title: "Reading the signals.",
+    body: "Stage tells you where the work stands. A leaf turning amber means a deadline is near. A pulsing badge on a plant means the business sent you a message. Click any plant to jump to that engagement.",
   },
   {
     id: "c-health",
-    label: "health",
+    label: "Health",
     path: "/consultant-dashboard.html",
     targetSelector: "#cdash-health",
     placement: "right",
     advanceOn: "next",
-    title: "keep your profile sharp.",
-    body: "this card flags anything missing from your profile. businesses skip incomplete profiles, so keep this in the green.",
+    title: "Keep your profile sharp.",
+    body: "This card flags anything missing from your profile. Businesses skip incomplete profiles, so keep this in the green.",
   },
 
   // ── chapter 4: mock listing + offer ──
   {
     id: "c-mock-intro",
-    label: "marketplace",
+    label: "Marketplace",
     path: "/consultant-dashboard.html",
     targetSelector: null,
     placement: "center",
     advanceOn: "next",
-    title: "let's read a listing together.",
-    body: "we'll open a sample opportunity next. the engagement is fake — nothing you do here charges money or notifies a real business.",
+    title: "Let's read a listing together.",
+    body: "We'll open a sample opportunity next. The engagement is fake — nothing you do here charges money or notifies a real business.",
   },
   {
     id: "c-listing-bio",
-    label: "business",
+    label: "Business",
     path: "/listing.html",
     query: "tutorial=1",
     targetSelector: "#ld-bio",
     placement: "right",
     advanceOn: "next",
-    title: "who you'd work with.",
-    body: "the about-the-business panel shows who's posting. read this first — fit matters as much as fee.",
+    title: "Who you'd work with.",
+    body: "The about-the-business panel shows who's posting. Read this first — fit matters as much as fee.",
   },
   {
     id: "c-listing-context",
-    label: "context",
+    label: "Context",
     path: "/listing.html",
     query: "tutorial=1",
     targetSelector: "#ld-context-section",
     placement: "right",
     advanceOn: "next",
-    title: "context — the back-story.",
-    body: "what's going on at the business. helps you read between the lines of the problem statement.",
+    title: "Context — the back-story.",
+    body: "What's going on at the business. Helps you read between the lines of the problem statement.",
   },
   {
     id: "c-listing-problem",
-    label: "problem",
+    label: "Problem",
     path: "/listing.html",
     query: "tutorial=1",
     targetSelector: 'details[open] > #ld-summary, #ld-summary',
     placement: "right",
     advanceOn: "next",
-    title: "business problem — the goal.",
-    body: "the outcome the business wants. your offer should speak directly to this.",
+    title: "Business problem — the goal.",
+    body: "The outcome the business wants. Your offer should speak directly to this.",
   },
   {
     id: "c-listing-output",
-    label: "output",
+    label: "Output",
     path: "/listing.html",
     query: "tutorial=1",
     targetSelector: "#ld-output-section",
     placement: "right",
     advanceOn: "next",
-    title: "standards of work.",
-    body: "what good output looks like — format, rigor, how it'll be used. quote your fee against this bar.",
+    title: "Standards of work.",
+    body: "What good output looks like — format, rigor, how it'll be used. Quote your fee against this bar.",
   },
   {
     id: "c-listing-question",
-    label: "question",
+    label: "Question",
     path: "/listing.html",
     query: "tutorial=1",
     targetSelector: "#ld-question-btn",
     allowedInteractive: ["#ld-question-btn"],
     placement: "right",
     advanceOn: "next",
-    title: "have a question?",
-    body: "use this to message the business before committing to a number. fewer surprises later.",
+    title: "Have a question?",
+    body: "Use this to message the business before committing to a number. Fewer surprises later.",
   },
   {
     id: "c-make-offer",
-    label: "offer",
+    label: "Offer",
     path: "/listing.html",
     query: "tutorial=1",
     targetSelector: "#ld-offer-panel",
     allowedInteractive: ["#ld-bid-amount", "#ld-offer-msg-toggle", "#ld-offer-msg-wrap", "#ld-bid-message", "#ld-offer-breakdown"],
     placement: "left",
     advanceOn: "next",
-    title: "make an offer.",
-    body: "type an amount. the breakdown beneath shows what the business pays and what you take home — the platform fee sits on the business, stripe processing comes out of your payout.",
+    title: "Make an offer.",
+    body: "Type an amount. The breakdown beneath shows what the business pays and what you take home. The platform fee and card processing come out of your offer.",
   },
   {
     id: "c-submit-offer",
-    label: "submit",
+    label: "Submit",
     path: "/listing.html",
     query: "tutorial=1",
     targetSelector: "#ld-bid-submit",
     allowedInteractive: ["#ld-bid-submit", "#ld-bid-amount", "#ld-bid-message"],
     placement: "left",
     advanceOn: "target",
-    title: "submit when you're ready.",
-    body: "this one's a dry run — go ahead and submit. nothing leaves the tutorial.",
+    title: "Submit when you're ready.",
+    body: "This one's a dry run — go ahead and submit. Nothing leaves the tutorial.",
   },
 
   // ── chapter 5: simulated garden ──
   {
     id: "c-garden-intro",
-    label: "garden",
+    label: "Garden",
     path: "/consultant-dashboard.html",
     query: "tutorial=garden",
     targetSelector: "#cdash-journey-panel",
     placement: "bottom",
     advanceOn: "next",
-    title: "your future garden.",
-    body: "every engagement you finish becomes a flower. we filled in a sample garden so you can see what a healthy quarter looks like.",
+    title: "Your future garden.",
+    body: "Every engagement you finish becomes a flower. We filled in a sample garden so you can see what a healthy quarter looks like.",
   },
   {
     id: "c-garden-drop",
-    label: "drag",
+    label: "Drag",
     path: "/consultant-dashboard.html",
     query: "tutorial=garden",
     targetSelector: ".ejf-garden-tile, [data-garden-tile], .ejf__garden",
     placement: "left",
     advanceOn: "next",
-    title: "drag to garden.",
-    body: "when an engagement blooms — stage five, payment received — drag the plant into your garden tile. it preserves the work as part of your portfolio.",
+    title: "Drag to garden.",
+    body: "When an engagement blooms — stage five, payment received — drag the plant into your garden tile. It preserves the work as part of your portfolio.",
   },
 
   {
     id: "c-complete",
-    label: "done",
+    label: "Done",
     path: null,
     targetSelector: null,
     placement: "center",
     advanceOn: "next",
-    title: "you're set.",
-    body: "your tutorial replay lives in settings → general. now go win some work.",
+    title: "You're set.",
+    body: "Your tutorial replay lives in Settings → General. Now go win some work.",
   },
 ];
 
@@ -989,7 +989,7 @@ const CONSULTANT_STEPS = [
 const BUSINESS_CHAPTERS = [
   {
     id: "profile-setup",
-    label: "profile setup",
+    label: "Profile setup",
     stepIds: [
       "edit-profile",
       "upload-photo",
@@ -1001,7 +1001,7 @@ const BUSINESS_CHAPTERS = [
   },
   {
     id: "create-listing",
-    label: "create listing",
+    label: "Create listing",
     stepIds: [
       "listing-choice",
       "lw-title", "lw-preview", "lw-contract",
@@ -1014,7 +1014,7 @@ const BUSINESS_CHAPTERS = [
     id: "listing-management",
     // Short label so the chip fits next to "profile setup" and
     // "create listing" without overflowing the bubble.
-    label: "manage",
+    label: "Manage",
     stepIds: [
       "dash-home-intro",
       "dash-listings-panel",
@@ -1031,7 +1031,7 @@ const BUSINESS_CHAPTERS = [
 const CONSULTANT_CHAPTERS = [
   {
     id: "c-profile-setup",
-    label: "profile setup",
+    label: "Profile setup",
     stepIds: [
       "c-edit-profile",
       "c-upload-photo",
@@ -1046,17 +1046,17 @@ const CONSULTANT_CHAPTERS = [
   },
   {
     id: "c-payouts",
-    label: "payouts",
+    label: "Payouts",
     stepIds: ["c-payouts-intro", "c-nav-payouts"],
   },
   {
     id: "c-dashboard",
-    label: "dashboard",
+    label: "Dashboard",
     stepIds: ["c-dashboard-intro", "c-journey-panel", "c-journey-signals", "c-health"],
   },
   {
     id: "c-first-offer",
-    label: "first offer",
+    label: "First offer",
     stepIds: [
       "c-mock-intro",
       "c-listing-bio",
@@ -1070,7 +1070,7 @@ const CONSULTANT_CHAPTERS = [
   },
   {
     id: "c-garden",
-    label: "garden",
+    label: "Garden",
     stepIds: ["c-garden-intro", "c-garden-drop"],
   },
 ];
@@ -1138,7 +1138,7 @@ function buildChapterNav(currentStepId, currentIdx) {
     const stepCount = stepIndices.length;
     const aria = isCurrent
       ? `${chapter.label} (active, ${stepCount} step${stepCount === 1 ? "" : "s"})`
-      : `jump to ${chapter.label} (${stepCount} step${stepCount === 1 ? "" : "s"})`;
+      : `Jump to ${chapter.label} (${stepCount} step${stepCount === 1 ? "" : "s"})`;
     const checkSvg = isVisited
       ? `<svg class='gr-onb-chapter-chip__check' viewBox='0 0 16 16' aria-hidden='true'><path d='M3 8.5 L6.5 12 L13 4.5' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>`
       : "";
@@ -1163,7 +1163,7 @@ function buildChapterNav(currentStepId, currentIdx) {
           idx < currentIdx ? "is-visited" :
           idx === currentIdx ? "is-current" :
           "is-future";
-        return `<button type='button' class='gr-onb-dot ${cls}' data-step-idx='${idx}' aria-label='go to ${escapeHtml(s.label)}' title='${escapeHtml(s.label)}'>
+        return `<button type='button' class='gr-onb-dot ${cls}' data-step-idx='${idx}' aria-label='Go to ${escapeHtml(s.label)}' title='${escapeHtml(s.label)}'>
           <span class='gr-onb-dot__hit'></span>
           <span class='gr-onb-dot__label'>${escapeHtml(s.label)}</span>
         </button>`;
@@ -1953,11 +1953,11 @@ function openConfirmModal() {
   modal.innerHTML = `
     <div class="gr-onb-confirm__backdrop" data-onb-confirm-action="resume"></div>
     <div class="gr-onb-confirm__card" role="dialog" aria-modal="true" aria-labelledby="gr-onb-confirm-title">
-      <h3 id="gr-onb-confirm-title" class="gr-onb-confirm__title">heading off?</h3>
-      <p class="gr-onb-confirm__body">looks like you're wandering. want to wrap the tutorial here, or pick it back up?</p>
+      <h3 id="gr-onb-confirm-title" class="gr-onb-confirm__title">Heading off?</h3>
+      <p class="gr-onb-confirm__body">Looks like you're wandering. Want to wrap the tutorial here, or pick it back up?</p>
       <div class="gr-onb-confirm__actions">
-        <button type="button" class="gr-onb-skip" data-onb-confirm-action="exit">exit tutorial</button>
-        <button type="button" class="gr-onb-btn gr-onb-btn--primary" data-onb-confirm-action="resume">resume</button>
+        <button type="button" class="gr-onb-skip" data-onb-confirm-action="exit">Exit tutorial</button>
+        <button type="button" class="gr-onb-btn gr-onb-btn--primary" data-onb-confirm-action="resume">Resume</button>
       </div>
     </div>
   `;
@@ -2132,21 +2132,21 @@ function buildTooltipMarkup(step) {
   // gets a "got it" close instead.
   const hasInlineAdvance = step.kind === "choice" || isLast;
   const primaryBtn = isLast
-    ? `<button type='button' class='gr-onb-btn gr-onb-btn--primary' data-onb-action='complete'>got it</button>`
+    ? `<button type='button' class='gr-onb-btn gr-onb-btn--primary' data-onb-action='complete'>Got it</button>`
     : (hasInlineAdvance
         ? ""
-        : `<button type='button' class='gr-onb-btn gr-onb-btn--primary' data-onb-action='advance'>next →</button>`);
+        : `<button type='button' class='gr-onb-btn gr-onb-btn--primary' data-onb-action='advance'>Next →</button>`);
 
   return `
-    <button type='button' class='gr-onb-close' data-onb-action='close' aria-label='close tutorial'>×</button>
-    <nav class='gr-onb-dotnav' aria-label='tutorial steps'>${dots}</nav>
+    <button type='button' class='gr-onb-close' data-onb-action='close' aria-label='Close tutorial'>×</button>
+    <nav class='gr-onb-dotnav' aria-label='Tutorial steps'>${dots}</nav>
     <h2 class='gr-onb-title'>${escapeHtml(resolveStepTitle(step))}</h2>
     <p class='gr-onb-body'>${escapeHtml(resolveStepBody(step))}</p>
     ${choicesHtml}
     <div class='gr-onb-actions'>
-      ${isFirst ? "" : `<button type='button' class='gr-onb-skip gr-onb-skip--back' data-onb-action='back'>← back</button>`}
+      ${isFirst ? "" : `<button type='button' class='gr-onb-skip gr-onb-skip--back' data-onb-action='back'>← Back</button>`}
       ${primaryBtn}
-      <button type='button' class='gr-onb-skip gr-onb-skip--end' data-onb-action='close'>skip</button>
+      <button type='button' class='gr-onb-skip gr-onb-skip--end' data-onb-action='close'>Skip</button>
     </div>
   `;
 }
@@ -2260,7 +2260,7 @@ async function handleChoice(btn) {
     // retry; success cases redirect or transition past this bubble.
     btn.disabled = true;
     const previousLabel = btn.textContent;
-    btn.textContent = "working…";
+    btn.textContent = "Working…";
     try {
       const result = await CHOICE_ACTIONS[actionName](state);
       // Action handler can override the natural "next step in array"
@@ -2279,7 +2279,7 @@ async function handleChoice(btn) {
       btn.textContent = previousLabel;
       const msg = err instanceof ListingOperationError
         ? err.message
-        : err?.message || "something went wrong.";
+        : err?.message || "Something went wrong.";
       showToast(msg, { kind: "error", duration: 5000 });
     }
     return;
@@ -2320,10 +2320,10 @@ function resolveCodaListingId(state) {
 const CHOICE_ACTIONS = {
   async exampleSaveDraft(state) {
     const listingId = resolveCodaListingId(state);
-    if (!listingId) throw new ListingOperationError("we couldn't find that listing to save.");
+    if (!listingId) throw new ListingOperationError("We couldn't find that listing to save.");
     const client = await getSupabaseClient();
     await convertListingToDraft(client, listingId);
-    showToast("saved as a draft. now delete it from your dashboard.", {
+    showToast("Saved as a draft. Now delete it from your dashboard.", {
       kind: "success",
       duration: 5000,
     });
@@ -2494,7 +2494,7 @@ function skip() {
   writeState(null);
   markOnboardedInDb();
   showToast(
-    "no sweat — replay this any time from settings → general.",
+    "No sweat — replay this any time from Settings → General.",
     { kind: "info", duration: 4500 }
   );
 }
@@ -2504,7 +2504,7 @@ function complete() {
   writeState(null);
   markOnboardedInDb();
   showToast(
-    "you're all set. find this tutorial in settings → general if you want a refresh.",
+    "You're all set. Find this tutorial in Settings → General if you want a refresh.",
     { kind: "success", duration: 4500 }
   );
 }

@@ -4,20 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,follow" />
-    <title>grassroots — consultant profile</title>
+    <title>Grassroots — consultant profile</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="stylesheet" href="/fonts.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <script src="/theme.js"></script>
+    <script src="/cookie-banner.js" defer></script>
   </head>
   <body class="gr-body"><main class="gr-shell">
-      <button type="button" class="ld-back" id="cp-back" style="background:none;border:0;font:inherit;cursor:pointer;padding:0;">&larr; back</button>
+      <button type="button" class="ld-back" id="cp-back" style="background:none;border:0;font:inherit;cursor:pointer;padding:0;">&larr; Back</button>
       <div class="gr-page-intro">
-        <h1 class="gr-title">consultant profile</h1>
-        <p class="gr-subtitle">review shared background, links, and work samples before you reach out.</p>
+        <h1 class="gr-title">Consultant profile</h1>
+        <p class="gr-subtitle">Review shared background, links, and work samples before you reach out.</p>
       </div>
-      <p id="status" class="gr-status" aria-live="polite">loading profile...</p>
+      <p id="status" class="gr-status" aria-live="polite">Loading profile...</p>
       <div id="profile-content" class="hidden"></div>
     </main>
 
@@ -26,8 +29,8 @@
       <div class="pf-resume-viewer__dialog" role="dialog" aria-modal="true" aria-labelledby="pf-resume-viewer-title">
         <div class="pf-resume-viewer__bar">
           <div>
-            <p class="pf-resume-viewer__eyebrow">resume preview</p>
-            <h2 class="pf-resume-viewer__title" id="pf-resume-viewer-title">resume</h2>
+            <p class="pf-resume-viewer__eyebrow">Resume preview</p>
+            <h2 class="pf-resume-viewer__title" id="pf-resume-viewer-title">Resume</h2>
           </div>
           <div class="pf-resume-viewer__controls">
             <a
@@ -37,7 +40,7 @@
               target="_blank"
               rel="noopener noreferrer"
               download
-              aria-label="download resume"
+              aria-label="Download resume"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M12 4v10"></path>
@@ -45,13 +48,13 @@
                 <path d="M5 19h14"></path>
               </svg>
             </a>
-            <button type="button" class="pf-resume-viewer__close" data-resume-viewer-close aria-label="close preview">
+            <button type="button" class="pf-resume-viewer__close" data-resume-viewer-close aria-label="Close preview">
               &times;
             </button>
           </div>
         </div>
         <div class="pf-resume-viewer__stage">
-          <iframe id="pf-resume-viewer-frame" class="pf-resume-viewer__frame" title="resume preview"></iframe>
+          <iframe id="pf-resume-viewer-frame" class="pf-resume-viewer__frame" title="Resume preview"></iframe>
         </div>
       </div>
     </div>
@@ -70,7 +73,7 @@
         return String(s ?? "").replace(/"/g, "&quot;");
       }
 
-      function getResumeActionMarkup(fileName, consultantId, previewLabel = "preview resume") {
+      function getResumeActionMarkup(fileName, consultantId, previewLabel = "Preview resume") {
         if (!consultantId) return "";
         const safeFileName = fileName || "resume";
         return `
@@ -88,7 +91,7 @@
               data-resume-action="download"
               data-resume-consultant-id="${escapeAttr(consultantId)}"
               data-resume-file-name="${escapeAttr(safeFileName)}"
-              aria-label="download resume"
+              aria-label="Download resume"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M12 4v10"></path>
@@ -162,7 +165,7 @@
         const supabase = await getSupabaseClient();
 
         if (!consultantId) {
-          statusEl.textContent = "no consultant specified.";
+          statusEl.textContent = "No consultant specified.";
           statusEl.className = "gr-status error";
           return;
         }
@@ -182,7 +185,7 @@
           const data = await res.json();
 
           if (!res.ok || !data.profile) {
-            statusEl.textContent = data.error || "consultant profile not found.";
+            statusEl.textContent = data.error || "Consultant profile not found.";
             statusEl.className = "gr-status error";
             return;
           }
@@ -202,7 +205,7 @@
           if (major || school) {
             const parts = [];
             if (major) parts.push(major);
-            if (minor) parts.push("minor in " + minor);
+            if (minor) parts.push("Minor in " + minor);
             if (school) parts.push(school);
             eduLine = parts.join(" \u00b7 ");
           }
@@ -211,7 +214,7 @@
           if (portfolioItems.length) {
             portfolioHtml = `
               <div class="pf-bv__section">
-                <p class="pf-bv__section-title">past experience</p>
+                <p class="pf-bv__section-title">Past experience</p>
                 <div class="pf-bv__portfolio-grid">
                   ${portfolioItems.map((item) => {
                     const fileName = (item.file_path || "").split("/").pop() || "file";
@@ -220,7 +223,7 @@
                       <div class="pf-bv__portfolio-card">
                         <span class="pf-bv__portfolio-card__name">${escapeHtml(fileName)}</span>
                         ${item.description ? `<span class="pf-bv__portfolio-card__desc">${escapeHtml(item.description)}</span>` : ""}
-                        <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">view</a>
+                        <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">View</a>
                       </div>
                     `;
                   }).join("")}
@@ -233,16 +236,16 @@
 
           const rating = data.rating;
           const dims = [
-            ["work product", rating?.work_product_quality_avg],
+            ["Work product", rating?.work_product_quality_avg],
             ["communication", rating?.communication_avg],
             ["timeliness", rating?.timeliness_avg],
             ["professionalism", rating?.professionalism_avg],
-            ["cost value", rating?.cost_value_avg],
+            ["Cost value", rating?.cost_value_avg],
           ];
           const ratingBreakdown = rating?.review_count
             ? `
               <div class="pf-bv__section">
-                <p class="pf-bv__section-title">ratings · ${rating.review_count} review${rating.review_count === 1 ? "" : "s"}</p>
+                <p class="pf-bv__section-title">Ratings · ${rating.review_count} review${rating.review_count === 1 ? "" : "s"}</p>
                 <div class="ld-cv__rating-grid">
                   ${dims.map(([label, val]) => `
                     <div class="ld-cv__rating-row">
@@ -269,21 +272,21 @@
 
               ${eduLine ? `
                 <div class="pf-bv__section">
-                  <p class="pf-bv__section-title">education</p>
+                  <p class="pf-bv__section-title">Education</p>
                   <p class="pf-bv__detail">${escapeHtml(eduLine)}</p>
                 </div>
               ` : ""}
 
               ${profile.linkedin_url ? `
                 <div class="pf-bv__section">
-                  <p class="pf-bv__section-title">linkedin</p>
+                  <p class="pf-bv__section-title">LinkedIn</p>
                   <p class="pf-bv__detail"><a href="${escapeHtml(profile.linkedin_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(profile.linkedin_url)}</a></p>
                 </div>
               ` : ""}
 
               ${profile.resume_on_file ? `
                 <div class="pf-bv__section">
-                  <p class="pf-bv__section-title">resume</p>
+                  <p class="pf-bv__section-title">Resume</p>
                   <div class="pf-bv__resume-row">
                     ${profile.resume_file_name ? `<span class="pf-bv__detail">${escapeHtml(profile.resume_file_name)}</span>` : ""}
                     ${getResumeActionMarkup(profile.resume_file_name, profile.id)}
@@ -294,7 +297,7 @@
               ${portfolioHtml}
 
               ${!profile.linkedin_url && !portfolioItems.length && !profile.resume_on_file && !eduLine ? `
-                <p class="pf-bv__empty">this consultant hasn't shared any public details yet.</p>
+                <p class="pf-bv__empty">This consultant hasn't shared any public details yet.</p>
               ` : ""}
             </div>
           `;
@@ -302,7 +305,7 @@
           statusEl.textContent = "";
           contentEl.classList.remove("hidden");
         } catch (err) {
-          statusEl.textContent = err.message || "could not load profile.";
+          statusEl.textContent = err.message || "Could not load profile.";
           statusEl.className = "gr-status error";
         }
       }

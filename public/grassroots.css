@@ -8,6 +8,8 @@
      collapsing component animates smoothly without bespoke max-height
      hacks. Browsers without support fall back to the un-animated state. */
   interpolate-size: allow-keywords;
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Figtree", system-ui, sans-serif;
   --ink: #0f1f1a;
   --green-deep: #1b4332;
   --green-mid: #2d6a4f;
@@ -78,7 +80,7 @@
   border-radius: var(--gr-avatar-radius, 12px);
   background: var(--gr-avatar-bg);
   color: var(--gr-avatar-fg);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-weight: 700;
   font-size: calc(var(--gr-avatar-size, 2.25rem) * 0.4);
   line-height: 1;
@@ -141,7 +143,7 @@ img.gr-listing-logo {
   margin: 0;
   min-height: 100vh;
   padding-top: 4.5rem;
-  font-family: Inter, system-ui, sans-serif;
+  font-family: var(--font-body);
   background: radial-gradient(
       ellipse 80% 60% at 70% 10%,
       rgba(180, 230, 198, 0.14),
@@ -154,7 +156,6 @@ img.gr-listing-logo {
     ),
     var(--sky);
   color: var(--ink);
-  text-transform: lowercase;
   -webkit-font-smoothing: antialiased;
   line-height: 1.5;
 }
@@ -207,7 +208,9 @@ img.gr-listing-logo {
 }
 
 .gr-nav__wordmark {
-  font-family: Syne, Inter, system-ui, sans-serif;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-style: normal;
   font-size: var(--type-h2);  font-weight: 700;
   letter-spacing: -0.03em;
   color: #f4f1eb;
@@ -329,7 +332,7 @@ img.gr-listing-logo {
   border: 1px solid rgba(143, 215, 180, 0.48);
   background: rgba(143, 215, 180, 0.14);
   color: #f4fffa !important;
-  font-family: Syne, Inter, system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-body);  font-weight: 700;
   letter-spacing: 0.01em;
   white-space: nowrap;
@@ -357,12 +360,14 @@ img.gr-listing-logo {
 
 /* --- Typography --- */
 .gr-title {
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--font-display);
   font-size: var(--type-h1);
   font-weight: 700;
   color: var(--green-deep);
   margin: 0 0 0.35rem;
   letter-spacing: -0.02em;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .gr-subtitle {
@@ -400,7 +405,7 @@ img.gr-listing-logo {
 }
 
 .gr-section-h {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -535,7 +540,6 @@ img.gr-listing-logo {
   margin-bottom: 1.25rem;
   font-size: var(--type-meta);  font-weight: 500;
   color: var(--tagline-body);
-  text-transform: lowercase;
 }
 
 .gr-oauth__divider::before,
@@ -915,7 +919,7 @@ img.gr-listing-logo {
   background: transparent;
   padding: 0.4rem 0;
   font: inherit;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);
   font-weight: 600;
   color: var(--fo-accent);
@@ -969,9 +973,11 @@ img.gr-listing-logo {
 }
 
 .pf-bv__name {
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--font-display);
   font-size: var(--type-h2);  font-weight: 700;
   color: var(--green-deep);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .pf-bv__meta {
@@ -1025,7 +1031,7 @@ img.gr-listing-logo {
 
 .pf-bv__resume-btn {
   padding: 0.42rem 0.9rem;
-  font-family: Inter, system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);  font-weight: 700;
   cursor: pointer;
 }
@@ -1147,8 +1153,10 @@ img.gr-listing-logo {
 
 .pf-resume-viewer__title {
   margin: 0;
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--font-display);
   font-size: var(--type-h2);  color: var(--green-deep);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .pf-resume-viewer__controls {
@@ -2123,7 +2131,7 @@ input[type="number"]::-webkit-inner-spin-button {
   justify-content: center;
   gap: 0.4rem;
   padding: 0.6rem 1.2rem;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-body);  font-weight: 600;
   letter-spacing: 0;
   text-decoration: none;
@@ -2493,6 +2501,24 @@ summary:focus-visible,
   font-size: var(--type-body);  color: var(--tagline-body);
 }
 
+.gr-auth-disclosure {
+  margin: 0.75rem 0 0;
+  font-size: var(--type-meta);
+  color: var(--fo-text-3, var(--tagline-body));
+  line-height: 1.45;
+}
+
+.gr-auth-disclosure a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.gr-auth-disclosure a:hover,
+.gr-auth-disclosure a:focus-visible {
+  color: var(--fo-accent);
+}
+
 .gr-action-spacer {
   flex: 1;
 }
@@ -2595,7 +2621,7 @@ summary:focus-visible,
   display: inline-flex;
   align-items: baseline;
   gap: 0.55rem;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -3043,8 +3069,10 @@ summary:focus-visible,
   --gr-avatar-radius: 16px;
   --gr-avatar-bg: var(--fo-accent-soft, rgba(45, 106, 79, 0.1));
   --gr-avatar-fg: var(--fo-accent, var(--green-mid));
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-size: var(--type-h1);  font-weight: 700;
+  font-weight: 600;
+  font-style: normal;
 }
 
 /* Card body */
@@ -3064,13 +3092,15 @@ summary:focus-visible,
 }
 
 .gr-listing-title {
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--font-display);
   font-size: var(--type-h3);  font-weight: 700;
   color: var(--green-deep);
   margin: 0;
   letter-spacing: -0.01em;
   flex: 1;
   min-width: 0;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .gr-listing-type-pill {
@@ -3179,7 +3209,6 @@ summary:focus-visible,
   margin: 0 0 0.5rem;
   font-size: var(--type-meta);  font-weight: 700;
   letter-spacing: 0.06em;
-  text-transform: lowercase;
   color: var(--green-mid);
 }
 
@@ -3227,9 +3256,11 @@ summary:focus-visible,
 }
 
 .gr-bid-amount {
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: var(--type-body);  color: var(--green-deep);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .gr-bid-meta {
@@ -3381,10 +3412,12 @@ button.gr-bid-link {
 
 .gr-empty-state--hero .gr-empty-state__title {
   margin: 0;
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-size: var(--type-h2);
   font-weight: 600;
   color: var(--fo-text);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .gr-empty-state--hero .gr-empty-state__sub {
@@ -3683,12 +3716,14 @@ button.gr-bid-link {
 }
 
 .ld-title {
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--font-display);
   font-size: var(--type-h1);
   font-weight: 700;
   color: var(--green-deep);
   margin: 0.35rem 0 0;
   letter-spacing: -0.02em;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .ld-date {
@@ -3712,11 +3747,13 @@ button.gr-bid-link {
 }
 
 .ld-section-h {
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--font-display);
   font-size: var(--type-h3);  font-weight: 700;
   color: var(--green-deep);
   margin: 0 0 0.5rem;
   letter-spacing: -0.01em;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .ld-body {
@@ -3746,7 +3783,6 @@ button.gr-bid-link {
 .ld-biz-card__heading {
   font-size: var(--type-eyebrow);  font-weight: 700;
   letter-spacing: 0.06em;
-  text-transform: lowercase;
   color: var(--tagline-body);
   margin: 0;
 }
@@ -3932,11 +3968,13 @@ button.gr-bid-link {
   display: block;
 }
 .ld-bid-card__avatar-fallback {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 1.6rem;
   color: var(--fo-accent, var(--green-mid));
-  text-transform: lowercase;
+  text-transform: uppercase;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .ld-bid-card__id {
@@ -3953,7 +3991,7 @@ button.gr-bid-link {
 }
 
 .ld-bid-card__name-btn {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-weight: 700;
   font-size: var(--type-h2);
   letter-spacing: -0.01em;
@@ -3991,7 +4029,7 @@ button.gr-bid-link {
    from the consultant's consultant_profiles row via educationMap. */
 .ld-bid-card__bio {
   margin: 0.15rem 0 0;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);
   color: var(--fo-text-3, var(--muted));
   white-space: nowrap;
@@ -4014,12 +4052,14 @@ button.gr-bid-link {
   gap: 0.55rem;
 }
 .ld-bid-card__amount-value {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--type-h2);
   letter-spacing: -0.01em;
   color: var(--fo-text, var(--green-deep));
   line-height: 1.05;
+  font-weight: 600;
+  font-style: normal;
 }
 
 /* Phased "accept proposal" — was a tiny checkbox + label that owners
@@ -4031,7 +4071,7 @@ button.gr-bid-link {
   align-items: center;
   gap: 0.45rem;
   padding: 0.4rem 0.85rem;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);
   font-weight: 600;
   color: var(--fo-accent, var(--green-deep));
@@ -4132,14 +4172,16 @@ button.gr-bid-link {
 }
 
 .ld-proposal-cta__total {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--type-h3);
   color: var(--fo-text, var(--green-deep));
+  font-weight: 600;
+  font-style: normal;
 }
 
 .ld-bid-card__amount-tag {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-weight: 500;
   font-size: var(--type-meta);
   letter-spacing: 0;
@@ -4190,7 +4232,7 @@ button.gr-bid-link {
   background: transparent;
   border: 0;
   padding: 0.35rem 0;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);
   font-weight: 600;
   color: var(--fo-text-2, var(--muted));
@@ -4253,11 +4295,10 @@ button.gr-bid-link {
   gap: 0.4rem;
   padding: 0.22rem 0.65rem;
   border-radius: 999px;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);  font-weight: 700;
   letter-spacing: 0.04em;
   white-space: nowrap;
-  text-transform: lowercase;
 }
 
 .gr-pill::before {
@@ -4319,7 +4360,7 @@ button.gr-bid-link {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);
   color: var(--fo-text-2, var(--muted));
   vertical-align: middle;
@@ -4548,7 +4589,7 @@ button.gr-bid-link {
   flex: 1;
   resize: vertical;
   min-height: 38px;
-  font-family: Inter, system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-body);  padding: 0.45rem 0.65rem;
   border: 1px solid var(--input-border);
   border-radius: 10px;
@@ -4596,7 +4637,7 @@ button.gr-bid-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: Inter, system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-h3);  font-weight: 700;
   letter-spacing: 0.01em;
   color: #fff;
@@ -4642,7 +4683,7 @@ button.gr-bid-link {
 
 .ms-search {
   width: 100%;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-body);
   padding: 0.6rem 0.85rem;
   border-radius: 10px;
@@ -4823,7 +4864,7 @@ button.gr-bid-link {
 /* "suggestion box" label that floats to the left of the floating
    button on hover/focus — clarifies what the icon-only chip is. */
 .gr-suggest-btn::after {
-  content: "suggestion box";
+  content: "Suggestion box";
   position: absolute;
   top: 50%;
   right: calc(100% + 10px);
@@ -4832,7 +4873,7 @@ button.gr-bid-link {
   border-radius: 8px;
   background: rgba(15, 31, 26, 0.92);
   color: rgba(255, 255, 255, 0.92);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: 0.78rem;
   font-weight: 500;
   letter-spacing: 0.01em;
@@ -4923,11 +4964,13 @@ button.gr-bid-link {
 }
 
 .gr-suggest-popup__title {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-size: var(--type-h3);  font-weight: 700;
   color: var(--fo-text);
   margin: 0 0 1rem;
   line-height: 1.4;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .gr-suggest-popup__textarea {
@@ -4969,7 +5012,7 @@ button.gr-bid-link {
   border-radius: 999px;
   border: 1px dashed var(--fo-line-strong, var(--card-border));
   color: var(--fo-text-2, var(--muted));
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);
   font-weight: 600;
   cursor: pointer;
@@ -5147,7 +5190,7 @@ button.gr-bid-link {
 
 .pay-modal__eyebrow {
   margin: 0 0 0.2rem;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -5157,10 +5200,12 @@ button.gr-bid-link {
 
 .pay-modal__title {
   margin: 0;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--type-h2);
   color: var(--fo-text);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .pay-modal__close {
@@ -5210,14 +5255,15 @@ button.gr-bid-link {
 }
 
 .pay-modal__amount strong {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: 1.25rem;
   color: var(--fo-text);
+  font-weight: 600;
+  font-style: normal;
 }
 
-/* Itemized checkout: offer + Stripe fee (strikethrough, absorbed by
-   consultant) + platform fee (strikethrough, waived during launch) +
-   final total. Same visual frame as .pay-modal__amount. */
+/* Checkout total. Pricing is all-in, so it's a single line. Same
+   visual frame as .pay-modal__amount. */
 .pay-modal__breakdown {
   display: flex;
   flex-direction: column;
@@ -5256,13 +5302,6 @@ button.gr-bid-link {
   font-weight: 600;
 }
 
-.pay-modal__line-value--strike {
-  color: var(--fo-text-3);
-  text-decoration: line-through;
-  text-decoration-thickness: 1.5px;
-  font-weight: 500;
-}
-
 .pay-modal__line--passthrough .pay-modal__line-label {
   color: var(--fo-text-3);
 }
@@ -5280,9 +5319,11 @@ button.gr-bid-link {
 }
 
 .pay-modal__line--total .pay-modal__line-value {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: 1.25rem;
   font-weight: 600;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .pay-modal__element {
@@ -5361,7 +5402,7 @@ button.gr-bid-link {
   gap: 0.6rem;
   padding: 0.75rem 1rem;
   cursor: pointer;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);
   font-weight: 600;
   color: var(--fo-text-2);
@@ -5476,7 +5517,7 @@ button.gr-bid-link {
 }
 
 .po-balance__value {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-size: var(--type-h3);
   font-weight: 600;
   color: var(--fo-text);
@@ -5485,6 +5526,8 @@ button.gr-bid-link {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 600;
+  font-style: normal;
 }
 
 @media (max-width: 560px) {
@@ -5619,7 +5662,7 @@ button.gr-bid-link {
   border-radius: 12px;
   box-shadow: 0 14px 32px rgba(0, 0, 0, 0.32),
               0 2px 6px rgba(0, 0, 0, 0.18);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: 13px;
   line-height: 1.35;
   color: var(--fo-text, #0f1f1a);
@@ -5844,7 +5887,7 @@ button.gr-bid-link {
   padding-left: 1.35rem;
   font-size: var(--type-meta);
   color: var(--fo-text-3, var(--tagline-body, #7a8b82));
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   transition: color 0.15s ease;
 }
 
@@ -5936,3 +5979,118 @@ button.gr-bid-link {
 .gr-pw-toggle .gr-pw-toggle__eye-off { display: none; }
 .gr-pw-toggle--shown .gr-pw-toggle__eye { display: none; }
 .gr-pw-toggle--shown .gr-pw-toggle__eye-off { display: inline-block; }
+
+/* Type system: Fraunces for headings and the wordmark, Figtree for everything else.
+   Tokens: --font-display / --font-body (see brandkit.md). */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-style: normal;
+}
+button, input, select, textarea {
+  font-family: var(--font-body);
+}
+
+/* --- Cookie notice banner ---
+   Light dismissible bottom-bar that explains we use cookies. Injected by
+   /cookie-banner.js once per visitor; remembered via localStorage. Pinned
+   bottom-right on desktop, full-width across the bottom on small screens.
+   z-index sits above page chrome but below modals (1500-1700) so opening
+   a modal hides it cleanly. */
+.gr-cookie-banner {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  left: auto;
+  z-index: 1400;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 28rem;
+  padding: 0.7rem 0.85rem 0.7rem 1rem;
+  background: var(--fo-surface);
+  color: var(--fo-text);
+  border: 1px solid var(--fo-line);
+  border-radius: 999px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  transform: translateY(0.75rem);
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+
+:root:not([data-theme="light"]) .gr-cookie-banner {
+  /* dark themes get a slightly different fill for legibility against the
+     transparent card pattern used elsewhere. */
+  background: var(--fo-surface-2);
+}
+
+.gr-cookie-banner.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.gr-cookie-banner.is-leaving {
+  opacity: 0;
+  transform: translateY(0.5rem);
+}
+
+.gr-cookie-banner__msg {
+  margin: 0;
+  font-size: var(--type-meta);
+  line-height: 1.4;
+  color: var(--fo-text-2);
+}
+
+.gr-cookie-banner__link {
+  color: var(--fo-accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  white-space: nowrap;
+}
+
+.gr-cookie-banner__link:hover,
+.gr-cookie-banner__link:focus-visible {
+  text-decoration: none;
+}
+
+.gr-cookie-banner__dismiss {
+  flex-shrink: 0;
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: var(--type-meta);
+  font-weight: 600;
+  background: var(--fo-accent);
+  color: var(--fo-accent-on);
+  transition: filter 0.15s ease;
+}
+
+.gr-cookie-banner__dismiss:hover,
+.gr-cookie-banner__dismiss:focus-visible {
+  filter: brightness(1.05);
+  outline: none;
+}
+
+@media (max-width: 560px) {
+  .gr-cookie-banner {
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    max-width: none;
+    border-radius: 16px;
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gr-cookie-banner {
+    transition: opacity 0.12s linear;
+    transform: none;
+  }
+  .gr-cookie-banner.is-leaving { transform: none; }
+}

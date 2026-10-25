@@ -4,25 +4,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,follow" />
-    <title>grassroots — notifications</title>
+    <title>Grassroots — notifications</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="stylesheet" href="/fonts.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
     <script src="/theme.js"></script>
+    <script src="/cookie-banner.js" defer></script>
     <script src="/loading-overlay.js"></script>
   </head>
   <body class="gr-body"><main class="gr-shell gr-shell--wide">
       <div class="gr-page-intro">
-        <h1 class="gr-title">notifications</h1>
-        <p class="gr-subtitle">stay in the loop on your bids, meetings, and messages.</p>
+        <h1 class="gr-title">Notifications</h1>
+        <p class="gr-subtitle">Stay in the loop on your bids, meetings, and messages.</p>
       </div>
 
-      <p id="gate" class="gr-status" data-loading="true" aria-live="polite">loading…</p>
+      <p id="gate" class="gr-status" data-loading="true" aria-live="polite">Loading…</p>
 
       <div class="gr-notif-controls" id="notif-controls" hidden>
-        <div class="gr-notif-filters" id="notif-filters" role="tablist" aria-label="filter notifications"></div>
-        <button type="button" class="gr-notif-mark-all" id="notif-mark-all" hidden>mark all read</button>
+        <div class="gr-notif-filters" id="notif-filters" role="tablist" aria-label="Filter notifications"></div>
+        <button type="button" class="gr-notif-mark-all" id="notif-mark-all" hidden>Mark all read</button>
       </div>
 
       <div id="notif-list" class="gr-notification-feed"></div>

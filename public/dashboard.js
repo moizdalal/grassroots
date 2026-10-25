@@ -49,11 +49,11 @@ const escape = (s) =>
     .replace(/"/g, "&quot;");
 
 const STATE_LABELS = {
-  open: "live",
-  hired: "in progress",
-  paused: "paused",
-  closed: "closed",
-  draft: "draft",
+  open: "Live",
+  hired: "In progress",
+  paused: "Paused",
+  closed: "Closed",
+  draft: "Draft",
 };
 
 const isMissing = (err) =>
@@ -63,7 +63,7 @@ function relTime(iso) {
   if (!iso) return "";
   const d = new Date(iso);
   const diff = (Date.now() - d.getTime()) / 1000;
-  if (diff < 60) return "just now";
+  if (diff < 60) return "Just now";
   if (diff < 3600) return `${Math.round(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.round(diff / 3600)}h ago`;
   if (diff < 604800) return `${Math.round(diff / 86400)}d ago`;
@@ -108,13 +108,13 @@ const HEALTH_PALETTE = [
 
 function profileCompleteness(profile, biz) {
   const fields = [
-    { label: "full name", filled: !!profile?.full_name },
-    { label: "profile photo", filled: !!profile?.avatar_path },
-    { label: "business name", filled: !!biz?.business_name },
-    { label: "business bio", filled: !!biz?.business_details },
-    { label: "address", filled: !!biz?.business_address },
+    { label: "Full name", filled: !!profile?.full_name },
+    { label: "Profile photo", filled: !!profile?.avatar_path },
+    { label: "Business name", filled: !!biz?.business_name },
+    { label: "Business bio", filled: !!biz?.business_details },
+    { label: "Address", filled: !!biz?.business_address },
     {
-      label: "website or social",
+      label: "Website or social",
       filled: !!biz?.website_url || !!biz?.instagram_url || !!biz?.facebook_url,
     },
   ];
@@ -125,9 +125,9 @@ function profileCompleteness(profile, biz) {
   const missing = fields.filter((f) => !f.filled).map((f) => f.label);
   let tierName;
   if (pct >= 100) tierName = "complete";
-  else if (pct >= 67) tierName = "almost there";
-  else if (pct >= 34) tierName = "needs attention";
-  else tierName = "needs love";
+  else if (pct >= 67) tierName = "Almost there";
+  else if (pct >= 34) tierName = "Needs attention";
+  else tierName = "Needs love";
   return { pct, done, total, fields, missing, tierName };
 }
 
@@ -168,7 +168,7 @@ async function loadData(client, userId) {
   ]);
 
   if (profileRes.error) {
-    const e = new Error(profileRes.error.message || "could not load profile.");
+    const e = new Error(profileRes.error.message || "Could not load profile.");
     e.kind = "profile";
     throw e;
   }
@@ -330,7 +330,7 @@ function daysOpenLabel(createdAt) {
   if (!createdAt) return "";
   const ms = Date.now() - new Date(createdAt).getTime();
   const days = Math.floor(ms / 86400000);
-  if (days <= 0) return "open today";
+  if (days <= 0) return "Open today";
   if (days === 1) return "1 day open";
   if (days < 30) return `${days} days open`;
   const months = Math.floor(days / 30);
@@ -379,10 +379,10 @@ function listingPrimaryAction(l, schedulesByBidId) {
     const sched = schedulesByBidId?.[accepted.id];
     const status = sched?.status || "awaiting_owner";
     if (!sched || status === "awaiting_owner") {
-      return { label: "share availability", kind: "schedule", href: `/engagement.html?bid=${accepted.id}` };
+      return { label: "Share availability", kind: "schedule", href: `/engagement.html?bid=${accepted.id}` };
     }
     if (status === "scheduled") {
-      return { label: "mark complete", kind: "complete", href: `/engagement.html?bid=${accepted.id}` };
+      return { label: "Mark complete", kind: "complete", href: `/engagement.html?bid=${accepted.id}` };
     }
     if (status === "awaiting_consultant") {
       // Owner shared availability — ball's in the consultant's court.
@@ -391,7 +391,7 @@ function listingPrimaryAction(l, schedulesByBidId) {
       // an action item. `quiet: true` keeps `needsAction` false so
       // the listing isn't sorted to the top or tagged "needs you".
       return {
-        label: "manage",
+        label: "Manage",
         kind: "manage",
         quiet: true,
         href: `/engagement.html?bid=${accepted.id}`,
@@ -402,7 +402,7 @@ function listingPrimaryAction(l, schedulesByBidId) {
   if (state === "open") {
     const pending = bids.filter((b) => b.status === "pending" || b.status === "submitted").length;
     if (pending > 0) {
-      return { label: pending === 1 ? "review offer" : "review offers", kind: "offers", href: `/listing.html?id=${l.id}` };
+      return { label: pending === 1 ? "Review offer" : "Review offers", kind: "offers", href: `/listing.html?id=${l.id}` };
     }
   }
 
@@ -434,7 +434,7 @@ function listingRowHtml(l, schedulesByBidId) {
   const offerLabel = offerCount === 1 ? "1 offer" : `${offerCount} offers`;
   const openLabel = daysOpenLabel(l.created_at);
   const stalePill = isStaleListing(l)
-    ? `<span class="gr-pill gr-pill--warn gr-pill--no-dot" title="open more than four weeks">stale</span>`
+    ? `<span class="gr-pill gr-pill--warn gr-pill--no-dot" title="Open more than four weeks">Stale</span>`
     : "";
 
   // Dashboard rows stay slim — state pill, days open, offer count,
@@ -456,8 +456,8 @@ function listingRowHtml(l, schedulesByBidId) {
     ? `<a class="bza__row-cta bza__row-cta--${escape(action.kind)}" href="${escape(action.href)}">${escape(action.label)} →</a>`
     : state === "draft"
     ? `<div class="bza__row-cta-group">
-         <a class="bza__row-cta bza__row-cta--draft" href="/create-listing.html?draft=${escape(l.id)}">finish &amp; publish →</a>
-         <button type="button" class="bza__row-draft-delete" data-draft-delete-id="${escape(l.id)}" data-draft-title="${escape(l.title || "untitled")}" aria-label="delete draft">delete</button>
+         <a class="bza__row-cta bza__row-cta--draft" href="/create-listing.html?draft=${escape(l.id)}">Finish &amp; publish →</a>
+         <button type="button" class="bza__row-draft-delete" data-draft-delete-id="${escape(l.id)}" data-draft-title="${escape(l.title || "Untitled")}" aria-label="Delete draft">Delete</button>
        </div>`
     : "";
 
@@ -465,7 +465,7 @@ function listingRowHtml(l, schedulesByBidId) {
   // so the prompt to finish the listing reads at the same glance as
   // the title itself. Stays until the draft is published.
   const needsYouPill = state === "draft"
-    ? `<span class="bza__row-needs-you" title="this draft hasn't been published yet">needs you</span>`
+    ? `<span class="bza__row-needs-you" title="This draft hasn't been published yet">Needs you</span>`
     : "";
 
   // Pulse the state dot whenever the owner has something to do here —
@@ -481,7 +481,7 @@ function listingRowHtml(l, schedulesByBidId) {
       <a class="bza__row-link" href="/listing.html?id=${escape(l.id)}">
         <span class="${stateDotClass}"></span>
         <div class="bza__row-main">
-          <h3 class="bza__row-title">${escape(l.title || "untitled")}${needsYouPill}${stalePill}</h3>
+          <h3 class="bza__row-title">${escape(l.title || "Untitled")}${needsYouPill}${stalePill}</h3>
           <div class="bza__row-meta">${metaBits}</div>
         </div>
         <div class="bza__row-budget">${escape(budgetText)}</div>
@@ -530,7 +530,7 @@ function ownerListingCardHtml(l, schedulesByBidId) {
   const tagsHtml = categories.length
     ? `<div class="gr-listing-tags">${
         visibleTags
-          .map((c) => `<span class="gr-listing-tag">${escape(c)}</span>`)
+          .map((c) => `<span class="gr-listing-tag">${escape(capFirst(c))}</span>`)
           .join("")
       }${
         overflow > 0
@@ -548,7 +548,7 @@ function ownerListingCardHtml(l, schedulesByBidId) {
   // availability) render a link but don't count as action-needing —
   // they shouldn't pull focus or tag the card "needs you".
   const isDraft = state === "draft";
-  const ctaText = action ? action.label : isDraft ? "finish & publish" : "open listing";
+  const ctaText = action ? action.label : isDraft ? "Finish & publish" : "Open listing";
   const ctaHref = action ? action.href : isDraft ? `/create-listing.html?draft=${l.id}` : `/listing.html?id=${l.id}`;
   const needsAction = (!!action && !action.quiet) || isDraft;
 
@@ -558,7 +558,7 @@ function ownerListingCardHtml(l, schedulesByBidId) {
   // live. Wrapping in a container lets the button live as a sibling
   // of the anchor (nested interactives aren't valid HTML).
   const deleteBadge = isDraft
-    ? `<button type="button" class="ml-card__delete" data-draft-delete-id="${escape(l.id)}" data-draft-title="${escape(l.title || "untitled")}" aria-label="delete draft">delete</button>`
+    ? `<button type="button" class="ml-card__delete" data-draft-delete-id="${escape(l.id)}" data-draft-title="${escape(l.title || "Untitled")}" aria-label="Delete draft">Delete</button>`
     : "";
 
   return `
@@ -566,11 +566,11 @@ function ownerListingCardHtml(l, schedulesByBidId) {
       <a class="gr-listing-card ml-card ml-card--${escape(state)}${needsAction ? " ml-card--needs-action" : ""}" href="${escape(ctaHref)}">
         <span class="ml-card__dot" style="background:${dotColor}" aria-label="${escape(stateLabel)}" title="${escape(stateLabel)}"></span>
         <div class="gr-listing-card-eyebrow">
-          ${needsAction ? `<span class="ml-card__action-tag">needs you</span>` : ""}
-          ${isStaleListing(l) ? `<span class="gr-pill gr-pill--warn gr-pill--no-dot" title="open more than four weeks">stale</span>` : ""}
+          ${needsAction ? `<span class="ml-card__action-tag">Needs you</span>` : ""}
+          ${isStaleListing(l) ? `<span class="gr-pill gr-pill--warn gr-pill--no-dot" title="Open more than four weeks">Stale</span>` : ""}
           ${recencyLabel ? `<span class="ml-card__recency">${escape(recencyLabel)}</span>` : ""}
         </div>
-        <h2 class="gr-listing-title">${escape(l.title || "untitled")}</h2>
+        <h2 class="gr-listing-title">${escape(l.title || "Untitled")}</h2>
         <div class="gr-listing-card-head ml-card__head">
           <div class="gr-listing-card-meta ml-card__meta">
             <p class="gr-listing-biz-name ml-card__offers">${escape(offerLabel)}</p>
@@ -719,9 +719,9 @@ function inboxRowHtml(client, t, consultants, listingTitle) {
     <a href="/listing.html?id=${escape(t.listingId)}" class="bza__inbox-row" style="text-decoration:none">
       ${avatarHtml(client, c?.avatar_path, initial)}
       <div style="min-width:0">
-        ${listingTitle ? `<div class="bza__inbox-listing">re: ${escape(listingTitle)}</div>` : ""}
+        ${listingTitle ? `<div class="bza__inbox-listing">Re: ${escape(listingTitle)}</div>` : ""}
         <div class="bza__inbox-name">${escape(name)} ${ratingChip}${unread}</div>
-        <div class="bza__inbox-msg">${t.lastFromMe ? "you: " : ""}${escape(t.lastBody)}</div>
+        <div class="bza__inbox-msg">${t.lastFromMe ? "You: " : ""}${escape(t.lastBody)}</div>
       </div>
       <div class="bza__inbox-time">${escape(relTime(t.lastAt))}</div>
     </a>
@@ -759,7 +759,7 @@ function buildAgendaEvents(listings, bidsByListing, schedulesByBidId, consultant
   const consultantName = (id) => consultants?.[id]?.full_name || "consultant";
 
   for (const l of listings) {
-    const listingTitle = l.title || "your listing";
+    const listingTitle = l.title || "Your listing";
     const bids = l.__bids || [];
     const accepted = bids.find((b) => b.status === "accepted");
 
@@ -771,7 +771,7 @@ function buildAgendaEvents(listings, bidsByListing, schedulesByBidId, consultant
         events.push({
           kind: "meeting",
           when: start,
-          title: `kickoff with ${consultantName(accepted.consultant_id)}`,
+          title: `Kickoff with ${consultantName(accepted.consultant_id)}`,
           consultantId: accepted.consultant_id,
           subtitle: listingTitle,
           href: `/engagement.html?bid=${accepted.id}`,
@@ -784,7 +784,7 @@ function buildAgendaEvents(listings, bidsByListing, schedulesByBidId, consultant
         events.push({
           kind: "proposal",
           when: due,
-          title: `proposal due — ${consultantName(accepted.consultant_id)}`,
+          title: `Proposal due — ${consultantName(accepted.consultant_id)}`,
           consultantId: accepted.consultant_id,
           subtitle: listingTitle,
           href: `/engagement.html?bid=${accepted.id}`,
@@ -801,7 +801,7 @@ function buildAgendaEvents(listings, bidsByListing, schedulesByBidId, consultant
           kind: "closing",
           when: close,
           title: `"${listingTitle}" closes`,
-          subtitle: "marketplace listing window ends",
+          subtitle: "Marketplace listing window ends",
           href: `/listing.html?id=${l.id}`,
         });
       }
@@ -813,7 +813,7 @@ function buildAgendaEvents(listings, bidsByListing, schedulesByBidId, consultant
 }
 
 function formatAgendaTime(date) {
-  return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase();
+  return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
 
 function renderOwnerAgenda(events) {
@@ -846,7 +846,7 @@ function renderOwnerAgenda(events) {
             `
             )
             .join("")
-        : '<p class="dash-agenda-empty">nothing scheduled</p>';
+        : '<p class="dash-agenda-empty">Nothing scheduled</p>';
       return `
         <div class="dash-agenda-day${day.rel === "today" ? " is-today" : ""}">
           <div class="dash-agenda-day__h">
@@ -875,10 +875,10 @@ function renderDashboard(client, data) {
     userAvatar.innerHTML = avatarUrl ? `<img src="${escape(avatarUrl)}" alt=""/>` : escape(ui);
   }
   const userName = $("dash-user-name");
-  if (userName) userName.textContent = profile?.full_name || "your account";
+  if (userName) userName.textContent = profile?.full_name || "Your account";
   const userRole = $("dash-user-role");
   if (userRole) {
-    userRole.textContent = profile?.role === "consultant" ? "consultant" : "business owner";
+    userRole.textContent = profile?.role === "consultant" ? "Consultant" : "Business owner";
   }
 
   // sidebar badges
@@ -925,13 +925,13 @@ function renderDashboard(client, data) {
     const t = l.created_at ? Date.parse(l.created_at) : NaN;
     return Number.isFinite(t) && (now - t) > STALE_AFTER_MS;
   }).length;
-  let welcomeLine = `welcome back, ${firstName}.`;
+  let welcomeLine = `Welcome back, ${firstName}.`;
   if (newOffers > 0 && staleListings > 0) {
-    welcomeLine = `welcome back, ${firstName}. ${newOffers} new offer${newOffers === 1 ? "" : "s"} and ${staleListings} listing${staleListings === 1 ? "" : "s"} going stale.`;
+    welcomeLine = `Welcome back, ${firstName}. ${newOffers} new offer${newOffers === 1 ? "" : "s"} and ${staleListings} listing${staleListings === 1 ? "" : "s"} going stale.`;
   } else if (newOffers > 0) {
-    welcomeLine = `welcome back, ${firstName}. ${newOffers} new offer${newOffers === 1 ? "" : "s"} to review.`;
+    welcomeLine = `Welcome back, ${firstName}. ${newOffers} new offer${newOffers === 1 ? "" : "s"} to review.`;
   } else if (staleListings > 0) {
-    welcomeLine = `welcome back, ${firstName}. ${staleListings} listing${staleListings === 1 ? "" : "s"} could use a refresh.`;
+    welcomeLine = `Welcome back, ${firstName}. ${staleListings} listing${staleListings === 1 ? "" : "s"} could use a refresh.`;
   }
   $("dash-welcome").textContent = welcomeLine;
 
@@ -1016,7 +1016,7 @@ function renderDashboard(client, data) {
       btn.classList.add("active");
       const state = btn.dataset.state;
       const filtered = state === "all" ? listings : listings.filter((l) => listingState(l) === state);
-      listingsRows.innerHTML = filtered.length ? filtered.map(renderRow).join("") : `<p class="gr-empty-state" style="padding:1rem">no listings in this state.</p>`;
+      listingsRows.innerHTML = filtered.length ? filtered.map(renderRow).join("") : `<p class="gr-empty-state" style="padding:1rem">No listings in this state.</p>`;
     });
     tabsHost.dataset.bound = "1";
   }
@@ -1038,7 +1038,7 @@ function renderDashboard(client, data) {
   if (!unreadThreads.length) {
     if (inboxEmpty) {
       inboxEmpty.hidden = false;
-      inboxEmpty.textContent = "you're all caught up.";
+      inboxEmpty.textContent = "You're all caught up.";
       inboxEmpty.classList.add("dash-inbox-empty--caught-up");
     }
     if (inboxPreview) inboxPreview.innerHTML = "";
@@ -1097,14 +1097,14 @@ function renderDashboard(client, data) {
     panel.classList.toggle("is-incomplete", !isComplete);
 
     let copy;
-    if (isComplete) copy = "your profile is complete. consultants can see exactly who they'd work with.";
-    else if (health.missing.length === 1) copy = `add your ${health.missing[0]} to finish your profile.`;
-    else copy = `still missing: ${health.missing.slice(0, 3).join(", ")}${health.missing.length > 3 ? `, +${health.missing.length - 3} more` : ""}.`;
+    if (isComplete) copy = "Your profile is complete. Consultants can see exactly who they'd work with.";
+    else if (health.missing.length === 1) copy = `Add your ${health.missing[0]} to finish your profile.`;
+    else copy = `Still missing: ${health.missing.slice(0, 3).join(", ")}${health.missing.length > 3 ? `, +${health.missing.length - 3} more` : ""}.`;
 
     let ctaText;
-    if (isComplete) ctaText = "profile is complete ✓";
-    else if (health.missing.length === 1) ctaText = `add your ${health.missing[0]}`;
-    else ctaText = `complete your profile · ${health.missing.length} left`;
+    if (isComplete) ctaText = "Profile is complete ✓";
+    else if (health.missing.length === 1) ctaText = `Add your ${health.missing[0]}`;
+    else ctaText = `Complete your profile · ${health.missing.length} left`;
 
     const tierColor =
       health.pct >= 67 ? "var(--fo-accent)" : health.pct >= 34 ? "var(--fo-do)" : "var(--fo-plan)";
@@ -1146,7 +1146,7 @@ function renderDashboard(client, data) {
         return;
       }
       renderAnalyticsPanel(analyticsHost, analytics, {
-        title: "performance",
+        title: "Performance",
         compact: true,
       });
     });
@@ -1185,36 +1185,36 @@ function renderDashboard(client, data) {
    param above. Delete with that block. */
 const FAKE_ROOTS = [
   { bidId: "fake-1", listingId: "fake-listing-1",
-    listingTitle: "weekend bakery sales push",
-    consultantName: "jordan kim", amountCents: 32000,
+    listingTitle: "Weekend bakery sales push",
+    consultantName: "Jordan Kim", amountCents: 32000,
     releasedAt: "2026-04-12T15:30:00Z" },
   { bidId: "fake-2", listingId: "fake-listing-2",
-    listingTitle: "instagram content refresh",
-    consultantName: "sam chen", amountCents: 18000,
+    listingTitle: "Instagram content refresh",
+    consultantName: "Sam Chen", amountCents: 18000,
     releasedAt: "2026-03-22T10:00:00Z" },
   { bidId: "fake-3", listingId: "fake-listing-3",
-    listingTitle: "logo + brand mark redesign",
-    consultantName: "morgan vasquez", amountCents: 55000,
+    listingTitle: "Logo + brand mark redesign",
+    consultantName: "Morgan Vasquez", amountCents: 55000,
     releasedAt: "2026-02-14T18:00:00Z" },
   { bidId: "fake-4", listingId: "fake-listing-4",
-    listingTitle: "square POS migration help",
-    consultantName: "alex park", amountCents: 22000,
+    listingTitle: "Square POS migration help",
+    consultantName: "Alex Park", amountCents: 22000,
     releasedAt: "2026-01-30T09:15:00Z" },
   { bidId: "fake-5", listingId: "fake-listing-5",
-    listingTitle: "press release for grand reopening",
-    consultantName: "priya rao", amountCents: 12500,
+    listingTitle: "Press release for grand reopening",
+    consultantName: "Priya Rao", amountCents: 12500,
     releasedAt: "2025-12-20T13:45:00Z" },
   { bidId: "fake-6", listingId: "fake-listing-6",
-    listingTitle: "monthly bookkeeping setup in quickbooks",
-    consultantName: "casey navarro", amountCents: 28000,
+    listingTitle: "Monthly bookkeeping setup in QuickBooks",
+    consultantName: "Casey Navarro", amountCents: 28000,
     releasedAt: "2025-11-08T16:00:00Z" },
   { bidId: "fake-7", listingId: "fake-listing-7",
-    listingTitle: "google business profile + seo cleanup",
-    consultantName: "riley alves", amountCents: 16000,
+    listingTitle: "Google business profile + SEO cleanup",
+    consultantName: "Riley Alves", amountCents: 16000,
     releasedAt: "2025-10-15T11:20:00Z" },
   { bidId: "fake-8", listingId: "fake-listing-8",
-    listingTitle: "saturday market booth signage",
-    consultantName: "taylor brooks", amountCents: 9500,
+    listingTitle: "Saturday market booth signage",
+    consultantName: "Taylor Brooks", amountCents: 9500,
     releasedAt: "2025-09-04T14:45:00Z" },
 ];
 
@@ -1281,7 +1281,7 @@ function setupViewSwitcher() {
     shell.classList.toggle("bza--collapsed", collapsed);
     if (toggleBtn) {
       toggleBtn.setAttribute("aria-expanded", String(!collapsed));
-      toggleBtn.setAttribute("aria-label", collapsed ? "expand sidebar" : "collapse sidebar");
+      toggleBtn.setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
     }
   }
   let initialCollapsed = false;
@@ -1374,7 +1374,7 @@ async function init() {
     setupViewSwitcher();
   } catch (err) {
     console.error(err);
-    gate.textContent = err.message || "could not load dashboard.";
+    gate.textContent = err.message || "Could not load dashboard.";
     gate.className = "gr-status error";
   }
 }
@@ -1395,25 +1395,25 @@ document.addEventListener("click", async (event) => {
   event.stopPropagation();
 
   const listingId = btn.getAttribute("data-draft-delete-id");
-  const title = btn.getAttribute("data-draft-title") || "this draft";
+  const title = btn.getAttribute("data-draft-title") || "This draft";
   if (!listingId) return;
 
   const ok = await confirmDialog({
-    title: "delete this draft?",
-    body: `"${title}" hasn't been published — deleting it can't be undone. you'll need to start over if you want to recreate it.`,
-    confirmLabel: "delete draft",
-    cancelLabel: "keep it",
+    title: "Delete this draft?",
+    body: `"${title}" hasn't been published — deleting it can't be undone. You'll need to start over if you want to recreate it.`,
+    confirmLabel: "Delete draft",
+    cancelLabel: "Keep it",
     kind: "danger",
   });
   if (!ok) return;
 
   btn.disabled = true;
   const originalLabel = btn.textContent;
-  btn.textContent = "deleting…";
+  btn.textContent = "Deleting…";
   try {
     const client = await getSupabaseClient();
     await deleteListing(client, listingId);
-    showToast("draft deleted.", { kind: "success", duration: 3500 });
+    showToast("Draft deleted.", { kind: "success", duration: 3500 });
     // Sync dispatch so the onboarding listener can advance tutorial
     // state (writes to localStorage) BEFORE the reload reads it back.
     window.dispatchEvent(new CustomEvent("gr:draft-deleted", { detail: { listingId } }));
@@ -1423,7 +1423,13 @@ document.addEventListener("click", async (event) => {
     btn.textContent = originalLabel;
     const msg = err instanceof ListingOperationError
       ? err.message
-      : err?.message || "could not delete the draft.";
+      : err?.message || "Could not delete the draft.";
     showToast(msg, { kind: "error", duration: 5000 });
   }
 });
+
+// Categories and statuses are stored lowercase; show them in sentence case.
+function capFirst(value) {
+  const s = String(value || "");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}

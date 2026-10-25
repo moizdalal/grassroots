@@ -33,30 +33,30 @@ function pickN(arr, n) {
 }
 
 const FIRST_NAMES = [
-  "avery", "jordan", "sage", "rowan", "kai", "mira", "elena", "darius", "noor",
-  "ines", "leo", "amaya", "tariq", "june", "jules", "rhea", "kenji", "isla",
-  "marco", "ruth", "ezra", "lila", "owen", "talia", "max", "harper", "kira",
-  "wren", "asher", "imani", "soren", "naya", "rin", "milo", "selah", "blake",
-  "river", "shea", "yara", "phoebe", "tobi", "linnea", "ada", "cyrus", "miles",
+  "Avery", "Jordan", "Sage", "Rowan", "Kai", "Mira", "Elena", "Darius", "Noor",
+  "Ines", "Leo", "Amaya", "Tariq", "June", "Jules", "Rhea", "Kenji", "Isla",
+  "Marco", "Ruth", "Ezra", "Lila", "Owen", "Talia", "Max", "Harper", "Kira",
+  "Wren", "Asher", "Imani", "Soren", "Naya", "Rin", "Milo", "Selah", "Blake",
+  "River", "Shea", "Yara", "Phoebe", "Tobi", "Linnea", "Ada", "Cyrus", "Miles",
 ];
 
 const LAST_NAMES = [
-  "chen", "patel", "garcia", "okafor", "nguyen", "kim", "ramirez", "ahmed",
-  "santos", "iversen", "delacroix", "rao", "ben-ami", "moreau", "park",
-  "huang", "silva", "torres", "khan", "rossi", "becker", "ito", "mendez",
-  "abebe", "petrova", "fischer", "oduya", "bauer", "kapoor", "wallace",
+  "Chen", "Patel", "Garcia", "Okafor", "Nguyen", "Kim", "Ramirez", "Ahmed",
+  "Santos", "Iversen", "Delacroix", "Rao", "Ben-Ami", "Moreau", "Park",
+  "Huang", "Silva", "Torres", "Khan", "Rossi", "Becker", "Ito", "Mendez",
+  "Abebe", "Petrova", "Fischer", "Oduya", "Bauer", "Kapoor", "Wallace",
 ];
 
 const SCHOOLS = [
-  "university of florida", "florida state university",
-  "university of central florida", "university of south florida",
-  "florida international university", "miami dade college", "stetson university",
+  "University of Florida", "Florida State University",
+  "University of Central Florida", "University of South Florida",
+  "Florida International University", "Miami Dade College", "Stetson University",
 ];
 
 const MAJORS = [
-  "marketing", "finance", "computer science", "business administration",
-  "graphic design", "supply chain", "data analytics", "communications",
-  "operations management", "industrial engineering", "psychology",
+  "Marketing", "Finance", "Computer science", "Business administration",
+  "Graphic design", "Supply chain", "Data analytics", "Communications",
+  "Operations management", "Industrial engineering", "Psychology",
 ];
 
 const BUSINESS_TYPES = [
@@ -67,43 +67,43 @@ const BUSINESS_TYPES = [
 ];
 
 const CITIES = [
-  "gainesville, fl", "tampa, fl", "orlando, fl", "miami, fl", "jacksonville, fl",
-  "tallahassee, fl", "fort lauderdale, fl", "st petersburg, fl",
+  "Gainesville, FL", "Tampa, FL", "Orlando, FL", "Miami, FL", "Jacksonville, FL",
+  "Tallahassee, FL", "Fort Lauderdale, FL", "St. Petersburg, FL",
 ];
 
 const CATEGORIES = [
-  "marketing", "design", "operations", "research", "engineering",
-  "finance", "legal", "content",
+  "Marketing", "Design", "Operations", "Research", "Engineering",
+  "Finance", "Legal", "Content",
 ];
 
 const LISTING_TITLES = [
-  "weekend foot-traffic push for east-side bakery",
-  "rebrand identity for vintage record store",
-  "instagram audit + 90-day content plan",
-  "wholesale pricing model for a small florist",
-  "menu redesign for a campus coffee shop",
-  "google business + maps optimization",
-  "loyalty program design for a yoga studio",
-  "operations playbook for a food truck launch",
-  "year-end donor email campaign",
-  "supply chain audit for a boutique",
-  "ux pass on a clinic booking flow",
-  "ad creative refresh for facebook + meta",
-  "spreadsheet → dashboard for monthly kpis",
-  "trademark + dba filing checklist",
-  "pricing tiers for a tutoring service",
-  "brand voice doc + tone guidelines",
-  "seo content map for a wedding photographer",
-  "vendor contract review for a co-working space",
-  "newsletter relaunch with new template system",
-  "hire-plan + roles draft for a 4-person team",
-  "competitive landscape brief — local florists",
-  "customer survey + interview synthesis",
-  "shopify migration + theme setup",
-  "tiktok content sprint — six pieces",
-  "fundraising one-pager for a non-profit",
-  "process map for a pet grooming intake",
-  "weekly content calendar — 4 weeks",
+  "Weekend foot-traffic push for east-side bakery",
+  "Rebrand identity for vintage record store",
+  "Instagram audit + 90-day content plan",
+  "Wholesale pricing model for a small florist",
+  "Menu redesign for a campus coffee shop",
+  "Google business + maps optimization",
+  "Loyalty program design for a yoga studio",
+  "Operations playbook for a food truck launch",
+  "Year-end donor email campaign",
+  "Supply chain audit for a boutique",
+  "UX pass on a clinic booking flow",
+  "Ad creative refresh for Facebook + meta",
+  "Spreadsheet → dashboard for monthly KPIs",
+  "Trademark + DBA filing checklist",
+  "Pricing tiers for a tutoring service",
+  "Brand voice doc + tone guidelines",
+  "SEO content map for a wedding photographer",
+  "Vendor contract review for a co-working space",
+  "Newsletter relaunch with new template system",
+  "Hire-plan + roles draft for a 4-person team",
+  "Competitive landscape brief — local florists",
+  "Customer survey + interview synthesis",
+  "Shopify migration + theme setup",
+  "TikTok content sprint — six pieces",
+  "Fundraising one-pager for a non-profit",
+  "Process map for a pet grooming intake",
+  "Weekly content calendar — 4 weeks",
 ];
 
 const CONTRACT_TYPES = ["standard", "phased", "retainer"];
@@ -174,7 +174,7 @@ function generateUsers() {
   for (let i = 0; i < 22; i++) {
     const ownerName = makeName();
     const bizType = pick(BUSINESS_TYPES);
-    const bizName = `${pick(["the", "small batch", "field", "kindred", "linden", "ember"])} ${bizType}`;
+    const bizName = `${pick(["The", "Small Batch", "Field", "Kindred", "Linden", "Ember"])} ${bizType.replace(/\b\w/g, (c) => c.toUpperCase())}`;
     const joinedDaysAgo = rint(2, 240);
     owners.push({
       id: uid("u", 100 + i),
@@ -309,11 +309,11 @@ function generateBids(listings, consultants) {
 /* ============================================================== */
 
 const ENGAGEMENT_STAGES = [
-  { id: 1, label: "offer submitted" },
-  { id: 2, label: "offer accepted" },
-  { id: 3, label: "kickoff scheduled" },
-  { id: 4, label: "work delivered" },
-  { id: 5, label: "payout released" },
+  { id: 1, label: "Offer submitted" },
+  { id: 2, label: "Offer accepted" },
+  { id: 3, label: "Kickoff scheduled" },
+  { id: 4, label: "Work delivered" },
+  { id: 5, label: "Payout released" },
 ];
 
 function generateEngagements(bids, listings, users) {
@@ -500,12 +500,12 @@ export function funnelData() {
   const completedCount = engagements.filter((e) => e.stage >= 4).length;
   const paidCount = engagements.filter((e) => e.stage === 5).length;
   return [
-    { label: "listings posted", value: listingsPosted },
-    { label: "offers submitted", value: totalBidsCount },
-    { label: "offers accepted", value: acceptedCount },
-    { label: "kickoffs scheduled", value: kickedOffCount },
-    { label: "work delivered", value: completedCount },
-    { label: "payout released", value: paidCount },
+    { label: "Listings posted", value: listingsPosted },
+    { label: "Offers submitted", value: totalBidsCount },
+    { label: "Offers accepted", value: acceptedCount },
+    { label: "Kickoffs scheduled", value: kickedOffCount },
+    { label: "Work delivered", value: completedCount },
+    { label: "Payout released", value: paidCount },
   ];
 }
 

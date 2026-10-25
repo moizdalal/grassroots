@@ -24,7 +24,7 @@ window.addEventListener("beforeunload", (event) => {
 const slides = [...document.querySelectorAll(".cl-slide")];
 const stepDots = [...document.querySelectorAll(".cl-progress__seg")];
 const progressLabel = document.getElementById("cl-progress-label");
-const STEP_LABELS = ["title", "description", "details"];
+const STEP_LABELS = ["Title", "Description", "Details"];
 const attachmentInput = document.getElementById("listing-attachments");
 const attachmentList = document.getElementById("cl-file-list");
 
@@ -83,21 +83,21 @@ const MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024;
 const MAX_ATTACHMENT_TOTAL = 12 * 1024 * 1024;
 
 const CATEGORY_OPTIONS = [
-  { value: "social media", label: "social media", icon: socialIcon() },
-  { value: "finance", label: "finance", icon: financeIcon() },
-  { value: "marketing", label: "marketing", icon: megaphoneIcon() },
-  { value: "operations", label: "operations", icon: operationsIcon() },
-  { value: "website", label: "website", icon: websiteIcon() },
-  { value: "branding", label: "branding", icon: sparkIcon() },
-  { value: "sales", label: "sales", icon: salesIcon() },
-  { value: "customer service", label: "customer service", icon: supportIcon() },
-  { value: "human resources", label: "human resources", icon: peopleIcon() },
-  { value: "legal", label: "legal", icon: legalIcon() },
-  { value: "supply chain", label: "supply chain", icon: supplyIcon() },
-  { value: "data analytics", label: "data analytics", icon: analyticsIcon() },
-  { value: "product development", label: "product development", icon: productIcon() },
-  { value: "public relations", label: "public relations", icon: prIcon() },
-  { value: "strategy", label: "strategy", icon: compassIcon() },
+  { value: "social media", label: "Social media", icon: socialIcon() },
+  { value: "finance", label: "Finance", icon: financeIcon() },
+  { value: "marketing", label: "Marketing", icon: megaphoneIcon() },
+  { value: "operations", label: "Operations", icon: operationsIcon() },
+  { value: "website", label: "Website", icon: websiteIcon() },
+  { value: "branding", label: "Branding", icon: sparkIcon() },
+  { value: "sales", label: "Sales", icon: salesIcon() },
+  { value: "customer service", label: "Customer service", icon: supportIcon() },
+  { value: "human resources", label: "Human resources", icon: peopleIcon() },
+  { value: "legal", label: "Legal", icon: legalIcon() },
+  { value: "supply chain", label: "Supply chain", icon: supplyIcon() },
+  { value: "data analytics", label: "Data analytics", icon: analyticsIcon() },
+  { value: "product development", label: "Product development", icon: productIcon() },
+  { value: "public relations", label: "Public relations", icon: prIcon() },
+  { value: "strategy", label: "Strategy", icon: compassIcon() },
 ];
 
 function escapeHtml(s) {
@@ -116,8 +116,8 @@ function formatFileSize(bytes) {
   const value = Number(bytes);
   if (!Number.isFinite(value) || value <= 0) return "0 b";
   if (value < 1024) return `${value} b`;
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} kb`;
-  return `${(value / (1024 * 1024)).toFixed(1)} mb`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function getSelectedContractMode() {
@@ -207,21 +207,21 @@ function attachmentKindLabel(file) {
 function validateAttachmentSelection(files) {
   if (files.length > MAX_ATTACHMENT_COUNT) {
     throw new Error(
-      `please keep attachments to ${MAX_ATTACHMENT_COUNT} files max. if you have more, combine them into a pdf or add links in the details.`
+      `Please keep attachments to ${MAX_ATTACHMENT_COUNT} files max. If you have more, combine them into a PDF or add links in the details.`
     );
   }
 
   const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
   if (totalBytes > MAX_ATTACHMENT_TOTAL) {
     throw new Error(
-      "attachments are limited to 12 mb total. please use pdfs, compress the files, or include links in the additional details."
+      "Attachments are limited to 12 MB total. Please use PDFs, compress the files, or include links in the additional details."
     );
   }
 
   for (const file of files) {
     if (file.size > MAX_ATTACHMENT_SIZE) {
       throw new Error(
-        `${file.name} is larger than 5 mb. please use a smaller pdf, compress it, or include a link instead.`
+        `${file.name} is larger than 5 MB. Please use a smaller PDF, compress it, or include a link instead.`
       );
     }
   }
@@ -242,7 +242,7 @@ function renderAttachmentSelection() {
           <span class="cl-file-chip__name">${escapeHtml(file.name)}</span>
           <span class="cl-file-chip__detail">${escapeHtml(attachmentKindLabel(file))} · ${escapeHtml(formatFileSize(file.size))}</span>
         </div>
-        <button type="button" class="cl-file-chip__remove" data-remove-attachment="${index}" aria-label="remove ${escapeHtml(file.name)}">&times;</button>
+        <button type="button" class="cl-file-chip__remove" data-remove-attachment="${index}" aria-label="Remove ${escapeHtml(file.name)}">&times;</button>
       </div>
     `)
     .join("");
@@ -342,7 +342,7 @@ function renderCategoryDropdown() {
   const filtered = CATEGORY_OPTIONS.filter((option) => option.label.includes(query));
 
   if (!filtered.length) {
-    dropdownEl.innerHTML = '<div class="ms-empty">no matches</div>';
+    dropdownEl.innerHTML = '<div class="ms-empty">No matches</div>';
     dropdownEl.classList.remove("hidden");
     return;
   }
@@ -352,7 +352,7 @@ function renderCategoryDropdown() {
   // pick multiple before they've started typing.
   const headerHtml = query
     ? ""
-    : '<div class="ms-eyebrow">pick one or more — you can search above</div>';
+    : '<div class="ms-eyebrow">Pick one or more — you can search above</div>';
 
   dropdownEl.innerHTML = headerHtml + filtered
     .map((option) => {
@@ -395,7 +395,7 @@ function renderCategoryTags() {
         <span class="cl-cat-tag">
           <span class="cl-cat-tag__icon" aria-hidden="true">${option.icon}</span>
           ${escapeHtml(option.label)}
-          <button type="button" class="cl-cat-tag__remove" data-remove-cat="${escapeHtml(value)}" aria-label="remove ${escapeHtml(option.label)}">&times;</button>
+          <button type="button" class="cl-cat-tag__remove" data-remove-cat="${escapeHtml(value)}" aria-label="Remove ${escapeHtml(option.label)}">&times;</button>
         </span>
       `;
     })
@@ -445,7 +445,7 @@ function validateSlide(index) {
 
   if (index === 0) {
     const title = form.elements.title.value.trim();
-    if (!title) throw new Error("please add a title for this opportunity.");
+    if (!title) throw new Error("Please add a title for this opportunity.");
     return;
   }
 
@@ -456,28 +456,28 @@ function validateSlide(index) {
     const businessProblem = form.elements.business_problem.value.trim();
     const proposalBudget = String(form.elements.proposal_budget?.value || "").trim();
     const maintenanceTerms = String(form.elements.maintenance_terms?.value || "").trim();
-    if (!businessProblem) throw new Error("please describe the business problem you want to solve.");
+    if (!businessProblem) throw new Error("Please describe the business problem you want to solve.");
     if (isPhasedContractSelected() && !proposalBudget) {
-      throw new Error("please enter the budget per proposal for this advanced contract.");
+      throw new Error("Please enter the budget per proposal for this advanced contract.");
     }
     if (isPhasedContractSelected() && Number(proposalBudget) < 0) {
-      throw new Error("please enter a valid proposal budget.");
+      throw new Error("Please enter a valid proposal budget.");
     }
     if (isPhasedContractSelected() && hasMaintenancePhase()) {
       if (!maintenanceTerms) {
-        throw new Error('please outline the maintenance terms or write "per business discretion."');
+        throw new Error('Please outline the maintenance terms or write "per business discretion."');
       }
       if (!isValidMaintenanceTerms(maintenanceTerms)) {
-        throw new Error('maintenance terms should look like "$X per hour/day/week/month for X [amount of time]" or "per business discretion."');
+        throw new Error('Maintenance terms should look like "$X per hour/day/week/month for X [amount of time]" or "per business discretion."');
       }
     }
     if (isRetainerContractSelected() && retainerTermsValue() === "fixed") {
       const cadence = String(form.elements.retainer_cadence?.value || "").trim();
       const periods = Number(form.elements.retainer_period_count?.value || 0);
       const fee = Number(form.elements.retainer_fee?.value || 0);
-      if (!cadence) throw new Error("please pick a retainer cadence.");
-      if (!periods || periods < 1) throw new Error("please enter how many periods the retainer runs.");
-      if (!fee || fee < 1) throw new Error("please enter the fee per period.");
+      if (!cadence) throw new Error("Please pick a retainer cadence.");
+      if (!periods || periods < 1) throw new Error("Please enter how many periods the retainer runs.");
+      if (!fee || fee < 1) throw new Error("Please enter the fee per period.");
     }
     return;
   }
@@ -487,10 +487,10 @@ function validateSlide(index) {
     const budgetMax = Number(form.elements.budget_max.value);
     const turnaround = Number(form.elements.turnaround_days.value);
 
-    if (!selectedCategories.size) throw new Error("please choose at least one category.");
-    if (!budgetMin || !budgetMax) throw new Error("please enter the full budget range.");
-    if (budgetMin > budgetMax) throw new Error("please make sure the budget range goes from low to high.");
-    if (!turnaround) throw new Error("please enter the turnaround time.");
+    if (!selectedCategories.size) throw new Error("Please choose at least one category.");
+    if (!budgetMin || !budgetMax) throw new Error("Please enter the full budget range.");
+    if (budgetMin > budgetMax) throw new Error("Please make sure the budget range goes from low to high.");
+    if (!turnaround) throw new Error("Please enter the turnaround time.");
   }
 }
 
@@ -515,7 +515,7 @@ async function boot() {
       .single();
 
     if (profile?.role !== "business_owner") {
-      gate.textContent = "only business owners can create listings.";
+      gate.textContent = "Only business owners can create listings.";
       gate.className = "gr-status error";
       return;
     }
@@ -548,7 +548,7 @@ async function boot() {
     splitEl.classList.remove("hidden");
     updateWizardUI();
   } catch (err) {
-    gate.textContent = err.message || "could not connect.";
+    gate.textContent = err.message || "Could not connect.";
     gate.className = "gr-status error";
   }
 }
@@ -556,7 +556,7 @@ async function boot() {
 function populatePreviewBiz() {
   if (!bizProfile) return;
 
-  pvBizOwner.textContent = bizProfile.ownerName || "you";
+  pvBizOwner.textContent = bizProfile.ownerName || "You";
 
   if (bizProfile.business_name) {
     pvBizName.textContent = bizProfile.business_name;
@@ -620,32 +620,32 @@ function buildStructuredListingDetails({
 }) {
   return [
     `contract type: ${contractType}`,
-    `budget range: $${budgetMin} to $${budgetMax}`,
-    ...(proposalBudget ? [`proposal budget: $${proposalBudget}`, ""] : []),
+    `Budget range: $${budgetMin} to $${budgetMax}`,
+    ...(proposalBudget ? [`Proposal budget: $${proposalBudget}`, ""] : []),
     "",
     "context:",
     issueContext,
     "",
-    "business problem:",
+    "Business problem:",
     businessProblem,
     "",
-    "standards of work:",
+    "Standards of work:",
     expectedOutput,
-    ...(maintenanceTerms ? ["", "maintenance terms:", maintenanceTerms] : []),
-    ...(additionalDetails ? ["", "additional details:", additionalDetails] : []),
+    ...(maintenanceTerms ? ["", "Maintenance terms:", maintenanceTerms] : []),
+    ...(additionalDetails ? ["", "Additional details:", additionalDetails] : []),
   ].join("\n");
 }
 
 function updatePreview() {
   // title
   const title = form.elements.title?.value.trim();
-  pvTitle.textContent = title || "your opportunity title";
+  pvTitle.textContent = title || "Your opportunity title";
   pvTitle.classList.toggle("cl-preview__placeholder", !title);
 
   // tags: categories — match listing.html's .ld-tag chips.
   let chipsHtml = "";
   [...selectedCategories].forEach((c) => {
-    chipsHtml += `<span class="ld-tag">${escapeHtml(c)}</span>`;
+    chipsHtml += `<span class="ld-tag">${escapeHtml(capFirst(c))}</span>`;
   });
   pvChips.innerHTML = chipsHtml;
 
@@ -716,7 +716,7 @@ function updatePreview() {
     pvBudget.textContent = formatBudgetRange({ min: Number(bMin), max: Number(bMax) });
     pvBudget.hidden = false;
   } else if (bMin || bMax) {
-    pvBudget.textContent = bMin ? `from $${Number(bMin).toLocaleString()}` : `up to $${Number(bMax).toLocaleString()}`;
+    pvBudget.textContent = bMin ? `from $${Number(bMin).toLocaleString()}` : `Up to $${Number(bMax).toLocaleString()}`;
     pvBudget.hidden = false;
   } else {
     pvBudget.hidden = true;
@@ -742,7 +742,7 @@ if (attachmentInput) {
       selectedAttachments = [];
       renderAttachmentSelection();
       updatePreview();
-      showError(error.message || "could not add those attachments.");
+      showError(error.message || "Could not add those attachments.");
     }
   });
 }
@@ -753,7 +753,7 @@ nextBtn.addEventListener("click", () => {
     currentSlide = Math.min(currentSlide + 1, slides.length - 1);
     updateWizardUI();
   } catch (err) {
-    showError(err.message || "fill in the required fields before continuing.");
+    showError(err.message || "Fill in the required fields before continuing.");
   }
 });
 
@@ -834,14 +834,14 @@ window.addEventListener("cl:request-slide", (event) => {
     toggleBtn.setAttribute("aria-pressed", present ? "true" : "false");
     if (present) {
       maintConnector.removeAttribute("hidden");
-      if (labelEl) labelEl.textContent = "maintenance added";
-      if (hintEl) hintEl.textContent = "remove";
-      builderHint.innerHTML = "maintenance extends your chain with ongoing support. click again to remove.";
+      if (labelEl) labelEl.textContent = "Maintenance added";
+      if (hintEl) hintEl.textContent = "Remove";
+      builderHint.innerHTML = "Maintenance extends your chain with ongoing support. Click again to remove.";
     } else {
       maintConnector.setAttribute("hidden", "");
-      if (labelEl) labelEl.textContent = "add maintenance";
-      if (hintEl) hintEl.textContent = "optional";
-      builderHint.innerHTML = "maintenance is an optional follow-on phase for ongoing support.";
+      if (labelEl) labelEl.textContent = "Add maintenance";
+      if (hintEl) hintEl.textContent = "Optional";
+      builderHint.innerHTML = "Maintenance is an optional follow-on phase for ongoing support.";
     }
     syncPhases(present);
   }
@@ -892,8 +892,8 @@ addQualBtn.addEventListener("click", () => {
   const row = document.createElement("div");
   row.className = "cl-qual-row";
   row.innerHTML =
-    '<input type="text" name="qual[]" maxlength="120" placeholder="e.g. experience with Shopify" class="cl-qual-input" />' +
-    '<button type="button" class="cl-qual-remove" aria-label="remove">&times;</button>';
+    '<input type="text" name="qual[]" maxlength="120" placeholder="E.g. experience with Shopify" class="cl-qual-input" />' +
+    '<button type="button" class="cl-qual-remove" aria-label="Remove">&times;</button>';
   row.querySelector(".cl-qual-remove").addEventListener("click", () => { row.remove(); updatePreview(); });
   row.querySelector("input").addEventListener("input", updatePreview);
   qualList.appendChild(row);
@@ -1024,7 +1024,7 @@ async function hydrateDraft(draftId) {
   applyFormSnapshot(data.draft_form || {});
   // Swap the primary CTA copy so the wizard reads as "edit & publish"
   // rather than "create a new listing".
-  if (submitBtn) submitBtn.textContent = "publish listing";
+  if (submitBtn) submitBtn.textContent = "Publish listing";
 }
 
 // "Save as draft" — no validation, just snapshot and persist. Stores
@@ -1036,14 +1036,14 @@ saveDraftBtn?.addEventListener("click", async () => {
   statusEl.className = "gr-status";
   saveDraftBtn.disabled = true;
   const originalLabel = saveDraftBtn.textContent;
-  saveDraftBtn.textContent = "saving…";
+  saveDraftBtn.textContent = "Saving…";
   try {
     const snap = collectFormSnapshot();
     const payload = {
       owner_id: userId,
       // Title is required by the DB; fall back to a placeholder so
       // the insert succeeds even on slide 0 with nothing typed.
-      title: (snap.title || "untitled draft").trim(),
+      title: (snap.title || "Untitled draft").trim(),
       status: "draft",
       contract_type: snap.contract_type || "standard",
       draft_form: snap,
@@ -1066,7 +1066,7 @@ saveDraftBtn?.addEventListener("click", async () => {
       id = data.id;
       editingDraftId = id;
     }
-    showSuccess("saved as draft.");
+    showSuccess("Saved as draft.");
 
     // Mirror of cl:listing-published so the tutorial can react to
     // the save-draft path the same way — example users are now
@@ -1079,7 +1079,7 @@ saveDraftBtn?.addEventListener("click", async () => {
       window.location.href = "/dashboard.html#listings";
     }, 600);
   } catch (err) {
-    showError(err?.message || "could not save draft.");
+    showError(err?.message || "Could not save draft.");
     saveDraftBtn.disabled = false;
     saveDraftBtn.textContent = originalLabel;
   }
@@ -1100,7 +1100,7 @@ form.addEventListener("submit", async (event) => {
     validateSlide(2);
     validateAttachmentSelection(selectedAttachments);
   } catch (err) {
-    showError(err.message || "fix the highlighted fields first.");
+    showError(err.message || "Fix the highlighted fields first.");
     return;
   }
 
@@ -1110,10 +1110,10 @@ form.addEventListener("submit", async (event) => {
   // publishes — the verbs differ but the consequence is the same.
   const isEdit = !!editingDraftId;
   const ok = await confirmDialog({
-    title: isEdit ? "publish this listing?" : "post this listing?",
-    body: "once you confirm, this listing goes live in the marketplace. consultants can view it and start submitting offers right away.",
-    confirmLabel: isEdit ? "publish listing" : "post listing",
-    cancelLabel: "not yet",
+    title: isEdit ? "Publish this listing?" : "Post this listing?",
+    body: "Once you confirm, this listing goes live in the marketplace. Consultants can view it and start submitting offers right away.",
+    confirmLabel: isEdit ? "Publish listing" : "Post listing",
+    cancelLabel: "Not yet",
     kind: "primary",
   });
   if (!ok) return;
@@ -1130,7 +1130,7 @@ form.addEventListener("submit", async (event) => {
     const budgetMax = Number(fd.get("budget_max"));
 
     submitBtn.disabled = true;
-    submitBtn.textContent = "posting…";
+    submitBtn.textContent = "Posting…";
 
     const issueContext = String(fd.get("issue_context") || "").trim();
     const businessProblem = String(fd.get("business_problem") || "").trim();
@@ -1254,7 +1254,7 @@ form.addEventListener("submit", async (event) => {
       } catch (_) { /* non-fatal */ }
     })();
 
-    showSuccess(editingDraftId ? "listing published." : "listing posted.");
+    showSuccess(editingDraftId ? "Listing published." : "Listing posted.");
 
     // Let the tutorial (if active) jump to the "you're all set" step
     // before we navigate away. Synchronous — state is persisted before
@@ -1266,9 +1266,9 @@ form.addEventListener("submit", async (event) => {
       window.location.href = `/listing.html?id=${listingId}`;
     }, 800);
   } catch (err) {
-    showError(err.message || "could not post listing.");
+    showError(err.message || "Could not post listing.");
     submitBtn.disabled = false;
-    submitBtn.textContent = editingDraftId ? "publish listing" : "post listing";
+    submitBtn.textContent = editingDraftId ? "Publish listing" : "Post listing";
   }
 });
 
@@ -1403,4 +1403,10 @@ function prIcon() {
 
 function compassIcon() {
   return svgIcon('<circle cx="12" cy="12" r="8"/><path d="m9 15 2-6 6-2-2 6-6 2Z"/><circle cx="12" cy="12" r="1"/>');
+}
+
+// Categories and statuses are stored lowercase; show them in sentence case.
+function capFirst(value) {
+  const s = String(value || "");
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
