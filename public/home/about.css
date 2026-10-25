@@ -4,6 +4,14 @@
          Tokens come from field-office.css.
          ============================================================ */
 
+      /* No gray text on the about page (same rule as the home page): the
+         secondary text tokens point at the main text color. Every use of
+         them in this file is text, not lines or borders. */
+      body.gr-body {
+        --fo-text-2: var(--fo-text);
+        --fo-text-3: var(--fo-text);
+      }
+
       body.gr-body {
         padding-top: 0;
         overflow-x: clip;
@@ -125,6 +133,302 @@
         display: flex; flex-direction: column;
         justify-content: space-between;
       }
+      /* Simple cover panel: big title + one line, light panel in every theme
+         (matches the home page quote panel). */
+      .ab-cover:has(.ab-cover__panel) { min-height: 0; }
+      .ab-cover__panel {
+        padding: clamp(2.5rem, 6vw, 5rem) clamp(1.5rem, 5vw, 4.5rem);
+        border-radius: 28px;
+        background: linear-gradient(120deg, #dcebe2 0%, #eef3ec 55%, #e1ede6 100%);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+        color: #14201a;
+      }
+      [data-theme="light"] .ab-cover__panel {
+        border: 1px solid color-mix(in srgb, var(--fo-accent) 18%, transparent);
+        box-shadow: 0 18px 44px rgba(20, 32, 26, 0.10);
+      }
+      .ab-cover__panel-title {
+        margin: 0 0 1rem;
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: clamp(3rem, 7.5vw, 6rem);
+        line-height: 1;
+        letter-spacing: -0.03em;
+        color: #14201a;
+      }
+      .ab-cover__panel-sub {
+        margin: 0;
+        max-width: 40ch;
+        font-size: clamp(1.1rem, 1.8vw, 1.45rem);
+        line-height: 1.4;
+        color: #14201a;
+      }
+
+      /* ── hero ── the old cover's big "About." on the left, the tagline on
+         the right across a faint vertical divider (stacked on phones), then
+         a short contents list. Sits on the page background, no panel. */
+      .ab-hero { padding: clamp(48px, 7vw, 96px) 0 clamp(24px, 4vw, 48px); }
+      .ab-hero__title {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        margin: 0;
+        font-family: var(--font-display);
+        font-weight: 600;
+        color: var(--fo-text);
+      }
+      .ab-hero__title em { font-style: normal; color: var(--fo-accent); }
+      .ab-hero__word {
+        padding-right: clamp(24px, 4vw, 56px);
+        font-size: clamp(4.5rem, 13vw, 10.5rem);
+        line-height: 0.9;
+        letter-spacing: -0.05em;
+      }
+      .ab-hero__line2 {
+        padding: 0.4em 0 0.4em clamp(24px, 4vw, 56px);
+        border-left: 1px solid var(--fo-line);
+        max-width: 18ch;
+        font-size: clamp(1.6rem, 3.4vw, 3rem);
+        line-height: 1.08;
+        letter-spacing: -0.035em;
+        text-wrap: balance;
+      }
+      @media (max-width: 640px) {
+        .ab-hero__title { grid-template-columns: 1fr; }
+        .ab-hero__word { padding: 0 0 0.25em; }
+        .ab-hero__line2 { padding: 0.5em 0 0; border-left: 0; border-top: 1px solid var(--fo-line); }
+      }
+      .ab-hero__toc {
+        display: grid;
+        margin-top: clamp(2.25rem, 5vw, 3.5rem);
+        border-top: 1px solid var(--fo-line);
+      }
+      .ab-hero__toc a {
+        display: flex;
+        align-items: baseline;
+        gap: 0.9rem;
+        padding: 0.55rem 0;
+        border-bottom: 1px dashed var(--fo-line);
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: var(--fo-text);
+        text-decoration: none;
+        transition: color 0.2s ease, padding-left 0.25s ease;
+      }
+      .ab-hero__toc a:last-child { border-bottom: 0; }
+      .ab-hero__toc a span {
+        font-family: var(--font-body);
+        font-size: 0.8rem;
+        font-variant-numeric: tabular-nums;
+        color: var(--fo-accent);
+      }
+      .ab-hero__toc a:hover,
+      .ab-hero__toc a:focus-visible { color: var(--fo-accent); padding-left: 0.35rem; }
+
+      /* ── basics: anatomy plate ──
+         The logo in the middle with three labels joined by dashed leader
+         lines: left leaf = who we are, right leaf = what we do, stem = our
+         mission. Sized to fit one viewport. */
+      .ab-section.ab-basics {
+        min-height: min(100svh, 860px);
+        display: grid;
+        align-items: center;
+        padding-block: clamp(40px, 6vh, 72px);
+        --lean: 0deg;
+      }
+      .ab-basics__grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) clamp(150px, min(18vw, 28vh), 230px) minmax(0, 1fr);
+        grid-template-areas: "who plant what" "mission mission mission";
+        align-items: center;
+        column-gap: clamp(28px, 4vw, 56px);
+        row-gap: clamp(20px, 3vh, 36px);
+      }
+      .ab-basics__plant { grid-area: plant; }
+      .ab-basics__logo { display: block; width: 100%; height: auto; overflow: visible; }
+
+      /* Plant colors: logo green, left leaf in shade, right leaf in light. */
+      .ab-basics__part path { transition: fill 0.3s ease, filter 0.3s ease; }
+      .ab-basics__part--stem path   { fill: color-mix(in srgb, var(--fo-accent) 92%, #0a1f16); }
+      .ab-basics__part--leaf-l path { fill: color-mix(in srgb, var(--fo-accent) 86%, #0a1f16); }
+      .ab-basics__part--leaf-r path { fill: var(--fo-accent); }
+
+      /* Motion. Rotation pivots are in the SVG's own units (transform-box:
+         view-box), since fill-box drifts with bezier control points. The
+         whole plant sways from the stem base and leans toward the cursor
+         (--lean, set by JS); each leaf flutters from where it meets the stem. */
+      .ab-basics__sway,
+      .ab-basics__part--leaf-l,
+      .ab-basics__part--leaf-r { transform-box: view-box; }
+      .ab-basics__sway {
+        transform-origin: 81px 275px;
+        transform: rotate(var(--lean));
+        transition: transform 0.6s cubic-bezier(.2,.8,.2,1);
+      }
+      .ab-basics__sway > * { transform-box: view-box; }
+      .ab-basics__part--stem { transform-origin: 81px 275px; animation: ab-sway 6s ease-in-out infinite; }
+      .ab-basics__part--leaf-l { transform-origin: 84px 152px; animation: ab-leaf-l 4.8s ease-in-out infinite; }
+      .ab-basics__part--leaf-r { transform-origin: 82px 147px; animation: ab-leaf-r 5.4s ease-in-out infinite; }
+      @keyframes ab-sway   { 0%, 100% { transform: rotate(-1deg); } 50% { transform: rotate(1deg); } }
+      @keyframes ab-leaf-l { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-4deg); } }
+      @keyframes ab-leaf-r { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(3.5deg); } }
+      @media (prefers-reduced-motion: reduce) {
+        .ab-basics__part { animation: none !important; }
+        .ab-basics__sway { transition: none; }
+      }
+
+      /* Labels */
+      .ab-basics__item {
+        position: relative;
+        transition: opacity 0.3s ease;
+      }
+      .ab-basics__title {
+        margin: 0 0 0.5rem;
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: clamp(1.6rem, 2.6vw, 2.2rem);
+        line-height: 1.05;
+        letter-spacing: -0.02em;
+        color: var(--fo-text);
+      }
+      .ab-basics__body {
+        margin: 0;
+        max-width: 34ch;
+        font-size: clamp(1rem, 1.25vw, 1.08rem);
+        line-height: 1.55;
+        color: var(--fo-text);
+      }
+      .ab-basics__item[data-part="who"]     { grid-area: who; text-align: right; justify-self: end; }
+      .ab-basics__item[data-part="what"]    { grid-area: what; }
+      .ab-basics__item[data-part="mission"] {
+        grid-area: mission;
+        justify-self: center;
+        padding-top: clamp(32px, 5vh, 56px);
+        text-align: center;
+      }
+      .ab-basics__item[data-part="mission"] .ab-basics__body { max-width: 44ch; margin-inline: auto; }
+
+      /* Dashed leader lines from each label toward its plant part. */
+      .ab-basics__item::after {
+        content: "";
+        position: absolute;
+        border: 0 dashed color-mix(in srgb, var(--fo-accent) 55%, transparent);
+        transition: border-color 0.3s ease;
+      }
+      .ab-basics__item[data-part="who"]::after,
+      .ab-basics__item[data-part="what"]::after {
+        top: 1.1rem;
+        width: clamp(28px, 4vw, 56px);
+        border-top-width: 1px;
+      }
+      .ab-basics__item[data-part="who"]::after  { right: calc(-1 * clamp(28px, 4vw, 56px)); }
+      .ab-basics__item[data-part="what"]::after { left: calc(-1 * clamp(28px, 4vw, 56px)); }
+      .ab-basics__item[data-part="mission"]::after {
+        top: 0;
+        left: 50%;
+        height: clamp(24px, 4vh, 44px);
+        border-left-width: 1px;
+      }
+
+      /* Hover highlight: the focused pair stays bright, the rest steps back. */
+      .ab-basics[data-focus] .ab-basics__item { opacity: 0.4; }
+      .ab-basics[data-focus="who"] .ab-basics__item[data-part="who"],
+      .ab-basics[data-focus="what"] .ab-basics__item[data-part="what"],
+      .ab-basics[data-focus="mission"] .ab-basics__item[data-part="mission"] { opacity: 1; }
+      .ab-basics[data-focus] .ab-basics__item::after { border-color: var(--fo-accent); }
+      .ab-basics[data-focus] .ab-basics__part path { fill: color-mix(in srgb, var(--fo-accent) 35%, transparent); }
+      .ab-basics[data-focus="who"] .ab-basics__part--leaf-l path,
+      .ab-basics[data-focus="what"] .ab-basics__part--leaf-r path,
+      .ab-basics[data-focus="mission"] .ab-basics__part--stem path {
+        fill: var(--fo-accent);
+        filter: drop-shadow(0 0 10px color-mix(in srgb, var(--fo-accent) 60%, transparent));
+      }
+      .ab-basics__part { cursor: default; }
+
+      /* Phones: plant on top, labels stacked, no leader lines. */
+      @media (max-width: 760px) {
+        .ab-section.ab-basics { min-height: 0; padding-block: 56px; }
+        .ab-basics__grid {
+          grid-template-columns: 1fr;
+          grid-template-areas: "plant" "who" "what" "mission";
+          row-gap: 1.5rem;
+        }
+        .ab-basics__plant { width: 110px; justify-self: center; }
+        .ab-basics__item[data-part] { text-align: left; justify-self: stretch; padding-top: 0; }
+        .ab-basics__item[data-part="mission"] .ab-basics__body { margin-inline: 0; }
+        .ab-basics__item::after { display: none; }
+      }
+
+      /* Founder section: photo frame + Moiz's story. The dashed prompt boxes are
+         fill-in instructions for Moiz and must be replaced before going live. */
+      .ab-founder__grid {
+        display: grid;
+        grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+        gap: clamp(32px, 5vw, 72px);
+        align-items: center;
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      @media (max-width: 820px) {
+        .ab-founder__grid { grid-template-columns: 1fr; }
+        .ab-founder__photo { max-width: 360px; }
+      }
+      .ab-founder__photo {
+        position: relative;
+        aspect-ratio: 4 / 5;
+        border-radius: 24px;
+        overflow: hidden;
+        display: grid;
+        place-items: center;
+        background: var(--fo-surface-2);
+        border: 1.5px dashed var(--fo-line-strong);
+      }
+      /* Once moiz.jpg exists the img stays, so the dashed "empty" frame goes away. */
+      .ab-founder__photo:has(img) { border-color: transparent; }
+      .ab-founder__photo:has(img) .ab-founder__photo-hint { visibility: hidden; }
+      .ab-founder__photo img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .ab-founder__photo-hint {
+        display: grid;
+        gap: 0.35rem;
+        padding: 1rem;
+        text-align: center;
+        font-size: 1rem;
+        color: var(--fo-text);
+      }
+      .ab-founder__photo-hint small {
+        font-size: 0.8rem;
+        color: var(--fo-accent);
+      }
+      .ab-founder__text .ab-section__title { margin-bottom: 0.4rem; }
+      /* Body font (Figtree in the font preview), normal capitalization. */
+      .ab-founder__role {
+        margin: 0 0 1.6rem;
+        font-size: clamp(1.05rem, 1.4vw, 1.2rem);
+        font-weight: 600;
+        color: var(--fo-accent);
+      }
+      .ab-founder__text p:not(.ab-founder__role) {
+        margin: 0 0 0.85rem;
+        font-size: clamp(1rem, 1.3vw, 1.12rem);
+        line-height: 1.6;
+        color: var(--fo-text);
+        max-width: 52ch;
+      }
+      .ab-founder__prompt {
+        padding: 0.85rem 1rem;
+        border: 1.5px dashed color-mix(in srgb, var(--fo-accent) 45%, transparent);
+        border-radius: 12px;
+        background: var(--fo-accent-soft);
+        font-style: italic;
+      }
+
       .ab-cover__colophon {
         display: grid;
         grid-template-columns: 1fr auto 1fr;
@@ -252,6 +556,7 @@
         font-size: 0.85rem;
         color: var(--fo-accent);
         letter-spacing: 0.04em;
+        white-space: nowrap;
       }
       .ab-toc__item-title {
         font-family: var(--font-display);
@@ -289,9 +594,11 @@
         padding: clamp(80px, 11vw, 160px) 0;
         border-top: 1px solid var(--fo-line);
       }
+      /* Single column: the magazine "chapter" labels that used to sit in a
+         left column are gone. */
       .ab-section__head {
         display: grid;
-        grid-template-columns: 7em 1fr;
+        grid-template-columns: 1fr;
         gap: 2rem;
         margin-bottom: clamp(40px, 5vw, 80px);
       }
@@ -1057,6 +1364,9 @@
         align-items: start;
       }
       @media (max-width: 900px) { .ab-contact__grid { grid-template-columns: 1fr; } }
+      /* While the letter form is hidden (it doesn't send yet), the channels take one
+         readable column instead of leaving an empty right half. */
+      .ab-contact__grid:has(> [hidden][data-placeholder]) { grid-template-columns: minmax(0, 640px); }
       .ab-contact__title {
         font-family: var(--font-display);
         font-weight: 500;
