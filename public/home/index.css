@@ -635,6 +635,22 @@
       }
       .ld-hero__ctas { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-5); }
       .ld-hero__ctas .gr-btn--lg { padding: 0.95rem 1.7rem; }
+      /* Phones only: center the stacked hero copy. Tablets stay left-aligned. */
+      @media (max-width: 720px) {
+        .ld-hero__title {
+          text-align: center;
+        }
+        .ld-hero__title-line {
+          display: block;
+        }
+        .ld-hero__sub {
+          text-align: center;
+          margin-inline: auto;
+        }
+        .ld-hero__ctas {
+          justify-content: center;
+        }
+      }
 
       .ld-trust-row {
         display: inline-flex; align-items: center; gap: 0.65rem;
