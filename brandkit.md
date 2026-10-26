@@ -160,6 +160,23 @@ Single class with kind modifiers, all theme-aware. Built-in dot indicator via `:
 | `--danger` | warm coral |
 | `--no-dot` | drop the dot |
 
+### `.gr-biz-badge` — business trust badges
+
+Earned badges for businesses, rendered by `business-badges.js` from the `get_business_badges` RPC. Rules live in `supabase/migrations/add_business_badges.sql`; nobody sets a badge by hand.
+
+| Badge | Earned when | Lapses |
+|---|---|---|
+| Active client | payment released in the last 90 days | yes, rolling 90 days |
+| Repeat client | paid 2+ students, or rehired one | no |
+| Quick approver | median delivered → released under 3 days, 2+ engagements | yes, rolling 90 days |
+| Clear scope | 2+ engagements in 90 days, no support hold or refund | yes, rolling 90 days |
+
+- Every badge uses the same solid `--fo-accent` disc with a `--fo-accent-on` glyph. The glyph tells them apart, not color.
+- Marketplace card (`.gr-biz-badges`): icons only, right after the business name. Max 2, then `+N`. A business that has never released a payment shows a muted `New` chip.
+- Listing detail (`.gr-biz-badge-block`): a facts line ("3 students paid · approves in ~2 days") and one `.gr-biz-badge-pill` per badge, icon + two-word label, with the full meaning in `title`.
+- If the RPC fails, render nothing. Never fall back to `New`.
+- `?fakebadges=1` swaps in fixture data for previews.
+
 ### `.gr-avatar` — universal avatar
 
 One container + one img rule + size/shape/tone modifiers.
