@@ -344,6 +344,39 @@
 
             <p id="eg-review-status" class="gr-status" aria-live="polite"></p>
           </section>
+
+          <section class="gr-card eg-panel hidden" id="eg-biz-review-panel">
+            <div class="eg-panel__head">
+              <div>
+                <p class="eg-kicker" id="eg-biz-review-kicker">Business review</p>
+                <h2 class="eg-panel__title" id="eg-biz-review-title">Rate this business</h2>
+              </div>
+            </div>
+
+            <p class="eg-panel__body" id="eg-biz-review-body"></p>
+
+            <form id="eg-biz-review-form" class="eg-review-form hidden">
+              <div class="eg-rating-grid" id="eg-biz-rating-grid"></div>
+
+              <label class="gr-label full-width">
+                <span>Short note</span>
+                <textarea
+                  id="eg-biz-endorsement"
+                  rows="4"
+                  maxlength="280"
+                  placeholder="What should the next student know?"
+                ></textarea>
+              </label>
+
+              <div class="eg-review-actions">
+                <button type="submit" class="gr-btn gr-btn--primary" id="eg-biz-submit-review" disabled>Submit review</button>
+              </div>
+            </form>
+
+            <div id="eg-biz-review-readonly" class="eg-rating-grid hidden"></div>
+            <p id="eg-biz-review-note" class="eg-panel__body hidden"></p>
+            <p id="eg-biz-review-status" class="gr-status" aria-live="polite"></p>
+          </section>
         </div>
       </div>
     </main>

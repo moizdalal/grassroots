@@ -894,6 +894,13 @@ body.gr-body .gr-section-h {
   min-width: 0;
 }
 
+:where(#listing-grid, #dash-listings-cards) .gr-listing-biz-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
 :where(#listing-grid, #dash-listings-cards) .gr-listing-biz-name {
   margin: 0;
   font-family: var(--font-body);

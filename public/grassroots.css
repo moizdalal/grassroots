@@ -4343,6 +4343,96 @@ button.gr-bid-link {
 
 .gr-pill--no-dot::before { display: none; }
 
+/* ── Business trust badges ───────────────────────────────────── */
+/* Rendered by business-badges.js. One icon shape for every badge; the
+   glyph tells them apart. Solid accent disc + --fo-accent-on glyph so
+   the 12px glyph clears contrast in every theme (accent-soft + accent
+   glyph was too faint on dark-forest). */
+.gr-biz-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 50%;
+  background: var(--fo-accent);
+  color: var(--fo-accent-on);
+  flex-shrink: 0;
+}
+
+.gr-biz-badge svg {
+  width: 0.7rem;
+  height: 0.7rem;
+}
+
+/* Card slot: icons only, after the business name. */
+.gr-biz-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex-shrink: 0;
+}
+
+.gr-biz-badges__item {
+  display: inline-flex;
+}
+
+.gr-biz-badges__more,
+.gr-biz-badges__new {
+  font-family: var(--font-body);
+  font-size: var(--type-eyebrow);
+  font-weight: 700;
+  color: var(--fo-text-3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.gr-biz-badges__more {
+  margin-left: 0.1rem;
+}
+
+.gr-biz-badges__new {
+  padding: 0.05rem 0.45rem;
+  border: 1px solid var(--fo-line-strong);
+  border-radius: 999px;
+}
+
+/* Detail block: facts line + icon-and-label pills. */
+.gr-biz-badge-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.gr-biz-badge-block__facts {
+  margin: 0;
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+}
+
+.gr-biz-badge-block__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gr-biz-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.65rem 0.2rem 0.25rem;
+  border: 1px solid var(--fo-line-strong);
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: var(--type-eyebrow);
+  font-weight: 700;
+  color: var(--fo-text);
+  white-space: nowrap;
+}
+
 .gr-sr-only {
   position: absolute;
   width: 1px;

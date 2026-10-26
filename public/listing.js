@@ -25,6 +25,7 @@ import {
 } from "/listing-analytics.js";
 import { showToast, showSuccess, showError, showLoading } from "/toast.js";
 import { isGuest, setGuestMode, clearGuestModeIfSignedIn } from "/guest-mode.js";
+import { loadBusinessBadges, renderBadgeBlock } from "/business-badges.js";
 
 const gate = document.getElementById("listing-gate");
 const detail = document.getElementById("listing-detail");
@@ -903,6 +904,19 @@ function attachLdSectionAnimation(details) {
       };
     }
   });
+}
+
+/* Trust badges under the owner name. Fire-and-forget: the bio renders
+   first and the block fills in once the RPC answers. */
+async function populateBusinessBadges(client, ownerId) {
+  const host = document.getElementById("ld-biz-badges");
+  if (!host || !ownerId) return;
+  const map = await loadBusinessBadges(client, [ownerId]);
+  if (!map) return;
+  const html = renderBadgeBlock(map.get(ownerId));
+  if (!html) return;
+  host.innerHTML = html;
+  host.hidden = false;
 }
 
 function populateListing(listing) {
@@ -3333,6 +3347,7 @@ async function init() {
 
     const { profile } = populateListing(listing);
     populateAvatarIfAvailable(client, profile);
+    populateBusinessBadges(client, listing.owner_id);
     setOwnerSidebarVisible(isOwner);
     if (!isOwner) setOfferRailVisible(false);
 

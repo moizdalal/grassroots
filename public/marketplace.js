@@ -8,6 +8,7 @@ import {
   clearGuestModeIfSignedIn,
   withGuestParam,
 } from "/guest-mode.js";
+import { loadBusinessBadges, renderBadgeIcons } from "/business-badges.js";
 
 const sessionSlot = document.getElementById("session-slot");
 const listingGrid = document.getElementById("listing-grid");
@@ -26,6 +27,8 @@ const LOCAL_RADIUS_MILES = 50;
 
 let allRows = [];
 let bizMap = {};
+// owner_id → badge summary (null = new business). null map = RPC unavailable.
+let badgeMap = null;
 let consultantCity = null; // { lat, lng } once the session is resolved.
 let _client = null;
 
@@ -278,7 +281,10 @@ function renderCard(row, client) {
     <div class="gr-listing-card-head">
       <div class="gr-listing-logo-wrap">${avatarHtml}</div>
       <div class="gr-listing-card-meta">
-        <p class="gr-listing-biz-name">${escapeHtml(businessName)}</p>
+        <div class="gr-listing-biz-row">
+          <p class="gr-listing-biz-name">${escapeHtml(businessName)}</p>
+          ${badgeMap ? renderBadgeIcons(badgeMap.get(row.owner_id)) : ""}
+        </div>
         ${budgetHtml}
         ${contractHtml}
       </div>
@@ -599,9 +605,13 @@ async function refreshListings(client) {
   // Fetch business profiles
   const ownerIds = [...new Set(allRows.map(r => r.owner_id))];
   if (ownerIds.length) {
-    const { data: bizProfiles } = await client.from("business_profiles").select("user_id, business_name").in("user_id", ownerIds);
+    const [{ data: bizProfiles }, badges] = await Promise.all([
+      client.from("business_profiles").select("user_id, business_name").in("user_id", ownerIds),
+      loadBusinessBadges(client, ownerIds),
+    ]);
     bizMap = {};
     (bizProfiles || []).forEach(b => { bizMap[b.user_id] = b; });
+    badgeMap = badges;
   }
 
   listingsStatus.textContent = "";

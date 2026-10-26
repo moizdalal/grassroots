@@ -107,6 +107,17 @@ const ratingGrid = document.getElementById("eg-rating-grid");
 const endorsementInput = document.getElementById("eg-endorsement");
 const submitReviewBtn = document.getElementById("eg-submit-review");
 const reviewStatusEl = document.getElementById("eg-review-status");
+const bizReviewPanel = document.getElementById("eg-biz-review-panel");
+const bizReviewKicker = document.getElementById("eg-biz-review-kicker");
+const bizReviewTitle = document.getElementById("eg-biz-review-title");
+const bizReviewBody = document.getElementById("eg-biz-review-body");
+const bizReviewForm = document.getElementById("eg-biz-review-form");
+const bizRatingGrid = document.getElementById("eg-biz-rating-grid");
+const bizEndorsementInput = document.getElementById("eg-biz-endorsement");
+const bizSubmitBtn = document.getElementById("eg-biz-submit-review");
+const bizReviewReadonly = document.getElementById("eg-biz-review-readonly");
+const bizReviewNote = document.getElementById("eg-biz-review-note");
+const bizReviewStatusEl = document.getElementById("eg-biz-review-status");
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const SLOT_MINUTES = 30;
@@ -120,6 +131,13 @@ const RATING_DIMENSIONS = [
   ["professionalism", "professionalism"],
   ["cost_value", "Cost value"],
 ];
+const BIZ_REVIEW_DIMENSIONS = [
+  ["scope_clarity", "Scope clarity"],
+  ["communication", "Communication"],
+  ["approval_speed", "Approval speed"],
+  ["respect", "Respect"],
+  ["would_work_again", "Would work again"],
+];
 
 let supabase;
 let sessionUserId = null;
@@ -130,8 +148,10 @@ let ownerProfile = null;
 let consultantProfile = null;
 let scheduleStore = "remote";
 let reviewStore = "remote";
+let bizReviewStore = "remote";
 let scheduleState = null;
 let reviewState = null;
+let bizReviewState = null;
 let proposalPhase = null; // bid_phase_payments row for phase='proposal'
 let servicePhase = null;  // bid_phase_payments row for phase='service'
 let retainerSub = null;   // retainer_subscriptions row
@@ -139,6 +159,7 @@ let retainerDeclined = false; // owner clicked "close as one-off"
 let retainerPeriods = []; // bid_phase_payments rows for phase='retainer_period'
 const ownerSelection = new Set();
 const reviewRatings = Object.create(null);
+const bizReviewRatings = Object.create(null);
 let consultantChosen = null;
 let dragState = { active: false, nextValue: false };
 
@@ -253,6 +274,10 @@ function scheduleStorageKey(bidId) {
 
 function reviewStorageKey(bidId) {
   return `grassroots_consultant_review_${bidId}`;
+}
+
+function bizReviewStorageKey(bidId) {
+  return `grassroots_business_review_${bidId}`;
 }
 
 function toDateKey(date) {
@@ -629,6 +654,60 @@ async function saveReview(payload) {
   return payload;
 }
 
+async function loadBusinessReview(bidId) {
+  const local = readLocalJson(bizReviewStorageKey(bidId));
+  const { data, error } = await supabase
+    .from("business_reviews")
+    .select("*")
+    .eq("bid_id", bidId)
+    .maybeSingle();
+
+  if (error && isMissing(error)) {
+    bizReviewStore = "local";
+    return local;
+  }
+  if (error) throw error;
+  if (data) {
+    bizReviewStore = "remote";
+    writeLocalJson(bizReviewStorageKey(bidId), data);
+    return data;
+  }
+  if (local) {
+    bizReviewStore = "local";
+    return local;
+  }
+  return null;
+}
+
+async function saveBusinessReview(payload) {
+  if (bizReviewState) return bizReviewState;
+  if (bizReviewStore === "remote") {
+    const { data, error } = await supabase
+      .from("business_reviews")
+      .insert(payload)
+      .select()
+      .single();
+
+    if (error?.code === "23505") {
+      const existing = await loadBusinessReview(payload.bid_id);
+      if (existing) return existing;
+      throw error;
+    }
+    if (error && isMissing(error)) {
+      bizReviewStore = "local";
+    } else if (error) {
+      throw error;
+    } else {
+      writeLocalJson(bizReviewStorageKey(payload.bid_id), data);
+      return data;
+    }
+  }
+
+  const saved = { ...payload, created_at: new Date().toISOString() };
+  writeLocalJson(bizReviewStorageKey(payload.bid_id), saved);
+  return saved;
+}
+
 /* Duration source of truth:
    - If the owner has already saved a duration into the schedule state, use that
      for both views (consultant must accept the predetermined length).
@@ -742,34 +821,178 @@ function updateReviewSubmitState() {
   submitReviewBtn.disabled = !ready;
 }
 
-function renderRatings() {
+function renderStarGrid(grid, dimensions, ratings, { interactive = true } = {}) {
+  if (!grid) return;
   // 5 stars, each with a left-half + right-half hit target so the user
   // can choose any 0.5-step value from 0.5 → 5. Visual fill is a
   // single .eg-stars__fill width track, matching the .gr-rating
   // component's pattern.
-  ratingGrid.innerHTML = RATING_DIMENSIONS.map(([key, label]) => {
-    const value = Number(reviewRatings[key]) || 0;
+  grid.innerHTML = dimensions.map(([key, label]) => {
+    const value = Number(ratings?.[key]) || 0;
     const fillPct = Math.max(0, Math.min(5, value)) / 5 * 100;
     const valueLabel = value ? `${value} of 5` : "Not yet rated";
-    const hits = Array.from({ length: 10 }, (_, i) => {
-      const v = (i + 1) / 2;
-      const star = v === 1 ? "star" : "stars";
-      return `<button type="button" class="eg-stars__hit" data-rating-key="${key}" data-rating-value="${v}" aria-label="Rate ${v} ${star}"></button>`;
-    }).join("");
+    const hits = interactive
+      ? `<span class="eg-stars__hits">${Array.from({ length: 10 }, (_, i) => {
+          const v = (i + 1) / 2;
+          const star = v === 1 ? "star" : "stars";
+          return `<button type="button" class="eg-stars__hit" data-rating-key="${key}" data-rating-value="${v}" aria-label="Rate ${label} ${v} ${star}"></button>`;
+        }).join("")}</span>`
+      : "";
     return `
       <div class="eg-rating-row">
         <div class="eg-rating-label">${label}</div>
-        <div class="eg-stars" data-value="${value}" role="img" aria-label="${valueLabel}">
+        <div class="eg-stars" data-value="${value}" role="img" aria-label="${label}: ${valueLabel}">
           <span class="eg-stars__track" aria-hidden="true">
             <span class="eg-stars__bg">★★★★★</span>
             <span class="eg-stars__fill" style="width: ${fillPct.toFixed(2)}%">★★★★★</span>
           </span>
-          <span class="eg-stars__hits">${hits}</span>
+          ${hits}
         </div>
       </div>
     `;
   }).join("");
+}
+
+function renderRatings() {
+  renderStarGrid(ratingGrid, RATING_DIMENSIONS, reviewRatings);
   updateReviewSubmitState();
+}
+
+function paymentSettled(status) {
+  return status === "released" || status === "refunded";
+}
+
+// Keep in sync with public.can_review_business in
+// supabase/migrations/add_business_reviews.sql.
+function engagementWrapped() {
+  if (scheduleState?.status === "completed") return true;
+  if (paymentSettled(currentBid?.payment_status)) return true;
+  if (paymentSettled(servicePhase?.status)) return true;
+  if (currentBid?.move_forward_status === "declined" && paymentSettled(proposalPhase?.status)) return true;
+  const retainerEnded = retainerSub?.status === "canceled" || retainerSub?.status === "completed";
+  const retainerSettled = Number(retainerSub?.periods_billed) > 0
+    || (retainerPeriods || []).some((period) => paymentSettled(period.status));
+  return Boolean(retainerEnded && retainerSettled);
+}
+
+function engagementStarted() {
+  if (scheduleState?.status === "scheduled" || scheduleState?.status === "completed") return true;
+  const pay = currentBid?.payment_status;
+  if (pay === "held" || pay === "authorizing" || paymentSettled(pay)) return true;
+  if (servicePhase?.status === "held" || paymentSettled(servicePhase?.status)) return true;
+  if (retainerSub) return true;
+  return false;
+}
+
+function updateBizSubmitState() {
+  if (!bizSubmitBtn) return;
+  const ready = BIZ_REVIEW_DIMENSIONS.every(([key]) => isValidRating(bizReviewRatings[key]));
+  bizSubmitBtn.disabled = !ready;
+}
+
+function renderBusinessReview() {
+  if (!bizReviewPanel) return;
+  const wrapped = engagementWrapped();
+  const visible = Boolean(bizReviewState) || wrapped || (viewRole === "consultant" && engagementStarted());
+  if (!visible) {
+    bizReviewPanel.classList.add("hidden");
+    return;
+  }
+  bizReviewPanel.classList.remove("hidden");
+  bizReviewKicker.textContent = "Business review";
+
+  if (bizReviewState) {
+    bizReviewTitle.textContent = viewRole === "owner" ? "How this student rated you" : "Your review";
+    bizReviewBody.textContent = viewRole === "owner"
+      ? "The student rated this business. Reviews stay as posted."
+      : "Your review has been saved. You can't edit it.";
+    bizReviewForm.classList.add("hidden");
+    bizReviewReadonly.classList.remove("hidden");
+    renderStarGrid(bizReviewReadonly, BIZ_REVIEW_DIMENSIONS, bizReviewState, { interactive: false });
+    const note = String(bizReviewState.endorsement || "").trim();
+    bizReviewNote.hidden = !note;
+    bizReviewNote.classList.toggle("hidden", !note);
+    bizReviewNote.textContent = note;
+    if (bizReviewStatusEl) {
+      bizReviewStatusEl.textContent = "";
+      bizReviewStatusEl.className = "gr-status";
+    }
+    return;
+  }
+
+  bizReviewReadonly.classList.add("hidden");
+  bizReviewNote.classList.add("hidden");
+  bizReviewNote.hidden = true;
+  bizReviewNote.textContent = "";
+
+  if (!wrapped || viewRole !== "consultant") {
+    bizReviewTitle.textContent = viewRole === "owner" ? "Student review" : "Rate this business";
+    bizReviewBody.textContent = viewRole === "owner"
+      ? "The student hasn't rated this business yet."
+      : "You can rate this business once the work is complete.";
+    bizReviewForm.classList.add("hidden");
+    if (bizReviewStatusEl) {
+      bizReviewStatusEl.textContent = "";
+      bizReviewStatusEl.className = "gr-status";
+    }
+    return;
+  }
+
+  bizReviewTitle.textContent = "Rate this business";
+  bizReviewBody.textContent = "Rate all five dimensions. A short note is optional. You can't edit this after you post it.";
+  bizReviewForm.classList.remove("hidden");
+  renderStarGrid(bizRatingGrid, BIZ_REVIEW_DIMENSIONS, bizReviewRatings);
+  updateBizSubmitState();
+  if (bizReviewStatusEl) {
+    bizReviewStatusEl.textContent = "";
+    bizReviewStatusEl.className = "gr-status";
+  }
+}
+
+async function submitBusinessReview() {
+  if (viewRole !== "consultant" || !engagementWrapped()) {
+    showError("You can rate this business once the work is complete.");
+    return;
+  }
+  const ready = BIZ_REVIEW_DIMENSIONS.every(([key]) => isValidRating(bizReviewRatings[key]));
+  if (!ready) {
+    showError("Rate the business on all five dimensions before submitting.");
+    return;
+  }
+
+  const endorsement = bizEndorsementInput?.value.trim() || "";
+  const payload = {
+    listing_id: currentListing.id,
+    bid_id: currentBid.id,
+    owner_id: currentListing.owner_id,
+    consultant_id: currentBid.consultant_id,
+    scope_clarity: bizReviewRatings.scope_clarity,
+    communication: bizReviewRatings.communication,
+    approval_speed: bizReviewRatings.approval_speed,
+    respect: bizReviewRatings.respect,
+    would_work_again: bizReviewRatings.would_work_again,
+    endorsement: endorsement || null,
+  };
+
+  if (bizSubmitBtn) bizSubmitBtn.disabled = true;
+  try {
+    bizReviewState = await saveBusinessReview(payload);
+    if (bizReviewState?.id && bizReviewStore === "remote") {
+      await insertNotification(
+      currentListing.owner_id,
+      "A student rated your business",
+      `They left a review on "${currentListing.title}".`,
+      `/engagement.html?bid=${currentBid.id}`,
+      "business_review"
+      );
+    }
+    showSuccess("Your review has been saved.");
+    renderBusinessReview();
+  } catch (err) {
+    console.error("submitBusinessReview failed", err);
+    showError(err?.message || "Could not save your review.");
+    updateBizSubmitState();
+  }
 }
 
 function hydrateSummary() {
@@ -1448,6 +1671,7 @@ function renderOwnerActions() {
 function renderByState() {
   hydrateSummary();
   renderOwnerActions();
+  renderBusinessReview();
 
   const schedule = scheduleState || getDefaultSchedule();
   scheduleState = schedule;
@@ -1784,12 +2008,13 @@ function bindCalendarInteractions() {
   });
 }
 
-function bindReviewInteractions() {
-  ratingGrid.addEventListener("click", (event) => {
+function bindStarGrid(grid, ratings, rerender) {
+  if (!grid) return;
+  grid.addEventListener("click", (event) => {
     const btn = event.target.closest("[data-rating-key]");
-    if (!(btn instanceof HTMLButtonElement)) return;
-    reviewRatings[btn.dataset.ratingKey] = Number(btn.dataset.ratingValue);
-    renderRatings();
+    if (!(btn instanceof HTMLButtonElement) || !grid.contains(btn)) return;
+    ratings[btn.dataset.ratingKey] = Number(btn.dataset.ratingValue);
+    rerender();
   });
 
   // Hover preview — fill snaps to the value under the cursor while hovering,
@@ -1802,18 +2027,26 @@ function bindReviewInteractions() {
     if (!fill) return;
     fill.style.width = `${(Math.max(0, Math.min(5, value)) / 5) * 100}%`;
   }
-  ratingGrid.addEventListener("mouseover", (event) => {
+  grid.addEventListener("mouseover", (event) => {
     const hit = event.target.closest(".eg-stars__hit");
-    if (!hit) return;
+    if (!hit || !grid.contains(hit)) return;
     previewFill(hit, Number(hit.dataset.ratingValue));
   });
-  ratingGrid.addEventListener("mouseout", (event) => {
+  grid.addEventListener("mouseout", (event) => {
     const hit = event.target.closest(".eg-stars__hit");
-    if (!hit) return;
+    if (!hit || !grid.contains(hit)) return;
     const widget = hit.closest(".eg-stars");
     if (event.relatedTarget && widget?.contains(event.relatedTarget)) return;
-    const committed = Number(reviewRatings[hit.dataset.ratingKey]) || 0;
+    const committed = Number(ratings[hit.dataset.ratingKey]) || 0;
     previewFill(hit, committed);
+  });
+}
+
+function bindReviewInteractions() {
+  bindStarGrid(ratingGrid, reviewRatings, renderRatings);
+  bindStarGrid(bizRatingGrid, bizReviewRatings, () => {
+    renderStarGrid(bizRatingGrid, BIZ_REVIEW_DIMENSIONS, bizReviewRatings);
+    updateBizSubmitState();
   });
 
   workCompletedBtn.addEventListener("click", () => {
@@ -2235,6 +2468,11 @@ function bindReviewInteractions() {
     event.preventDefault();
     await submitReview();
   });
+
+  bizReviewForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await submitBusinessReview();
+  });
 }
 
 async function init() {
@@ -2282,6 +2520,7 @@ async function init() {
 
     scheduleState = (await loadSchedule(bidId)) || getDefaultSchedule();
     reviewState = await loadReview(bidId);
+    bizReviewState = await loadBusinessReview(bidId);
 
     if (currentListing.contract_type === "phased") {
       proposalPhase = await loadProposalPhase(bidId);
@@ -2298,6 +2537,12 @@ async function init() {
         reviewRatings[key] = Number(reviewState[key]) || 0;
       }
       endorsementInput.value = reviewState.endorsement || "";
+    }
+    if (bizReviewState) {
+      for (const [key] of BIZ_REVIEW_DIMENSIONS) {
+        bizReviewRatings[key] = Number(bizReviewState[key]) || 0;
+      }
+      if (bizEndorsementInput) bizEndorsementInput.value = bizReviewState.endorsement || "";
     }
 
     renderRatings();
