@@ -1369,6 +1369,13 @@
         color: var(--fo-text-2);
         margin: 0;
       }
+      .ld-peek__note {
+        margin: 0.75rem 0 0;
+        font-family: var(--font-body);
+        font-size: var(--type-meta);
+        line-height: 1.45;
+        color: var(--fo-text-3);
+      }
 
       /* ── how it works: four growth stages, one row per step ─────
          Each step: its plant stage on its own (left), then a text box
