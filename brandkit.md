@@ -162,14 +162,14 @@ Single class with kind modifiers, all theme-aware. Built-in dot indicator via `:
 
 ### `.gr-biz-badge` — business trust badges
 
-Earned badges for businesses, rendered by `business-badges.js` from the `get_business_badges` RPC. Rules live in `supabase/migrations/add_business_badges.sql`; nobody sets a badge by hand.
+Earned badges for businesses, rendered by `business-badges.js` from the `get_business_badges` RPC. Rules live in `supabase/migrations/add_business_badges.sql`. Clear scope reads `business_reviews.scope_clarity` from `supabase/migrations/add_business_reviews.sql`. Nobody sets a badge by hand.
 
 | Badge | Earned when | Lapses |
 |---|---|---|
 | Active client | payment released in the last 90 days | yes, rolling 90 days |
 | Repeat client | paid 2+ students, or rehired one | no |
 | Quick approver | median delivered → released under 3 days, 2+ engagements | yes, rolling 90 days |
-| Clear scope | 2+ engagements in 90 days, no support hold or refund | yes, rolling 90 days |
+| Clear scope | Average scope clarity of 4.0 or higher across at least 2 student reviews in the last 90 days. Fewer than 2 reviews in that window, including a business with no student reviews yet, does not earn it. There is no payment-history fallback. | yes, rolling 90 days |
 
 - Every badge uses the same solid `--fo-accent` disc with a `--fo-accent-on` glyph. The glyph tells them apart, not color.
 - Marketplace card (`.gr-biz-badges`): icons only, right after the business name. Max 2, then `+N`. A business that has never released a payment shows a muted `New` chip.

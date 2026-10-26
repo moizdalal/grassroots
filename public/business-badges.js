@@ -24,7 +24,7 @@ export const BADGES = [
   { key: "active_client", icon: "active", label: "Active client", meaning: "Paid a student in the last 90 days." },
   { key: "repeat_client", icon: "repeat", label: "Repeat client", meaning: "Has hired more than one student." },
   { key: "quick_approver", icon: "quick", label: "Quick approver", meaning: "Usually approves delivered work in under 3 days." },
-  { key: "clear_scope", icon: "scope", label: "Clear scope", meaning: "Recent projects finished with no disputes or refunds." },
+  { key: "clear_scope", icon: "scope", label: "Clear scope", meaning: "Recent students rated the scope as clear." },
 ];
 
 const FAKE_SUMMARIES = [
