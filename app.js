@@ -18,6 +18,16 @@ const {
   createPaymentIntentOnce,
 } = require("./lib/stripe-compat");
 const { sendEmail } = require("./lib/email");
+const { schoolMatchesEmail } = require("./lib/schools");
+const {
+  normalizeEmail,
+  createInvite,
+  lookupInvite,
+  claimInvite,
+  releaseInvite,
+  attachInviteUser,
+} = require("./lib/consultant-invites");
+const crypto = require("crypto");
 
 // Admin contact that receives operational notifications (deletion requests,
 // data-export requests, suggestion submissions). Overridable per-env so we
@@ -1388,6 +1398,83 @@ app.post("/api/account/export-request", express.json(), async (req, res) => {
   return res.json({ ok: true, pending: true, requested_at: requestedAt });
 });
 
+
+function appOrigin(req) {
+  const configured = envTrim("APP_URL");
+  if (configured) return configured.replace(/\/$/, "");
+  const proto = req.get("x-forwarded-proto") || req.protocol || "http";
+  const host = req.get("x-forwarded-host") || req.get("host");
+  return `${proto}://${host}`;
+}
+
+function inviteAdminAuthorized(req) {
+  const secret = envTrim("CONSULTANT_INVITE_SECRET");
+  if (!secret) return false;
+  const header = String(req.get("x-invite-admin-secret") || "");
+  const presented = header || getBearerToken(req);
+  const a = Buffer.from(presented);
+  const b = Buffer.from(secret);
+  if (!presented || a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
+function parseEducations(raw, verifiedSchool) {
+  let list = [];
+  if (raw && String(raw).trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) list = parsed;
+    } catch (_) {
+      list = [];
+    }
+  }
+  list = list.slice(0, 6).map((entry) => ({
+    degree: typeof entry?.degree === "string" ? entry.degree.slice(0, 40) : null,
+    major: typeof entry?.major === "string" ? entry.major.trim().slice(0, 120) || null : null,
+    minor: typeof entry?.minor === "string" ? entry.minor.trim().slice(0, 120) || null : null,
+    school: typeof entry?.school === "string" ? entry.school.trim().slice(0, 200) || null : null,
+  }));
+  if (!list.length) {
+    list = [{ degree: null, major: null, minor: null, school: verifiedSchool }];
+  }
+  list[0].school = verifiedSchool;
+  return list;
+}
+
+app.get("/api/consultant-invite", async (req, res) => {
+  if (!supabase) {
+    return res.status(503).json({ error: SUPABASE_ADMIN_CONFIG_ERROR });
+  }
+  res.set("Cache-Control", "no-store");
+  const invite = await lookupInvite(supabase, String(req.query.token || ""));
+  if (!invite) {
+    return res.status(404).json({ error: "This invite link is no longer valid." });
+  }
+  return res.json({ email: invite.email });
+});
+
+app.post("/api/admin/consultant-invites", async (req, res) => {
+  if (!supabase) {
+    return res.status(503).json({ error: SUPABASE_ADMIN_CONFIG_ERROR });
+  }
+  if (!envTrim("CONSULTANT_INVITE_SECRET")) {
+    return res.status(503).json({ error: "Invite admin is not configured." });
+  }
+  if (!inviteAdminAuthorized(req)) {
+    return res.status(401).json({ error: "Not allowed." });
+  }
+  try {
+    const invite = await createInvite(supabase, {
+      email: req.body?.email,
+      expiresInDays: req.body?.expiresInDays,
+      appUrl: appOrigin(req),
+    });
+    return res.status(201).json(invite);
+  } catch (error) {
+    return res.status(error.status || 500).json({ error: error.message || "Could not create invite." });
+  }
+});
+
 app.post("/api/register", upload.single("resume"), async (req, res) => {
   const {
     email,
@@ -1402,6 +1489,9 @@ app.post("/api/register", upload.single("resume"), async (req, res) => {
     businessDetails,
     currentEfforts,
     accepted_terms,
+    inviteToken,
+    verifiedSchool,
+    educations: educationsRaw,
   } = req.body;
 
   if (!email || !password || !role || !fullName || !String(phoneNumber || "").trim()) {
@@ -1435,9 +1525,29 @@ app.post("/api/register", upload.single("resume"), async (req, res) => {
       .filter(Boolean);
   }
 
+  let accountEmail = String(email).trim();
+  let inviteId = null;
+  let userId = null;
+  let consultantEducations = [];
+  const schoolName = String(verifiedSchool || "").trim();
+
   try {
+    if (role === "consultant") {
+      accountEmail = normalizeEmail(email);
+      const match = schoolMatchesEmail(schoolName, accountEmail);
+      if (!match.ok) {
+        return res.status(400).json({ error: match.error });
+      }
+      const claim = await claimInvite(supabase, inviteToken, accountEmail);
+      if (!claim.ok) {
+        return res.status(400).json({ error: claim.error });
+      }
+      inviteId = claim.id;
+      consultantEducations = parseEducations(educationsRaw, schoolName);
+    }
+
     const { data: userData, error: userError } = await supabase.auth.admin.createUser({
-      email,
+      email: accountEmail,
       password,
       email_confirm: true,
       user_metadata: {
@@ -1447,10 +1557,11 @@ app.post("/api/register", upload.single("resume"), async (req, res) => {
     });
 
     if (userError || !userData?.user) {
+      if (inviteId) await releaseInvite(supabase, inviteId);
       return res.status(400).json({ error: userError?.message || "Unable to create user." });
     }
 
-    const userId = userData.user.id;
+    userId = userData.user.id;
     let resumePath = null;
 
     if (req.file) {
@@ -1460,6 +1571,7 @@ app.post("/api/register", upload.single("resume"), async (req, res) => {
         req.file.mimetype === "application/pdf" || lowerName.endsWith(".pdf");
       if (!isPdf) {
         await supabase.auth.admin.deleteUser(userId);
+        if (inviteId) await releaseInvite(supabase, inviteId);
         return res.status(400).json({ error: "Resume must be a PDF." });
       }
 
@@ -1473,6 +1585,7 @@ app.post("/api/register", upload.single("resume"), async (req, res) => {
 
       if (uploadError) {
         await supabase.auth.admin.deleteUser(userId);
+        if (inviteId) await releaseInvite(supabase, inviteId);
         return res.status(400).json({ error: `Resume upload failed: ${uploadError.message}` });
       }
     }
@@ -1489,6 +1602,7 @@ app.post("/api/register", upload.single("resume"), async (req, res) => {
 
     if (profileError) {
       await supabase.auth.admin.deleteUser(userId);
+      if (inviteId) await releaseInvite(supabase, inviteId);
       return res.status(400).json({ error: `Profile creation failed: ${profileError.message}` });
     }
 
@@ -1510,15 +1624,22 @@ app.post("/api/register", upload.single("resume"), async (req, res) => {
     }
 
     if (role === "consultant") {
+      const primary = consultantEducations[0] || {};
       const { error: consultantError } = await supabase.from("consultant_profiles").insert({
         user_id: userId,
+        school: schoolName,
+        major: primary.major || null,
+        minor: primary.minor || null,
+        educations: consultantEducations,
       });
 
       if (consultantError) {
         await supabase.from("profiles").delete().eq("id", userId);
         await supabase.auth.admin.deleteUser(userId);
+        await releaseInvite(supabase, inviteId);
         return res.status(400).json({ error: `Consultant profile failed: ${consultantError.message}` });
       }
+      await attachInviteUser(supabase, inviteId, userId);
     }
 
     return res.status(201).json({
@@ -1527,6 +1648,11 @@ app.post("/api/register", upload.single("resume"), async (req, res) => {
       role,
     });
   } catch (error) {
+    if (userId) {
+      await supabase.from("profiles").delete().eq("id", userId);
+      await supabase.auth.admin.deleteUser(userId);
+    }
+    if (inviteId) await releaseInvite(supabase, inviteId, { force: true });
     return res.status(500).json({ error: error.message || "Unexpected server error." });
   }
 });
@@ -1573,6 +1699,10 @@ app.post("/api/oauth-complete", express.json(), async (req, res) => {
       return res.status(200).json({ message: "Profile already exists.", userId, role });
     }
 
+    if (role === "consultant") {
+      return res.status(403).json({ error: "Consultant accounts need an invite link." });
+    }
+
     const { error: profileError } = await supabase.from("profiles").insert({
       id: userId,
       role,
@@ -1586,10 +1716,6 @@ app.post("/api/oauth-complete", express.json(), async (req, res) => {
 
     if (role === "business_owner") {
       await supabase.from("business_profiles").insert({ user_id: userId });
-    }
-
-    if (role === "consultant") {
-      await supabase.from("consultant_profiles").insert({ user_id: userId });
     }
 
     await supabase.auth.admin.updateUserById(userId, {

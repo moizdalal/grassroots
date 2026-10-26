@@ -14,6 +14,11 @@
     <script src="/theme.js"></script>
     <script src="/cookie-banner.js" defer></script>
     <link rel="stylesheet" href="/register-flow.css" />
+    <script>
+      if (new URLSearchParams(location.search).has("invite")) {
+        document.documentElement.classList.add("reg-invite-boot");
+      }
+    </script>
   </head>
   <body class="gr-body">
     <nav class="gr-nav" aria-label="Primary">
@@ -32,9 +37,9 @@
 
     <main class="gr-shell">
       <div class="gr-page-intro">
-        <h1 class="gr-title">Create your account</h1>
-        <p class="gr-subtitle">
-          Pick a role and set up your credentials — you'll fill in the rest on your profile.
+        <h1 class="gr-title" id="reg-title">Create your account</h1>
+        <p class="gr-subtitle" id="reg-subtitle">
+          Businesses sign up here. Students open the invite we email them.
         </p>
       </div>
 
@@ -112,7 +117,7 @@
                     </span>
                     <span class="reg-role-card__title">Consultant</span>
                     <span class="reg-role-card__hint"
-                      >Application-only — apply to earn from your skills →</span
+                      >Students join from an invite sent to a school email →</span
                     >
                   </span>
                 </a>
@@ -126,7 +131,21 @@
               role="tabpanel"
               aria-hidden="true"
             >
-              <p class="gr-section-h">Account</p>
+              <p class="gr-section-h" id="reg-account-heading">Account</p>
+              <div id="reg-invite-school" data-invite-only hidden>
+                <label class="gr-label full-width">
+                  <span>School</span>
+                  <div class="reg-edu-school-ac" id="reg-verified-school-ac" data-allow-other="0">
+                    <input type="text" class="reg-edu-school-search" autocomplete="off" placeholder="Search your school…" />
+                    <input type="hidden" class="reg-edu-school" name="verifiedSchool" id="field-verified-school" />
+                    <div class="reg-edu-school-ac__panel" hidden>
+                      <ul class="reg-edu-school-ac__list"></ul>
+                    </div>
+                  </div>
+                </label>
+                <p class="gr-field-hint" id="reg-school-domain-hint">Pick the school on that email.</p>
+              </div>
+              <input type="hidden" name="inviteToken" id="field-invite-token" value="" />
               <div class="gr-field-grid reg-field-grid--2">
                 <label class="gr-label" data-oauth-hide="true">
                   <span>First name</span>
@@ -138,7 +157,7 @@
                 </label>
                 <label class="gr-label full-width" data-oauth-hide="true">
                   <span>Email</span>
-                  <input type="email" name="email" autocomplete="email" required />
+                  <input type="email" name="email" id="reg-email" autocomplete="email" required />
                 </label>
                 <label class="gr-label full-width">
                   <span>Phone number</span>
@@ -209,7 +228,7 @@
               aria-hidden="true"
             >
               <p class="gr-section-h">Education</p>
-              <p class="gr-subtitle gr-subtitle--compact">
+              <p class="gr-subtitle gr-subtitle--compact" id="reg-edu-intro">
                 Help business owners understand your background. Add multiple degrees if you have them.
               </p>
 
@@ -286,6 +305,14 @@
             <a href="/terms.html" target="_blank" rel="noopener">terms of service</a>.
           </p>
         </form>
+
+        <div id="reg-invite-fallback" hidden>
+          <p class="gr-subtitle gr-subtitle--compact">This invite link is no longer valid.</p>
+          <div class="reg-join-actions">
+            <a class="gr-btn gr-btn--primary" href="/home/for-students.html">How students join</a>
+            <a class="gr-inline-link" href="/register.html">Register a business</a>
+          </div>
+        </div>
 
         <div id="oauth-slot"></div>
 

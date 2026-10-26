@@ -1,5 +1,5 @@
 import { getSupabaseClient } from "/supabase-loader.js";
-import { wireSchoolAutocomplete } from "/school-autocomplete.js";
+import { wireSchoolAutocomplete, preloadSchools, matchCachedSchoolEmail, primaryDomainFor } from "/school-autocomplete.js";
 import { wireAllCityAutocompletes } from "/city-autocomplete.js";
 // OAuth is paused until providers are configured in supabase. The
 // /oauth.js renderer and the /api/oauth-complete endpoint stay intact;
@@ -13,6 +13,9 @@ const submitBtn = document.getElementById("reg-submit");
 const progressLabel = document.getElementById("reg-progress-label");
 const progressTrack = document.getElementById("reg-progress-track");
 const roleField = document.getElementById("field-role");
+
+const inviteToken = new URLSearchParams(window.location.search).get("invite") || "";
+let inviteMode = false;
 
 // Steps are dynamic based on role selection; start with base
 let STEP_LABELS = ["Pick your path", "Account details"];
@@ -71,7 +74,7 @@ function renderEducationEntry(index) {
       <label class="gr-label">
         <span>School</span>
         <div class="reg-edu-school-ac">
-          <input type="text" class="reg-edu-school-search" autocomplete="off"
+          <input type="text" class="reg-edu-school-search" data-initial-required="1" autocomplete="off"
                  placeholder="Search your school…" required />
           <input type="hidden" class="reg-edu-school" data-initial-required="1" />
           <div class="reg-edu-school-ac__panel" hidden>
@@ -103,7 +106,8 @@ function relabelEducationEntries() {
 }
 
 function collectEducations() {
-  return [...eduList.querySelectorAll(".reg-edu-entry")].map((entry) => {
+  const verified = document.getElementById("field-verified-school")?.value?.trim() || "";
+  return [...eduList.querySelectorAll(".reg-edu-entry")].map((entry, index) => {
     const schoolInput = entry.querySelector(".reg-edu-school");
     const otherInput = entry.querySelector(".reg-edu-school-other");
     const isOther = schoolInput?.dataset?.schoolOther === "1";
@@ -113,12 +117,13 @@ function collectEducations() {
     if (isOther) {
       school = (otherInput?.value || "").trim();
     }
+    if (inviteMode && index === 0 && verified) school = verified;
     return {
       degree: entry.querySelector(".reg-edu-degree")?.value || null,
       major: entry.querySelector(".reg-edu-major")?.value.trim() || null,
       minor: entry.querySelector(".reg-edu-minor")?.value.trim() || null,
       school: school || null,
-      school_other: isOther || undefined,
+      school_other: isOther && !(inviteMode && index === 0) ? true : undefined,
     };
   });
 }
@@ -156,6 +161,11 @@ function syncStepFieldState() {
     const isIncludedStep = STEPS.includes(slideIdx);
     slide.querySelectorAll("input, select, textarea").forEach((field) => {
       if (field.type === "hidden") return;
+      if (field.closest("[data-invite-only]") && !inviteMode) {
+        field.disabled = true;
+        field.required = false;
+        return;
+      }
       field.disabled = !isIncludedStep;
       field.required = isIncludedStep && field.dataset.initialRequired === "1";
     });
@@ -172,6 +182,7 @@ function showSlide(idx) {
     target.classList.add("reg-slide--active");
     target.removeAttribute("aria-hidden");
   }
+  if (idx === 2 && inviteMode) applyVerifiedSchool();
 
   const pos = STEPS.indexOf(idx);
   segments.forEach((seg, i) => {
@@ -182,7 +193,7 @@ function showSlide(idx) {
 
   const stepPos = STEPS.indexOf(idx);
   progressLabel.textContent = STEP_LABELS[stepPos >= 0 ? stepPos : idx] || "";
-  backBtn.classList.toggle("hidden", idx === 0);
+  backBtn.classList.toggle("hidden", STEPS.indexOf(idx) <= 0);
 
   const isLast = idx === STEPS[STEPS.length - 1];
   nextBtn.classList.toggle("hidden", isLast);
@@ -257,6 +268,7 @@ function validateCurrentStep() {
   }
 
   if (currentStep === 1) {
+    if (inviteMode && !validateInviteSchool()) return false;
     const slide = document.querySelector('[data-reg-slide="1"]');
     const required = slide.querySelectorAll("[required]");
     for (const input of required) {
@@ -271,6 +283,7 @@ function validateCurrentStep() {
   }
 
   if (currentStep === 2) {
+    if (inviteMode) applyVerifiedSchool();
     const slide = document.querySelector('[data-reg-slide="2"]');
     const required = slide.querySelectorAll("[required]");
     for (const input of required) {
@@ -349,6 +362,11 @@ form.addEventListener("submit", async (e) => {
     // from FormData. Persisted after the user is signed in (below).
     const educations = selectedRole === "consultant" ? collectEducations() : [];
     const primaryEdu = educations[0] || { major: null, minor: null, school: null };
+    if (selectedRole === "consultant") {
+      fd.set("educations", JSON.stringify(educations));
+      fd.set("inviteToken", inviteToken);
+      fd.set("verifiedSchool", document.getElementById("field-verified-school")?.value?.trim() || "");
+    }
 
     const res = await fetch("/api/register", {
       method: "POST",
@@ -414,9 +432,138 @@ form.addEventListener(
   true
 );
 
+function lockEntrySchool(entry, schoolName) {
+  const root = entry.querySelector(".reg-edu-school-ac");
+  const search = entry.querySelector(".reg-edu-school-search");
+  const hidden = entry.querySelector(".reg-edu-school");
+  if (root) root.dataset.allowOther = "0";
+  if (hidden) {
+    hidden.value = schoolName;
+    hidden.dataset.schoolOther = "0";
+  }
+  if (search) {
+    search.value = schoolName;
+    search.readOnly = true;
+    search.dataset.initialRequired = "1";
+  }
+}
+
+function applyVerifiedSchool() {
+  const schoolName = document.getElementById("field-verified-school")?.value?.trim() || "";
+  const entry = eduList?.querySelector(".reg-edu-entry");
+  if (entry && schoolName) lockEntrySchool(entry, schoolName);
+}
+
+function refreshSchoolHint() {
+  const hint = document.getElementById("reg-school-domain-hint");
+  if (!hint) return;
+  const school = document.getElementById("field-verified-school")?.value?.trim() || "";
+  const email = document.getElementById("reg-email")?.value?.trim() || "";
+  if (!school) {
+    hint.textContent = "Pick the school on that email.";
+    return;
+  }
+  const domain = primaryDomainFor(school);
+  const result = matchCachedSchoolEmail(school, email);
+  hint.textContent = result.ok
+    ? `This email matches @${domain}.`
+    : `This email has to end in @${domain || "your school's domain"}.`;
+}
+
+function validateInviteSchool() {
+  const school = document.getElementById("field-verified-school")?.value?.trim() || "";
+  const email = document.getElementById("reg-email")?.value?.trim() || "";
+  const search = document.querySelector("#reg-verified-school-ac .reg-edu-school-search");
+  if (!school) {
+    search?.focus();
+    statusEl.textContent = "Pick your school from the list.";
+    statusEl.className = "gr-status error";
+    return false;
+  }
+  const result = matchCachedSchoolEmail(school, email);
+  if (!result.ok) {
+    search?.focus();
+    statusEl.textContent = result.error;
+    statusEl.className = "gr-status error";
+    refreshSchoolHint();
+    return false;
+  }
+  statusEl.textContent = "";
+  statusEl.className = "gr-status";
+  return true;
+}
+
+function refreshSegmentVisibility() {
+  segments.forEach((seg, i) => {
+    seg.style.display = i < STEPS.length ? "" : "none";
+  });
+}
+
+function enterInviteMode(email) {
+  inviteMode = true;
+  selectedRole = "consultant";
+  roleField.value = "consultant";
+  document.getElementById("field-invite-token").value = inviteToken;
+
+  const emailInput = document.getElementById("reg-email");
+  emailInput.value = email;
+  emailInput.readOnly = true;
+  emailInput.setAttribute("aria-readonly", "true");
+
+  const schoolBlock = document.getElementById("reg-invite-school");
+  schoolBlock.hidden = false;
+  const search = schoolBlock.querySelector(".reg-edu-school-search");
+  search.dataset.initialRequired = "1";
+
+  document.getElementById("reg-title").textContent = "Create your consultant account";
+  document.getElementById("reg-subtitle").textContent = `This link is for ${email}.`;
+  document.getElementById("reg-account-heading").textContent = "School and account";
+  document.getElementById("reg-edu-intro").textContent =
+    "Your school stays locked to this email. Add another degree if you have one.";
+
+  STEP_LABELS = ["Account details", "Education"];
+  STEPS = [1, 2];
+  currentStep = 1;
+  refreshSegmentVisibility();
+  showSlide(1);
+  document.documentElement.classList.remove("reg-invite-boot");
+  refreshSchoolHint();
+}
+
+async function bootRegistration() {
+  const schoolAc = document.getElementById("reg-verified-school-ac");
+  wireSchoolAutocomplete(schoolAc);
+  document.getElementById("field-verified-school")?.addEventListener("change", refreshSchoolHint);
+
+  if (!inviteToken) {
+    showSlide(0);
+    return;
+  }
+
+  try {
+    try {
+      await preloadSchools();
+    } catch (_) {
+      throw new Error("We couldn't load the school list. Refresh and try again.");
+    }
+    const res = await fetch(`/api/consultant-invite?token=${encodeURIComponent(inviteToken)}`);
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error || "This invite link is no longer valid.");
+    enterInviteMode(body.email);
+  } catch (err) {
+    form.hidden = true;
+    const fallback = document.getElementById("reg-invite-fallback");
+    const fallbackCopy = fallback?.querySelector(".gr-subtitle");
+    if (fallbackCopy) fallbackCopy.textContent = err.message;
+    if (fallback) fallback.hidden = false;
+    statusEl.textContent = "";
+    document.documentElement.classList.remove("reg-invite-boot");
+  }
+}
+
 // Hide the third progress segment initially (only shown for consultant)
 if (segments[2]) segments[2].style.display = "none";
-showSlide(0);
+bootRegistration();
 
 // ── Password reveal toggle (shared with signin) ─────────────────
 document.addEventListener("click", (event) => {
