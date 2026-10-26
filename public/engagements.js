@@ -46,7 +46,7 @@ async function loadEngagements(client, userId) {
   // All accepted bids for this consultant — these are the engagements.
   const { data: bids, error: bidsErr } = await client
     .from("bids")
-    .select("id, listing_id, consultant_id, amount_cents, status, accepted_at, proposal_due_at, proposal_path, created_at")
+    .select("id, listing_id, consultant_id, amount_cents, status, payment_status, accepted_at, proposal_due_at, proposal_path, created_at")
     .eq("consultant_id", userId)
     .eq("status", "accepted")
     .order("accepted_at", { ascending: false });
@@ -106,12 +106,11 @@ async function loadEngagements(client, userId) {
 // the consultant can take from this page directly.
 function engagementState(eng) {
   const { bid, listing, schedule } = eng;
-  const listingClosed = listing?.status === "closed";
   const scheduleStatus = schedule?.status || null;
 
-  // Past: review submitted (schedule completed) OR listing closed. The
-  // listing-closed case keeps closed-but-unreviewed work in "past" so it
-  // doesn't clutter the current list with stalled engagements.
+  // Past: review submitted (schedule completed), payment settled, or the
+  // listing completed. Locking or removing a listing never ends an
+  // engagement on its own — accepted work stays current until it's done.
   if (scheduleStatus === "completed") {
     return {
       bucket: "past",
@@ -123,11 +122,20 @@ function engagementState(eng) {
         : `Accepted ${fmtDate(bid.accepted_at)}`,
     };
   }
-  if (listingClosed) {
+  if (bid.payment_status === "refunded") {
     return {
       bucket: "past",
-      label: "Closed",
+      label: "Refunded",
       pill: "muted",
+      action: null,
+      summary: `Accepted ${fmtDate(bid.accepted_at)}`,
+    };
+  }
+  if (bid.payment_status === "released" || listing?.status === "completed") {
+    return {
+      bucket: "past",
+      label: "Completed",
+      pill: "completed",
       action: null,
       summary: `Accepted ${fmtDate(bid.accepted_at)}`,
     };

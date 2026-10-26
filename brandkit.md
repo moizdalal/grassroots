@@ -98,7 +98,7 @@ Set on `<html data-theme="…">` by `theme.js` synchronously in head. Tokens def
 | `--fo-accent-soft` | translucent accent fill (hover, soft chips, gradients) |
 | `--fo-accent-warm` | warm orange — pending/warn state only |
 | `--fo-plan` | warm coral — destructive only |
-| `--fo-status-closed` | terminal red for "closed" / "cancelled" status dots — exists because `--fo-plan` collapses into `--fo-accent-warm` in the light theme |
+| `--fo-status-closed` | terminal red for error-terminal status dots — exists because `--fo-plan` collapses into `--fo-accent-warm` in the light theme. Listings no longer use it: since the lock / unlist model (Oct 2026), past listings are neutral (`completed` → `--fo-text-2`, `unlisted` → `--fo-line-strong`), not red |
 
 ### Banned
 

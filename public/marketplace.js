@@ -14,7 +14,7 @@ const listingGrid = document.getElementById("listing-grid");
 const listingsStatus = document.getElementById("listings-status");
 
 const LISTING_SELECT =
-  "id, owner_id, title, category, problem_summary, details, budget_cents, contract_type, turnaround_days, lat, lng, created_at, profiles!listings_owner_id_fkey ( full_name, role, avatar_path )";
+  "id, owner_id, title, category, problem_summary, details, budget_cents, contract_type, turnaround_days, status, lat, lng, created_at, profiles!listings_owner_id_fkey ( full_name, role, avatar_path )";
 
 const SORT_KEY = "grassroots_marketplace_sort";
 
@@ -138,13 +138,17 @@ async function loadConsultantCity(client, session) {
   }
 }
 
+// Open listings plus locked ones (public, no new offers). Locked rows
+// sort after open rows so they never crowd out live opportunities.
+// Completed listings stay off the feed until a past-projects view exists.
 async function fetchOpenListings(client) {
   const { data, error } = await client
     .from("listings")
     .select(LISTING_SELECT)
-    .eq("status", "open")
+    .in("status", ["open", "locked"])
     .order("created_at", { ascending: false });
 
+  if (data) data.sort((a, b) => (a.status === "locked") - (b.status === "locked"));
   return { data, error };
 }
 
@@ -248,7 +252,9 @@ function renderCard(row, client) {
     : "";
 
   const recency = formatRecency(row.created_at);
-  const recencyHtml = recency
+  const recencyHtml = row.status === "locked"
+    ? `<span class="gr-listing-recency gr-listing-recency--locked">Locked · not taking offers</span>`
+    : recency
     ? `<span class="gr-listing-recency${recency.stale ? " gr-listing-recency--stale" : ""}">${escapeHtml(recency.label)}</span>`
     : "";
 

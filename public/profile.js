@@ -335,9 +335,10 @@ profileTabButtons.forEach((button) => {
 
 function formatOwnerListingState(listing, acceptedBid) {
   const rawStatus = String(listing?.status || "").toLowerCase();
-  if (rawStatus === "closed") return "closed";
-  if (rawStatus === "paused") return "paused";
+  if (rawStatus === "completed") return "completed";
+  if (rawStatus === "unlisted") return "unlisted";
   if (acceptedBid) return "accepted";
+  if (rawStatus === "locked") return "locked";
   return "active";
 }
 
@@ -444,8 +445,8 @@ async function loadOwnerListingSummary() {
     });
 
     return {
-      current: mapped.filter((item) => item.state !== "closed"),
-      past: mapped.filter((item) => item.state === "closed"),
+      current: mapped.filter((item) => item.state !== "completed" && item.state !== "unlisted"),
+      past: mapped.filter((item) => item.state === "completed" || item.state === "unlisted"),
     };
   } catch (error) {
     console.warn("owner listing summary load failed", error);

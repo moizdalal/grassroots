@@ -33,8 +33,9 @@ const ownerSidebar = document.getElementById("ld-sidebar");
 const offerRail = document.getElementById("ld-offer-rail");
 const ownerActionsPanel = document.getElementById("ld-owner-actions");
 const ownerActionsCopy = document.getElementById("ld-owner-actions-copy");
-const pauseListingBtn = document.getElementById("ld-pause-listing-btn");
-const closeListingBtn = document.getElementById("ld-close-listing-btn");
+const lockListingBtn = document.getElementById("ld-lock-listing-btn");
+const completeListingBtn = document.getElementById("ld-complete-listing-btn");
+const unlistListingBtn = document.getElementById("ld-unlist-listing-btn");
 const statusForm = document.getElementById("ld-status-form");
 const statusFormTitle = document.getElementById("ld-status-form-title");
 const statusOtherWrap = document.getElementById("ld-status-other-wrap");
@@ -55,13 +56,17 @@ const STATUS_REASON_LABELS = {
 
 // Bid statuses that still represent an offer the owner could decline.
 // Accepted bids belong to a live engagement — leaving them alone is the
-// only safe behavior when the listing is being closed.
+// only safe behavior when the listing is being removed.
 const PENDING_BID_STATUSES = new Set(["pending", "submitted", "countered"]);
 
 let pendingListingStatusAction = null;
 // Cached on the owner side once bids load (see loadOwnerBids call site)
-// so the close-form can read pending + accepted counts without a refetch.
+// so the remove-form can read pending + accepted counts without a refetch.
 let cachedOwnerBids = [];
+// Owner-only summary of accepted work, from the listing_engagement_state
+// RPC: "active" | "released" | "none". Null until it loads, which keeps
+// "remove from marketplace" disabled (fail closed).
+let ownerEngagementState = null;
 
 /* ================================================================
    Utility helpers
@@ -699,11 +704,14 @@ function parseStructuredListingDetails(text) {
   return parsed;
 }
 
+// open (takes offers), locked (public, no new offers), completed (public
+// past project), unlisted (owner + bidders only). Drafts are handled
+// separately via listing.status === "draft".
 function getListingStatusLabel(status) {
   const normalized = String(status || "open").toLowerCase();
-  if (normalized === "paused") return "paused";
-  if (normalized === "closed") return "closed";
-  if (normalized === "filled") return "filled";
+  if (normalized === "locked") return "locked";
+  if (normalized === "completed") return "completed";
+  if (normalized === "unlisted") return "unlisted";
   return "open";
 }
 
@@ -750,12 +758,21 @@ function setOfferRailVisible(visible) {
    sign-in link for anyone who already has an account. The default
    pitch leans toward the business side because that's the dominant
    guest persona (and the side we're actively trying to grow). */
-function renderGuestRail() {
+// Locked and completed listings stay public; the eyebrow tells guests
+// they're looking at work that's underway or done, not an open request.
+const GUEST_RAIL_EYEBROW = {
+  open: "Guest preview",
+  locked: "Locked · not taking offers",
+  completed: "Past project",
+};
+
+function renderGuestRail(status = "open") {
   const rail = document.getElementById("ld-guest-rail");
   if (!rail) return;
+  const eyebrow = GUEST_RAIL_EYEBROW[status] || GUEST_RAIL_EYEBROW.open;
   rail.innerHTML = `
     <section class="ld-guest-rail__card" aria-label="Join Grassroots">
-      <span class="ld-guest-rail__eyebrow">Guest preview</span>
+      <span class="ld-guest-rail__eyebrow">${escapeHtml(eyebrow)}</span>
       <h2 class="ld-guest-rail__title">Like what you see?</h2>
       <p class="ld-guest-rail__body">
         Join Grassroots to post your own project and get matched with
@@ -1123,32 +1140,21 @@ function openOwnerStatusForm(action) {
   pendingListingStatusAction = action;
   ownerActionStatus.textContent = "";
   ownerActionStatus.className = "gr-status";
-  statusFormTitle.textContent =
-    action === "paused" ? "Why are you pausing this listing?" : "Why are you closing this listing?";
-  statusSubmitBtn.textContent = action === "paused" ? "Pause listing" : "Close listing";
+  // Removing is the only action that goes through the reason form; lock,
+  // unlock and mark-completed are one click.
+  statusFormTitle.textContent = "Why are you removing this listing?";
+  statusSubmitBtn.textContent = "Remove from marketplace";
 
-  // Action-specific intro — explains the consequence in plain language
-  // so the owner knows what closing vs pausing actually does.
   if (statusFormIntro) {
-    if (action === "closed") {
-      statusFormIntro.textContent =
-        "Closing stops new offers, but consultants who already submitted can still see this listing. You can decide what happens to their offers below.";
-      statusFormIntro.hidden = false;
-    } else if (action === "paused") {
-      statusFormIntro.textContent =
-        "Pausing hides this listing from marketplace browsing. Existing offers stay in place and you can resume any time.";
-      statusFormIntro.hidden = false;
-    } else {
-      statusFormIntro.hidden = true;
-      statusFormIntro.textContent = "";
-    }
+    statusFormIntro.textContent =
+      "Removing hides this listing from the public. Consultants who already submitted can still see it. You can decide what happens to their offers below.";
+    statusFormIntro.hidden = false;
   }
 
-  // Work-completed reason only makes sense when an offer has been
-  // accepted and the engagement is in flight. Mark the radio disabled
-  // (visually + functionally) when no accepted bid exists; a click on
-  // the label still fires and surfaces a toast explaining the gate.
-  const hasAccepted = cachedOwnerBids.some((b) => b.status === "accepted");
+  // Work-completed reason only makes sense once accepted work has been
+  // paid out. Mark the radio disabled (visually + functionally) until
+  // then; a click on the label still fires and surfaces a toast.
+  const hasAccepted = ownerEngagementState === "released";
   if (workCompletedOption) {
     const input = workCompletedOption.querySelector('input[type="radio"]');
     if (!hasAccepted) {
@@ -1165,13 +1171,13 @@ function openOwnerStatusForm(action) {
     }
   }
 
-  // Pending-offers disposition only applies when closing AND there are
+  // Pending-offers disposition only applies when removing AND there are
   // outstanding offers to disposition. Default radio (`keep`) stays
   // checked so submitting without changing anything matches today's
   // behavior — leaves offers pending.
   const pendingCount = cachedOwnerBids.filter((b) => PENDING_BID_STATUSES.has(b.status)).length;
   if (statusOffersFieldset) {
-    if (action === "closed" && pendingCount > 0) {
+    if (action === "unlisted" && pendingCount > 0) {
       statusOffersFieldset.hidden = false;
       const keepRadio = statusOffersFieldset.querySelector('input[value="keep"]');
       if (keepRadio) keepRadio.checked = true;
@@ -1185,57 +1191,81 @@ function openOwnerStatusForm(action) {
 }
 
 function renderOwnerActionSummary(listing) {
-  if (!ownerActionsCopy || !pauseListingBtn || !closeListingBtn) return;
+  if (!ownerActionsCopy || !lockListingBtn || !unlistListingBtn || !completeListingBtn) return;
   const status = getListingStatusLabel(listing?.status);
   const reasonText = getListingReasonText(listing);
-  const buttonsWrap = pauseListingBtn.closest(".ld-owner-actions__buttons");
+  const hasActiveWork = ownerEngagementState === "active";
+  // Disabled until the engagement state loads, then only while work is active.
+  const unlistBlocked = ownerEngagementState !== "none" && ownerEngagementState !== "released";
 
-  // The intro copy element starts present-but-empty; make sure it's
-  // visible whenever we set text on it. (Earlier HTML carried `hidden`
-  // which kept the closed-state explanation from ever rendering.)
   const showCopy = (text) => {
     ownerActionsCopy.textContent = text;
     ownerActionsCopy.hidden = false;
   };
 
-  if (status === "paused") {
-    showCopy(reasonText
-      ? `This listing is paused because of "${reasonText}". Resume it any time or close it permanently.`
-      : "This listing is paused. Existing proposals stay in place while it stays out of marketplace browsing.");
-    if (buttonsWrap) buttonsWrap.hidden = false;
-    pauseListingBtn.textContent = "Resume listing";
-    pauseListingBtn.disabled = false;
-    closeListingBtn.textContent = "Close listing";
-    closeListingBtn.disabled = false;
+  lockListingBtn.hidden = false;
+  lockListingBtn.disabled = false;
+  completeListingBtn.hidden = ownerEngagementState !== "released";
+  completeListingBtn.disabled = false;
+  unlistListingBtn.hidden = false;
+  unlistListingBtn.disabled = unlistBlocked;
+  unlistListingBtn.textContent = "Remove from marketplace";
+  unlistListingBtn.title = hasActiveWork
+    ? "You can remove this listing once payment for the current work is released."
+    : "";
+
+  if (status === "locked") {
+    showCopy(hasActiveWork
+      ? "Locked. It stays public but takes no new offers. Current work continues as normal."
+      : "Locked. It stays public but takes no new offers. Unlock it any time.");
+    lockListingBtn.textContent = "Unlock listing";
     return;
   }
 
-  if (status === "closed") {
-    // Closed is terminal — drop the action buttons entirely so the panel
-    // reads as a status note rather than a disabled control surface.
+  if (status === "completed") {
+    showCopy("Completed. It stays public as a past project. Remove it to keep it private.");
+    lockListingBtn.hidden = true;
+    completeListingBtn.hidden = true;
+    return;
+  }
+
+  if (status === "unlisted") {
     showCopy(reasonText
-      ? `This listing is already closed (reason: "${reasonText}"). Existing participants can still refer back to it here.`
-      : "This listing is already closed. Existing participants can still refer back to it here.");
-    if (buttonsWrap) buttonsWrap.hidden = true;
+      ? `Removed from the marketplace (reason: "${reasonText}"). Consultants who sent offers can still see it.`
+      : "Removed from the marketplace. Consultants who sent offers can still see it.");
+    lockListingBtn.hidden = true;
+    completeListingBtn.hidden = true;
+    unlistListingBtn.disabled = false;
+    unlistListingBtn.title = "";
+    unlistListingBtn.textContent = "Show on marketplace";
     resetOwnerStatusForm();
     return;
   }
 
-  // Default ("open" / actionable) state: the explainer copy lives in the
-  // `?` tooltip next to the heading now, so suppress the inline paragraph
-  // and let the buttons speak for themselves. paused / closed branches
-  // still set status copy above (those describe current state).
-  ownerActionsCopy.textContent = "";
-  ownerActionsCopy.hidden = true;
-  if (buttonsWrap) buttonsWrap.hidden = false;
-  pauseListingBtn.textContent = "Pause listing";
-  closeListingBtn.textContent = "Close listing";
-  pauseListingBtn.disabled = false;
-  closeListingBtn.disabled = false;
+  // Open: the explainer lives in the `?` tooltip next to the heading, so
+  // only show inline copy when there's active work to reassure about.
+  if (hasActiveWork) {
+    showCopy("Lock this listing to stop new offers. Your current engagement isn't affected.");
+  } else {
+    ownerActionsCopy.textContent = "";
+    ownerActionsCopy.hidden = true;
+  }
+  lockListingBtn.textContent = "Lock listing";
+}
+
+async function loadOwnerEngagementState(client, listingId) {
+  const { data, error } = await client.rpc("listing_engagement_state", { target_listing_id: listingId });
+  if (error) {
+    // Fail closed: without the RPC, treat the listing as having active
+    // work so the owner can't remove it out from under a consultant.
+    console.warn("listing engagement state:", error);
+    return "active";
+  }
+  return data || "none";
 }
 
 function showOwnerActionFeedback(message, kind = "success") {
-  // Owner actions (pause / resume / cancel listing) now route through
+  // Owner actions (lock / unlock / remove listing) now route through
   // the app-wide toast stack instead of an inline `gr-status` line.
   if (kind === "error") showError(message);
   else showSuccess(message);
@@ -1260,8 +1290,9 @@ function setupOwnerListingActions(client, listing) {
   if (
     !ownerSidebar ||
     !ownerActionsPanel ||
-    !pauseListingBtn ||
-    !closeListingBtn ||
+    !lockListingBtn ||
+    !completeListingBtn ||
+    !unlistListingBtn ||
     !statusForm ||
     !statusCancelBtn ||
     !statusSubmitBtn
@@ -1272,33 +1303,65 @@ function setupOwnerListingActions(client, listing) {
   setOwnerSidebarVisible(true);
   ownerActionsPanel.hidden = false;
   renderOwnerActionSummary(listing);
+  loadOwnerEngagementState(client, listing.id).then((state) => {
+    ownerEngagementState = state;
+    renderOwnerActionSummary(listing);
+  });
 
   if (!ownerActionsPanel.dataset.bound) {
-    pauseListingBtn.addEventListener("click", async () => {
-      if (getListingStatusLabel(listing.status) === "paused") {
-        ownerActionStatus.textContent = "";
-        ownerActionStatus.className = "gr-status";
-        pauseListingBtn.disabled = true;
-        try {
-          await persistListingStatus(client, listing, "open", null, null);
-          renderOwnerActionSummary(listing);
-          resetOwnerStatusForm();
-          showOwnerActionFeedback("Listing resumed. It is visible in marketplace browsing again.");
-        } catch (error) {
-          showOwnerActionFeedback(error.message || "Could not resume listing.", "error");
-        } finally {
-          renderOwnerActionSummary(listing);
-        }
+    // Lock, unlock, complete and relist are reversible or system-checked,
+    // so they skip the reason form.
+    const setStatusDirect = async (button, nextStatus, successMessage) => {
+      ownerActionStatus.textContent = "";
+      ownerActionStatus.className = "gr-status";
+      button.disabled = true;
+      try {
+        await persistListingStatus(client, listing, nextStatus, null, null);
+        resetOwnerStatusForm();
+        showOwnerActionFeedback(successMessage);
+      } catch (error) {
+        showOwnerActionFeedback(error.message || "Could not update listing.", "error");
+      } finally {
+        renderOwnerActionSummary(listing);
+      }
+    };
+
+    lockListingBtn.addEventListener("click", async () => {
+      if (getListingStatusLabel(listing.status) === "locked") {
+        await setStatusDirect(lockListingBtn, "open", "Listing unlocked. It's taking offers again.");
         return;
       }
-
-      resetOwnerStatusForm();
-      openOwnerStatusForm("paused");
+      await setStatusDirect(lockListingBtn, "locked", "Listing locked. It stays public but takes no new offers.");
     });
 
-    closeListingBtn.addEventListener("click", () => {
+    completeListingBtn.addEventListener("click", async () => {
+      await setStatusDirect(
+        completeListingBtn,
+        "completed",
+        "Listing marked completed. It stays public as a past project."
+      );
+    });
+
+    unlistListingBtn.addEventListener("click", async () => {
+      // Relisting returns paid-out work to completed; anything else comes
+      // back locked so it doesn't silently start taking offers again.
+      if (getListingStatusLabel(listing.status) === "unlisted") {
+        const nextStatus = ownerEngagementState === "released" ? "completed" : "locked";
+        await setStatusDirect(
+          unlistListingBtn,
+          nextStatus,
+          nextStatus === "completed"
+            ? "Listing is back on the marketplace as a past project."
+            : "Listing is back on the marketplace, locked. Unlock it to take offers."
+        );
+        return;
+      }
+      if (ownerEngagementState !== "none" && ownerEngagementState !== "released") {
+        showOwnerActionFeedback("This listing has active work. Lock it instead.", "error");
+        return;
+      }
       resetOwnerStatusForm();
-      openOwnerStatusForm("closed");
+      openOwnerStatusForm("unlisted");
     });
 
     // Work-completed reason is gated on an accepted bid existing. Clicks
@@ -1309,7 +1372,7 @@ function setupOwnerListingActions(client, listing) {
         if (workCompletedOption.classList.contains("is-disabled")) {
           event.preventDefault();
           showToast(
-            "This reason applies once you've accepted a consultant's offer. Close the engagement from the engagement page instead.",
+            "This reason applies once payment for accepted work has been released.",
             { kind: "info", duration: 5000 }
           );
         }
@@ -1345,11 +1408,9 @@ function setupOwnerListingActions(client, listing) {
         return;
       }
 
-      // Pending-offers disposition only applies when closing. The
-      // fieldset stays hidden in the paused flow so the radio value is
-      // ignored there even if it somehow got selected.
+      // Pending-offers disposition only applies when removing.
       const offersDisposition =
-        action === "closed"
+        action === "unlisted"
           ? document.querySelector('input[name="listingOffersDisposition"]:checked')?.value || "keep"
           : "keep";
 
@@ -1358,13 +1419,13 @@ function setupOwnerListingActions(client, listing) {
       ownerActionStatus.className = "gr-status";
 
       try {
-        // Bulk-decline FIRST so we don't leave a half-closed listing
+        // Bulk-decline FIRST so we don't leave a half-removed listing
         // with pending bids if the listing update succeeds and the
         // bulk-decline then errors. A successful decline followed by
         // a failed status update still leaves the bids in a sensible
         // declined state and the listing technically still open.
         let declinedCount = 0;
-        if (action === "closed" && offersDisposition === "decline_all") {
+        if (action === "unlisted" && offersDisposition === "decline_all") {
           const targets = cachedOwnerBids.filter((b) => PENDING_BID_STATUSES.has(b.status));
           if (targets.length > 0) {
             const { error: declineErr } = await client
@@ -1383,13 +1444,10 @@ function setupOwnerListingActions(client, listing) {
         await persistListingStatus(client, listing, action, reason, otherReason || null);
         renderOwnerActionSummary(listing);
         resetOwnerStatusForm();
-        const closedCopy = declinedCount > 0
-          ? `Listing closed. ${declinedCount} outstanding offer${declinedCount === 1 ? " was" : "s were"} declined.`
-          : "Listing closed. Existing offers remain on file. Consultants who already submitted can still see this listing.";
         showOwnerActionFeedback(
-          action === "paused"
-            ? "Listing paused. It is now hidden from marketplace browsing, but current proposals remain in place."
-            : closedCopy
+          declinedCount > 0
+            ? `Listing removed. ${declinedCount} outstanding offer${declinedCount === 1 ? " was" : "s were"} declined.`
+            : "Listing removed from the marketplace. Consultants who sent offers can still see it."
         );
       } catch (error) {
         showOwnerActionFeedback(error.message || "Could not update listing status.", "error");
@@ -3316,7 +3374,7 @@ async function init() {
       trackListingView(client, listingId, uid, listing.owner_id, viewerRole);
     }
 
-    if (listingStatus !== "open" && !isOwner && !hasExistingBid) {
+    if (listingStatus === "unlisted" && !isOwner && !hasExistingBid) {
       gate.textContent = "This listing is no longer available from marketplace browsing.";
       gate.className = "gr-status error";
       return;
@@ -3338,7 +3396,7 @@ async function init() {
 
     // Owner viewing a draft: show the resume-editing banner, hide
     // the listing-controls panel (irrelevant for an unpublished
-    // listing — there's nothing to pause / close yet), and skip the
+    // listing — there's nothing to lock / remove yet), and skip the
     // bid + analytics loads since neither applies to a draft.
     const draftBanner = document.getElementById("ld-draft-banner");
     if (isDraft && isOwner && draftBanner) {
@@ -3355,7 +3413,7 @@ async function init() {
       // bids, listing analytics, or the question chat — none of
       // those are accessible to a logged-out visitor anyway, and
       // skipping them keeps the network requests honest.
-      renderGuestRail();
+      renderGuestRail(listingStatus);
     } else if (uid && !isOwner) {
       if (viewerRole === "consultant") {
         if (bidsAvailable) {
@@ -3370,7 +3428,7 @@ async function init() {
       setupOwnerListingActions(client, listing);
       const { bids, available } = await loadOwnerBids(client, listingId);
       if (available) {
-        // Cache for the owner close-form: lets it decide whether the
+        // Cache for the owner remove-form: lets it decide whether the
         // pending-offers disposition question shows and whether the
         // work-completed radio should be enabled.
         cachedOwnerBids = bids;

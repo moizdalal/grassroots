@@ -815,6 +815,16 @@ body.gr-body .gr-section-h {
   background: var(--fo-text-3);
 }
 
+/* Locked listings stay public but take no new offers. Warm accent marks
+   them as not-actionable without reading as an error. */
+:where(#listing-grid, #dash-listings-cards) .gr-listing-recency--locked {
+  color: var(--fo-accent-warm);
+}
+
+:where(#listing-grid, #dash-listings-cards) .gr-listing-recency--locked::before {
+  background: var(--fo-accent-warm);
+}
+
 /* Title ─ one tranche below the original v2 mockup. Uses the
    `--type-h1` token (section-H1 scale) so the card title stays
    token-aligned with the rest of the system. 2-line clamp keeps the
@@ -1933,11 +1943,12 @@ body.gr-body .gr-section-h {
   color: var(--fo-text-3);
 }
 
-/* Listing controls — restrained, theme-coherent. Pause is reversible
-   (subtle outline). Close is destructive but communicated by placement
-   and a confirm dialog, not by a screaming red fill. */
-#ld-pause-listing-btn,
-#ld-close-listing-btn {
+/* Listing controls — restrained, theme-coherent. Lock is reversible
+   (subtle outline). Remove is heavier but communicated by placement
+   and a reason form, not by a screaming red fill. */
+#ld-lock-listing-btn,
+#ld-complete-listing-btn,
+#ld-unlist-listing-btn {
   background: transparent;
   border: 1px solid var(--fo-line-strong);
   color: var(--fo-text-2);
@@ -1945,14 +1956,15 @@ body.gr-body .gr-section-h {
   font-weight: 600;
 }
 
-#ld-pause-listing-btn:hover {
+#ld-lock-listing-btn:hover:not(:disabled),
+#ld-complete-listing-btn:hover:not(:disabled) {
   border-color: var(--fo-accent);
   color: var(--fo-accent);
   background: var(--fo-accent-soft);
   box-shadow: none;
 }
 
-#ld-close-listing-btn:hover {
+#ld-unlist-listing-btn:hover:not(:disabled) {
   border-color: var(--fo-accent-warm, #c46f44);
   color: var(--fo-accent-warm, #c46f44);
   background: rgba(196, 111, 68, 0.08);
@@ -5220,12 +5232,11 @@ body.gr-has-side-nav .bza__side {
   opacity: 0.85;
 }
 
-.bza__row-state--closed {
-  background: var(--fo-plan);
-  opacity: 0.6;
+.bza__row-state--unlisted {
+  background: var(--fo-line-strong);
 }
 
-.bza__row-state--paused {
+.bza__row-state--locked {
   background: var(--fo-do);
 }
 
@@ -5297,12 +5308,12 @@ body.gr-has-side-nav .bza__side {
   color: var(--fo-text-2);
 }
 
-.bza__row-state-label--paused {
+.bza__row-state-label--locked {
   color: var(--fo-do);
 }
 
-.bza__row-state-label--closed {
-  color: var(--fo-plan);
+.bza__row-state-label--unlisted {
+  color: var(--fo-text-3);
 }
 
 .bza__row-state-label--draft {

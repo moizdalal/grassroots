@@ -598,12 +598,13 @@
   color: #28516d;
 }
 
-.pf-owner-item__state--paused {
+.pf-owner-item__state--locked {
   background: rgba(232, 195, 124, 0.2);
   color: #7a5515;
 }
 
-.pf-owner-item__state--closed {
+.pf-owner-item__state--completed,
+.pf-owner-item__state--unlisted {
   background: rgba(94, 114, 128, 0.14);
   color: #51606b;
 }

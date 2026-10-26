@@ -133,26 +133,28 @@
                 Listing controls
                 <span class="ld-info-tip" tabindex="0" role="button" aria-label="About listing controls">
                   ?
-                  <span class="ld-info-tip__bubble" role="tooltip">Pause this listing to hide it from marketplace browsing while keeping current proposals in place, or close it when you're done.</span>
+                  <span class="ld-info-tip__bubble" role="tooltip">Lock this listing to stop new offers. It stays public, and current work isn't affected. Remove it from the marketplace to hide it from everyone except consultants who sent offers.</span>
                 </span>
               </h2>
               <p id="ld-owner-actions-copy" class="ld-owner-actions__copy" hidden></p>
 
               <div class="ld-owner-actions__buttons">
-                <button type="button" id="ld-pause-listing-btn" class="gr-btn gr-btn--ghost ld-owner-actions__btn">
-                  Pause listing
+                <button type="button" id="ld-lock-listing-btn" class="gr-btn gr-btn--primary ld-owner-actions__btn">
+                  Lock listing
                 </button>
-                <button type="button" id="ld-close-listing-btn" class="gr-btn gr-btn--primary ld-owner-actions__btn">
-                  Close listing
+                <button type="button" id="ld-complete-listing-btn" class="gr-btn gr-btn--ghost ld-owner-actions__btn" hidden>
+                  Mark as completed
+                </button>
+                <button type="button" id="ld-unlist-listing-btn" class="gr-btn gr-btn--ghost ld-owner-actions__btn">
+                  Remove from marketplace
                 </button>
               </div>
 
               <form id="ld-status-form" class="ld-status-form hidden">
                 <p id="ld-status-form-title" class="ld-status-form__title"></p>
-                <!-- Action-specific intro copy set by listing.js. For
-                     closing, explains that the listing stays viewable
-                     to consultants who already submitted; only new
-                     offers are blocked. -->
+                <!-- Intro copy set by listing.js. Explains that a removed
+                     listing stays viewable to consultants who already
+                     submitted; only the public loses access. -->
                 <p id="ld-status-form-intro" class="ld-status-form__intro" hidden></p>
                 <div class="ld-status-form__options" role="radiogroup" aria-labelledby="ld-status-form-title">
                   <label class="ld-status-option" id="ld-status-option-work-completed">
@@ -174,7 +176,7 @@
                 </div>
 
                 <!-- Pending-offers disposition. Only shown by listing.js
-                     when closing AND the listing has pending offers.
+                     when removing AND the listing has pending offers.
                      Default keeps offers around so the owner can decide
                      later; the "decline all" option fires a bulk update
                      when the form is submitted. -->

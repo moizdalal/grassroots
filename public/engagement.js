@@ -36,7 +36,7 @@ const meetingTimeEl = document.getElementById("eg-meeting-time");
 const meetingBodyEl = document.getElementById("eg-meeting-body");
 const ownerActionsPanel = document.getElementById("eg-owner-actions-panel");
 const reviewOffersLink = document.getElementById("eg-review-offers-link");
-const closeListingBtn = document.getElementById("eg-close-listing-btn");
+const lockListingBtn = document.getElementById("eg-lock-listing-btn");
 const workCompletedBtn = document.getElementById("eg-work-completed-btn");
 const refundBtn = document.getElementById("eg-refund-btn");
 const refundRequestBtn = document.getElementById("eg-refund-request-btn");
@@ -1411,11 +1411,7 @@ function renderOwnerActions() {
     !engagementOngoing,
     "You'll be able to mark work completed once a kickoff time is locked in.",
   );
-  setBtnUnavailable(
-    closeListingBtn,
-    currentListing.status === "closed",
-    "This listing is already closed.",
-  );
+  renderLockListingBtn();
   renderRefundCta();
 
   if (reviewState) {
@@ -1620,16 +1616,36 @@ async function confirmConsultantTime() {
   }
 }
 
-async function closeListing() {
-  const { error } = await supabase.from("listings").update({ status: "closed" }).eq("id", currentListing.id);
+// Locking stops new offers without touching this engagement. Completed
+// and removed listings are managed from the listing page instead.
+function renderLockListingBtn() {
+  const status = currentListing.status || "open";
+  lockListingBtn.textContent = status === "locked" ? "Unlock listing" : "Lock listing";
+  setBtnUnavailable(
+    lockListingBtn,
+    status !== "open" && status !== "locked",
+    "Manage completed or removed listings from the listing page.",
+  );
+}
+
+async function toggleListingLock() {
+  const nextStatus = currentListing.status === "locked" ? "open" : "locked";
+  const { error } = await supabase
+    .from("listings")
+    .update({ status: nextStatus, status_reason: null, status_reason_other: null })
+    .eq("id", currentListing.id);
   if (error) {
-    showError(error.message || "Could not close listing.");
+    showError(error.message || "Could not update listing.");
     return;
   }
-  currentListing.status = "closed";
-  listingStatusEl.textContent = "Closed";
-  setBtnUnavailable(closeListingBtn, true, "This listing is already closed.");
-  showSuccess("Opportunity closed. You can still manage this engagement here.");
+  currentListing.status = nextStatus;
+  listingStatusEl.textContent = capFirst(nextStatus);
+  renderLockListingBtn();
+  showSuccess(
+    nextStatus === "locked"
+      ? "Listing locked. It takes no new offers. This engagement isn't affected."
+      : "Listing unlocked. It's taking offers again.",
+  );
 }
 
 async function submitReview() {
@@ -2334,8 +2350,8 @@ confirmTimeBtn.addEventListener("click", async () => {
 // just updates the working value used by saveOwnerAvailability — no
 // re-render needed.
 
-closeListingBtn.addEventListener("click", async () => {
-  await closeListing();
+lockListingBtn.addEventListener("click", async () => {
+  await toggleListingLock();
 });
 
 // Capture-phase delegate that intercepts clicks on any owner-action
