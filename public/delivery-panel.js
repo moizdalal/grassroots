@@ -6,14 +6,23 @@
 // the payment releases automatically. Retainer periods open their window at
 // period end. All state comes from /api/engagement/:bid/release-status so
 // the dates match the server's release job exactly.
+//
+// Reported problems (Terms §7.1): the business can report a problem during
+// the review. Support then picks an outcome: released (A); fixable (B), where
+// the consultant has 5 days to redo the work once or give the payment back;
+// or scope breached (C), a full refund. Finished outcomes stay on the panel.
 import { showSuccess, showError } from "/toast.js";
 
 const SUPPORT_EMAIL = "moiz@grassroots-marketplace.com";
 
 let ctx = null; // { supabase, bidId, title }
 
+const fmtWhen = (iso) =>
+  iso ? new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
 const fmtDate = (iso) =>
   iso ? new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
+const DAY_MS = 86400000;
+const DECIDE_DAYS = 14;
 const fmtUsd = (cents) => `$${(Number(cents || 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 function esc(text) {
@@ -40,6 +49,111 @@ function supportHref(p) {
   const subject = `Question about a held payment · ${ctx.title || "engagement"}`;
   const body = `engagement: ${location.origin}/engagement.html?bid=${ctx.bidId}\npayment: ${p.label} (${fmtUsd(p.amount_cents)})\n\nwhat's going on:\n`;
   return `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+function daysLeft(iso) {
+  return Math.max(1, Math.ceil((Date.parse(iso) - Date.now()) / DAY_MS));
+}
+
+// The consultant's 48 hours to tell support their side, per viewer.
+function responseLines(p, role) {
+  if (role === "owner") return p.responded_at ? ["The consultant sent support their side."] : [];
+  if (p.responded_at && p.can_respond) return [`You sent support your side. You can update it until ${fmtWhen(p.response_due_at)}.`];
+  if (p.responded_at) return ["You sent support your side. Support will decide and let you both know."];
+  if (p.can_respond) return [`Tell support your side by ${fmtWhen(p.response_due_at)}. After that, support decides from the engagement record.`];
+  if (p.response_due_at) return ["The 48 hours to respond have passed. Support will decide from the engagement record."];
+  return [];
+}
+
+// Finished payments support decided, and payments mid-report.
+function describeSupport(p, role) {
+  const owner = role === "owner";
+  const m = p.money || {};
+  if (p.support_outcome === "split") {
+    return {
+      pill: ["Split by support", "muted"],
+      lines: [owner
+        ? "Support reviewed the work and split the payment between you and the consultant."
+        : "Support reviewed the work and split the payment between you and the business."],
+      breakdown: owner
+        ? [["Refunded to you", fmtUsd(m.split_refund_cents)], ["Paid to the consultant", fmtUsd(m.split_transfer_cents)]]
+        : [["Refunded to the business", fmtUsd(m.split_refund_cents)], ["Paid to you", fmtUsd(m.split_transfer_cents)]],
+    };
+  }
+  if (p.status === "released") {
+    return {
+      pill: ["Released", "accepted"],
+      lines: [owner
+        ? "Support found the work meets the agreed scope. Grassroots released the payment to the consultant."
+        : "Support found your work meets the agreed scope. The payment was released to you."],
+    };
+  }
+  if (p.status === "refunded" && /^give_back/.test(p.consultant_choice || "")) {
+    const timedOut = p.consultant_choice === "give_back_timeout";
+    return owner
+      ? {
+          pill: ["Refunded", "muted"],
+          lines: [timedOut
+            ? `The consultant didn't choose in 5 days, so you were refunded ${fmtUsd(p.refunded_cents)} in full.`
+            : `The consultant gave the payment back. You were refunded ${fmtUsd(p.refunded_cents)} in full.`],
+        }
+      : {
+          pill: ["Given back", "muted"],
+          lines: [timedOut
+            ? "You didn't choose in 5 days, so the payment went back to the business."
+            : "You gave the payment back. The business was refunded, and you won't be paid for this payment."],
+        };
+  }
+  if (p.status === "refunded") {
+    return {
+      pill: ["Refunded", "muted"],
+      lines: [owner
+        ? `Support found the agreed scope was breached. You were refunded ${fmtUsd(p.refunded_cents)} in full.`
+        : "Support found the agreed scope was breached. The business was refunded in full, so you won't be paid for this payment."],
+    };
+  }
+  if (p.waiting_on_consultant) {
+    const left = daysLeft(p.redo_deadline_at);
+    return owner
+      ? {
+          pill: ["Waiting on consultant", "warn"],
+          lines: [`Support found the work can be fixed. The consultant has until ${fmtDate(p.redo_deadline_at)} to redo it or give the payment back.`],
+        }
+      : {
+          pill: [`${left} day${left === 1 ? "" : "s"} left to choose`, "warn"],
+          lines: [
+            "Support found the work falls short but can be fixed. Redo it, or give the payment back.",
+            "If you don't choose in 5 days, the payment goes back to the business.",
+          ],
+        };
+  }
+  if (p.reported) {
+    const by = fmtDate(new Date(Date.parse(p.problem_reported_at) + DECIDE_DAYS * DAY_MS).toISOString());
+    return owner
+      ? {
+          pill: ["Reported", "warn"],
+          lines: [
+            "You reported a problem. We're reviewing it. The payment won't release on its own.",
+            `Support aims to decide by ${by}. You can still release it yourself by marking the work complete.`,
+            ...responseLines(p, role),
+          ],
+        }
+      : {
+          pill: ["Reported", "warn"],
+          lines: [`The business reported a problem. Support is reviewing it and aims to decide by ${by}.`, ...responseLines(p, role)],
+        };
+  }
+  if (p.on_hold && p.status === "held") {
+    return {
+      pill: ["On hold", "warn"],
+      lines: [
+        p.hold_reason ? `Support put this payment on hold: “${p.hold_reason}”` : "Support put this payment on hold.",
+        owner ? "It won't release until support decides. We'll let you both know." : "It won't release until support decides.",
+        ...responseLines(p, role),
+      ],
+    };
+  }
+  return null;
 }
 
 // Free jobs ($0) have no money held, so the copy talks about the work
@@ -87,7 +201,10 @@ function describe(p, role) {
   const opens = p.review_opens_at ? Date.parse(p.review_opens_at) : null;
   const windowOpen = opens && opens <= now;
   const releaseOn = fmtDate(p.auto_release_at);
+  const lastRedo = p.redo_used && p.consultant_choice === "redo";
 
+  const support = describeSupport(p, role);
+  if (support) return support;
   if (p.on_hold) {
     return { pill: ["On hold", "muted"], lines: ["Support is reviewing this payment. It won't release on its own until that's done."] };
   }
@@ -107,12 +224,15 @@ function describe(p, role) {
   }
   if (windowOpen) {
     const by = p.review_opens_by === "period_end" ? `The period ended ${fmtDate(p.review_opens_at)}.` : `Marked delivered ${fmtDate(p.delivered_at)}.`;
-    return {
-      pill: ["In review", "warn"],
-      lines: role === "owner"
-        ? [by, `Review it by ${releaseOn}. After that, Grassroots releases it to the consultant.`]
-        : [by, `The business has until ${releaseOn} to review. Then it releases to you.`],
-    };
+    const lines = role === "owner"
+      ? [by, `Review it by ${releaseOn}. After that, Grassroots releases it to the consultant.`]
+      : [by, `The business has until ${releaseOn} to review. Then it releases to you.`];
+    if (lastRedo) {
+      lines.push(role === "owner"
+        ? "This was the last redo. If there's still a problem, report it. Support will release it or refund you in full."
+        : "This was your one redo. If the business reports a problem again, support will release it or refund them in full.");
+    }
+    return { pill: ["In review", "warn"], lines };
   }
   if (opens && p.review_opens_by === "period_end") {
     return {
@@ -120,6 +240,14 @@ function describe(p, role) {
       lines: role === "owner"
         ? [`This period ends ${fmtDate(p.review_opens_at)}. You'll have 14 days after that to review.`]
         : [`This period ends ${fmtDate(p.review_opens_at)}. Done early? Mark it delivered to start the review now.`],
+    };
+  }
+  if (lastRedo) {
+    return {
+      pill: ["Redoing the work", "warn"],
+      lines: role === "owner"
+        ? ["The consultant is redoing the work. You'll get a new 14-day review when they deliver. This is the last redo for this payment."]
+        : ["You chose to redo the work. Mark it delivered when it's ready. This is your one redo for this payment."],
     };
   }
   if (p.changes_requested_at) {
@@ -148,8 +276,21 @@ function renderItem(p, role) {
     if (p.delivery_note) deliveryBits.push(`<p class="eg-delivery__quote">“${esc(p.delivery_note)}”</p>`);
     if (p.delivery_link) deliveryBits.push(`<a class="eg-delivery__link" href="${esc(p.delivery_link)}" target="_blank" rel="noopener noreferrer nofollow">Open the delivered work</a>`);
   }
-  if (!p.delivered_at && p.changes_requested_at && p.changes_request_note) {
+  if (!p.delivered_at && p.changes_requested_at && p.changes_request_note && !p.reported) {
     deliveryBits.push(`<p class="eg-delivery__quote">“${esc(p.changes_request_note)}”</p>`);
+  }
+  if (p.reported && p.problem_report_note && p.status === "held") {
+    deliveryBits.push(`<p class="eg-delivery__line">${role === "owner" ? "Your report" : "The business's report"}:</p>`);
+    deliveryBits.push(`<p class="eg-delivery__quote">“${esc(p.problem_report_note)}”</p>`);
+    if (p.problem_report_link) deliveryBits.push(`<a class="eg-delivery__link" href="${esc(p.problem_report_link)}" target="_blank" rel="noopener noreferrer nofollow">Open the business's link</a>`);
+  }
+  if (role === "consultant" && p.consultant_response_note) {
+    deliveryBits.push(`<p class="eg-delivery__line">Your response to support:</p>`);
+    deliveryBits.push(`<p class="eg-delivery__quote">“${esc(p.consultant_response_note)}”</p>`);
+    if (p.consultant_response_link) deliveryBits.push(`<a class="eg-delivery__link" href="${esc(p.consultant_response_link)}" target="_blank" rel="noopener noreferrer nofollow">Open your link</a>`);
+  }
+  if (d.breakdown) {
+    deliveryBits.push(`<dl class="eg-delivery__breakdown">${d.breakdown.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>`);
   }
   li.innerHTML = `
     <div class="eg-period__head">
@@ -167,13 +308,23 @@ function renderItem(p, role) {
   const actions = li.querySelector(".eg-delivery__actions");
   const form = li.querySelector(".eg-delivery__form");
 
-  if (p.can_mark_delivered && !p.on_hold) {
+  if (p.can_mark_delivered && !p.on_hold && p.status === "held") {
     actions.appendChild(button("Mark delivered", "primary", () => openDeliverForm(p, form, actions)));
+  }
+  if (p.can_respond) {
+    actions.appendChild(button(p.responded_at ? "Update your response" : "Tell support your side", p.responded_at ? "ghost" : "primary", () => openResponseForm(p, form, actions)));
+  }
+  if (p.can_choose) {
+    actions.appendChild(button("Redo the work", "primary", () => openChoiceForm(p, "redo", form, actions)));
+    actions.appendChild(button("Give the payment back", "ghost", () => openChoiceForm(p, "give_back", form, actions)));
   }
   if (p.can_request_changes) {
     actions.appendChild(button("Request changes", "ghost", () => openChangesForm(p, form, actions)));
   }
-  if (role === "owner" && p.kind !== "proposal" && !p.free) {
+  if (p.can_report_problem) {
+    actions.appendChild(button("Report a problem", "ghost", () => openReportForm(p, form, actions)));
+  }
+  if (role === "owner" && p.kind !== "proposal" && p.status === "held" && !p.free) {
     const a = document.createElement("a");
     a.className = "gr-btn gr-btn--ghost gr-btn--sm";
     a.href = supportHref(p);
@@ -210,7 +361,7 @@ function openDeliverForm(p, form, actions) {
   const row = document.createElement("div");
   row.className = "eg-delivery__actions";
   row.append(
-    button("cancel", "ghost", () => closeForm(form, actions)),
+    button("Cancel", "ghost", () => closeForm(form, actions)),
     button("Send for review", "primary", async (e) => {
       const btn = e.currentTarget;
       btn.disabled = true;
@@ -248,7 +399,7 @@ function openChangesForm(p, form, actions) {
   const row = document.createElement("div");
   row.className = "eg-delivery__actions";
   row.append(
-    button("cancel", "ghost", () => closeForm(form, actions)),
+    button("Cancel", "ghost", () => closeForm(form, actions)),
     button("Send request", "primary", async (e) => {
       const note = form.querySelector("[data-field=note]").value.trim();
       if (!note) { showError("Tell the consultant what needs to change."); return; }
@@ -268,6 +419,124 @@ function openChangesForm(p, form, actions) {
   form.classList.remove("hidden");
   actions.classList.add("hidden");
   form.querySelector("textarea").focus();
+}
+
+// Business: report a problem. Locks the payment until support decides.
+function openReportForm(p, form, actions) {
+  form.innerHTML = `
+    <label class="gr-label">
+      <span>What's wrong?</span>
+      <textarea rows="3" maxlength="1000" data-field="note" placeholder="What doesn't match the agreed scope"></textarea>
+    </label>
+    <label class="gr-label">
+      <span>Link <span class="gr-optional">Optional</span></span>
+      <input type="url" maxlength="500" data-field="link" placeholder="https://" />
+    </label>
+    <p class="eg-delivery__line">This locks the payment. It won't release on its own while support reviews it. You can still release it yourself.</p>
+  `;
+  const row = document.createElement("div");
+  row.className = "eg-delivery__actions";
+  row.append(
+    button("Cancel", "ghost", () => closeForm(form, actions)),
+    button("Send to support", "primary", async (e) => {
+      const note = form.querySelector("[data-field=note]").value.trim();
+      if (!note) { showError("Tell support what's wrong."); return; }
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      try {
+        await post("/api/engagement/report-problem", {
+          bid_id: ctx.bidId,
+          payment_id: p.payment_id,
+          note,
+          link: form.querySelector("[data-field=link]").value,
+        });
+        showSuccess("Sent to support. The payment is locked while they review it.", { duration: 5000 });
+        await refreshDeliveryPanel();
+      } catch (err) {
+        showError(err.message);
+        btn.disabled = false;
+      }
+    }),
+  );
+  form.appendChild(row);
+  form.classList.remove("hidden");
+  actions.classList.add("hidden");
+  form.querySelector("textarea").focus();
+}
+
+// Consultant: tell support their side within 48 hours of the hold.
+function openResponseForm(p, form, actions) {
+  form.innerHTML = `
+    <label class="gr-label">
+      <span>What happened?</span>
+      <textarea rows="4" maxlength="2000" data-field="note" placeholder="What you delivered, when, and where the business can find it"></textarea>
+    </label>
+    <label class="gr-label">
+      <span>Link <span class="gr-optional">Optional</span></span>
+      <input type="url" maxlength="500" data-field="link" placeholder="https://" />
+    </label>
+    <p class="eg-delivery__line">Only support sees this. The business is told you responded.</p>
+  `;
+  form.querySelector("[data-field=note]").value = p.consultant_response_note || "";
+  form.querySelector("[data-field=link]").value = p.consultant_response_link || "";
+  const row = document.createElement("div");
+  row.className = "eg-delivery__actions";
+  row.append(
+    button("Cancel", "ghost", () => closeForm(form, actions)),
+    button("Send to support", "primary", async (e) => {
+      const note = form.querySelector("[data-field=note]").value.trim();
+      if (!note) { showError("Tell support what happened."); return; }
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      try {
+        await post("/api/engagement/respond-to-report", {
+          bid_id: ctx.bidId,
+          payment_id: p.payment_id,
+          note,
+          link: form.querySelector("[data-field=link]").value,
+        });
+        showSuccess("Sent to support. We'll let you know what they decide.", { duration: 5000 });
+        await refreshDeliveryPanel();
+      } catch (err) {
+        showError(err.message);
+        btn.disabled = false;
+      }
+    }),
+  );
+  form.appendChild(row);
+  form.classList.remove("hidden");
+  actions.classList.add("hidden");
+  form.querySelector("textarea").focus();
+}
+
+// Consultant, after support's "fixable" outcome: confirm redo or give back.
+function openChoiceForm(p, choice, form, actions) {
+  const m = p.money || {};
+  form.innerHTML = choice === "redo"
+    ? `<p class="eg-delivery__line">You can redo the work once for this payment. When you mark it delivered again, the business gets a new 14-day review.</p>`
+    : `<p class="eg-delivery__line">The business gets the full ${esc(fmtUsd(m.give_back_cents))} back, and you get nothing for this payment. This can't be undone.</p>`;
+  const row = document.createElement("div");
+  row.className = "eg-delivery__actions";
+  row.append(
+    button("Cancel", "ghost", () => closeForm(form, actions)),
+    button(choice === "redo" ? "Yes, redo it" : "Yes, give it back", "primary", async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      try {
+        await post("/api/engagement/redo-choice", { bid_id: ctx.bidId, payment_id: p.payment_id, choice });
+        showSuccess(choice === "redo"
+          ? "Got it. Mark the work delivered when it's ready."
+          : "Done. The business was refunded.", { duration: 5000 });
+        await refreshDeliveryPanel();
+      } catch (err) {
+        showError(err.message);
+        btn.disabled = false;
+      }
+    }),
+  );
+  form.appendChild(row);
+  form.classList.remove("hidden");
+  actions.classList.add("hidden");
 }
 
 function closeForm(form, actions) {

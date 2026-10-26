@@ -326,6 +326,7 @@ Inside a label, mark optional fields with `<span class="gr-optional">optional</s
 - **Cards**: `border: 1px solid var(--fo-line)` on `var(--fo-surface)` background, radius `12–16px`. Subtle shadow only when the card is interactive.
 - **Inset surfaces**: nested cards/panels go to `--fo-surface-2`, then `--fo-surface-3` for the deepest layer.
 - **Status row patterns**: eyebrow (uppercase tracker, --type-eyebrow) → value (Fraunces, --type-body or --type-h3, weight 600). See `.eg-meta__label` / `.eg-meta__value` for the canonical pair.
+- **Money breakdown**: a short `<dl>` of label → amount rows, label in `--fo-text-2`, amount right-aligned with `tabular-nums`, last row (the total) weight 600. Negative lines use a real minus (`−$3.20`). See `.eg-delivery__breakdown` (who got what after support splits a payment) and `.adm-pay-kv` on the admin payments drawer.
 - **Page H1 + subtitle**: `gr-title` with `gr-subtitle` directly below. Don't add a third level above unless the page has a clear category (use `gr-page-eyebrow` for that).
 
 ---
