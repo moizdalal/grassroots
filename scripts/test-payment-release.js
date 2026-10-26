@@ -731,9 +731,21 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     ok((await split(6000, 5001)).status === 400 && bid("B1").payment_status === "held" && refundLog.length === 0, "split: refund + payout capped at what's left on the charge ($110)");
     ok((await split(500, 10152)).status === 400 && bid("B1").payment_status === "held" && refundLog.length === 0, "split: consultant's part capped at their $101.51 full-release payout");
     ok((await outcome("split", OWNER, { refund_cents: 5500, transfer_cents: 5500, reason: "x" })).status === 403, "split: admin only");
+    // Stripe test mode, 2026-10-26, platform available balance $0. On a $100.00
+    // charge (fee $3.20, net $96.80), a source_transaction transfer after a
+    // partial refund is capped at the remaining gross (charge − refunds), not
+    // at charge − fee − refunds. Refund/transfer pairs of $50/$50, $30/$70,
+    // $10/$90, $3/$97, and $1/$99 all succeeded (each pair sums to $100), so
+    // the $97 and $99 transfers cleared above the $96.80 net. After a $30
+    // refund, $70.00 succeeded and $70.01 failed: "Transfers using this
+    // transaction as a source must not exceed the source amount of $70.00.
+    // (Source available amount change could be linked to partial/complete
+    // refunds of the charge.)" The $33 + $77 split below is that shape. Do
+    // not cap it at the net, and do not re-test this in Stripe before changing it.
     let sp = await split(3300, 7700);
     ok(sp.status === 200 && bid("B1").payment_status === "released" && bid("B1").support_outcome === "split" && bid("B1").refunded_cents === 3300 && bid("B1").consultant_payout_cents === 7700, "split 30/70: $33 back to the business, $77 to the consultant");
     ok(refundLog.length === 1 && refundLog[0].amount === 3300 && refundLog[0].charge === "ch_rel" && transferLog.length === 1 && transferLog[0].amount === 7700 && transferLog[0].source_transaction === "ch_rel", "split: one refund + one transfer pinned to the charge");
+    ok(transferLog[0].amount === 7700 && 7700 > 11000 - 349 - 3300, "split: $77 is above charge − fee − refund ($73.51) and still uses source_transaction");
     ok(calls.some((c) => c.kind === "refund" && c.key?.startsWith("refund:split:bids:B1:3300")) && calls.some((c) => c.kind === "transfer" && c.key?.startsWith("transfer:split:bids:B1:7700")), "split: idempotency keys on the refund and the transfer");
     const sa = audits("outcome_split")[0];
     ok(sa && sa.details.reason === "half the deck was usable" && sa.details.refund_cents === 3300 && sa.details.transfer_cents === 7700 && sa.details.card_fee_absorbed_cents === 349, "split: audit row with reason, both amounts, and the $3.49 fee grassroots absorbs");
