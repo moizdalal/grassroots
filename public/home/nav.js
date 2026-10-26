@@ -1,6 +1,7 @@
 // nav.js — wires the shared .ld-nav across all marketing pages.
 // Handles:
-//   • theme-toggle button (sun ↔ moon) backed by window.GrassrootsTheme
+//   • theme button (sun ↔ moon) that cycles through all four themes,
+//     backed by window.GrassrootsTheme
 //   • .is-scrolled class on the nav once the page scrolls past 8px
 //   • scroll-progress hairline that fills as the page is read
 //
@@ -14,14 +15,29 @@
   const navProgress = document.getElementById("ld-nav-progress");
   const navTheme = document.getElementById("ld-nav-theme");
 
-  // Theme toggle — flips between light and dark-forest. The four-button
-  // theme strip on the landing footer still handles the other themes
-  // (forest-soft, dark); this button is just the convenience toggle.
+  // Theme button — each click moves to the next of the four themes.
+  const THEMES = [
+    { id: "dark-forest", label: "forest" },
+    { id: "forest-soft", label: "soft" },
+    { id: "dark", label: "dark" },
+    { id: "light", label: "light" },
+  ];
+
   if (navTheme && window.GrassrootsTheme) {
+    const indexOf = (id) => Math.max(0, THEMES.findIndex((t) => t.id === id));
+    const label = () => {
+      const cur = THEMES[indexOf(window.GrassrootsTheme.get())];
+      const next = THEMES[(indexOf(cur.id) + 1) % THEMES.length];
+      const text = "theme: " + cur.label + " (click for " + next.label + ")";
+      navTheme.setAttribute("aria-label", text);
+      navTheme.setAttribute("title", text);
+    };
     navTheme.addEventListener("click", () => {
-      const cur = window.GrassrootsTheme.get();
-      window.GrassrootsTheme.set(cur === "light" ? "dark-forest" : "light");
+      const next = THEMES[(indexOf(window.GrassrootsTheme.get()) + 1) % THEMES.length];
+      window.GrassrootsTheme.set(next.id);
     });
+    window.addEventListener("grassroots:themechange", label);
+    label();
   }
 
   function update() {

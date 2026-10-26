@@ -57,7 +57,7 @@
   border: 0;
   background: transparent;
   font: inherit;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-meta);
   font-weight: 500;
   color: var(--fo-text-2);
@@ -119,7 +119,7 @@
 .eng-count {
   font-size: var(--type-meta);
   color: var(--fo-text-3);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
 }
 
 /* ── action items callout ───────────────────────────────────── */
@@ -163,7 +163,7 @@
 }
 
 .eng-kicker {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -173,11 +173,13 @@
 
 .eng-actions__title {
   margin: 0;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--type-h2);
   color: var(--fo-text);
   letter-spacing: -0.01em;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .eng-actions__list {
@@ -212,11 +214,13 @@
 }
 
 .eng-action__title {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--type-h3);
   color: var(--fo-text);
   letter-spacing: -0.01em;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .eng-action__sub {

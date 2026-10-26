@@ -50,7 +50,7 @@ async function gateAdminAccess() {
     if (!ADMIN_EMAILS.has(email)) {
       if (gate) {
         gate.className = "adm-gate adm-gate--error";
-        gate.textContent = "your account doesn't have admin access.";
+        gate.textContent = "Your account doesn't have admin access.";
       }
       // Hold the message a beat, then route home so the user isn't stranded.
       setTimeout(() => window.location.replace("/"), 1400);
@@ -60,7 +60,7 @@ async function gateAdminAccess() {
   } catch (err) {
     if (gate) {
       gate.className = "adm-gate adm-gate--error";
-      gate.textContent = "could not verify admin access: " + (err.message || "config error");
+      gate.textContent = "Could not verify admin access: " + (err.message || "Config error");
     }
     return false;
   }
@@ -70,7 +70,7 @@ async function gateAdminAccess() {
 // the rest of this file (DOM queries, listener wiring, initial render)
 // from running before window.location.replace navigates away.
 if (!(await gateAdminAccess())) {
-  throw new Error("admin: access denied");
+  throw new Error("Admin: access denied");
 }
 
 document.getElementById("adm-gate").hidden = true;
@@ -110,14 +110,14 @@ function fmtDateTime(d) {
   return new Date(d).toLocaleString(undefined, {
     month: "short", day: "numeric",
     hour: "numeric", minute: "2-digit",
-  }).toLowerCase();
+  });
 }
 
 function fmtRel(d) {
   if (!d) return "—";
   const ms = data.now - d;
   const min = Math.floor(ms / 60000);
-  if (min < 1) return "just now";
+  if (min < 1) return "Just now";
   if (min < 60) return `${min}m ago`;
   const hr = Math.floor(min / 60);
   if (hr < 24) return `${hr}h ago`;
@@ -130,8 +130,8 @@ function fmtRel(d) {
 function initials(name) {
   if (!name) return "?";
   const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0][0]?.toLowerCase() || "?";
-  return (parts[0][0] + parts[parts.length - 1][0]).toLowerCase();
+  if (parts.length === 1) return parts[0][0]?.toUpperCase() || "?";
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 function avatarMarkup(user, size = "sm") {
@@ -145,18 +145,18 @@ function avatarMarkup(user, size = "sm") {
 
 function statusPill(stage) {
   const map = {
-    1: { label: "offer submitted", mod: "pending" },
-    2: { label: "offer accepted", mod: "accepted" },
-    3: { label: "kickoff scheduled", mod: "accepted" },
-    4: { label: "work delivered", mod: "muted" },
-    5: { label: "payout released", mod: "accepted" },
+    1: { label: "Offer submitted", mod: "pending" },
+    2: { label: "Offer accepted", mod: "accepted" },
+    3: { label: "Kickoff scheduled", mod: "accepted" },
+    4: { label: "Work delivered", mod: "muted" },
+    5: { label: "Payout released", mod: "accepted" },
   };
   const m = map[stage] || { label: "—", mod: "muted" };
   return `<span class="adm-pill adm-pill--${m.mod}">${esc(m.label)}</span>`;
 }
 
 function rolePill(role) {
-  const label = role === "consultant" ? "consultant" : "business owner";
+  const label = role === "consultant" ? "Consultant" : "Business owner";
   return `<span class="adm-pill adm-pill--${role === "consultant" ? "accepted" : "warn"} adm-pill--soft">${label}</span>`;
 }
 
@@ -233,12 +233,12 @@ function renderKpis() {
                   : null; // ytd
   const vol = totalVolumeCents(rangeDays);
   const tiles = [
-    { label: "users", value: totalUsers(), sub: `${data.consultants.length} consultants · ${data.owners.length} owners` },
-    { label: "active engagements", value: activeEngagements(), sub: `${totalEngagements()} total to date` },
-    { label: `volume (${moneyRange === "ytd" ? "ytd" : moneyRange})`, value: fmtMoneyShort(vol), sub: "released payouts" },
-    { label: "offer acceptance rate", value: fmtPct(bidAcceptanceRate()), sub: `${totalBids()} offers submitted` },
-    { label: "avg engagement value", value: fmtMoneyShort(avgEngagementValueCents()), sub: `${openListings()} listings open now` },
-    { label: "kickoffs this week", value: kickoffsThisWeek().length, sub: `${upcomingKickoffs().length} upcoming overall` },
+    { label: "Users", value: totalUsers(), sub: `${data.consultants.length} consultants · ${data.owners.length} owners` },
+    { label: "Active engagements", value: activeEngagements(), sub: `${totalEngagements()} total to date` },
+    { label: `Volume (${moneyRange === "ytd" ? "YTD" : moneyRange})`, value: fmtMoneyShort(vol), sub: "Released payouts" },
+    { label: "Offer acceptance rate", value: fmtPct(bidAcceptanceRate()), sub: `${totalBids()} offers submitted` },
+    { label: "Avg engagement value", value: fmtMoneyShort(avgEngagementValueCents()), sub: `${openListings()} listings open now` },
+    { label: "Kickoffs this week", value: kickoffsThisWeek().length, sub: `${upcomingKickoffs().length} upcoming overall` },
   ];
   host.innerHTML = tiles.map((t) => `
     <div class="adm-kpi">
@@ -251,7 +251,7 @@ function renderKpis() {
 
 function renderMoneyChart() {
   const host = document.getElementById("adm-money-chart");
-  renderLineChart(host, moneyMovedSeries(moneyRange), { ariaLabel: "money moved over time" });
+  renderLineChart(host, moneyMovedSeries(moneyRange), { ariaLabel: "Money moved over time" });
   // KPI tiles depend on the active range too.
   renderKpis();
 }
@@ -265,7 +265,7 @@ function renderStatusDonut() {
   const host = document.getElementById("adm-status-donut");
   const segments = engagementStatusBreakdown();
   renderDonut(host, segments, {
-    ariaLabel: "engagements by stage",
+    ariaLabel: "Engagements by stage",
     centerLabel: segments.reduce((s, r) => s + r.value, 0),
     centerSub: "engagements",
   });
@@ -275,7 +275,7 @@ function renderCategoryChart() {
   const host = document.getElementById("adm-category-chart");
   const rows = offersByCategory().sort((a, b) => b.avg_per_listing - a.avg_per_listing);
   renderBarChart(host, rows.map((r) => ({ label: r.category, value: r.avg_per_listing })), {
-    ariaLabel: "average offers per listing by category",
+    ariaLabel: "Average offers per listing by category",
     tickFmt: (v) => v.toFixed(1),
     valFmt: (v) => v.toFixed(1),
   });
@@ -290,7 +290,7 @@ function renderTopList() {
   const host = document.getElementById("adm-top-list");
   const rows = topConsultants(7);
   if (!rows.length) {
-    host.innerHTML = `<p class="adm-muted">no released payouts yet.</p>`;
+    host.innerHTML = `<p class="adm-muted">No released payouts yet.</p>`;
     return;
   }
   host.innerHTML = rows.map((row, i) => `
@@ -341,13 +341,13 @@ function renderUpcomingTile() {
   const host = document.getElementById("adm-upcoming-list");
   const items = upcomingKickoffs().slice(0, 6);
   if (!items.length) {
-    host.innerHTML = `<p class="adm-muted">no upcoming kickoffs scheduled.</p>`;
+    host.innerHTML = `<p class="adm-muted">No upcoming kickoffs scheduled.</p>`;
     return;
   }
   host.innerHTML = items.map((e) => `
     <li class="adm-up-row" data-engagement-id="${esc(e.id)}">
       <div class="adm-up-date">
-        <span class="adm-up-mo">${new Date(e.kickoff_at).toLocaleDateString(undefined, { month: "short" }).toLowerCase()}</span>
+        <span class="adm-up-mo">${new Date(e.kickoff_at).toLocaleDateString(undefined, { month: "short" })}</span>
         <span class="adm-up-day">${new Date(e.kickoff_at).getDate()}</span>
       </div>
       <div class="adm-up-meta">
@@ -387,7 +387,7 @@ function renderUsersTable() {
   document.getElementById("adm-users-count").textContent = `${rows.length} ${rows.length === 1 ? "person" : "people"}`;
 
   if (!rows.length) {
-    host.innerHTML = `<tr><td colspan="6" class="adm-table-empty">no matches.</td></tr>`;
+    host.innerHTML = `<tr><td colspan="6" class="adm-table-empty">No matches.</td></tr>`;
     return;
   }
   host.innerHTML = rows.map((u) => {
@@ -457,7 +457,7 @@ function renderEngagementsTable() {
   document.getElementById("adm-eng-count").textContent = `${rows.length} engagement${rows.length === 1 ? "" : "s"}`;
 
   if (!rows.length) {
-    host.innerHTML = `<tr><td colspan="6" class="adm-table-empty">no matches.</td></tr>`;
+    host.innerHTML = `<tr><td colspan="6" class="adm-table-empty">No matches.</td></tr>`;
     return;
   }
   host.innerHTML = rows.map((e) => `
@@ -519,11 +519,11 @@ function renderCalendar() {
 
 function renderCalSidePanel(day, dayEvents) {
   const host = document.getElementById("adm-cal-side");
-  const dayLabel = day.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }).toLowerCase();
+  const dayLabel = day.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   if (!dayEvents.length) {
     host.innerHTML = `
       <h3 class="adm-cal-side__title">${esc(dayLabel)}</h3>
-      <p class="adm-muted">no kickoffs on this day.</p>
+      <p class="adm-muted">No kickoffs on this day.</p>
     `;
     return;
   }
@@ -537,7 +537,7 @@ function renderCalSidePanel(day, dayEvents) {
           <div class="adm-cal-event__meta">
             <span class="adm-cal-event__title">${esc(ev.title)}</span>
             <span class="adm-cal-event__sub">${esc(ev.sub)}</span>
-            <span class="adm-cal-event__time">${esc(ev.date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }).toLowerCase())}</span>
+            <span class="adm-cal-event__time">${esc(ev.date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }))}</span>
           </div>
         </li>
       `).join("")}
@@ -593,19 +593,19 @@ function openUserDrawer(userId) {
       </div>
     </div>
     <dl class="adm-defs">
-      ${user.business_name ? `<div><dt>business</dt><dd>${esc(user.business_name)}</dd></div>` : ""}
-      ${user.business_type ? `<div><dt>type</dt><dd>${esc(user.business_type)}</dd></div>` : ""}
-      ${user.school ? `<div><dt>school</dt><dd>${esc(user.school)}</dd></div>` : ""}
-      ${user.major ? `<div><dt>major</dt><dd>${esc(user.major)}</dd></div>` : ""}
-      ${user.city ? `<div><dt>city</dt><dd>${esc(user.city)}</dd></div>` : ""}
-      ${user.rating ? `<div><dt>rating</dt><dd>${user.rating.toFixed(1)} / 5</dd></div>` : ""}
-      <div><dt>engagements</dt><dd>${stats.count}</dd></div>
-      <div><dt>total released</dt><dd>${fmtMoneyShort(stats.total_cents)}</dd></div>
-      ${userListings.length ? `<div><dt>listings posted</dt><dd>${userListings.length}</dd></div>` : ""}
-      ${userBids.length ? `<div><dt>offers submitted</dt><dd>${userBids.length}</dd></div>` : ""}
+      ${user.business_name ? `<div><dt>Business</dt><dd>${esc(user.business_name)}</dd></div>` : ""}
+      ${user.business_type ? `<div><dt>Type</dt><dd>${esc(user.business_type)}</dd></div>` : ""}
+      ${user.school ? `<div><dt>School</dt><dd>${esc(user.school)}</dd></div>` : ""}
+      ${user.major ? `<div><dt>Major</dt><dd>${esc(user.major)}</dd></div>` : ""}
+      ${user.city ? `<div><dt>City</dt><dd>${esc(user.city)}</dd></div>` : ""}
+      ${user.rating ? `<div><dt>Rating</dt><dd>${user.rating.toFixed(1)} / 5</dd></div>` : ""}
+      <div><dt>Engagements</dt><dd>${stats.count}</dd></div>
+      <div><dt>Total released</dt><dd>${fmtMoneyShort(stats.total_cents)}</dd></div>
+      ${userListings.length ? `<div><dt>Listings posted</dt><dd>${userListings.length}</dd></div>` : ""}
+      ${userBids.length ? `<div><dt>Offers submitted</dt><dd>${userBids.length}</dd></div>` : ""}
     </dl>
     ${userEngagements.length ? `
-      <h4 class="adm-drawer-sec">engagements</h4>
+      <h4 class="adm-drawer-sec">Engagements</h4>
       <ul class="adm-drawer-list">
         ${userEngagements.slice(0, 12).map((e) => `
           <li class="adm-drawer-row" data-engagement-id="${esc(e.id)}">
@@ -643,7 +643,7 @@ function openEngagementDrawer(engId) {
     </div>
     <div class="adm-pair">
       <div class="adm-pair-col">
-        <div class="adm-pair-head">consultant</div>
+        <div class="adm-pair-head">Consultant</div>
         <div class="adm-pair-body" data-user-id="${esc(consultant?.id || "")}">
           ${avatarMarkup(consultant, "md")}
           <div>
@@ -653,7 +653,7 @@ function openEngagementDrawer(engId) {
         </div>
       </div>
       <div class="adm-pair-col">
-        <div class="adm-pair-head">business</div>
+        <div class="adm-pair-head">Business</div>
         <div class="adm-pair-body" data-user-id="${esc(owner?.id || "")}">
           ${avatarMarkup(owner, "md")}
           <div>
@@ -664,20 +664,20 @@ function openEngagementDrawer(engId) {
       </div>
     </div>
     <dl class="adm-defs">
-      <div><dt>created</dt><dd>${esc(fmtDate(e.created_at))}</dd></div>
-      <div><dt>kickoff</dt><dd>${esc(fmtDateTime(e.kickoff_at))}</dd></div>
-      <div><dt>delivered</dt><dd>${esc(fmtDate(e.completed_at))}</dd></div>
-      <div><dt>payout released</dt><dd>${esc(fmtDate(e.released_at))}</dd></div>
-      <div><dt>payment</dt><dd>${esc(e.payment_status)}</dd></div>
+      <div><dt>Created</dt><dd>${esc(fmtDate(e.created_at))}</dd></div>
+      <div><dt>Kickoff</dt><dd>${esc(fmtDateTime(e.kickoff_at))}</dd></div>
+      <div><dt>Delivered</dt><dd>${esc(fmtDate(e.completed_at))}</dd></div>
+      <div><dt>Payout released</dt><dd>${esc(fmtDate(e.released_at))}</dd></div>
+      <div><dt>Payment</dt><dd>${esc(capFirst(e.payment_status))}</dd></div>
     </dl>
-    <h4 class="adm-drawer-sec">listing</h4>
+    <h4 class="adm-drawer-sec">Listing</h4>
     <dl class="adm-defs">
-      <div><dt>posted</dt><dd>${esc(fmtDate(listing?.created_at))}</dd></div>
-      <div><dt>budget range</dt><dd>${fmtMoneyShort(listing?.budget_min_cents)} – ${fmtMoneyShort(listing?.budget_max_cents)}</dd></div>
-      <div><dt>turnaround</dt><dd>${listing?.turnaround_days} days</dd></div>
-      <div><dt>listing status</dt><dd>${esc(listing?.status)}</dd></div>
+      <div><dt>Posted</dt><dd>${esc(fmtDate(listing?.created_at))}</dd></div>
+      <div><dt>Budget range</dt><dd>${fmtMoneyShort(listing?.budget_min_cents)} – ${fmtMoneyShort(listing?.budget_max_cents)}</dd></div>
+      <div><dt>Turnaround</dt><dd>${listing?.turnaround_days} days</dd></div>
+      <div><dt>Listing status</dt><dd>${esc(capFirst(listing?.status))}</dd></div>
     </dl>
-    <h4 class="adm-drawer-sec">offers on this listing (${competingBids.length})</h4>
+    <h4 class="adm-drawer-sec">Offers on this listing (${competingBids.length})</h4>
     <ul class="adm-drawer-list">
       ${competingBids.map((b) => `
         <li class="adm-drawer-row">
@@ -704,7 +704,7 @@ function openEngagementDrawer(engId) {
 /* ============================================================== */
 
 document.getElementById("adm-now-stamp").textContent =
-  data.now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }).toLowerCase();
+  data.now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
 
 /* ============================================================== */
 /*                            HEALTH                               */
@@ -741,7 +741,7 @@ async function renderHealth(force) {
   try {
     const client = await getSupabaseClient();
     const { data: { session } } = await client.auth.getSession();
-    if (!session?.access_token) throw new Error("not signed in");
+    if (!session?.access_token) throw new Error("Not signed in");
 
     healthInFlight = fetch("/api/admin/health-summary", {
       method: "POST",
@@ -755,7 +755,7 @@ async function renderHealth(force) {
     healthInFlight = null;
 
     if (!res.ok) {
-      const msg = res.status === 403 ? "you're not on the admin allow-list." : `request failed (${res.status}).`;
+      const msg = res.status === 403 ? "You're not on the admin allow-list." : `Request failed (${res.status}).`;
       throw new Error(msg);
     }
     const summary = await res.json();
@@ -766,7 +766,7 @@ async function renderHealth(force) {
     healthInFlight = null;
     loading.hidden = true;
     body.hidden = true;
-    errorEl.textContent = err.message || "could not load health.";
+    errorEl.textContent = err.message || "Could not load health.";
     errorEl.hidden = false;
   }
 }
@@ -793,25 +793,25 @@ function drawBusinessTiles(b) {
       label: "new sign-ups",
       value: b.signups.total,
       sub: `${b.signups.consultants} consultants · ${b.signups.owners} owners`,
-      explain: "top of the funnel. if this number isn't growing, growth is stalled. watch the split — too few of one role starves the other side of the marketplace.",
+      explain: "Top of the funnel. If this number isn't growing, growth is stalled. Watch the split — too few of one role starves the other side of the marketplace.",
     },
     {
-      label: "new listings",
+      label: "New listings",
       value: b.activity.new_listings,
       sub: `${b.activity.active_listings} open right now`,
-      explain: "supply side — how much work businesses are putting up. few new listings means consultants have nothing to bid on.",
+      explain: "Supply side — how much work businesses are putting up. Few new listings means consultants have nothing to bid on.",
     },
     {
-      label: "new offers",
+      label: "New offers",
       value: b.activity.new_bids,
       sub: `${b.activity.in_progress_engagements} engagements in progress`,
       explain: "demand side — how actively consultants are engaging with what's on the marketplace. lots of listings but few offers = your matching isn't working.",
     },
     {
-      label: "median time to first offer",
+      label: "Median time to first offer",
       value: ttfbHours,
-      sub: "from listing posted → first bid",
-      explain: "how fast the marketplace responds when a business posts work. long waits make owners feel like nobody's home.",
+      sub: "From listing posted → first bid",
+      explain: "How fast the marketplace responds when a business posts work. Long waits make owners feel like nobody's home.",
     },
   ];
   host.innerHTML = tiles.map(tileHtml).join("");
@@ -822,28 +822,28 @@ function drawConversion(b) {
   if (!host) return;
   const rows = [
     {
-      label: "owners who signed up & posted a listing",
+      label: "Owners who signed up & posted a listing",
       value: b.conversion.owner_signup_to_first_listing_pct,
-      sub: "in the window",
+      sub: "In the window",
       explain: "of business owners who joined this window, how many actually got around to posting work. low % = your onboarding for businesses is leaking — people sign up but never start.",
     },
     {
-      label: "consultants who signed up & submitted a bid",
+      label: "Consultants who signed up & submitted a bid",
       value: b.conversion.consultant_signup_to_first_bid_pct,
-      sub: "in the window",
+      sub: "In the window",
       explain: "of consultants who joined this window, how many actually bid on something. low % = they're browsing but not engaging — usually a pricing or qualification clarity issue.",
     },
     {
-      label: "listings posted & got at least one bid",
+      label: "Listings posted & got at least one bid",
       value: b.conversion.listing_to_first_bid_pct,
-      sub: "in the window",
+      sub: "In the window",
       explain: "how many of the posted listings attracted any interest at all. low % = pricing too low, scope unclear, or briefs feel scary to consultants.",
     },
     {
-      label: "bids submitted & accepted",
+      label: "Bids submitted & accepted",
       value: b.conversion.bid_acceptance_pct,
-      sub: "of bids in the window",
-      explain: "of all proposals submitted, how many businesses said yes to. healthy is 5-15% (means owners have real choice). 100% means consultants aren't competing enough.",
+      sub: "Of bids in the window",
+      explain: "Of all proposals submitted, how many businesses said yes to. Healthy is 5-15% (means owners have real choice). 100% means consultants aren't competing enough.",
     },
   ];
   host.innerHTML = `
@@ -867,19 +867,19 @@ function drawConversion(b) {
 function drawMoney(b) {
   const host = document.getElementById("adm-health-money");
   if (!host) return;
-  const escrowExplain = "money sitting in your stripe escrow account, waiting for businesses to approve their work. you're responsible for it until it's released. this number grows when owners pay and shrinks when consultants get paid out.";
-  const releasedExplain = "money you've actually delivered to consultants this window. think of this as your 'value delivered' number — work approved, paid, done. it's the most concrete signal that the marketplace is functioning end-to-end.";
+  const escrowExplain = "Money sitting in your Stripe escrow account, waiting for businesses to approve their work. You're responsible for it until it's released. This number grows when owners pay and shrinks when consultants get paid out.";
+  const releasedExplain = "Money you've actually delivered to consultants this window. Think of this as your 'value delivered' number — work approved, paid, done. It's the most concrete signal that the marketplace is functioning end-to-end.";
   host.innerHTML = `
     <div class="adm-health-money-stack">
       <div>
-        <p class="adm-health-money-label">held in escrow right now ${infoBtnHtml(escrowExplain)}</p>
+        <p class="adm-health-money-label">Held in escrow right now ${infoBtnHtml(escrowExplain)}</p>
         <p class="adm-health-money-value">${formatMoneyCents(b.money.escrow_held_cents)}</p>
-        <p class="adm-health-money-sub">funds you're holding on behalf of completed proposals</p>
+        <p class="adm-health-money-sub">Funds you're holding on behalf of completed proposals</p>
       </div>
       <div>
-        <p class="adm-health-money-label">released to consultants in window ${infoBtnHtml(releasedExplain)}</p>
+        <p class="adm-health-money-label">Released to consultants in window ${infoBtnHtml(releasedExplain)}</p>
         <p class="adm-health-money-value">${formatMoneyCents(b.money.released_in_window_cents)}</p>
-        <p class="adm-health-money-sub">payouts you've moved out of escrow</p>
+        <p class="adm-health-money-sub">Payouts you've moved out of escrow</p>
       </div>
     </div>
   `;
@@ -891,36 +891,36 @@ function drawPerfTiles(perf) {
   const o = perf.overall || {};
   const samples = Number(o.total_samples || 0);
   if (!samples) {
-    host.innerHTML = `<div class="adm-empty">no page-load data in this window yet — visit pages on the site to seed it.</div>`;
+    host.innerHTML = `<div class="adm-empty">No page-load data in this window yet — visit pages on the site to seed it.</div>`;
     return;
   }
   const tiles = [
     {
-      label: "page load speed (lcp)",
+      label: "Page load speed (LCP)",
       value: o.lcp_p75 != null ? formatMs(o.lcp_p75) : "—",
       sub: lcpGrade(o.lcp_p75),
       grade: lcpClass(o.lcp_p75),
-      explain: "how long the slowest 25% of your visitors wait before they see the main content on screen. slower than 2.5s and people start leaving before the page is usable — this also affects your google search ranking.",
+      explain: "How long the slowest 25% of your visitors wait before they see the main content on screen. Slower than 2.5s and people start leaving before the page is usable — this also affects your Google search ranking.",
     },
     {
-      label: "click responsiveness (inp)",
+      label: "Click responsiveness (INP)",
       value: o.inp_p75 != null ? formatMs(o.inp_p75) : "—",
       sub: inpGrade(o.inp_p75),
       grade: inpClass(o.inp_p75),
       explain: "when someone taps a button, how long until the page actually responds. sluggish responses make the site feel broken or unsure. under 200ms feels instant; over 500ms feels frozen.",
     },
     {
-      label: "layout stability (cls)",
+      label: "Layout stability (CLS)",
       value: o.cls_p75 != null ? (o.cls_p75 / 1000).toFixed(2) : "—",
       sub: clsGrade(o.cls_p75),
       grade: clsClass(o.cls_p75),
-      explain: "how much content jumps around while the page loads. high values mean visitors tap the wrong thing because the page shifted under their finger — classic example: tapping the wrong button right when an ad loaded in.",
+      explain: "How much content jumps around while the page loads. High values mean visitors tap the wrong thing because the page shifted under their finger — classic example: tapping the wrong button right when an ad loaded in.",
     },
     {
-      label: "server response (ttfb)",
+      label: "Server response (TTFB)",
       value: o.ttfb_p75 != null ? formatMs(o.ttfb_p75) : "—",
       sub: `${samples} samples`,
-      explain: "how fast your server even starts responding. the starting block — if this is slow, every page feels sluggish no matter how clever the rest of the optimization is. under 800ms is the bar.",
+      explain: "How fast your server even starts responding. The starting block — if this is slow, every page feels sluggish no matter how clever the rest of the optimization is. Under 800ms is the bar.",
     },
   ];
   host.innerHTML = tiles.map((t) => `
@@ -941,14 +941,14 @@ function drawPerfSub(overall, days) {
   const samples = Number(overall?.total_samples || 0);
   el.textContent = samples
     ? `${samples.toLocaleString()} page loads recorded in the last ${days}d.`
-    : `no page-load data recorded in the last ${days}d yet.`;
+    : `No page-load data recorded in the last ${days}d yet.`;
 }
 
 function drawTrendChart(rows) {
   const host = document.getElementById("adm-health-trend-chart");
   if (!host) return;
   if (!rows || !rows.length) {
-    host.innerHTML = `<div class="adm-empty">no daily samples yet.</div>`;
+    host.innerHTML = `<div class="adm-empty">No daily samples yet.</div>`;
     return;
   }
   const points = rows.map((r) => ({
@@ -956,14 +956,14 @@ function drawTrendChart(rows) {
     y: Number(r.lcp_p75) || 0,
     label: `${r.day} · ${r.samples} samples`,
   }));
-  renderLineChart(host, points, { ariaLabel: "p75 LCP by day in milliseconds" });
+  renderLineChart(host, points, { ariaLabel: "P75 LCP by day in milliseconds" });
 }
 
 function drawRouteTable(rows) {
   const tbody = document.getElementById("adm-health-route-tbody");
   if (!tbody) return;
   if (!rows || !rows.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="adm-empty">no per-route data yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="adm-empty">No per-route data yet.</td></tr>`;
     return;
   }
   tbody.innerHTML = rows.map((r) => `
@@ -983,7 +983,7 @@ function drawSlowestTable(rows) {
   const tbody = document.getElementById("adm-health-slowest-tbody");
   if (!tbody) return;
   if (!rows || !rows.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="adm-empty">no slow loads recorded yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="adm-empty">No slow loads recorded yet.</td></tr>`;
     return;
   }
   tbody.innerHTML = rows.map((r) => {
@@ -1022,7 +1022,7 @@ function tileHtml(t) {
 function infoBtnHtml(explain) {
   if (!explain) return "";
   // Escape for both attribute and visible text contexts.
-  return `<button type="button" class="adm-info" aria-label="what does this mean" data-info="${esc(explain)}">
+  return `<button type="button" class="adm-info" aria-label="What does this mean" data-info="${esc(explain)}">
     <svg viewBox="0 0 16 16" aria-hidden="true">
       <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/>
       <circle cx="8" cy="4.5" r="0.9" fill="currentColor"/>
@@ -1060,10 +1060,10 @@ function lcpClass(ms) {
   return "poor";
 }
 function lcpGrade(ms) {
-  if (ms == null) return "no data";
-  if (ms <= 2500) return "good (under 2.5s)";
-  if (ms <= 4000) return "needs improvement";
-  return "poor (over 4s)";
+  if (ms == null) return "No data";
+  if (ms <= 2500) return "Good (under 2.5s)";
+  if (ms <= 4000) return "Needs improvement";
+  return "Poor (over 4s)";
 }
 function inpClass(ms) {
   if (ms == null) return "";
@@ -1072,10 +1072,10 @@ function inpClass(ms) {
   return "poor";
 }
 function inpGrade(ms) {
-  if (ms == null) return "no data";
-  if (ms <= 200) return "good (under 200ms)";
-  if (ms <= 500) return "needs improvement";
-  return "poor (over 500ms)";
+  if (ms == null) return "No data";
+  if (ms <= 200) return "Good (under 200ms)";
+  if (ms <= 500) return "Needs improvement";
+  return "Poor (over 500ms)";
 }
 function clsClass(clsX1000) {
   if (clsX1000 == null) return "";
@@ -1084,10 +1084,10 @@ function clsClass(clsX1000) {
   return "poor";
 }
 function clsGrade(clsX1000) {
-  if (clsX1000 == null) return "no data";
-  if (clsX1000 <= 100) return "good (under 0.1)";
-  if (clsX1000 <= 250) return "needs improvement";
-  return "poor (over 0.25)";
+  if (clsX1000 == null) return "No data";
+  if (clsX1000 <= 100) return "Good (under 0.1)";
+  if (clsX1000 <= 250) return "Needs improvement";
+  return "Poor (over 0.25)";
 }
 function lcpCellClass(ms) {
   const g = lcpClass(ms);
@@ -1177,3 +1177,9 @@ function lcpCellClass(ms) {
   window.addEventListener("resize", () => { if (anchorBtn) positionBubble(anchorBtn); });
   window.addEventListener("scroll", () => { if (anchorBtn) positionBubble(anchorBtn); }, { passive: true });
 })();
+
+// Categories and statuses are stored lowercase; show them in sentence case.
+function capFirst(value) {
+  const s = String(value || "");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}

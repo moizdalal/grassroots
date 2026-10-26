@@ -52,8 +52,10 @@
     THEMES: THEMES,
     KEY: KEY,
     systemDefault: systemDefault,
+    // The theme on screen. Usually saved || system default, but a page can
+    // pick its own default (see /home/theme-default.js), so read the attribute.
     get: function () {
-      return readSaved() || systemDefault();
+      return readSaved() || document.documentElement.getAttribute("data-theme") || systemDefault();
     },
     set: function (next) {
       if (THEMES.indexOf(next) === -1) return;

@@ -10,13 +10,15 @@
 --                              per payment, clears the delivered mark) or
 --                              give back (full refund). No answer =
 --                              give back. After a redo, a second report
---                              allows only A or C.
---       C scope breached     → full refund incl. platform fee; consultant
---                              gets nothing.
+--                              allows only A, C or split.
+--       C scope breached     → full refund of what the business paid;
+--                              consultant gets nothing.
 --       split                → support divides what's left on the charge:
---                              part refunded, part to the consultant.
+--                              part refunded, part to the consultant
+--                              (capped at their full-release payout).
 --     Every support-driven refund is in full; grassroots absorbs Stripe's
 --     card fee (moiz, 2026-10-24). The fee is recorded in payment_audit.
+--     Free ($0) jobs have no charge, so none of this applies to them.
 --   * The consultant is told why and has 48 hours from the hold to tell
 --     support their side (note + optional link). Support may decide
 --     sooner, but has to confirm it's deciding before hearing from them.
@@ -90,25 +92,11 @@ alter table public.payment_audit enable row level security;
 revoke all on public.payment_audit from public, anon, authenticated;
 grant all on public.payment_audit to service_role;
 
--- Re-assert bids grants (unchanged column list from rls_lockdown.sql) so the
--- new columns stay readable to participants and never writable by browsers.
-revoke all on public.bids from anon;
-revoke insert, update, delete, truncate, references, trigger on public.bids from authenticated;
-grant select on public.bids to authenticated;
-grant insert (listing_id, consultant_id, message, amount_cents, proposal_fee_cents, service_fee_cents)
-  on public.bids to authenticated;
-grant update (
-  status,
-  amount_cents,
-  counter_offer_cents,
-  counter_offer_message,
-  counter_expires_at,
-  counter_responded_at,
-  counter_response_message,
-  counter_attempted,
-  declined_at
-) on public.bids to authenticated;
-grant all on public.bids to service_role;
+-- bids grants are left as they are. The new columns are covered by the
+-- existing table-level SELECT for authenticated and by no INSERT/UPDATE
+-- grant, so browsers can read them but never write them. (Re-asserting the
+-- column grant list here would drop timeline_days / pitch_files from the
+-- insert grant added by add_bid_pitch_timeline_files.sql.)
 
 revoke all on public.bid_phase_payments from anon;
 revoke all on public.bid_phase_payments from authenticated;

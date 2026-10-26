@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   animation: gr-photo-crop-in 0.22s ease-out both;
 }
 
@@ -42,11 +42,13 @@
 
 .gr-photo-crop__title {
   margin: 0;
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.25rem;
   font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1.2;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .gr-photo-crop__hint {

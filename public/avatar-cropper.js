@@ -49,20 +49,20 @@ function mountModal({ img, url, file, outputSize, done }) {
   modal.innerHTML = `
     <div class="gr-photo-crop__backdrop" data-crop-action="cancel"></div>
     <div class="gr-photo-crop__card" role="document">
-      <h2 id="gr-photo-crop-title" class="gr-photo-crop__title">frame your photo</h2>
-      <p class="gr-photo-crop__hint">drag to reposition, slide to zoom. the square is what others see.</p>
+      <h2 id="gr-photo-crop-title" class="gr-photo-crop__title">Frame your photo</h2>
+      <p class="gr-photo-crop__hint">Drag to reposition, slide to zoom. The square is what others see.</p>
       <div class="gr-photo-crop__viewport" data-vp>
         <img class="gr-photo-crop__img" alt="" />
         <span class="gr-photo-crop__frame" aria-hidden="true"></span>
       </div>
       <div class="gr-photo-crop__zoom">
         <span class="gr-photo-crop__zoom-icon" aria-hidden="true">−</span>
-        <input type="range" min="${MIN_ZOOM}" max="${MAX_ZOOM}" step="0.01" value="1" class="gr-photo-crop__zoom-slider" data-zoom aria-label="zoom" />
+        <input type="range" min="${MIN_ZOOM}" max="${MAX_ZOOM}" step="0.01" value="1" class="gr-photo-crop__zoom-slider" data-zoom aria-label="Zoom" />
         <span class="gr-photo-crop__zoom-icon" aria-hidden="true">+</span>
       </div>
       <div class="gr-photo-crop__actions">
-        <button type="button" class="gr-btn gr-btn--ghost" data-crop-action="cancel">cancel</button>
-        <button type="button" class="gr-btn gr-btn--primary" data-crop-action="confirm">use this photo</button>
+        <button type="button" class="gr-btn gr-btn--ghost" data-crop-action="cancel">Cancel</button>
+        <button type="button" class="gr-btn gr-btn--primary" data-crop-action="confirm">Use this photo</button>
       </div>
     </div>
   `;

@@ -97,13 +97,8 @@
   }
   const nav = document.getElementById("ld-nav");
   const navProgress = document.getElementById("ld-nav-progress");
-  const navTheme = document.getElementById("ld-nav-theme");
-  if (navTheme && window.GrassrootsTheme) {
-    navTheme.addEventListener("click", () => {
-      const cur = window.GrassrootsTheme.get();
-      window.GrassrootsTheme.set(cur === "light" ? "dark-forest" : "light");
-    });
-  }
+  // The theme toggle is wired once in /home/nav.js. A second click handler here
+  // made each click flip the theme twice, so it never changed on the home page.
   function updateNav() {
     if (nav) nav.classList.toggle("is-scrolled", window.scrollY > 8);
     if (navProgress) {
@@ -382,7 +377,7 @@
     }
     let stateText = "empty";
     if (p >= FLY_IN_A && p < FLY_IN_B)     stateText = "funding";
-    else if (p >= FLY_IN_B && p < REVIEW_A) stateText = "held safely";
+    else if (p >= FLY_IN_B && p < REVIEW_A) stateText = "Held safely";
     else if (p >= REVIEW_A && p < REVIEW_B) stateText = "shipped";
     else if (p >= FLY_OUT_A && p < FLY_OUT_B) stateText = "releasing";
     else if (p >= FLY_OUT_B - 0.02) stateText = "delivered";
@@ -454,7 +449,7 @@
     try { listings = JSON.parse(peekDataEl.textContent); } catch (e) {}
     const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
     const cardHTML = (l) => `
-      <a class="ld-peek-card" href="/marketplace" aria-label="${escapeHtml(l.title)} — ${escapeHtml(l.biz)}">
+      <a class="ld-peek-card" href="/marketplace" aria-label="${escapeHtml(l.title)}, ${escapeHtml(l.biz)}">
         <span class="ld-peek-card__eyebrow">${escapeHtml(l.eyebrow)}</span>
         <h3 class="ld-peek-card__title">${escapeHtml(l.title)}</h3>
         <div class="ld-peek-card__row">

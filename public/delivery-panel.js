@@ -18,7 +18,7 @@ const SUPPORT_EMAIL = "moiz@grassroots-marketplace.com";
 let ctx = null; // { supabase, bidId, title }
 
 const fmtWhen = (iso) =>
-  iso ? new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).toLowerCase() : "";
+  iso ? new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
 const fmtDate = (iso) =>
   iso ? new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
 const DAY_MS = 86400000;
@@ -41,12 +41,12 @@ async function authHeaders() {
 async function post(path, body) {
   const res = await fetch(path, { method: "POST", headers: await authHeaders(), body: JSON.stringify(body) });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "something went wrong. try again.");
+  if (!res.ok) throw new Error(data.error || "Something went wrong. Try again.");
   return data;
 }
 
 function supportHref(p) {
-  const subject = `question about a held payment · ${ctx.title || "engagement"}`;
+  const subject = `Question about a held payment · ${ctx.title || "engagement"}`;
   const body = `engagement: ${location.origin}/engagement.html?bid=${ctx.bidId}\npayment: ${p.label} (${fmtUsd(p.amount_cents)})\n\nwhat's going on:\n`;
   return `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
@@ -57,11 +57,11 @@ function daysLeft(iso) {
 
 // The consultant's 48 hours to tell support their side, per viewer.
 function responseLines(p, role) {
-  if (role === "owner") return p.responded_at ? ["the consultant sent support their side."] : [];
-  if (p.responded_at && p.can_respond) return [`you sent support your side. you can update it until ${fmtWhen(p.response_due_at)}.`];
-  if (p.responded_at) return ["you sent support your side. support will decide and let you both know."];
-  if (p.can_respond) return [`tell support your side by ${fmtWhen(p.response_due_at)}. after that, support decides from the engagement record.`];
-  if (p.response_due_at) return ["the 48 hours to respond have passed. support will decide from the engagement record."];
+  if (role === "owner") return p.responded_at ? ["The consultant sent support their side."] : [];
+  if (p.responded_at && p.can_respond) return [`You sent support your side. You can update it until ${fmtWhen(p.response_due_at)}.`];
+  if (p.responded_at) return ["You sent support your side. Support will decide and let you both know."];
+  if (p.can_respond) return [`Tell support your side by ${fmtWhen(p.response_due_at)}. After that, support decides from the engagement record.`];
+  if (p.response_due_at) return ["The 48 hours to respond have passed. Support will decide from the engagement record."];
   return [];
 }
 
@@ -71,59 +71,59 @@ function describeSupport(p, role) {
   const m = p.money || {};
   if (p.support_outcome === "split") {
     return {
-      pill: ["split by support", "muted"],
+      pill: ["Split by support", "muted"],
       lines: [owner
-        ? "support reviewed the work and split the payment between you and the consultant."
-        : "support reviewed the work and split the payment between you and the business."],
+        ? "Support reviewed the work and split the payment between you and the consultant."
+        : "Support reviewed the work and split the payment between you and the business."],
       breakdown: owner
-        ? [["refunded to you", fmtUsd(m.split_refund_cents)], ["paid to the consultant", fmtUsd(m.split_transfer_cents)]]
-        : [["refunded to the business", fmtUsd(m.split_refund_cents)], ["paid to you", fmtUsd(m.split_transfer_cents)]],
+        ? [["Refunded to you", fmtUsd(m.split_refund_cents)], ["Paid to the consultant", fmtUsd(m.split_transfer_cents)]]
+        : [["Refunded to the business", fmtUsd(m.split_refund_cents)], ["Paid to you", fmtUsd(m.split_transfer_cents)]],
     };
   }
   if (p.status === "released") {
     return {
-      pill: ["released", "accepted"],
+      pill: ["Released", "accepted"],
       lines: [owner
-        ? "support found the work meets the agreed scope. grassroots released the payment to the consultant."
-        : "support found your work meets the agreed scope. the payment was released to you."],
+        ? "Support found the work meets the agreed scope. Grassroots released the payment to the consultant."
+        : "Support found your work meets the agreed scope. The payment was released to you."],
     };
   }
   if (p.status === "refunded" && /^give_back/.test(p.consultant_choice || "")) {
     const timedOut = p.consultant_choice === "give_back_timeout";
     return owner
       ? {
-          pill: ["refunded", "muted"],
+          pill: ["Refunded", "muted"],
           lines: [timedOut
-            ? `the consultant didn't choose in 5 days, so you were refunded ${fmtUsd(p.refunded_cents)} in full.`
-            : `the consultant gave the payment back. you were refunded ${fmtUsd(p.refunded_cents)} in full.`],
+            ? `The consultant didn't choose in 5 days, so you were refunded ${fmtUsd(p.refunded_cents)} in full.`
+            : `The consultant gave the payment back. You were refunded ${fmtUsd(p.refunded_cents)} in full.`],
         }
       : {
-          pill: ["given back", "muted"],
+          pill: ["Given back", "muted"],
           lines: [timedOut
-            ? "you didn't choose in 5 days, so the payment went back to the business."
-            : "you gave the payment back. the business was refunded, and you won't be paid for this payment."],
+            ? "You didn't choose in 5 days, so the payment went back to the business."
+            : "You gave the payment back. The business was refunded, and you won't be paid for this payment."],
         };
   }
   if (p.status === "refunded") {
     return {
-      pill: ["refunded", "muted"],
+      pill: ["Refunded", "muted"],
       lines: [owner
-        ? `support found the agreed scope was breached. you were refunded ${fmtUsd(p.refunded_cents)} in full.`
-        : "support found the agreed scope was breached. the business was refunded in full, so you won't be paid for this payment."],
+        ? `Support found the agreed scope was breached. You were refunded ${fmtUsd(p.refunded_cents)} in full.`
+        : "Support found the agreed scope was breached. The business was refunded in full, so you won't be paid for this payment."],
     };
   }
   if (p.waiting_on_consultant) {
     const left = daysLeft(p.redo_deadline_at);
     return owner
       ? {
-          pill: ["waiting on consultant", "warn"],
-          lines: [`support found the work can be fixed. the consultant has until ${fmtDate(p.redo_deadline_at)} to redo it or give the payment back.`],
+          pill: ["Waiting on consultant", "warn"],
+          lines: [`Support found the work can be fixed. The consultant has until ${fmtDate(p.redo_deadline_at)} to redo it or give the payment back.`],
         }
       : {
           pill: [`${left} day${left === 1 ? "" : "s"} left to choose`, "warn"],
           lines: [
-            "support found the work falls short but can be fixed. redo it, or give the payment back.",
-            "if you don't choose in 5 days, the payment goes back to the business.",
+            "Support found the work falls short but can be fixed. Redo it, or give the payment back.",
+            "If you don't choose in 5 days, the payment goes back to the business.",
           ],
         };
   }
@@ -131,24 +131,24 @@ function describeSupport(p, role) {
     const by = fmtDate(new Date(Date.parse(p.problem_reported_at) + DECIDE_DAYS * DAY_MS).toISOString());
     return owner
       ? {
-          pill: ["reported", "warn"],
+          pill: ["Reported", "warn"],
           lines: [
-            "you reported a problem. we're reviewing it. the payment won't release on its own.",
-            `support aims to decide by ${by}. you can still release it yourself by marking the work complete.`,
+            "You reported a problem. We're reviewing it. The payment won't release on its own.",
+            `Support aims to decide by ${by}. You can still release it yourself by marking the work complete.`,
             ...responseLines(p, role),
           ],
         }
       : {
-          pill: ["reported", "warn"],
-          lines: [`the business reported a problem. support is reviewing it and aims to decide by ${by}.`, ...responseLines(p, role)],
+          pill: ["Reported", "warn"],
+          lines: [`The business reported a problem. Support is reviewing it and aims to decide by ${by}.`, ...responseLines(p, role)],
         };
   }
   if (p.on_hold && p.status === "held") {
     return {
-      pill: ["on hold", "warn"],
+      pill: ["On hold", "warn"],
       lines: [
-        p.hold_reason ? `support put this payment on hold: “${p.hold_reason}”` : "support put this payment on hold.",
-        owner ? "it won't release until support decides. we'll let you both know." : "it won't release until support decides.",
+        p.hold_reason ? `Support put this payment on hold: “${p.hold_reason}”` : "Support put this payment on hold.",
+        owner ? "It won't release until support decides. We'll let you both know." : "It won't release until support decides.",
         ...responseLines(p, role),
       ],
     };
@@ -156,8 +156,47 @@ function describeSupport(p, role) {
   return null;
 }
 
+// Free jobs ($0) have no money held, so the copy talks about the work
+// being marked complete instead of a payment releasing.
+function describeFree(p, role) {
+  const now = Date.now();
+  const opens = p.review_opens_at ? Date.parse(p.review_opens_at) : null;
+  const closeOn = fmtDate(p.auto_release_at);
+  if (p.kind === "proposal") {
+    return {
+      pill: ["Pending", "muted"],
+      lines: [role === "owner"
+        ? "Next, decide whether to move forward."
+        : "The business decides next whether to move forward."],
+    };
+  }
+  if (opens && opens <= now) {
+    return {
+      pill: ["In review", "warn"],
+      lines: role === "owner"
+        ? [`Marked delivered ${fmtDate(p.delivered_at)}.`, `Review it by ${closeOn}. After that, it's marked complete.`]
+        : [`Marked delivered ${fmtDate(p.delivered_at)}.`, `The business has until ${closeOn} to review. Then it's marked complete.`],
+    };
+  }
+  if (p.changes_requested_at) {
+    return {
+      pill: ["Changes requested", "warn"],
+      lines: role === "owner"
+        ? ["You asked for changes. The 14-day review restarts when the consultant marks it delivered again."]
+        : ["The business asked for changes. Update the work, then mark it delivered again."],
+    };
+  }
+  return {
+    pill: ["In progress", "muted"],
+    lines: role === "owner"
+      ? ["Waiting for the consultant to mark the work delivered."]
+      : ["Mark the work delivered when it's done."],
+  };
+}
+
 // Status pill + one or two short lines for a payment, per viewer.
 function describe(p, role) {
+  if (p.free) return describeFree(p, role);
   const now = Date.now();
   const opens = p.review_opens_at ? Date.parse(p.review_opens_at) : null;
   const windowOpen = opens && opens <= now;
@@ -167,63 +206,63 @@ function describe(p, role) {
   const support = describeSupport(p, role);
   if (support) return support;
   if (p.on_hold) {
-    return { pill: ["on hold", "muted"], lines: ["support is reviewing this payment. it won't release on its own until that's done."] };
+    return { pill: ["On hold", "muted"], lines: ["Support is reviewing this payment. It won't release on its own until that's done."] };
   }
   if (p.partially_refunded) {
-    return { pill: ["needs support", "muted"], lines: ["part of this payment was refunded. support will settle the rest with you both."] };
+    return { pill: ["Needs support", "muted"], lines: ["Part of this payment was refunded. Support will settle the rest with you both."] };
   }
   if (Date.parse(p.backstop_at) <= now) {
-    return { pill: ["with support", "muted"], lines: ["this payment has been held a long time. support is following up with you both."] };
+    return { pill: ["With support", "muted"], lines: ["This payment has been held a long time. Support is following up with you both."] };
   }
   if (p.kind === "proposal") {
     return {
       pill: ["held", "warn"],
       lines: [role === "owner"
-        ? "this releases when you decide whether to move forward."
-        : "this releases when the business decides whether to move forward."],
+        ? "This releases when you decide whether to move forward."
+        : "This releases when the business decides whether to move forward."],
     };
   }
   if (windowOpen) {
-    const by = p.review_opens_by === "period_end" ? `the period ended ${fmtDate(p.review_opens_at)}.` : `marked delivered ${fmtDate(p.delivered_at)}.`;
+    const by = p.review_opens_by === "period_end" ? `The period ended ${fmtDate(p.review_opens_at)}.` : `Marked delivered ${fmtDate(p.delivered_at)}.`;
     const lines = role === "owner"
-      ? [by, `review it by ${releaseOn}. after that, grassroots releases it to the consultant.`]
-      : [by, `the business has until ${releaseOn} to review. then it releases to you.`];
+      ? [by, `Review it by ${releaseOn}. After that, Grassroots releases it to the consultant.`]
+      : [by, `The business has until ${releaseOn} to review. Then it releases to you.`];
     if (lastRedo) {
       lines.push(role === "owner"
-        ? "this was the last redo. if there's still a problem, report it. support will release it or refund you in full."
-        : "this was your one redo. if the business reports a problem again, support will release it or refund them in full.");
+        ? "This was the last redo. If there's still a problem, report it. Support will release it or refund you in full."
+        : "This was your one redo. If the business reports a problem again, support will release it or refund them in full.");
     }
-    return { pill: ["in review", "warn"], lines };
+    return { pill: ["In review", "warn"], lines };
   }
   if (opens && p.review_opens_by === "period_end") {
     return {
-      pill: ["period running", "muted"],
+      pill: ["Period running", "muted"],
       lines: role === "owner"
-        ? [`this period ends ${fmtDate(p.review_opens_at)}. you'll have 14 days after that to review.`]
-        : [`this period ends ${fmtDate(p.review_opens_at)}. done early? mark it delivered to start the review now.`],
+        ? [`This period ends ${fmtDate(p.review_opens_at)}. You'll have 14 days after that to review.`]
+        : [`This period ends ${fmtDate(p.review_opens_at)}. Done early? Mark it delivered to start the review now.`],
     };
   }
   if (lastRedo) {
     return {
-      pill: ["redoing the work", "warn"],
+      pill: ["Redoing the work", "warn"],
       lines: role === "owner"
-        ? ["the consultant is redoing the work. you'll get a new 14-day review when they deliver. this is the last redo for this payment."]
-        : ["you chose to redo the work. mark it delivered when it's ready. this is your one redo for this payment."],
+        ? ["The consultant is redoing the work. You'll get a new 14-day review when they deliver. This is the last redo for this payment."]
+        : ["You chose to redo the work. Mark it delivered when it's ready. This is your one redo for this payment."],
     };
   }
   if (p.changes_requested_at) {
     return {
-      pill: ["changes requested", "warn"],
+      pill: ["Changes requested", "warn"],
       lines: role === "owner"
-        ? ["you asked for changes. the 14-day review restarts when the consultant marks it delivered again."]
-        : ["the business asked for changes. update the work, then mark it delivered again."],
+        ? ["You asked for changes. The 14-day review restarts when the consultant marks it delivered again."]
+        : ["The business asked for changes. Update the work, then mark it delivered again."],
     };
   }
   return {
     pill: ["held", "warn"],
     lines: role === "owner"
-      ? ["grassroots is holding this until the consultant marks the work delivered."]
-      : ["grassroots is holding this for you. mark the work delivered when it's done."],
+      ? ["Grassroots is holding this until the consultant marks the work delivered."]
+      : ["Grassroots is holding this for you. Mark the work delivered when it's done."],
   };
 }
 
@@ -235,20 +274,20 @@ function renderItem(p, role) {
   const deliveryBits = [];
   if (p.delivered_at && (p.delivery_note || p.delivery_link)) {
     if (p.delivery_note) deliveryBits.push(`<p class="eg-delivery__quote">“${esc(p.delivery_note)}”</p>`);
-    if (p.delivery_link) deliveryBits.push(`<a class="eg-delivery__link" href="${esc(p.delivery_link)}" target="_blank" rel="noopener noreferrer nofollow">open the delivered work</a>`);
+    if (p.delivery_link) deliveryBits.push(`<a class="eg-delivery__link" href="${esc(p.delivery_link)}" target="_blank" rel="noopener noreferrer nofollow">Open the delivered work</a>`);
   }
   if (!p.delivered_at && p.changes_requested_at && p.changes_request_note && !p.reported) {
     deliveryBits.push(`<p class="eg-delivery__quote">“${esc(p.changes_request_note)}”</p>`);
   }
   if (p.reported && p.problem_report_note && p.status === "held") {
-    deliveryBits.push(`<p class="eg-delivery__line">${role === "owner" ? "your report" : "the business's report"}:</p>`);
+    deliveryBits.push(`<p class="eg-delivery__line">${role === "owner" ? "Your report" : "The business's report"}:</p>`);
     deliveryBits.push(`<p class="eg-delivery__quote">“${esc(p.problem_report_note)}”</p>`);
-    if (p.problem_report_link) deliveryBits.push(`<a class="eg-delivery__link" href="${esc(p.problem_report_link)}" target="_blank" rel="noopener noreferrer nofollow">open the business's link</a>`);
+    if (p.problem_report_link) deliveryBits.push(`<a class="eg-delivery__link" href="${esc(p.problem_report_link)}" target="_blank" rel="noopener noreferrer nofollow">Open the business's link</a>`);
   }
   if (role === "consultant" && p.consultant_response_note) {
-    deliveryBits.push(`<p class="eg-delivery__line">your response to support:</p>`);
+    deliveryBits.push(`<p class="eg-delivery__line">Your response to support:</p>`);
     deliveryBits.push(`<p class="eg-delivery__quote">“${esc(p.consultant_response_note)}”</p>`);
-    if (p.consultant_response_link) deliveryBits.push(`<a class="eg-delivery__link" href="${esc(p.consultant_response_link)}" target="_blank" rel="noopener noreferrer nofollow">open your link</a>`);
+    if (p.consultant_response_link) deliveryBits.push(`<a class="eg-delivery__link" href="${esc(p.consultant_response_link)}" target="_blank" rel="noopener noreferrer nofollow">Open your link</a>`);
   }
   if (d.breakdown) {
     deliveryBits.push(`<dl class="eg-delivery__breakdown">${d.breakdown.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>`);
@@ -270,26 +309,26 @@ function renderItem(p, role) {
   const form = li.querySelector(".eg-delivery__form");
 
   if (p.can_mark_delivered && !p.on_hold && p.status === "held") {
-    actions.appendChild(button("mark delivered", "primary", () => openDeliverForm(p, form, actions)));
+    actions.appendChild(button("Mark delivered", "primary", () => openDeliverForm(p, form, actions)));
   }
   if (p.can_respond) {
-    actions.appendChild(button(p.responded_at ? "update your response" : "tell support your side", p.responded_at ? "ghost" : "primary", () => openResponseForm(p, form, actions)));
+    actions.appendChild(button(p.responded_at ? "Update your response" : "Tell support your side", p.responded_at ? "ghost" : "primary", () => openResponseForm(p, form, actions)));
   }
   if (p.can_choose) {
-    actions.appendChild(button("redo the work", "primary", () => openChoiceForm(p, "redo", form, actions)));
-    actions.appendChild(button("give the payment back", "ghost", () => openChoiceForm(p, "give_back", form, actions)));
+    actions.appendChild(button("Redo the work", "primary", () => openChoiceForm(p, "redo", form, actions)));
+    actions.appendChild(button("Give the payment back", "ghost", () => openChoiceForm(p, "give_back", form, actions)));
   }
   if (p.can_request_changes) {
-    actions.appendChild(button("request changes", "ghost", () => openChangesForm(p, form, actions)));
+    actions.appendChild(button("Request changes", "ghost", () => openChangesForm(p, form, actions)));
   }
   if (p.can_report_problem) {
-    actions.appendChild(button("report a problem", "ghost", () => openReportForm(p, form, actions)));
+    actions.appendChild(button("Report a problem", "ghost", () => openReportForm(p, form, actions)));
   }
-  if (role === "owner" && p.kind !== "proposal" && p.status === "held") {
+  if (role === "owner" && p.kind !== "proposal" && p.status === "held" && !p.free) {
     const a = document.createElement("a");
     a.className = "gr-btn gr-btn--ghost gr-btn--sm";
     a.href = supportHref(p);
-    a.textContent = "contact support";
+    a.textContent = "Contact support";
     actions.appendChild(a);
   }
   if (!actions.children.length) actions.remove();
@@ -308,20 +347,22 @@ function button(label, kind, onClick) {
 function openDeliverForm(p, form, actions) {
   form.innerHTML = `
     <label class="gr-label">
-      <span>note for the business (optional)</span>
-      <textarea rows="2" maxlength="1000" data-field="note" placeholder="what you delivered, where to find it"></textarea>
+      <span>Note for the business (optional)</span>
+      <textarea rows="2" maxlength="1000" data-field="note" placeholder="What you delivered, where to find it"></textarea>
     </label>
     <label class="gr-label">
-      <span>link to the work (optional)</span>
+      <span>Link to the work (optional)</span>
       <input type="url" maxlength="500" data-field="link" placeholder="https://" />
     </label>
-    <p class="eg-delivery__line">the business gets 14 days to review. then grassroots releases your payment.</p>
+    <p class="eg-delivery__line">${p.free
+      ? "The business gets 14 days to review. Then it's marked complete."
+      : "The business gets 14 days to review. Then Grassroots releases your payment."}</p>
   `;
   const row = document.createElement("div");
   row.className = "eg-delivery__actions";
   row.append(
-    button("cancel", "ghost", () => closeForm(form, actions)),
-    button("send for review", "primary", async (e) => {
+    button("Cancel", "ghost", () => closeForm(form, actions)),
+    button("Send for review", "primary", async (e) => {
       const btn = e.currentTarget;
       btn.disabled = true;
       try {
@@ -331,7 +372,9 @@ function openDeliverForm(p, form, actions) {
           note: form.querySelector("[data-field=note]").value,
           link: form.querySelector("[data-field=link]").value,
         });
-        showSuccess(`sent for review. it releases ${fmtDate(data.auto_release_at)} unless the business asks for changes.`, { duration: 5000 });
+        showSuccess(p.free
+          ? `Sent for review. It's marked complete ${fmtDate(data.auto_release_at)} unless the business asks for changes.`
+          : `Sent for review. It releases ${fmtDate(data.auto_release_at)} unless the business asks for changes.`, { duration: 5000 });
         await refreshDeliveryPanel();
       } catch (err) {
         showError(err.message);
@@ -348,23 +391,23 @@ function openDeliverForm(p, form, actions) {
 function openChangesForm(p, form, actions) {
   form.innerHTML = `
     <label class="gr-label">
-      <span>what needs to change?</span>
-      <textarea rows="3" maxlength="1000" data-field="note" placeholder="be specific so the consultant can fix it fast"></textarea>
+      <span>What needs to change?</span>
+      <textarea rows="3" maxlength="1000" data-field="note" placeholder="Be specific so the consultant can fix it fast"></textarea>
     </label>
-    <p class="eg-delivery__line">this pauses the automatic release. the 14-day review restarts when they deliver again.</p>
+    <p class="eg-delivery__line">This pauses the automatic release. The 14-day review restarts when they deliver again.</p>
   `;
   const row = document.createElement("div");
   row.className = "eg-delivery__actions";
   row.append(
-    button("cancel", "ghost", () => closeForm(form, actions)),
-    button("send request", "primary", async (e) => {
+    button("Cancel", "ghost", () => closeForm(form, actions)),
+    button("Send request", "primary", async (e) => {
       const note = form.querySelector("[data-field=note]").value.trim();
-      if (!note) { showError("tell the consultant what needs to change."); return; }
+      if (!note) { showError("Tell the consultant what needs to change."); return; }
       const btn = e.currentTarget;
       btn.disabled = true;
       try {
         await post("/api/engagement/request-changes", { bid_id: ctx.bidId, payment_id: p.payment_id, note });
-        showSuccess("request sent. we let the consultant know.");
+        showSuccess("Request sent. We let the consultant know.");
         await refreshDeliveryPanel();
       } catch (err) {
         showError(err.message);
@@ -382,22 +425,22 @@ function openChangesForm(p, form, actions) {
 function openReportForm(p, form, actions) {
   form.innerHTML = `
     <label class="gr-label">
-      <span>what's wrong?</span>
-      <textarea rows="3" maxlength="1000" data-field="note" placeholder="what doesn't match the agreed scope"></textarea>
+      <span>What's wrong?</span>
+      <textarea rows="3" maxlength="1000" data-field="note" placeholder="What doesn't match the agreed scope"></textarea>
     </label>
     <label class="gr-label">
-      <span>link <span class="gr-optional">optional</span></span>
+      <span>Link <span class="gr-optional">Optional</span></span>
       <input type="url" maxlength="500" data-field="link" placeholder="https://" />
     </label>
-    <p class="eg-delivery__line">this locks the payment. it won't release on its own while support reviews it. you can still release it yourself.</p>
+    <p class="eg-delivery__line">This locks the payment. It won't release on its own while support reviews it. You can still release it yourself.</p>
   `;
   const row = document.createElement("div");
   row.className = "eg-delivery__actions";
   row.append(
-    button("cancel", "ghost", () => closeForm(form, actions)),
-    button("send to support", "primary", async (e) => {
+    button("Cancel", "ghost", () => closeForm(form, actions)),
+    button("Send to support", "primary", async (e) => {
       const note = form.querySelector("[data-field=note]").value.trim();
-      if (!note) { showError("tell support what's wrong."); return; }
+      if (!note) { showError("Tell support what's wrong."); return; }
       const btn = e.currentTarget;
       btn.disabled = true;
       try {
@@ -407,7 +450,7 @@ function openReportForm(p, form, actions) {
           note,
           link: form.querySelector("[data-field=link]").value,
         });
-        showSuccess("sent to support. the payment is locked while they review it.", { duration: 5000 });
+        showSuccess("Sent to support. The payment is locked while they review it.", { duration: 5000 });
         await refreshDeliveryPanel();
       } catch (err) {
         showError(err.message);
@@ -425,24 +468,24 @@ function openReportForm(p, form, actions) {
 function openResponseForm(p, form, actions) {
   form.innerHTML = `
     <label class="gr-label">
-      <span>what happened?</span>
-      <textarea rows="4" maxlength="2000" data-field="note" placeholder="what you delivered, when, and where the business can find it"></textarea>
+      <span>What happened?</span>
+      <textarea rows="4" maxlength="2000" data-field="note" placeholder="What you delivered, when, and where the business can find it"></textarea>
     </label>
     <label class="gr-label">
-      <span>link <span class="gr-optional">optional</span></span>
+      <span>Link <span class="gr-optional">Optional</span></span>
       <input type="url" maxlength="500" data-field="link" placeholder="https://" />
     </label>
-    <p class="eg-delivery__line">only support sees this. the business is told you responded.</p>
+    <p class="eg-delivery__line">Only support sees this. The business is told you responded.</p>
   `;
   form.querySelector("[data-field=note]").value = p.consultant_response_note || "";
   form.querySelector("[data-field=link]").value = p.consultant_response_link || "";
   const row = document.createElement("div");
   row.className = "eg-delivery__actions";
   row.append(
-    button("cancel", "ghost", () => closeForm(form, actions)),
-    button("send to support", "primary", async (e) => {
+    button("Cancel", "ghost", () => closeForm(form, actions)),
+    button("Send to support", "primary", async (e) => {
       const note = form.querySelector("[data-field=note]").value.trim();
-      if (!note) { showError("tell support what happened."); return; }
+      if (!note) { showError("Tell support what happened."); return; }
       const btn = e.currentTarget;
       btn.disabled = true;
       try {
@@ -452,7 +495,7 @@ function openResponseForm(p, form, actions) {
           note,
           link: form.querySelector("[data-field=link]").value,
         });
-        showSuccess("sent to support. we'll let you know what they decide.", { duration: 5000 });
+        showSuccess("Sent to support. We'll let you know what they decide.", { duration: 5000 });
         await refreshDeliveryPanel();
       } catch (err) {
         showError(err.message);
@@ -470,20 +513,20 @@ function openResponseForm(p, form, actions) {
 function openChoiceForm(p, choice, form, actions) {
   const m = p.money || {};
   form.innerHTML = choice === "redo"
-    ? `<p class="eg-delivery__line">you can redo the work once for this payment. when you mark it delivered again, the business gets a new 14-day review.</p>`
-    : `<p class="eg-delivery__line">the business gets the full ${esc(fmtUsd(m.give_back_cents))} back, and you get nothing for this payment. this can't be undone.</p>`;
+    ? `<p class="eg-delivery__line">You can redo the work once for this payment. When you mark it delivered again, the business gets a new 14-day review.</p>`
+    : `<p class="eg-delivery__line">The business gets the full ${esc(fmtUsd(m.give_back_cents))} back, and you get nothing for this payment. This can't be undone.</p>`;
   const row = document.createElement("div");
   row.className = "eg-delivery__actions";
   row.append(
-    button("cancel", "ghost", () => closeForm(form, actions)),
-    button(choice === "redo" ? "yes, redo it" : "yes, give it back", "primary", async (e) => {
+    button("Cancel", "ghost", () => closeForm(form, actions)),
+    button(choice === "redo" ? "Yes, redo it" : "Yes, give it back", "primary", async (e) => {
       const btn = e.currentTarget;
       btn.disabled = true;
       try {
         await post("/api/engagement/redo-choice", { bid_id: ctx.bidId, payment_id: p.payment_id, choice });
         showSuccess(choice === "redo"
-          ? "got it. mark the work delivered when it's ready."
-          : "done. the business was refunded.", { duration: 5000 });
+          ? "Got it. Mark the work delivered when it's ready."
+          : "Done. The business was refunded.", { duration: 5000 });
         await refreshDeliveryPanel();
       } catch (err) {
         showError(err.message);
@@ -511,7 +554,7 @@ export async function refreshDeliveryPanel() {
   try {
     const res = await fetch(`/api/engagement/${encodeURIComponent(ctx.bidId)}/release-status`, { headers: await authHeaders() });
     data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || "could not load payment status.");
+    if (!res.ok) throw new Error(data.error || "Could not load payment status.");
   } catch (err) {
     console.warn("delivery panel:", err.message);
     panel.classList.add("hidden");
@@ -522,9 +565,14 @@ export async function refreshDeliveryPanel() {
     panel.classList.add("hidden");
     return;
   }
-  intro.textContent = data.role === "owner"
-    ? "grassroots holds each payment until the work is in. you get 14 days to review before it releases."
-    : "grassroots holds each payment until you deliver. the business gets 14 days to review, then it's yours.";
+  const allFree = payments.every((p) => p.free);
+  intro.textContent = allFree
+    ? (data.role === "owner"
+      ? "You get 14 days to review delivered work. Then it's marked complete."
+      : "The business gets 14 days to review your work. Then it's marked complete.")
+    : data.role === "owner"
+      ? "Grassroots holds each payment until the work is in. You get 14 days to review before it releases."
+      : "Grassroots holds each payment until you deliver. The business gets 14 days to review, then it's yours.";
   list.innerHTML = "";
   for (const p of payments) list.appendChild(renderItem(p, data.role));
   panel.classList.remove("hidden");

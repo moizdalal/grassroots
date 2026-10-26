@@ -1,4 +1,5 @@
-// Applies rls_lockdown.sql, add_delivery_release.sql and
+// Applies rls_lockdown.sql, add_delivery_release.sql, allow_free_offers.sql,
+// add_bid_pitch_timeline_files.sql (columns + grants) and
 // add_support_outcomes.sql to an in-memory
 // Postgres (PGlite) and checks that browsers can't set delivery, hold,
 // backstop or refund state on bids / bid_phase_payments, while the server
@@ -33,6 +34,9 @@ await db.exec(`
 `);
 await db.exec(mig("rls_lockdown.sql"));
 await db.exec(mig("add_delivery_release.sql"));
+await db.exec(mig("allow_free_offers.sql"));
+// Columns + grants only; the fixture has no storage schema.
+await db.exec(mig("add_bid_pitch_timeline_files.sql").split("-- 3. Storage")[0]);
 await db.exec(mig("add_support_outcomes.sql"));
 // Re-grant the stray UPDATE after the migration so the trigger is what stops it.
 await db.exec(`grant update on bid_phase_payments to authenticated`);
@@ -103,6 +107,19 @@ await t("owner reads response columns on the bid", owner, `select consultant_res
 await t("support_outcome only takes known values", "service", ub("support_outcome='partial_payout'"), "block");
 await t("consultant_choice only takes known values", "service", ub("consultant_choice='half'"), "block");
 await t("problem link must be http(s)", "service", ub("problem_report_link='javascript:alert(1)'"), "block");
+// Grants from later migrations survive add_support_outcomes.sql.
+const priv = async (col, p) => (await db.query(`select has_column_privilege('authenticated', 'public.bids', '${col}', '${p}') as ok`)).rows[0].ok;
+for (const col of ["timeline_days", "pitch_files", "amount_cents"]) {
+  const ok = await priv(col, "INSERT");
+  if (!ok) fails++;
+  console.log(`${ok ? "PASS" : "FAIL"}  offer insert grant kept: bids.${col}`);
+}
+for (const col of ["support_outcome", "problem_reported_at", "consultant_choice"]) {
+  const bad = (await priv(col, "INSERT")) || (await priv(col, "UPDATE"));
+  if (bad) fails++;
+  console.log(`${bad ? "FAIL" : "PASS"}  browsers can't insert or update bids.${col}`);
+}
+await t("free ($0) offer amount still allowed", "service", `update bids set amount_cents=0 where id='${BID}' returning id`, "allow");
 await db.exec(`insert into payment_audit(payment_table, payment_id, bid_id, action) values ('bids', '${PAID}', '${PAID}', 'seed')`);
 await t("owner reads payment_audit", owner, `select id from payment_audit`, "block");
 await t("consultant reads payment_audit", consultant, `select id from payment_audit`, "block");

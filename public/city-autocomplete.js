@@ -23,7 +23,7 @@ async function loadCities() {
   if (cachedList) return cachedList;
   if (!cachedPromise) {
     cachedPromise = fetch(DATA_URL).then((r) => {
-      if (!r.ok) throw new Error("could not load city list");
+      if (!r.ok) throw new Error("Could not load city list");
       return r.json();
     });
   }
@@ -105,7 +105,7 @@ export function wireCityAutocomplete(root) {
     if (!results.length) {
       const empty = document.createElement("li");
       empty.className = "reg-city-ac__empty";
-      empty.textContent = "no matches.";
+      empty.textContent = "No matches.";
       list.appendChild(empty);
       return;
     }

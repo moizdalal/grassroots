@@ -35,9 +35,11 @@
 .eg-title,
 .eg-panel__title {
   margin: 0;
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--font-display);
   color: var(--green-deep);
   letter-spacing: -0.02em;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .eg-title {
@@ -58,7 +60,6 @@
   color: var(--green-deep);
   font-size: var(--type-meta);
   font-weight: 700;
-  text-transform: lowercase;
   white-space: nowrap;
 }
 
@@ -217,7 +218,7 @@
 .eg-retainer-controls.hidden { display: none; }
 .eg-retainer-controls__title {
   margin: 0 0 0.4rem;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-eyebrow);
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -297,10 +298,12 @@
 }
 
 .eg-period__amount {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--type-h3);
   color: var(--fo-text, var(--green-deep));
+  font-weight: 600;
+  font-style: normal;
 }
 
 .eg-retainer-terms.hidden {
@@ -573,9 +576,11 @@
 
 .eg-meeting-summary__time {
   margin: 0 0 0.35rem;
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--font-display);
   font-size: var(--type-h3);
   color: var(--green-deep);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .eg-panel__actions {
@@ -621,7 +626,7 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   line-height: 1;
 }
 

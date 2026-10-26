@@ -71,12 +71,12 @@ export function detectAction(bid, _listing, schedule) {
     !bid?.counter_responded_at
   ) {
     return {
-      title: "respond to the business's counter",
+      title: "Respond to the business's counter",
       href: `/listing.html?id=${bid.listing_id}`,
     };
   }
   if (schedule?.status === "awaiting_consultant") {
-    return { title: "pick a kickoff time", href: `/engagement.html?bid=${bid.id}` };
+    return { title: "Pick a kickoff time", href: `/engagement.html?bid=${bid.id}` };
   }
   return null;
 }
@@ -86,14 +86,14 @@ export function detectAction(bid, _listing, schedule) {
 // plant's growth to know what's happening.
 export function detectStatus(stage, action, schedule, _listing) {
   if (action) return action.title;
-  if (stage === 5) return "payout received";
-  if (stage === 4) return "work delivered, awaiting payout";
-  if (stage === 3) return "kickoff scheduled";
+  if (stage === 5) return "Payout received";
+  if (stage === 4) return "Work delivered, awaiting payout";
+  if (stage === 3) return "Kickoff scheduled";
   if (stage === 2) {
-    if (schedule?.status === "awaiting_owner") return "awaiting business availability";
-    return "offer accepted — kickoff coming soon";
+    if (schedule?.status === "awaiting_owner") return "Awaiting business availability";
+    return "Offer accepted — kickoff coming soon";
   }
-  return "offer submitted — awaiting business response";
+  return "Offer submitted — awaiting business response";
 }
 
 /* ============================================================== */
@@ -278,7 +278,7 @@ export function mountEngagementJourneyFlowers(container, { client, engagements, 
   container.classList.add("cdash__journey-flowers");
   container.innerHTML = `
     <div class="cdash__journey-flowers-head">
-      <button type="button" class="cdash__journey-flowers-unhide-all" hidden>show hidden (0)</button>
+      <button type="button" class="cdash__journey-flowers-unhide-all" hidden>Show hidden (0)</button>
     </div>
     <div class="cdash__journey-flowers-stage" id="cdash-journey-flowers-stage"></div>
     ${renderTooltipMarkup()}
@@ -338,7 +338,7 @@ export function mountEngagementJourneyFlowers(container, { client, engagements, 
     if (!btn) return;
     if (hiddenIds.size > 0) {
       btn.hidden = false;
-      btn.textContent = `show hidden (${hiddenIds.size})`;
+      btn.textContent = `Show hidden (${hiddenIds.size})`;
     } else {
       btn.hidden = true;
     }
@@ -347,10 +347,10 @@ export function mountEngagementJourneyFlowers(container, { client, engagements, 
   function hideEngagement(eng) {
     hiddenIds.add(eng.id);
     applyFilter();
-    showToast(`hid ${eng.counterpart || "engagement"}`, {
+    showToast(`Hid ${eng.counterpart || "engagement"}`, {
       duration: 2400,
       action: {
-        label: "undo",
+        label: "Undo",
         onClick: () => {
           hiddenIds.delete(eng.id);
           applyFilter();
@@ -373,7 +373,7 @@ export function mountEngagementJourneyFlowers(container, { client, engagements, 
 
 function renderEmpty() {
   return `<div class="cdash__journey-flowers-empty">
-    <p>no engagements yet — <a href="/marketplace.html" class="cdash__journey-flowers-empty-link">explore the marketplace</a> and submit a bid, and your first seed will sprout here.</p>
+    <p>No engagements yet — <a href="/marketplace.html" class="cdash__journey-flowers-empty-link">explore the marketplace</a> and submit a bid, and your first seed will sprout here.</p>
   </div>`;
 }
 
@@ -420,15 +420,15 @@ function renderGardenTile(gardenCount) {
   const plantLabel = gardenCount === 1 ? "plant" : "plants";
   return `
     <a class="cdash__journey-flowers-garden-tile" href="/profile.html#garden"
-       aria-label="your garden — ${gardenCount} ${plantLabel}, click to view">
+       aria-label="Your garden — ${gardenCount} ${plantLabel}, click to view">
       <svg class="cdash__journey-flowers-garden-tile-icon" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M4 18h16M5 18l1 -5h12l1 5M10 13c0 -3 -2 -5 -3 -6c2 0 4 1 4 4M14 13c0 -3 2 -5 3 -6c-2 0 -4 1 -4 4M12 13v-7"
               fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <span class="cdash__journey-flowers-garden-tile-label">your garden</span>
+      <span class="cdash__journey-flowers-garden-tile-label">Your garden</span>
       <span class="cdash__journey-flowers-garden-tile-count">${gardenCount}</span>
       <span class="cdash__journey-flowers-garden-tile-hint">
-        ${gardenCount === 0 ? "drag a bloomed plant here" : `${gardenCount} ${plantLabel} · view`}
+        ${gardenCount === 0 ? "Drag a bloomed plant here" : `${gardenCount} ${plantLabel} · view`}
       </span>
     </a>
   `;
@@ -464,7 +464,7 @@ function renderPlantColumn(eng, idx, speciesByBidId, unreadMap = new Map(), link
     <div class="cdash__journey-flowers-plant" data-eng-index="${idx}" data-bid-id="${escapeHtml(eng.id)}"
          data-stage="${stage}">
       <button type="button" class="cdash__journey-flowers-plant-hide" data-eng-index="${idx}"
-              aria-label="hide this plant" title="hide this plant">
+              aria-label="Hide this plant" title="Hide this plant">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="6" y1="6" x2="18" y2="18"/>
@@ -500,7 +500,7 @@ function renderTooltipMarkup() {
         <span class="cdash__journey-flowers-tooltip-status-text" data-tooltip-status></span>
       </div>
       <div class="cdash__journey-flowers-tooltip-action" data-tooltip-action hidden>
-        <span class="cdash__journey-flowers-tooltip-action-label">action</span>
+        <span class="cdash__journey-flowers-tooltip-action-label">Action</span>
         <span class="cdash__journey-flowers-tooltip-action-title" data-tooltip-action-title></span>
         <span class="cdash__journey-flowers-tooltip-action-arrow" aria-hidden="true">→</span>
       </div>
@@ -524,9 +524,9 @@ function wireInteractions(container, stage, visible) {
     if (!tooltip) return;
     // Don't show a hover card while a plant is being shuffled.
     if (container.classList.contains("is-shuffling")) return;
-    titleEl.textContent = eng.listing?.title || "engagement";
+    titleEl.textContent = eng.listing?.title || "Engagement";
     amountEl.textContent = fmtUSD(eng.bid?.amount_cents);
-    statusEl.textContent = eng.status || "";
+    statusEl.textContent = capFirst(eng.status);
     if (eng.action) {
       actionRow.hidden = false;
       actionTitleEl.textContent = eng.action.title;
@@ -594,7 +594,7 @@ function wireInteractions(container, stage, visible) {
     plantEl.setAttribute("tabindex", "0");
     plantEl.setAttribute("role", "button");
     plantEl.setAttribute("aria-label",
-      `${eng.counterpart || "business"} — ${eng.listing?.title || "engagement"} — ${fmtUSD(eng.bid?.amount_cents)} — stage ${eng.stage} of 5. open listing.`
+      `${eng.counterpart || "business"} — ${eng.listing?.title || "engagement"} — ${fmtUSD(eng.bid?.amount_cents)} — stage ${eng.stage} of 5. Open listing.`
     );
   });
 
@@ -889,4 +889,10 @@ function fmtUSD(cents) {
   if (!Number.isFinite(Number(cents))) return "";
   const dollars = Number(cents) / 100;
   return `$${dollars.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+}
+
+// Categories and statuses are stored lowercase; show them in sentence case.
+function capFirst(value) {
+  const s = String(value || "");
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }

@@ -28,7 +28,7 @@ async function loadOwnedListing(client, listingId) {
   const { data: userData } = await client.auth.getUser();
   const ownerId = userData?.user?.id;
   if (!ownerId) {
-    throw new ListingOperationError("sign in to manage this listing.", { code: "not_signed_in" });
+    throw new ListingOperationError("Sign in to manage this listing.", { code: "not_signed_in" });
   }
 
   // Only select columns guaranteed to exist on the listings table.
@@ -41,10 +41,10 @@ async function loadOwnedListing(client, listingId) {
     .eq("id", listingId)
     .maybeSingle();
 
-  if (error) throw new ListingOperationError(error.message || "could not load the listing.");
-  if (!listing) throw new ListingOperationError("we couldn't find that listing.", { code: "not_found" });
+  if (error) throw new ListingOperationError(error.message || "Could not load the listing.");
+  if (!listing) throw new ListingOperationError("We couldn't find that listing.", { code: "not_found" });
   if (listing.owner_id !== ownerId) {
-    throw new ListingOperationError("only the owner can do that.", { code: "forbidden" });
+    throw new ListingOperationError("Only the owner can do that.", { code: "forbidden" });
   }
   return { listing, ownerId };
 }
@@ -92,7 +92,7 @@ export async function deleteListing(client, listingId) {
 
   if (listing.status !== "draft") {
     throw new ListingOperationError(
-      "only drafts can be deleted. close this listing from the listing controls if you're done with it.",
+      "Only drafts can be deleted. Close this listing from the listing controls if you're done with it.",
       { code: "not_a_draft" }
     );
   }
@@ -104,7 +104,7 @@ export async function deleteListing(client, listingId) {
     // Common cause: missing RLS delete policy. Surface the underlying
     // message so the user sees something actionable instead of a
     // silent "deleted 0 rows".
-    throw new ListingOperationError(error.message || "could not delete the draft.");
+    throw new ListingOperationError(error.message || "Could not delete the draft.");
   }
   return { id: listingId };
 }
@@ -128,7 +128,7 @@ export async function convertListingToDraft(client, listingId) {
   }
   if (await hasAcceptedBid(client, listingId)) {
     throw new ListingOperationError(
-      "this listing has an accepted offer — unpublishing it would strand an active engagement.",
+      "This listing has an accepted offer — unpublishing it would strand an active engagement.",
       { code: "has_engagement" }
     );
   }
@@ -138,7 +138,7 @@ export async function convertListingToDraft(client, listingId) {
     .update({ status: "draft" })
     .eq("id", listingId);
   if (error) {
-    throw new ListingOperationError(error.message || "could not unpublish the listing.");
+    throw new ListingOperationError(error.message || "Could not unpublish the listing.");
   }
   return { id: listingId };
 }

@@ -11,7 +11,7 @@ body.adm-body {
   background: var(--fo-bg);
   color: var(--fo-text);
   margin: 0;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
 }
 
 .adm-gate {
@@ -72,9 +72,11 @@ body.adm-body {
   height: 22px;
 }
 .adm-brand__name {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 1.15rem;
+  font-weight: 600;
+  font-style: normal;
 }
 .adm-brand__tag {
   font-size: var(--type-eyebrow);
@@ -147,10 +149,12 @@ body.adm-body {
   flex-wrap: wrap;
 }
 .adm-page-h__title {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: var(--type-display);
   font-weight: 600;
   margin: 0;
+  font-weight: 600;
+  font-style: normal;
 }
 .adm-page-h__sub {
   font-size: var(--type-meta);
@@ -215,10 +219,12 @@ body.adm-body {
   color: var(--fo-text-3);
 }
 .adm-kpi__value {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: 1.6rem;
   font-weight: 600;
   color: var(--fo-text);
+  font-weight: 600;
+  font-style: normal;
 }
 .adm-kpi__sub {
   font-size: var(--type-meta);
@@ -248,7 +254,7 @@ body.adm-body {
 }
 .adm-card__title {
   margin: 0;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-h3);
   font-weight: 700;
 }
@@ -300,7 +306,7 @@ body.adm-body {
 }
 .chart .ax-label {
   fill: var(--fo-text-3);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: 10px;
 }
 .chart .bar {
@@ -311,7 +317,7 @@ body.adm-body {
 }
 .chart .bar-val {
   fill: var(--fo-text-2);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: 10px;
   font-weight: 600;
 }
@@ -326,13 +332,15 @@ body.adm-body {
 @media (max-width: 540px) { .donut-wrap { grid-template-columns: 1fr; } }
 .chart--donut .donut-total {
   fill: var(--fo-text);
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: 22px;
   font-weight: 600;
+  font-weight: 600;
+  font-style: normal;
 }
 .chart--donut .donut-sub {
   fill: var(--fo-text-3);
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -457,7 +465,9 @@ body.adm-body {
   text-align: center;
   font-weight: 700;
   color: var(--fo-text-3);
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-style: normal;
 }
 .adm-top-meta,
 .adm-up-meta,
@@ -485,9 +495,11 @@ body.adm-body {
 }
 .adm-top-value,
 .adm-up-value {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   color: var(--fo-accent);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .adm-up-date {
@@ -508,11 +520,13 @@ body.adm-body {
   font-weight: 700;
 }
 .adm-up-day {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: 1.05rem;
   font-weight: 600;
   color: var(--fo-text);
   margin-top: 2px;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .adm-activity-row {
@@ -559,7 +573,7 @@ body.adm-body {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-weight: 600;
   flex: 0 0 auto;
 }
@@ -682,9 +696,11 @@ body.adm-body {
 .adm-cell-name { font-weight: 600; color: var(--fo-text); }
 .adm-cell-sub  { font-size: var(--type-meta); color: var(--fo-text-3); }
 .adm-cell-money {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   color: var(--fo-text);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .adm-results-count {
@@ -717,12 +733,14 @@ body.adm-body {
   margin-bottom: 0.85rem;
 }
 .cal-title {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0;
   flex: 1;
   text-align: center;
+  font-weight: 600;
+  font-style: normal;
 }
 .cal-nav {
   background: transparent;
@@ -823,10 +841,12 @@ body.adm-body {
 }
 :root:not([data-theme="light"]) .adm-cal-side { background: transparent; }
 .adm-cal-side__title {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: 1.1rem;
   font-weight: 600;
   margin: 0 0 0.25rem;
+  font-weight: 600;
+  font-style: normal;
 }
 .adm-cal-side__count {
   margin: 0 0 1rem;
@@ -927,9 +947,11 @@ body.adm-body {
 }
 .adm-drawer__title {
   margin: 0;
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: 1.15rem;
   font-weight: 600;
+  font-weight: 600;
+  font-style: normal;
 }
 .adm-drawer__close {
   background: transparent;
@@ -963,10 +985,12 @@ body.adm-body {
   align-items: flex-start;
 }
 .adm-drawer-name {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: 1.3rem;
   font-weight: 600;
   color: var(--fo-text);
+  font-weight: 600;
+  font-style: normal;
 }
 .adm-drawer-sub {
   font-size: var(--type-meta);
@@ -977,10 +1001,12 @@ body.adm-body {
   flex-wrap: wrap;
 }
 .adm-drawer-amount {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-size: 1.6rem;
   font-weight: 600;
   color: var(--fo-accent);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .adm-pair {
@@ -1047,7 +1073,7 @@ body.adm-body {
 
 .adm-drawer-sec {
   margin: 1.2rem 0 0.55rem;
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--type-h3);
   font-weight: 700;
 }
@@ -1082,9 +1108,11 @@ body.adm-body {
   color: var(--fo-text-3);
 }
 .adm-drawer-row__money {
-  font-family: "Fraunces", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   color: var(--fo-accent);
+  font-weight: 600;
+  font-style: normal;
 }
 
 /* ============================================================== */
@@ -1132,12 +1160,14 @@ body.adm-body {
    blocks inside the health tab. Matches the visual weight of an
    adm-card title without needing a wrapper card. */
 .adm-section-h {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--fo-text);
   margin: 1.75rem 0 1rem;
   letter-spacing: -0.01em;
+  font-weight: 600;
+  font-style: normal;
 }
 .adm-section-h:first-of-type {
   margin-top: 0.5rem;
@@ -1194,11 +1224,13 @@ body.adm-body {
   font-size: 0.78rem;
 }
 .adm-health-funnel__value {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.6rem;
   font-weight: 600;
   color: var(--fo-text);
   letter-spacing: -0.02em;
+  font-weight: 600;
+  font-style: normal;
 }
 
 /* Money flow — two stacked figures (escrow held + released in window). */
@@ -1214,12 +1246,14 @@ body.adm-body {
   margin: 0 0 0.25rem;
 }
 .adm-health-money-value {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.9rem;
   font-weight: 600;
   color: var(--fo-text);
   margin: 0 0 0.25rem;
   letter-spacing: -0.02em;
+  font-weight: 600;
+  font-style: normal;
 }
 .adm-health-money-sub {
   color: var(--fo-text-3);
@@ -1238,7 +1272,8 @@ body.adm-body {
 
 /* Monospace for paths/timestamps so they line up vertically. */
 .adm-mono {
-  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-body);
+        font-variant-numeric: tabular-nums;
   font-size: 0.82rem;
 }
 

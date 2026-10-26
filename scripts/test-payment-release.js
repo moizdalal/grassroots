@@ -509,9 +509,10 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     const report = (who = OWNER, extra = {}) => api("/api/engagement/report-problem", { bid_id: "B1", note: "the deck is missing the pricing section", link: "https://docs.example.com/notes", ...extra }, who);
     const outcome = (o, who = "admin1", extra = {}) => api("/api/admin/payments/outcome", { bid_id: "B1", outcome: o, ...extra }, who);
     const choose = (choice, who = CONS) => api("/api/engagement/redo-choice", { bid_id: "B1", choice }, who);
-    // $100 offer + $10 platform fee = $110 charged; $96.80 payout ($3.20
-    // checkout estimate). Stripe's actual fee on the $110 charge: $3.49.
-    const FEES = { payment_amount_cents: 11000, platform_fee_cents: 1000, stripe_fee_cents: 320, consultant_payout_cents: 9680 };
+    // All-in: $110 offer = $110 charged. Card fee $3.49 (2.9% + 30¢),
+    // platform fee $5.00 (5% of the $100 above the first $10), so the
+    // consultant's payout is $101.51.
+    const FEES = { payment_amount_cents: 11000, platform_fee_cents: 500, stripe_fee_cents: 349, consultant_payout_cents: 10151 };
     const reported = async (extra = {}) => {
       seed();
       heldBid({ delivered_at: ago(2), ...FEES, ...extra });
@@ -559,7 +560,7 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     await report();
     const dueH = (Date.parse(bid("B1").response_due_at) - Date.now()) / 3600000;
     ok(dueH > 47.9 && dueH <= 48, `report opens a 48-hour response window (${dueH.toFixed(2)}h)`);
-    ok(/tell support your side by/.test(notes("problem_reported", CONS)[0].body), "consultant told why and by when to respond");
+    ok(/Tell support your side by/.test(notes("problem_reported", CONS)[0].body), "consultant told why and by when to respond");
     st = await apiGet("/api/engagement/B1/release-status", CONS);
     ok(st.body.payments[0].can_respond && st.body.payments[0].response_due_at && st.body.payments[0].problem_report_link === "https://docs.example.com/notes", "status: consultant can respond, sees the business's note and link");
     const respond = (who, body) => api("/api/engagement/respond-to-report", { bid_id: "B1", ...body }, who);
@@ -597,7 +598,7 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     seed();
     heldBid({ delivered_at: ago(2), ...FEES });
     h = await api("/api/admin/payments/hold", { bid_id: "B1", reason: "business called" }, "admin1");
-    ok(h.status === 409 && /report a problem/.test(h.body.error) && !bid("B1").support_hold_at, "support hold refused during the review: the business reports it themselves");
+    ok(h.status === 409 && /Report a problem/.test(h.body.error) && !bid("B1").support_hold_at, "support hold refused during the review: the business reports it themselves");
     rl = await apiGet("/api/admin/payments/held?all=1", "admin1");
     ok(!rl.body.payments.find((x) => x.key === "bid-B1").actions.includes("hold"), "admin screen doesn't offer a hold the business can place itself");
     seed();
@@ -613,11 +614,11 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     ok((await outcome("meets_scope", OWNER)).status === 403, "only admins pick an outcome");
     ok((await outcome("split")).status === 400, "free-form outcomes refused");
     let oc = await outcome("meets_scope");
-    ok(oc.status === 200 && bid("B1").payment_status === "released" && bid("B1").support_outcome === "meets_scope" && transferLog.length === 1 && transferLog[0].amount === 9680, "A: released to the consultant ($96.80)");
+    ok(oc.status === 200 && bid("B1").payment_status === "released" && bid("B1").support_outcome === "meets_scope" && transferLog.length === 1 && transferLog[0].amount === 10151, "A: released to the consultant ($101.51 = $110 − $3.49 card − $5 platform)");
     ok(transferLog[0].source_transaction === "ch_rel", "A: transfer pinned to the charge");
     ok(notes("support_outcome", OWNER).length === 1 && notes("support_outcome", CONS).length === 1, "A: both parties notified");
     const aud = audits("outcome_meets_scope")[0];
-    ok(aud && aud.actor_email === "moizdalal@ufl.edu" && aud.amount_cents === 9680 && aud.stripe_object_id?.startsWith("tr_"), "A: audit row with who, amount, transfer id");
+    ok(aud && aud.actor_email === "moizdalal@ufl.edu" && aud.amount_cents === 10151 && aud.stripe_object_id?.startsWith("tr_"), "A: audit row with who, amount, transfer id");
     st = await apiGet("/api/engagement/B1/release-status", CONS);
     ok(st.body.payments[0].status === "released" && st.body.payments[0].support_outcome === "meets_scope", "status: outcome A shown after release");
 
@@ -728,6 +729,7 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     ok((await split(5500, 5500, { reason: "" })).status === 400, "split: needs a reason");
     ok((await split(0, 11000)).status === 400 && (await split(11000, 0)).status === 400, "split: both parts must be above $0 (all-or-nothing is A or C)");
     ok((await split(6000, 5001)).status === 400 && bid("B1").payment_status === "held" && refundLog.length === 0, "split: refund + payout capped at what's left on the charge ($110)");
+    ok((await split(500, 10152)).status === 400 && bid("B1").payment_status === "held" && refundLog.length === 0, "split: consultant's part capped at their $101.51 full-release payout");
     ok((await outcome("split", OWNER, { refund_cents: 5500, transfer_cents: 5500, reason: "x" })).status === 403, "split: admin only");
     let sp = await split(3300, 7700);
     ok(sp.status === 200 && bid("B1").payment_status === "released" && bid("B1").support_outcome === "split" && bid("B1").refunded_cents === 3300 && bid("B1").consultant_payout_cents === 7700, "split 30/70: $33 back to the business, $77 to the consultant");
@@ -810,9 +812,9 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     ok((await outcome("meets_scope")).status === 409, "partly refunded: full release refused");
     list = await apiGet("/api/admin/payments/held", "admin1");
     lp = list.body.payments.find((x) => x.key === "bid-B1");
-    ok(lp.flags.partly_refunded && lp.actions.join() === "release_remainder,refund_remainder,hold" && lp.money.remainder_payout_cents === 5680, "admin screen: settle the rest ($70 left − $3.20 − $10 = $56.80 payout)");
+    ok(lp.flags.partly_refunded && lp.actions.join() === "release_remainder,refund_remainder,hold" && lp.money.remainder_payout_cents === 6151, "admin screen: settle the rest ($70 left − $3.49 card − $5 platform = $61.51 payout)");
     let sr = await api("/api/admin/payments/settle-remainder", { bid_id: "B1", action: "release" }, "admin1");
-    ok(sr.status === 200 && bid("B1").payment_status === "released" && transferLog[0]?.amount === 5680 && bid("B1").support_outcome === "release_remainder", "release the rest: $56.80 transferred");
+    ok(sr.status === 200 && bid("B1").payment_status === "released" && transferLog[0]?.amount === 6151 && bid("B1").support_outcome === "release_remainder", "release the rest: $61.51 transferred");
     ok(audits("release_remainder").length === 1, "release the rest: audit row");
     seed();
     heldBid({ delivered_at: ago(20), ...FEES });
@@ -844,6 +846,69 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     await hook("charge.refunded", { id: "ch_b3", payment_intent: "pi_b3", refunded: false, amount: 10000, amount_refunded: 5000 });
     const pb4 = db.bid_phase_payments.find((r) => r.id === "PB4");
     ok(oc.status === 200 && pb4.status === "held" && pb4.refunded_cents === 0, "refunding one payment on a shared charge doesn't freeze the other");
+
+    // ================= free offers ($0, no Stripe) =================
+    seed();
+    Object.assign(bid("B1"), { amount_cents: 0 });
+    calls.length = 0;
+    let fo = await api("/api/stripe/payment-intent", { bid_id: "B1" }, OWNER);
+    ok(fo.status === 400 && fo.body.free === true, "free offer can't open a payment");
+    fo = await api("/api/engagement/accept-free", { bid_id: "B1" }, "intruder");
+    ok(fo.status === 403, "non-owner can't accept a free offer");
+    fo = await api("/api/engagement/accept-free", { bid_id: "B1" }, OWNER);
+    ok(fo.status === 200 && bid("B1").status === "accepted" && bid("B1").payment_status === "held" && bid("B1").payment_amount_cents === 0 && bid("B1").paid_at, "free offer accepted with a $0 hold");
+    ok(calls.length === 0, "accepting a free offer makes no Stripe calls");
+    fo = await api("/api/stripe/refund-payment", { bid_id: "B1" }, OWNER);
+    ok(fo.status === 409, "free engagement can't be refunded");
+    const fst = await apiGet("/api/engagement/B1/release-status", OWNER);
+    ok(fst.body.payments?.[0]?.free === true, "release-status marks the job free");
+    Object.assign(bid("B1"), { delivered_at: ago(2) });
+    const fst2 = await apiGet("/api/engagement/B1/release-status", OWNER);
+    ok(fst2.body.payments?.[0]?.can_report_problem === false, "free job: no report-a-problem button");
+    fo = await api("/api/engagement/report-problem", { bid_id: "B1", note: "not what we asked for" }, OWNER);
+    ok(fo.status === 409 && !/free/i.test(fo.body.error) && !bid("B1").support_hold_at, "free job: report refused, and the business isn't told it's free");
+    fo = await api("/api/admin/payments/hold", { bid_id: "B1", reason: "checking in" }, "admin1");
+    ok(fo.status === 409 && !bid("B1").support_hold_at, "free job: no support hold");
+    for (const o of ["meets_scope", "fixable", "scope_breached"]) {
+      fo = await api("/api/admin/payments/outcome", { bid_id: "B1", outcome: o }, "admin1");
+      ok(fo.status === 409 && bid("B1").payment_status === "held", `free job: outcome ${o} refused`);
+    }
+    fo = await api("/api/admin/payments/outcome", { bid_id: "B1", outcome: "split", refund_cents: 1, transfer_cents: 1, reason: "x" }, "admin1");
+    ok(fo.status === 409, "free job: split refused");
+    fo = await api("/api/admin/payments/settle-remainder", { bid_id: "B1", action: "refund" }, "admin1");
+    ok(fo.status === 409 && calls.length === 0, "free job: settle refused; no Stripe calls from any support action");
+    const fadm = await apiGet("/api/admin/payments/held", "admin1");
+    ok(!fadm.body.payments.some((x) => x.key === "bid-B1"), "free job: not listed on the admin payments tab");
+    Object.assign(bid("B1"), { delivered_at: ago(20), paid_at: ago(120) });
+    run = await cron();
+    ok(bid("B1").payment_status === "released" && calls.length === 0 && !run.flagged.length, "free job closes after review, no transfer, no 90-day flag");
+    ok(notes("auto_released", OWNER).some((n) => n.title === "Engagement marked complete"), "free close uses 'marked complete' wording");
+
+    seed();
+    fo = await api("/api/engagement/accept-free", { bid_id: "B1" }, OWNER);
+    ok(fo.status === 400 && bid("B1").status === "pending", "paid offer can't be accepted as free");
+    Object.assign(bid("B1"), { amount_cents: 500 });
+    fo = await api("/api/stripe/payment-intent", { bid_id: "B1" }, OWNER);
+    ok(fo.status === 400, "offer under $10 can't be paid");
+
+    // --- free phased proposals ---
+    seed();
+    db.bids.push({ id: "B2", listing_id: "L2", consultant_id: CONS, amount_cents: 2000, proposal_fee_cents: 0, service_fee_cents: 2000, status: "pending", payment_status: "unpaid", refunded_cents: 0 });
+    calls.length = 0;
+    fo = await api("/api/stripe/phased/accept-proposals", { bid_ids: ["B2"] }, OWNER);
+    const fp = db.bid_phase_payments.find((r) => r.bid_id === "B2");
+    ok(fo.status === 200 && fo.body.free && bid("B2").status === "accepted" && fp?.status === "held" && fp.amount_cents === 0 && calls.length === 0, "all-free proposal batch accepted without Stripe");
+    fo = await api("/api/stripe/phased/proposal-decision", { bid_id: "B2", decision: "selected" }, OWNER);
+    ok(fo.status === 200 && fp.status === "released" && bid("B2").move_forward_status === "selected" && calls.length === 0, "free proposal closes on decision, no transfer");
+
+    seed();
+    db.bids.push({ id: "B3", listing_id: "L2", consultant_id: CONS, amount_cents: 2000, proposal_fee_cents: 0, service_fee_cents: 2000, status: "pending", payment_status: "unpaid", refunded_cents: 0 });
+    db.bids.push({ id: "B4", listing_id: "L2", consultant_id: CONS, amount_cents: 3000, proposal_fee_cents: 1500, service_fee_cents: 3000, status: "pending", payment_status: "unpaid", refunded_cents: 0 });
+    fo = await api("/api/stripe/phased/accept-proposals", { bid_ids: ["B3", "B4"] }, OWNER);
+    const batchRows = db.bid_phase_payments.filter((r) => ["B3", "B4"].includes(r.bid_id));
+    ok(fo.status === 200 && fo.body.amount === 1500 && batchRows.length === 2 && batchRows.every((r) => r.status === "authorizing"), "mixed batch charges only the paid proposal; $0 row rides along");
+    fo = await api("/api/stripe/phased/accept-proposals", { bid_ids: ["B3"] }, OWNER);
+    ok(fo.status === 409, "free row already in a pending batch can't be accepted twice");
 
     // --- bad signature / legacy path ---
     const bad = await fetch(base + "/webhooks/stripe", { method: "POST", headers: { "content-type": "application/json", "stripe-signature": "t=1,v1=bad" }, body: "{}" });

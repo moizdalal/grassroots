@@ -51,21 +51,21 @@ function buildNavItems(role) {
     // Marketplace is positioned second (right after home) so discovery
     // outranks bookkeeping in the consultant flow.
     return [
-      { href: "/consultant-dashboard.html", label: "home", icon: ICONS.home, navId: "home" },
-      { href: "/marketplace.html", label: "marketplace", icon: ICONS.marketplace, navId: "marketplace" },
-      { href: "/engagements.html", label: "engagements", icon: ICONS.engagements, navId: "engagements" },
-      { href: "/inbox.html", label: "inbox", icon: ICONS.inbox, navId: "inbox" },
-      { href: "/notifications.html", label: "notifications", icon: ICONS.notifications, navId: "notifications" },
-      { href: "/payouts.html", label: "payouts", icon: ICONS.payouts, navId: "payouts" },
+      { href: "/consultant-dashboard.html", label: "Home", icon: ICONS.home, navId: "home" },
+      { href: "/marketplace.html", label: "Marketplace", icon: ICONS.marketplace, navId: "marketplace" },
+      { href: "/engagements.html", label: "Engagements", icon: ICONS.engagements, navId: "engagements" },
+      { href: "/inbox.html", label: "Inbox", icon: ICONS.inbox, navId: "inbox" },
+      { href: "/notifications.html", label: "Notifications", icon: ICONS.notifications, navId: "notifications" },
+      { href: "/payouts.html", label: "Payouts", icon: ICONS.payouts, navId: "payouts" },
     ];
   }
   // Default to the owner layout. This is also what unauthenticated visitors
   // see, but the sidebar's user card / logout will be hidden in that case.
   return [
-    { href: "/dashboard.html", label: "home", icon: ICONS.home, navId: "home" },
-    { href: "/dashboard.html#listings", label: "my listings", icon: ICONS.listings, navId: "listings" },
-    { href: "/inbox.html", label: "inbox", icon: ICONS.inbox, navId: "inbox" },
-    { href: "/notifications.html", label: "notifications", icon: ICONS.notifications, navId: "notifications" },
+    { href: "/dashboard.html", label: "Home", icon: ICONS.home, navId: "home" },
+    { href: "/dashboard.html#listings", label: "My listings", icon: ICONS.listings, navId: "listings" },
+    { href: "/inbox.html", label: "Inbox", icon: ICONS.inbox, navId: "inbox" },
+    { href: "/notifications.html", label: "Notifications", icon: ICONS.notifications, navId: "notifications" },
   ];
 }
 
@@ -73,8 +73,8 @@ function buildNavItems(role) {
 // primary items, but rendered after a divider so the visual grouping
 // reads as "what you do" → hairline → "your account".
 const SECONDARY_NAV_ITEMS = [
-  { href: "/settings.html", label: "settings", icon: ICONS.gear, navId: "settings" },
-  { href: "/help.html", label: "help", icon: ICONS.help, navId: "help" },
+  { href: "/settings.html", label: "Settings", icon: ICONS.gear, navId: "settings" },
+  { href: "/help.html", label: "Help", icon: ICONS.help, navId: "help" },
 ];
 
 function inferActiveNavId(role) {
@@ -129,7 +129,7 @@ function renderNavItem(item, activeNavId) {
           <span class="bza__nav-icon" aria-hidden="true">${item.icon}</span>
           <span class="bza__nav-label">${item.label}</span>
         </a>
-        <button type="button" class="bza__nav-toggle" aria-expanded="${initialOpen}" aria-controls="bza-sub-${item.navId}" title="toggle ${item.label}">
+        <button type="button" class="bza__nav-toggle" aria-expanded="${initialOpen}" aria-controls="bza-sub-${item.navId}" title="Toggle ${item.label}">
           <span class="bza__nav-toggle-icon" aria-hidden="true">${ICONS.chevron}</span>
         </button>
       </div>
@@ -151,44 +151,44 @@ function renderSidebar({ role, activeNavId }) {
     role === "consultant"
       ? ""
       : `
-      <a href="/create-listing.html" class="bza__post" id="gr-side-post" title="post a listing">
+      <a href="/create-listing.html" class="bza__post" id="gr-side-post" title="Post a listing">
         <span class="bza__nav-icon" aria-hidden="true">${ICONS.plus}</span>
-        <span class="bza__nav-label">post a listing</span>
+        <span class="bza__nav-label">Post a listing</span>
       </a>`;
   return `
     <aside class="bza__side" id="gr-side">
-      <div class="bza__side-edge" id="gr-side-edge" aria-hidden="true" title="double-click to toggle"></div>
+      <div class="bza__side-edge" id="gr-side-edge" aria-hidden="true" title="Double-click to toggle"></div>
       <div class="bza__side-head">
-        <a class="bza__brand" href="/" title="grassroots — home">
+        <a class="bza__brand" href="/" title="Grassroots — home">
           <img class="bza__brand-mark" src="/home/assets/grassroots-icon-syne.svg" width="20" height="34" alt="" />
           <span class="bza__brand-text">grassroots</span>
         </a>
-        <button type="button" class="bza__side-toggle" id="gr-side-toggle" aria-label="collapse sidebar" aria-expanded="true" title="collapse sidebar">
+        <button type="button" class="bza__side-toggle" id="gr-side-toggle" aria-label="Collapse sidebar" aria-expanded="true" title="Collapse sidebar">
           ${ICONS.collapse}
         </button>
       </div>
-      <div class="bza__nav" role="navigation" aria-label="primary">
+      <div class="bza__nav" role="navigation" aria-label="Primary">
         ${primary}
         <hr class="bza__nav-divider" aria-hidden="true" />
         ${secondary}
       </div>${postCta}
-      <label class="bza__darkmode-row" title="dark mode">
+      <label class="bza__darkmode-row" title="Dark mode">
         <span class="bza__nav-icon" aria-hidden="true">${ICON_MOON}</span>
-        <span class="bza__nav-label">dark mode</span>
+        <span class="bza__nav-label">Dark mode</span>
         <input type="checkbox" id="gr-side-darkmode" class="bza__darkmode-input" />
         <span class="bza__darkmode-switch" aria-hidden="true"></span>
       </label>
       <div class="bza__side-foot">
-        <a class="bza__user" id="gr-side-user" href="/settings.html#personal" title="open profile settings">
+        <a class="bza__user" id="gr-side-user" href="/settings.html#personal" title="Open profile settings">
           <span class="bza__user-avatar" id="gr-side-user-avatar"></span>
           <span class="bza__user-meta">
-            <span class="bza__user-name" id="gr-side-user-name">your account</span>
+            <span class="bza__user-name" id="gr-side-user-name">Your account</span>
             <span class="bza__user-role" id="gr-side-user-role"></span>
           </span>
         </a>
         <button type="button" class="bza__logout" id="gr-side-logout">
           <span class="bza__nav-icon" aria-hidden="true">${ICON_LOGOUT}</span>
-          <span class="bza__nav-label">log out</span>
+          <span class="bza__nav-label">Log out</span>
         </button>
       </div>
     </aside>
@@ -216,8 +216,8 @@ function applyUserCard(client, profile) {
   const nameEl = document.getElementById("gr-side-user-name");
   const roleEl = document.getElementById("gr-side-user-role");
   const avEl = document.getElementById("gr-side-user-avatar");
-  if (nameEl) nameEl.textContent = profile?.full_name || "your account";
-  if (roleEl) roleEl.textContent = profile?.role === "consultant" ? "consultant" : "business owner";
+  if (nameEl) nameEl.textContent = profile?.full_name || "Your account";
+  if (roleEl) roleEl.textContent = profile?.role === "consultant" ? "Consultant" : "Business owner";
   if (avEl) {
     const avatarUrl = client && profile?.avatar_path
       ? client.storage.from("avatars").getPublicUrl(profile.avatar_path).data?.publicUrl || ""
@@ -325,8 +325,8 @@ function wireToggle() {
     wrap.classList.toggle("bza--collapsed", collapsed);
     if (toggle) {
       toggle.setAttribute("aria-expanded", String(!collapsed));
-      toggle.setAttribute("aria-label", collapsed ? "expand sidebar" : "collapse sidebar");
-      toggle.setAttribute("title", collapsed ? "expand sidebar" : "collapse sidebar");
+      toggle.setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
+      toggle.setAttribute("title", collapsed ? "Expand sidebar" : "Collapse sidebar");
     }
     try {
       window.localStorage.setItem(COLLAPSE_KEY, collapsed ? "1" : "0");
