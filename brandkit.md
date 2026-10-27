@@ -238,6 +238,17 @@ Bio tab order is fixed: header (name, degree line, `.pf-bv__meta-row` with city 
 
 ---
 
+## Email
+
+Transactional emails use one layout: `lib/email-template.js`. Copy for each event lives in `lib/notification-emails.js`.
+
+- Lowercase `grassroots` wordmark in Fraunces 600, then a white card (dark-forest surface in dark mode) holding a Fraunces heading, Figtree body, and one pill button in `--fo-accent` (#2f7a5a).
+- Colors are the light and dark-forest tokens from `field-office.css`, hardcoded because mail clients can't read CSS variables. Change both places together.
+- Same voice as the site: sentence case, second person, short sentences, no exclamation points. Subjects name the listing in quotes.
+- One button per email, labelled with the action ("Review the offer"), always an absolute link.
+- The footer says why they got it, links to the dashboard, invites replies, and shows the mailing address. No unsubscribe link: these are transactional.
+- Business-facing emails never mention free offers.
+
 ## Page shell
 
 - `.gr-shell` — narrow content (max-width 560px)

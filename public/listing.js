@@ -26,6 +26,7 @@ import {
 import { showToast, showSuccess, showError, showLoading } from "/toast.js";
 import { isGuest, setGuestMode, clearGuestModeIfSignedIn } from "/guest-mode.js";
 import { loadBusinessBadges, renderBadgeBlock } from "/business-badges.js";
+import { notifyEvent } from "/notify-event.js";
 
 const gate = document.getElementById("listing-gate");
 const detail = document.getElementById("listing-detail");
@@ -274,6 +275,7 @@ function renderConsultantCounterPanel(client, listing, bid) {
           body: `The consultant accepted your ${formatUsd(counter)} counter on "${listing.title}". You can finalize the deal now.`,
           link: `/listing.html?id=${listing.id}`,
         });
+        notifyEvent(client, "counter_accepted", { bid_id: bid.id });
         statusEl.textContent = "Accepted. The business can now finalize.";
         statusEl.className = "gr-status ld-counter-response__status success";
       } else if (action === "rescind") {
@@ -301,6 +303,7 @@ function renderConsultantCounterPanel(client, listing, bid) {
           body: `The consultant withdrew their offer on "${listing.title}" after your counter.`,
           link: `/listing.html?id=${listing.id}`,
         });
+        notifyEvent(client, "counter_rescinded", { bid_id: bid.id });
         statusEl.textContent = "Offer rescinded.";
         statusEl.className = "gr-status ld-counter-response__status success";
       } else {
@@ -324,6 +327,7 @@ function renderConsultantCounterPanel(client, listing, bid) {
           body: `The consultant declined your counter on "${listing.title}". Their original ${formatUsd(bid.amount_cents)} offer is back on the table.`,
           link: `/listing.html?id=${listing.id}`,
         });
+        notifyEvent(client, "counter_declined", { bid_id: bid.id });
         statusEl.textContent = "Counter declined. Your original offer is back on the table.";
         statusEl.className = "gr-status ld-counter-response__status success";
       }
@@ -1958,6 +1962,7 @@ async function showConsultantView(client, session, listing, existingBid) {
       submitBtn.classList.remove("is-loading");
       return;
     }
+    await notifyEvent(client, "offer_received", { listing_id: listingId });
     showSuccess("Offer submitted.");
     // Offers are immutable once submitted — reload so the form is replaced
     // by the read-only summary on next render. Keep the spinner up until
@@ -3078,6 +3083,7 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
       body: `The owner of "${escapeHtml(listing.title)}" countered your bid with ${formatUsd(cents)}. You have 24 hours to respond.`,
       link: `/listing.html?id=${listing.id}`,
     });
+    notifyEvent(client, "counter_received", { bid_id: bid.id });
 
     loader.dismiss();
     showSuccess("Counter offer sent. The consultant has 24 hours to respond.");

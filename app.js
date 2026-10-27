@@ -18,6 +18,7 @@ const {
   createPaymentIntentOnce,
 } = require("./lib/stripe-compat");
 const { sendEmail } = require("./lib/email");
+const { buildNotificationEmail } = require("./lib/notification-emails");
 const { schoolMatchesEmail } = require("./lib/schools");
 const {
   normalizeEmail,
@@ -264,7 +265,8 @@ function alertOps(kind, details) {
 }
 
 // Server-side notification insert (service role). Never throws.
-async function notifyUser(userId, { type, title, body, link }) {
+// Pass `email: { event, data, key }` to also email the user (see emailUser).
+async function notifyUser(userId, { type, title, body, link, email }) {
   if (!userId || !supabase) return;
   try {
     const { error } = await supabase
@@ -274,6 +276,58 @@ async function notifyUser(userId, { type, title, body, link }) {
   } catch (err) {
     console.warn("[notify] insert failed:", err.message);
   }
+  if (email) await emailUser(userId, email.event, { link, ...email.data }, { key: email.key });
+}
+
+function emailBaseUrl() {
+  return (envTrim("APP_URL") || PLATFORM_URL).replace(/\/$/, "");
+}
+
+/* Email one user about an engagement event. The server builds the subject
+   and body from lib/notification-emails.js; `key` makes the send
+   idempotent for 24h at Resend (retries and double clicks send once).
+   Never throws. */
+async function emailUser(userId, event, data, { key, keyEvent } = {}) {
+  if (!userId || !supabase) return;
+  try {
+    const { data: found, error } = await supabase.auth.admin.getUserById(userId);
+    const to = found?.user?.email;
+    if (error || !to) {
+      console.warn("[email] no address for user", userId, error?.message || "");
+      return;
+    }
+    const msg = buildNotificationEmail(event, data, emailBaseUrl());
+    if (!msg) return;
+    await sendEmail({
+      to,
+      subject: msg.subject,
+      html: msg.html,
+      text: msg.text,
+      idempotencyKey: key ? `${keyEvent || event}:${key}` : undefined,
+      tags: [{ name: "event", value: event }],
+    });
+  } catch (err) {
+    console.warn("[email] emailUser failed", event, err?.message || err);
+  }
+}
+
+// To the consultant once their offer is accepted (and paid, if it has a price).
+async function emailOfferAccepted(bidId, amountCents) {
+  const ctx = await releaseContext(bidId);
+  if (!ctx) return;
+  await emailUser(ctx.consultantId, "offer_accepted", {
+    title: ctx.title, bidId, amountCents,
+  }, { key: bidId });
+}
+
+// To both sides once held money moves to the consultant. Skips $0 holds.
+async function emailPaymentReleased(bidId, { grossCents, payoutCents, key, link, auto = false }) {
+  if (!(Number(grossCents) > 0)) return;
+  const ctx = await releaseContext(bidId);
+  if (!ctx) return;
+  const data = { title: ctx.title, bidId, link, amountCents: grossCents, payoutCents: payoutCents ?? grossCents, auto };
+  await emailUser(ctx.ownerId, "payment_released_business", data, { key });
+  await emailUser(ctx.consultantId, "payment_released_consultant", data, { key });
 }
 
 async function onConnectAccountUpdated(account) {
@@ -676,6 +730,7 @@ async function confirmStandardBidPayment(intent, { awaitDefaultPm = false } = {}
     .select("id");
   if (updErr) throw new Error(`Bid confirm failed: ${updErr.message}`);
   if (!flipped?.length) return { ok: true, alreadyConfirmed: true, bidId };
+  await emailOfferAccepted(bidId, bid.payment_amount_cents);
 
   // Promote the just-used payment method to the customer's default so any
   // future subscription (e.g., retainer continuation) can bill it without
@@ -743,12 +798,16 @@ async function confirmProposalBatchPayment(intent) {
     .in("status", CONFIRMABLE_PAYMENT_STATUSES);
   if (phaseUpdErr) throw new Error(`Proposal rows confirm failed: ${phaseUpdErr.message}`);
 
-  const { error: bidUpdErr } = await supabase
+  const { data: acceptedBids, error: bidUpdErr } = await supabase
     .from("bids")
     .update({ status: "accepted", accepted_at: now })
     .in("id", bidIds)
-    .neq("status", "accepted");
+    .neq("status", "accepted")
+    .select("id");
   if (bidUpdErr) throw new Error(`Proposal bids accept failed: ${bidUpdErr.message}`);
+  for (const { id } of acceptedBids || []) {
+    await emailOfferAccepted(id, rows.find((r) => r.bid_id === id)?.amount_cents);
+  }
 
   return { ok: true, bidIds };
 }
@@ -2469,6 +2528,7 @@ app.post("/api/engagement/accept-free", async (req, res) => {
       .select("id");
     if (updErr) return res.status(500).json({ error: updErr.message });
     if (!flipped?.length) return res.status(409).json({ error: "This offer changed. Reload and try again." });
+    await emailOfferAccepted(bidId, 0);
     return res.json({ ok: true });
   } catch (err) {
     return res.status(500).json({ error: err.message || "Could not accept the offer." });
@@ -2676,6 +2736,7 @@ app.post("/api/stripe/release-funds", async (req, res) => {
 
     const result = await releaseStandardBid(bid);
     if (!result.ok) return res.status(result.status).json({ error: result.error });
+    await emailPaymentReleased(bidId, { grossCents: bid.payment_amount_cents, payoutCents: result.payout_cents, key: `bid-${bidId}` });
     return res.json(result);
   } catch (err) {
     return res.status(500).json({ error: err.message || "Could not release funds." });
@@ -2898,12 +2959,14 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
         consultant_payout_cents: 0,
       })));
       if (freeRowsErr) return res.status(500).json({ error: freeRowsErr.message });
-      const { error: freeBidsErr } = await supabase
+      const { data: freeAccepted, error: freeBidsErr } = await supabase
         .from("bids")
         .update({ status: "accepted", accepted_at: now })
         .in("id", bidIds)
-        .neq("status", "accepted");
+        .neq("status", "accepted")
+        .select("id");
       if (freeBidsErr) return res.status(500).json({ error: freeBidsErr.message });
+      for (const { id } of freeAccepted || []) await emailOfferAccepted(id, 0);
       return res.json({ ok: true, free: true, bid_ids: bidIds });
     }
 
@@ -3846,6 +3909,7 @@ app.post("/api/stripe/retainer/release-period", async (req, res) => {
     });
     if (result.conflict) return res.status(409).json({ error: "This period changed while you were releasing it. Reload and try again." });
     if (!result.ok) return res.status(409).json({ error: result.error });
+    await emailPaymentReleased(bidId, { grossCents: phaseRow.amount_cents, payoutCents: result.payout_cents, key: `pay-${phaseRow.id}`, link: `/engagement.html?bid=${bidId}#pay-${phaseRow.id}` });
 
     return res.json({ ok: true, transfer_id: result.transfer_id });
   } catch (err) {
@@ -4089,6 +4153,7 @@ app.post("/api/stripe/phased/release-service", async (req, res) => {
     });
     if (result.conflict) return res.status(409).json({ error: "This payment changed while you were releasing it. Reload and try again." });
     if (!result.ok) return res.status(409).json({ error: result.error });
+    await emailPaymentReleased(bidId, { grossCents: phaseRow.amount_cents, payoutCents: result.payout_cents, key: `pay-${phaseRow.id}`, link: `/engagement.html?bid=${bidId}#pay-${phaseRow.id}` });
 
     return res.json({ ok: true, transfer_id: result.transfer_id });
   } catch (err) {
@@ -4572,6 +4637,7 @@ async function runReleaseJob(nowMs = Date.now()) {
           body: `${dollars(item.payoutCents)} from "${ctx.title}" is on its way to your Stripe balance.`,
           link,
         });
+        await emailPaymentReleased(item.bidId, { grossCents: item.cents, payoutCents: item.payoutCents, key: item.key, link, auto: true });
       } else if (result.disputed || result.conflict || result.partialRefund) {
         summary.skipped.push({ key: item.key, reason: result.disputed ? "disputed" : result.partialRefund ? "partial_refund" : "changed" });
       } else {
@@ -4684,6 +4750,11 @@ app.post("/api/engagement/mark-delivered", async (req, res) => {
       title: `${label === "Payment" ? "Work" : label} marked delivered`,
       body: `The consultant marked "${t.ctx.title}" delivered. Review it by ${shortDate(win.releaseAt)}. After that, Grassroots releases the payment to them.`,
       link: `/engagement.html?bid=${bidId}#${t.item.key}`,
+      email: {
+        event: "work_delivered",
+        data: { title: t.ctx.title, bidId, label, reviewByMs: win.releaseAt, free: !(Number(t.item.cents) > 0), note },
+        key: `${t.item.key}:${deliveredAt}`,
+      },
     });
     return res.json({ ok: true, delivered_at: deliveredAt, auto_release_at: new Date(win.releaseAt).toISOString() });
   } catch (err) {
@@ -4728,10 +4799,93 @@ app.post("/api/engagement/request-changes", async (req, res) => {
       title: "The business asked for changes",
       body: `${note ? `"${note.slice(0, 160)}" ` : ""}update "${t.ctx.title}", then mark it delivered again to restart the 14-day review.`,
       link: `/engagement.html?bid=${bidId}#${t.item.key}`,
+      email: {
+        event: "changes_requested",
+        data: { title: t.ctx.title, bidId, note },
+        key: `${t.item.key}:${requestedAt}`,
+      },
     });
     return res.json({ ok: true, changes_requested_at: requestedAt });
   } catch (err) {
     return res.status(500).json({ error: err.message || "Could not request changes." });
+  }
+});
+
+/* Email for events the browser writes straight to Supabase (offers,
+   counters, reviews). The caller only names the event and the bid; the
+   server checks they're the right participant, that the bid really is in
+   that state (and changed recently), then builds the email itself. The
+   idempotency key ties each send to the state change, so repeat calls
+   send once. */
+const CLIENT_EVENT_FRESH_MS = 15 * 60 * 1000;
+
+app.post("/api/notify/event", async (req, res) => {
+  const viewer = await getViewerFromRequest(req);
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
+  const event = String(req.body?.event || "").trim();
+  const bidId = String(req.body?.bid_id || "").trim();
+  const listingId = String(req.body?.listing_id || "").trim();
+  if (!bidId && !(event === "offer_received" && listingId)) {
+    return res.status(400).json({ error: "bid_id required." });
+  }
+
+  try {
+    const cols = "id, listing_id, consultant_id, status, amount_cents, counter_offer_cents, counter_offer_message, counter_expires_at, counter_responded_at, counter_response_message, created_at";
+    let query = supabase.from("bids").select(cols);
+    query = bidId ? query.eq("id", bidId) : query.eq("listing_id", listingId).eq("consultant_id", viewer.id);
+    const { data: bid } = await query.maybeSingle();
+    if (!bid) return res.status(404).json({ error: "Offer not found." });
+    const { data: listing } = await supabase
+      .from("listings").select("id, owner_id, title").eq("id", bid.listing_id).maybeSingle();
+    if (!listing) return res.status(404).json({ error: "Listing not found." });
+
+    const isOwner = viewer.id === listing.owner_id;
+    const isConsultant = viewer.id === bid.consultant_id;
+    const fresh = (iso) => Boolean(iso) && Date.now() - Date.parse(iso) < CLIENT_EVENT_FRESH_MS;
+    const base = { title: listing.title || "your listing", listingId: listing.id, bidId: bid.id };
+    let to = null;
+    let data = base;
+    let key = null;
+
+    if (event === "offer_received") {
+      if (!isConsultant || !fresh(bid.created_at)) return res.status(409).json({ error: "Nothing to send." });
+      to = listing.owner_id;
+      data = { ...base, amountCents: bid.amount_cents };
+      key = bid.id;
+    } else if (event === "counter_received") {
+      if (!isOwner || bid.status !== "countered" || bid.counter_offer_cents == null) {
+        return res.status(409).json({ error: "Nothing to send." });
+      }
+      to = bid.consultant_id;
+      data = { ...base, counterCents: bid.counter_offer_cents, expiresAt: bid.counter_expires_at, note: bid.counter_offer_message };
+      key = `${bid.id}:${bid.counter_expires_at}`;
+    } else if (["counter_accepted", "counter_declined", "counter_rescinded"].includes(event)) {
+      // Accepting and keeping the original both leave the bid pending, so
+      // the state can't tell them apart; the shared key caps it at one email.
+      const wantStatus = event === "counter_rescinded" ? "declined" : "pending";
+      if (!isConsultant || bid.status !== wantStatus || !fresh(bid.counter_responded_at)) {
+        return res.status(409).json({ error: "Nothing to send." });
+      }
+      to = listing.owner_id;
+      data = { ...base, amountCents: bid.amount_cents, note: bid.counter_response_message };
+      key = `${bid.id}:${bid.counter_responded_at}`;
+    } else if (event === "consultant_review" || event === "business_review") {
+      const table = event === "consultant_review" ? "consultant_reviews" : "business_reviews";
+      const reviewer = event === "consultant_review" ? isOwner : isConsultant;
+      const { data: review } = await supabase.from(table).select("id, created_at").eq("bid_id", bid.id).maybeSingle();
+      if (!reviewer || !review || !fresh(review.created_at)) return res.status(409).json({ error: "Nothing to send." });
+      to = event === "consultant_review" ? bid.consultant_id : listing.owner_id;
+      key = review.id;
+    } else {
+      return res.status(400).json({ error: "Unknown event." });
+    }
+
+    const keyEvent = event.startsWith("counter_") && event !== "counter_received" ? "counter_response" : event;
+    await emailUser(to, event, data, { key, keyEvent });
+    return res.json({ ok: true });
+  } catch (err) {
+    console.warn("[notify/event] failed", event, err?.message || err);
+    return res.status(500).json({ error: "Could not send the notification." });
   }
 });
 
