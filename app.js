@@ -1755,7 +1755,7 @@ app.get("/api/listings/:id/owner-bids", async (req, res) => {
     }
 
     const bidCols = `id, listing_id, consultant_id, amount_cents, proposal_fee_cents, service_fee_cents, move_forward_status, message, status,
-         counter_offer_cents, counter_offer_message, accepted_at, proposal_due_at, proposal_path, created_at,
+         counter_offer_cents, counter_offer_message, counter_expires_at, counter_responded_at, counter_response_message, counter_attempted, accepted_at, proposal_due_at, proposal_path, created_at,
          profiles!bids_consultant_id_fkey ( id, full_name, linkedin_url, avatar_path )`;
     const loadBids = (cols) => supabase
       .from("bids")

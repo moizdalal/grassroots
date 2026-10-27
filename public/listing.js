@@ -23,7 +23,8 @@ import {
   loadListingAnalytics,
   renderAnalyticsPanel,
 } from "/listing-analytics.js";
-import { showToast, showSuccess, showError, showLoading } from "/toast.js";
+import { showToast, showSuccess, showError, showLoading, flashToast } from "/toast.js";
+import { confirmDialog } from "/confirm-modal.js";
 import { isGuest, setGuestMode, clearGuestModeIfSignedIn } from "/guest-mode.js";
 import { loadBusinessBadges, renderBadgeBlock } from "/business-badges.js";
 
@@ -350,13 +351,14 @@ function renderConsultantCounterPanel(client, listing, bid) {
             const offerPanel = document.getElementById("ld-offer-panel");
             if (offerPanel) offerPanel.hidden = true;
           } else {
-            const newAmount = action === "accept" ? counter : bid.amount_cents;
-            existingEl.innerHTML = `
-              <span class="ld-bid-existing__header">
-                <span class="ld-bid-existing__amount">Offer submitted: <strong>${formatUsd(newAmount)}</strong></span>
-              </span>
-              ${bid.message ? `<span class="ld-bid-existing__message">${escapeHtml(bid.message)}</span>` : ""}
-            `;
+            // Mirror the update locally. The pre-counter price is known
+            // here even before add_bid_original_amount.sql is applied.
+            if (bid.original_amount_cents == null) bid.original_amount_cents = bid.amount_cents;
+            if (action === "accept") bid.amount_cents = counter;
+            bid.status = "pending";
+            bid.counter_offer_cents = null;
+            bid.counter_responded_at = now;
+            existingEl.innerHTML = offerSummaryHtml(bid, listing);
           }
         }
       } catch (_) {
@@ -488,45 +490,32 @@ async function sweepExpiredCounters(client, bids, listing) {
    ================================================================ */
 
 async function loadListing(client, id) {
-  // Contract fields are added to every attempt so the fallback that wins
-  // still includes them. Attempt order narrows from "best-case schema" to
-  // "minimum guaranteed schema" — earlier attempts are allowed to fail if
-  // the db hasn't run an optional column migration yet.
-  const contractFields = "contract_type, proposal_budget, retainer_terms, retainer_cadence, retainer_period_count, retainer_fee_cents";
-  const listingSelectAttempts = [
-    `id, owner_id, title, category, problem_summary, details, qualifications_required,
-     status, status_reason, status_reason_other, attachments, turnaround_days, created_at,
-     business_display_name, business_summary, listing_website_url, listing_social_links,
-     ${contractFields},
-     profiles!listings_owner_id_fkey ( id, full_name, linkedin_url, avatar_path )`,
-    `id, owner_id, title, category, problem_summary, details, qualifications_required,
-     status, attachments, turnaround_days, created_at,
-     business_display_name, business_summary, listing_website_url, listing_social_links,
-     ${contractFields},
-     profiles!listings_owner_id_fkey ( id, full_name, linkedin_url, avatar_path )`,
-    `id, owner_id, title, category, problem_summary, details, qualifications_required,
-     status, turnaround_days, created_at,
-     business_display_name, business_summary, listing_website_url, listing_social_links,
-     ${contractFields},
-     profiles!listings_owner_id_fkey ( id, full_name, linkedin_url, avatar_path )`,
-  ];
-
-  let data = null;
-  let error = null;
-  for (const select of listingSelectAttempts) {
-    const result = await client
-      .from("listings")
-      .select(select)
-      .eq("id", id)
-      .maybeSingle();
-
-    data = result.data;
-    error = result.error;
-    if (!error) break;
-    if (!isMissing(error)) return { listing: null, error };
-  }
+  // `*` instead of a column list: optional columns (attachments,
+  // status_reason, …) come back when their migration is applied and are
+  // simply absent when it isn't, so one request covers both schemas.
+  const { data, error } = await client
+    .from("listings")
+    .select("*, profiles!listings_owner_id_fkey ( id, full_name, linkedin_url, avatar_path )")
+    .eq("id", id)
+    .maybeSingle();
 
   if (error) return { listing: null, error };
+
+  // Attachments live in the private listing_attachments bucket; storage
+  // RLS lets anyone who can read the listing sign a URL for them.
+  const attachmentPaths = getListingAttachments(data)
+    .map((item) => String(item?.path || ""))
+    .filter(Boolean);
+  if (attachmentPaths.length) {
+    const { data: signed } = await client.storage
+      .from("listing_attachments")
+      .createSignedUrls(attachmentPaths, 60 * 60);
+    const urlByPath = new Map((signed || []).map((row) => [row.path, row.signedUrl]));
+    data.attachments.forEach((item) => {
+      const url = urlByPath.get(item?.path);
+      if (url) item.signed_url = url;
+    });
+  }
 
   if (data?.profiles) {
     const { data: bizData } = await client
@@ -556,7 +545,9 @@ async function loadMyBid(client, listingId, userId) {
   if (!userId) return { bid: null, available: true };
   const { data, error } = await client
     .from("bids")
-    .select("id, amount_cents, proposal_fee_cents, service_fee_cents, message, status, counter_offer_cents, counter_offer_message, counter_expires_at, counter_responded_at, counter_response_message, counter_attempted, accepted_at, proposal_due_at, proposal_path")
+    // `*` so optional columns (timeline_days, original_amount_cents) come
+    // through when their migrations are applied without erroring before.
+    .select("*")
     .eq("listing_id", listingId)
     .eq("consultant_id", userId)
     .maybeSingle();
@@ -793,7 +784,7 @@ function renderListingAttachments(listing) {
 
   attachmentsWrap.innerHTML = attachments
     .map((item) => {
-      const url = String(item?.public_url || "").trim();
+      const url = String(item?.signed_url || item?.public_url || "").trim();
       const name = String(item?.name || "attachment").trim();
       const detailBits = [
         String(item?.kind || "").trim(),
@@ -1215,7 +1206,7 @@ function renderOwnerActionSummary(listing) {
   if (status === "paused") {
     showCopy(reasonText
       ? `This listing is paused because of "${reasonText}". Resume it any time or close it permanently.`
-      : "This listing is paused. Existing proposals stay in place while it stays out of marketplace browsing.");
+      : "This listing is paused. Existing offers stay in place while it stays out of marketplace browsing.");
     if (buttonsWrap) buttonsWrap.hidden = false;
     pauseListingBtn.textContent = "Resume listing";
     pauseListingBtn.disabled = false;
@@ -1402,7 +1393,7 @@ function setupOwnerListingActions(client, listing) {
           : "Listing closed. Existing offers remain on file. Consultants who already submitted can still see this listing.";
         showOwnerActionFeedback(
           action === "paused"
-            ? "Listing paused. It is now hidden from marketplace browsing, but current proposals remain in place."
+            ? "Listing paused. It is now hidden from marketplace browsing, but current offers remain in place."
             : closedCopy
         );
       } catch (error) {
@@ -1485,6 +1476,71 @@ function offerBreakdownHtml(f, opts = {}) {
       <span class="ld-offer-breakdown__value">${formatUsd(f.consultantPayoutCents)}</span>
     </div>
   `;
+}
+
+// The consultant's read-only offer card: amount, counter history, status,
+// timeline, take-home and pitch. Used on load and after answering a counter.
+function offerSummaryHtml(bid, listing) {
+  const isPhased = listing.contract_type === "phased";
+  const isRetainer = listing.contract_type === "retainer";
+  const isAccepted = bid.status === "accepted";
+  const isCountered = bid.status === "countered" && bid.counter_offer_cents != null;
+  const stateBadge = isAccepted
+    ? `<span class="ld-accepted-badge">Accepted</span>`
+    : isCountered
+    ? `<span class="ld-accepted-badge ld-accepted-badge--countered">Countered</span>`
+    : "";
+  const messageHtml = bid.message
+    ? `<span class="ld-bid-existing__message">${escapeHtml(bid.message)}</span>`
+    : "";
+  const amountHtml = isPhased && bid.proposal_fee_cents != null
+    ? `<span class="ld-bid-existing__amount">Offer submitted:
+         <strong>${formatUsd(bid.proposal_fee_cents)}</strong> proposal +
+         <strong>${formatUsd(bid.service_fee_cents || 0)}</strong> full job</span>`
+    : `<span class="ld-bid-existing__amount">Offer submitted: <strong>${formatUsd(bid.amount_cents)}</strong></span>`;
+
+  // Counter history. original_amount_cents (add_bid_original_amount.sql)
+  // is the price the consultant first sent; without it we can't tell an
+  // accepted counter from a kept price, so the line is skipped.
+  const originalCents = Number(bid.original_amount_cents);
+  const counterAccepted =
+    bid.counter_responded_at &&
+    Number.isFinite(originalCents) &&
+    originalCents !== Number(bid.amount_cents);
+  const historyHtml = counterAccepted
+    ? `<span class="ld-bid-existing__line">Countered from ${formatUsd(originalCents)} to ${formatUsd(bid.amount_cents)}, accepted</span>`
+    : "";
+
+  const statusLine = isAccepted
+    ? "Accepted. Head to the engagement for next steps."
+    : isCountered
+    ? "The business sent a counter. Respond below."
+    : bid.status === "declined"
+    ? "This offer is closed."
+    : "Waiting on the business. You'll get a notification when they respond.";
+  const timelineHtml = bid.timeline_days
+    ? `<span class="ld-bid-existing__line">Timeline: ${escapeHtml(formatTimelineDays(bid.timeline_days))}</span>`
+    : "";
+
+  // Take-home for a single-price offer (standard or per retainer period).
+  // Phased offers show two prices, so the per-fee breakdown stays on the
+  // form only.
+  const takeHomeHtml = !isPhased && Number(bid.amount_cents) > 0
+    ? `<div class="ld-offer-breakdown ld-bid-existing__breakdown">${offerBreakdownHtml(
+        computeFees(Number(bid.amount_cents)),
+        isRetainer
+          ? { bizLabel: "Business pays per period", takeHomeLabel: "You take home per period" }
+          : {}
+      )}</div>`
+    : "";
+
+  return `
+    <span class="ld-bid-existing__header">${amountHtml}${stateBadge}</span>
+    ${historyHtml}
+    <span class="ld-bid-existing__line ld-bid-existing__status">${escapeHtml(statusLine)}</span>
+    ${timelineHtml}
+    ${takeHomeHtml}
+    ${messageHtml}`;
 }
 
 async function showConsultantView(client, session, listing, existingBid) {
@@ -1688,22 +1744,8 @@ async function showConsultantView(client, session, listing, existingBid) {
     const heading = document.querySelector(".ld-offer-panel__heading");
     if (heading) heading.textContent = "Your offer";
     const el = document.getElementById("ld-bid-existing");
-    const isAccepted = existingBid.status === "accepted";
     const isCountered = existingBid.status === "countered" && existingBid.counter_offer_cents != null;
-    const stateBadge = isAccepted
-      ? `<span class="ld-accepted-badge">Accepted</span>`
-      : isCountered
-      ? `<span class="ld-accepted-badge ld-accepted-badge--countered">Countered</span>`
-      : "";
-    const messageHtml = existingBid.message
-      ? `<span class="ld-bid-existing__message">${escapeHtml(existingBid.message)}</span>`
-      : "";
-    const amountHtml = isPhased && existingBid.proposal_fee_cents != null
-      ? `<span class="ld-bid-existing__amount">Offer submitted:
-           <strong>${formatUsd(existingBid.proposal_fee_cents)}</strong> proposal +
-           <strong>${formatUsd(existingBid.service_fee_cents || 0)}</strong> full job</span>`
-      : `<span class="ld-bid-existing__amount">Offer submitted: <strong>${formatUsd(existingBid.amount_cents)}</strong></span>`;
-    el.innerHTML = `<span class="ld-bid-existing__header">${amountHtml}${stateBadge}</span>${messageHtml}`;
+    el.innerHTML = offerSummaryHtml(existingBid, listing);
     el.hidden = false;
     formWrap.hidden = true;
 
@@ -1790,12 +1832,12 @@ async function showConsultantView(client, session, listing, existingBid) {
     msgWrap.classList.add("hidden");
     msgToggleBtn.classList.remove("hidden");
     msgInput.value = "";
-    charCount.textContent = String(PITCH_MAX_CHARS);
+    charCount.textContent = `${PITCH_MAX_CHARS} characters left`;
   });
 
   msgInput.addEventListener("input", () => {
     const remaining = PITCH_MAX_CHARS - msgInput.value.length;
-    charCount.textContent = remaining;
+    charCount.textContent = `${remaining} character${remaining === 1 ? "" : "s"} left`;
     charCount.classList.toggle("ld-offer-char-count--low", remaining < 40);
   });
 
@@ -1958,10 +2000,34 @@ async function showConsultantView(client, session, listing, existingBid) {
       submitBtn.classList.remove("is-loading");
       return;
     }
-    showSuccess("Offer submitted.");
+    // Tell the business. notif_caller_can_send_to lets a bidder notify
+    // the listing owner. Best-effort: the offer is in either way.
+    try {
+      const { data: me } = await client.from("profiles").select("full_name").eq("id", myId).maybeSingle();
+      const who = String(me?.full_name || "").trim() || "A consultant";
+      // Free offers are consultant-only copy: never name a $0 price to
+      // the business.
+      const what = isPhased
+        ? (payload.proposal_fee_cents > 0
+          ? `${formatUsd(payload.proposal_fee_cents)} for a proposal and ${formatUsd(payload.service_fee_cents)} for the job`
+          : `${formatUsd(payload.service_fee_cents)} for the job`)
+        : isRetainer
+        ? `${formatUsd(payload.amount_cents)} per period`
+        : payload.amount_cents > 0 ? formatUsd(payload.amount_cents) : "";
+      await client.from("notifications").insert({
+        user_id: listing.owner_id,
+        type: "bid_received",
+        title: `New offer on ${listing.title}`,
+        body: what ? `${who} offered ${what}.` : `${who} sent you an offer.`,
+        link: `/listing.html?id=${listing.id}`,
+      });
+    } catch (notifyErr) {
+      console.warn("new offer notification failed:", notifyErr);
+    }
     // Offers are immutable once submitted — reload so the form is replaced
-    // by the read-only summary on next render. Keep the spinner up until
-    // navigation kicks in so the click can't appear "free" mid-network.
+    // by the read-only summary on next render. The toast is carried across
+    // the reload; keep the spinner up until navigation kicks in.
+    flashToast("Offer submitted. The business has been notified.");
     window.location.reload();
   });
 
@@ -2622,11 +2688,13 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
 
   const list = document.getElementById("ld-bids-list");
   const budgetEl = document.getElementById("ld-counter-budget");
-  const totalCounters = bids.filter((b) => b.counter_offer_cents != null).length;
+  // A counter stays "used" after the consultant answers it (the offer
+  // fields clear but counter_attempted stays true).
+  const totalCounters = bids.filter((b) => b.counter_attempted || b.counter_offer_cents != null).length;
   budgetEl.textContent = `Counter-offers used: ${totalCounters} / 3`;
 
   if (!bids.length) {
-    list.innerHTML = '<p class="ld-bids-empty">No proposals yet.</p>';
+    list.innerHTML = '<p class="ld-bids-empty">No offers yet.</p>';
     return;
   }
 
@@ -2741,6 +2809,12 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
     const counterInfo = b.counter_offer_cents
       ? `<p class="ld-bid-card__counter">Your counter: <strong>${formatUsd(b.counter_offer_cents)}</strong>${b.counter_offer_message ? ` — "${escapeHtml(b.counter_offer_message)}"` : ""}</p>`
       : "";
+    // The consultant's note when they answered the counter (accept,
+    // keep their price, or withdraw). Saved on the bid; shown here so the
+    // business actually sees it.
+    const counterReply = !b.counter_offer_cents && b.counter_responded_at && b.counter_response_message
+      ? `<p class="ld-bid-card__counter">Their reply to your counter: "${escapeHtml(b.counter_response_message)}"</p>`
+      : "";
 
     // Amount stack — phased shows proposal + full-job rows; standard
     // shows a single value. Both use the same vertical stack so the
@@ -2778,6 +2852,7 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
       ${amountHtml}
       ${msg}
       ${counterInfo}
+      ${counterReply}
       <div class="ld-bid-card__foot">
         <div class="ld-bid-card__actions"></div>
         ${viewProfileLink}
@@ -3012,12 +3087,12 @@ async function handleAcceptBid(client, session, listing, bid, card) {
   // updates to the counter value). Reading from counter_offer_cents
   // here would let the owner pay their own discount unilaterally.
   const paidAmount = bid.amount_cents;
-  const offerLabel = Number(paidAmount) === 0 ? "free offer" : `${formatUsd(paidAmount)} proposal`;
+  const offerLabel = Number(paidAmount) === 0 ? "free offer" : `${formatUsd(paidAmount)} offer`;
   await client.from("notifications").insert({
     user_id: bid.consultant_id,
     type: "bid_accepted",
-    title: "Your bid was accepted.",
-    body: `Your ${offerLabel} for "${escapeHtml(listing.title)}" was accepted. The business is setting up kickoff availability now.`,
+    title: "Your offer was accepted",
+    body: `Your ${offerLabel} on "${listing.title}" was accepted. The business is sharing kickoff times next.`,
     link: engagementLink(bid.id),
   });
 
@@ -3052,6 +3127,25 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
       showError("A counter must be at least $10.");
       return;
     }
+    // Counters are one-shot, so a typo can't be undone. Warn (don't
+    // block) when the counter is at or above their ask, or above the
+    // listing's own budget max.
+    const askCents = Number(bid.amount_cents) || 0;
+    const budgetMaxCents = Number(listing.budget_cents) || 0;
+    const overAsk = askCents > 0 && cents >= askCents;
+    const overBudget = budgetMaxCents > 0 && cents > budgetMaxCents;
+    if (overAsk || overBudget) {
+      const reasons = [];
+      if (overAsk) reasons.push(`They asked for ${formatUsd(askCents)}. Your counter is ${formatUsd(cents)}.`);
+      if (overBudget) reasons.push(`Your budget max for this listing is ${formatUsd(budgetMaxCents)}.`);
+      const ok = await confirmDialog({
+        title: overAsk ? "That's more than they asked for. Send anyway?" : "That's above your budget. Send anyway?",
+        body: `${reasons.join(" ")} You only get one counter on this offer.`,
+        confirmLabel: "Send counter",
+        cancelLabel: "Go back",
+      });
+      if (!ok) return;
+    }
     sendBtn.disabled = true;
 
     const loader = showLoading("Sending counter…");
@@ -3074,8 +3168,8 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
     await client.from("notifications").insert({
       user_id: bid.consultant_id,
       type: "counter_offer",
-      title: "You received a counter-offer",
-      body: `The owner of "${escapeHtml(listing.title)}" countered your bid with ${formatUsd(cents)}. You have 24 hours to respond.`,
+      title: "You got a counteroffer",
+      body: `The business countered your offer on "${listing.title}" with ${formatUsd(cents)}. You have 24 hours to respond.`,
       link: `/listing.html?id=${listing.id}`,
     });
 

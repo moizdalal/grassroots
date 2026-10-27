@@ -6,6 +6,9 @@ const controls = document.getElementById("notif-controls");
 const filtersHost = document.getElementById("notif-filters");
 const markAllBtn = document.getElementById("notif-mark-all");
 
+const EMPTY_HTML =
+  '<p class="gr-empty-card">No notifications yet. Offers, messages and meeting updates will show up here.</p>';
+
 let _client = null;
 let _notifs = [];
 let _activeFilter = "all";
@@ -23,7 +26,7 @@ function escapeHtml(s) {
 // don't recognize falls into "updates" so it still gets surfaced.
 function categorize(type) {
   const t = String(type || "").toLowerCase();
-  if (t.startsWith("bid")) return "bids";
+  if (t.startsWith("bid") || t.startsWith("counter")) return "bids";
   if (t.startsWith("message") || t.startsWith("msg")) return "messages";
   if (t.startsWith("meeting") || t.startsWith("kickoff")) return "meetings";
   return "updates";
@@ -31,7 +34,7 @@ function categorize(type) {
 
 const FILTER_LABELS = {
   all: "All",
-  bids: "Bids",
+  bids: "Offers",
   messages: "Messages",
   meetings: "Meetings",
   updates: "Updates",
@@ -267,7 +270,7 @@ async function dismissNotification(id) {
   // reappear; in practice with the delete policy applied that's rare.
   _notifs = _notifs.filter((n) => n.id !== id);
   if (!_notifs.length) {
-    list.innerHTML = '<p class="gr-empty-card">No notifications yet. Once bids, messages, or meeting updates come in, they will appear here.</p>';
+    list.innerHTML = EMPTY_HTML;
     controls.hidden = true;
   } else {
     renderFilters();
@@ -276,6 +279,7 @@ async function dismissNotification(id) {
   }
   try {
     await _client.from("notifications").delete().eq("id", id);
+    window.dispatchEvent(new Event("gr:notifications-changed"));
   } catch (_) {
     /* best-effort; next reload resyncs */
   }
@@ -293,6 +297,7 @@ async function markRead(ids) {
 
   try {
     await _client.from("notifications").update({ read: true }).in("id", ids);
+    window.dispatchEvent(new Event("gr:notifications-changed"));
   } catch (err) {
     // If the update fails, the next page load will resync. No need to revert
     // the optimistic state for a notification feed.
@@ -328,11 +333,14 @@ async function init() {
       return;
     }
 
-    gate.textContent = "";
+    // Hiding the gate is what tells loading-overlay.js the page is ready;
+    // clearing its text alone left the overlay up until its 20 s timeout.
+    gate.hidden = true;
+    gate.dataset.loading = "false";
     _notifs = notifs || [];
 
     if (!_notifs.length) {
-      list.innerHTML = '<p class="gr-empty-card">No notifications yet. Once bids, messages, or meeting updates come in, they will appear here.</p>';
+      list.innerHTML = EMPTY_HTML;
       return;
     }
 
