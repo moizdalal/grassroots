@@ -76,6 +76,25 @@ function ensureStripeScript() {
   return window.__grStripeScriptPromise;
 }
 
+let publicConfigPromise = null;
+function loadPublicConfig() {
+  if (!publicConfigPromise) {
+    publicConfigPromise = fetch("/api/public-config").then((r) => r.json());
+    publicConfigPromise.catch(() => { publicConfigPromise = null; });
+  }
+  return publicConfigPromise;
+}
+
+// Sandbox keys only: label the modal and show the Stripe test card.
+async function markSandbox(overlay) {
+  try {
+    const cfg = await loadPublicConfig();
+    if (!String(cfg.stripePublishableKey || "").startsWith("pk_test_")) return;
+    overlay.querySelector(".pay-modal__eyebrow")?.append(" · sandbox");
+    overlay.querySelector("[data-pay-test]")?.classList.remove("hidden");
+  } catch (_) {}
+}
+
 async function loadStripe() {
   if (stripePromise) return stripePromise;
   stripePromise = (async () => {
@@ -83,7 +102,7 @@ async function loadStripe() {
     // succeed before we can instantiate the client.
     const [, cfg] = await Promise.all([
       ensureStripeScript(),
-      fetch("/api/public-config").then((r) => r.json()),
+      loadPublicConfig(),
     ]);
     if (!cfg.stripePublishableKey) {
       throw new Error("Payments aren't configured on the server.");
@@ -116,14 +135,15 @@ function buildModal({ amount, title, feeBreakdown }) {
     <div class="pay-modal" role="dialog" aria-modal="true" aria-labelledby="pay-title">
       <header class="pay-modal__head">
         <div>
-          <p class="pay-modal__eyebrow">Accept &amp; pay · sandbox</p>
+          <p class="pay-modal__eyebrow">Accept &amp; pay</p>
           <h2 id="pay-title" class="pay-modal__title">${escapeHtml(title || "engagement")}</h2>
         </div>
         <button type="button" class="pay-modal__close" data-pay-close aria-label="Close">&times;</button>
       </header>
       <p class="pay-modal__intro">
-        Grassroots <strong>holds your payment</strong> until you mark the work complete and submit your review. Your card is saved for payments you approve later. See the <a href="/terms.html#refunds" target="_blank" rel="noopener">refund policy</a>. Test card: <code>4242 4242 4242 4242</code>, any future date, any CVC.
+        Grassroots <strong>holds your payment</strong> until the consultant delivers. Then you have 14 days to release it, request changes, or contact support. After that, it releases to the consultant. Your card is saved for payments you approve later. See the <a href="/terms.html#refunds" target="_blank" rel="noopener">refund policy</a>.
       </p>
+      <p class="pay-modal__intro hidden" data-pay-test>Test card: <code>4242 4242 4242 4242</code>, any future date, any CVC.</p>
       ${amountBlock}
       <div id="pay-element" class="pay-modal__element"></div>
       <p id="pay-status" class="gr-status" aria-live="polite"></p>
@@ -135,6 +155,7 @@ function buildModal({ amount, title, feeBreakdown }) {
   `;
   document.body.appendChild(overlay);
   document.body.classList.add("gr-modal-open");
+  markSandbox(overlay);
   return overlay;
 }
 
@@ -370,7 +391,7 @@ export async function payAndAcceptProposals({ client, bids, listing }) {
   // Reframe the intro copy for the proposal phase.
   const intro = overlay.querySelector(".pay-modal__intro");
   if (intro) {
-    intro.innerHTML = `Grassroots <strong>holds proposal fees</strong> as soon as you pay. Consultants are paid out only after they deliver their proposal and you mark it accepted. Test card: <code>4242 4242 4242 4242</code>.`;
+    intro.innerHTML = `Grassroots <strong>holds proposal fees</strong> as soon as you pay. Consultants are paid only after they deliver their proposal and you decide whether to move forward.`;
   }
   submitBtn.textContent = bids.length === 1 ? "Pay proposal fee" : `Pay ${bids.length} proposal fees`;
 
@@ -502,7 +523,7 @@ export async function payAndStartService({ client, bid, listing }) {
 
   const intro = overlay.querySelector(".pay-modal__intro");
   if (intro) {
-    intro.innerHTML = `Grassroots <strong>holds the service fee</strong> as soon as you pay. It releases to the consultant once you mark the work complete and submit your review. Test card: <code>4242 4242 4242 4242</code>.`;
+    intro.innerHTML = `Grassroots <strong>holds the service fee</strong> until the consultant delivers. Then you have 14 days to release it, request changes, or contact support. After that, it releases to the consultant.`;
   }
   submitBtn.textContent = "Pay service fee";
 

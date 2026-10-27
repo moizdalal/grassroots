@@ -214,9 +214,9 @@
               <p id="ld-owner-action-status" class="gr-status" aria-live="polite"></p>
             </section>
 
-            <!-- Owner: proposals received -->
+            <!-- Owner: offers received -->
             <section id="ld-bids-owner" class="ld-sidebar__panel ld-bids-owner" hidden>
-              <h2 class="ld-section-h">Proposals received</h2>
+              <h2 class="ld-section-h">Offers received</h2>
               <p id="ld-counter-budget" class="ld-counter-budget"></p>
               <div id="ld-bids-list" class="ld-bids-list"></div>
             </section>
@@ -234,7 +234,7 @@
             <section id="ld-offer-panel" class="ld-sidebar__panel ld-offer-panel" hidden>
               <h2 class="ld-offer-panel__heading">Make an offer</h2>
 
-              <p id="ld-bid-existing" class="ld-bid-existing" hidden></p>
+              <div id="ld-bid-existing" class="ld-bid-existing" hidden></div>
               <!-- Counter-response slot — filled by listing.js when
                    the consultant has a pending counter to react to.
                    Hidden by default; the JS pops it open when needed. -->
@@ -317,8 +317,8 @@
                       placeholder="Your approach, what you'll deliver, and why you're a fit."
                     ></textarea>
                     <div class="ld-offer-char-row">
-                      <span class="ld-offer-char-count" id="ld-offer-char-count">1000</span>
-                      <button type="button" class="ld-offer-msg-remove" id="ld-offer-msg-remove" aria-label="Remove message">&times;</button>
+                      <span class="ld-offer-char-count" id="ld-offer-char-count" aria-live="polite">1000 characters left</span>
+                      <button type="button" class="ld-offer-msg-remove" id="ld-offer-msg-remove">Remove pitch</button>
                     </div>
                   </div>
                 </div>

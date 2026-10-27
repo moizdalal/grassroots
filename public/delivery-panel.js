@@ -80,7 +80,7 @@ function describeSupport(p, role) {
         : [["Refunded to the business", fmtUsd(m.split_refund_cents)], ["Paid to you", fmtUsd(m.split_transfer_cents)]],
     };
   }
-  if (p.status === "released") {
+  if (p.status === "released" && p.support_outcome) {
     return {
       pill: ["Released", "accepted"],
       lines: [owner
@@ -194,8 +194,24 @@ function describeFree(p, role) {
   };
 }
 
+// A payment released without support stepping in: the settled record.
+function describeReleased(p, role) {
+  const on = fmtDate(p.released_at);
+  if (p.free) {
+    return { pill: ["Complete", "accepted"], lines: [`Marked complete ${on}.`] };
+  }
+  const payout = p.money?.released_payout_cents ?? p.amount_cents;
+  return {
+    pill: ["Released", "accepted"],
+    lines: [role === "owner"
+      ? `Released ${fmtUsd(p.amount_cents)} to the consultant on ${on}.`
+      : `You received ${fmtUsd(payout)} on ${on}. It's in your Stripe balance.`],
+  };
+}
+
 // Status pill + one or two short lines for a payment, per viewer.
 function describe(p, role) {
+  if (p.status === "released" && !p.support_outcome) return describeReleased(p, role);
   if (p.free) return describeFree(p, role);
   const now = Date.now();
   const opens = p.review_opens_at ? Date.parse(p.review_opens_at) : null;
@@ -308,6 +324,12 @@ function renderItem(p, role) {
   const actions = li.querySelector(".eg-delivery__actions");
   const form = li.querySelector(".eg-delivery__form");
 
+  if (p.can_approve) {
+    // Release needs a review first, so this hands off to the review form.
+    actions.appendChild(button(p.free ? "Mark complete" : "Approve and release", "primary", () => {
+      window.dispatchEvent(new CustomEvent("eg:approve-release", { detail: { key: p.key } }));
+    }));
+  }
   if (p.can_mark_delivered && !p.on_hold && p.status === "held") {
     actions.appendChild(button("Mark delivered", "primary", () => openDeliverForm(p, form, actions)));
   }
@@ -566,7 +588,12 @@ export async function refreshDeliveryPanel() {
     return;
   }
   const allFree = payments.every((p) => p.free);
-  intro.textContent = allFree
+  const settled = payments.every((p) => p.status !== "held");
+  const heading = panel.querySelector(".eg-panel__title");
+  if (heading) heading.textContent = settled ? "Payment record" : "What Grassroots is holding";
+  intro.textContent = settled
+    ? (allFree ? "This engagement is complete." : "Every payment on this engagement is settled.")
+    : allFree
     ? (data.role === "owner"
       ? "You get 14 days to review delivered work. Then it's marked complete."
       : "The business gets 14 days to review your work. Then it's marked complete.")
