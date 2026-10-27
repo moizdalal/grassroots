@@ -2813,6 +2813,11 @@ summary:focus-visible,
   gap: 0.85rem;
 }
 
+/* Keep the "New" pill clear of the absolutely positioned dismiss ×. */
+.gr-notif-dismiss ~ .gr-notification-card__top {
+  padding-right: 1.75rem;
+}
+
 .gr-notification-card__copy {
   min-width: 0;
 }

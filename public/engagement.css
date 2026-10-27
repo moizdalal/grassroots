@@ -475,13 +475,19 @@
   grid-template-columns: 72px repeat(7, minmax(96px, 1fr));
   gap: 0.35rem;
   min-width: 860px;
-  /* Drag-selecting slots shouldn't highlight the time labels as text. */
+  /* Drag-to-select would otherwise highlight the time labels. */
   user-select: none;
   -webkit-user-select: none;
 }
 
 .eg-calendar__corner {
   min-height: 54px;
+  display: grid;
+  place-items: end center;
+  padding-bottom: 0.55rem;
+  font-size: var(--type-meta);
+  font-weight: 600;
+  color: var(--fo-text-3, var(--muted));
 }
 
 .eg-calendar__dayhead {

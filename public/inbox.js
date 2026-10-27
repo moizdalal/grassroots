@@ -234,7 +234,9 @@ function renderThreads() {
     root.innerHTML = list
       .map((t) => {
         const parsed = parseBody(t.lastBody);
-        const preview = (t.lastFromMe ? "You: " : "") + (parsed.body || "[No text]");
+        const preview = !t.messages.length
+          ? "No messages yet. Say hello."
+          : (t.lastFromMe ? "You: " : "") + (parsed.body || "[No text]");
         const action = t.unread ? "mark-read" : "mark-unread";
         const actionLabel = t.unread ? "Mark as read" : "Mark as unread";
         // Hover-revealed icon: filled-dot when read (click → unread),
@@ -345,6 +347,9 @@ function renderConversation() {
         <div class="inbox__msg-meta"><span>${escape(fmtTime(msg.created_at))}</span>${receipt}</div>
       </div>
     `);
+  }
+  if (!thread.messages.length) {
+    html.push(`<p class="gr-empty-state">No messages yet. Write to ${escape(counterpartLabel(thread))} below.</p>`);
   }
   body.innerHTML = html.join("");
   body.scrollTop = body.scrollHeight;
@@ -651,13 +656,65 @@ function wireUI() {
   });
 }
 
-function maybeOpenFromHash() {
+// A link like "Open the conversation" can point at a pair that hasn't
+// messaged yet. Open an empty thread for it, but only when the two are the
+// listing owner and a consultant with an offer on that listing.
+async function openEmptyThread(listingId, otherUserId) {
+  if (!listingId || !otherUserId || otherUserId === state.userId) return false;
+  const { data: listing } = await state.client
+    .from("listings")
+    .select("id, owner_id, title, status, business_display_name")
+    .eq("id", listingId)
+    .maybeSingle();
+  if (!listing) return false;
+  const iOwn = listing.owner_id === state.userId;
+  const theyOwn = listing.owner_id === otherUserId;
+  if (!iOwn && !theyOwn) return false;
+  const consultantId = iOwn ? otherUserId : state.userId;
+  const { data: bid } = await state.client
+    .from("bids")
+    .select("id")
+    .eq("listing_id", listingId)
+    .eq("consultant_id", consultantId)
+    .limit(1)
+    .maybeSingle();
+  if (!bid) return false;
+
+  state.listings.set(listing.id, listing);
+  await loadProfiles([otherUserId]);
+  const key = threadKey(listingId, otherUserId);
+  if (!state.threads.has(key)) {
+    state.threads.set(key, {
+      key,
+      listingId,
+      otherUserId,
+      messages: [],
+      lastAt: new Date().toISOString(),
+      lastBody: "",
+      lastFromMe: false,
+      unread: 0,
+      otherProfile: state.profiles.get(otherUserId),
+    });
+  }
+  return true;
+}
+
+async function maybeOpenFromHash() {
   const hash = window.location.hash;
   // accepts #inbox?thread=<listingId>:<otherUserId>
   const m = /thread=([0-9a-f-]+):([0-9a-f-]+)/i.exec(hash);
   if (!m) return;
   const key = `${m[1]}:${m[2]}`;
-  if (state.threads.has(key)) selectThread(key);
+  if (!state.threads.has(key)) {
+    try {
+      if (!(await openEmptyThread(m[1], m[2]))) return;
+    } catch (err) {
+      console.warn("inbox: could not open thread", err);
+      return;
+    }
+  }
+  selectThread(key);
+  $("inbox-composer-input")?.focus();
 }
 
 function renderSkeletons() {

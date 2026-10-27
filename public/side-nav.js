@@ -103,9 +103,15 @@ function renderNavItem(item, activeNavId) {
   const childActive = (item.sub || []).some((s) => s.navId === activeNavId);
   const active = activeNavId === item.navId || childActive ? " active" : "";
   if (!item.sub) {
+    // Notifications carries an unread badge (same markup as the dashboards'
+    // own sidebars); filled in by wireNotifBadge() once the count loads.
+    const badge = item.navId === "notifications"
+      ? '<span class="bza__nav-badge" id="gr-side-notif-badge" hidden></span>'
+      : "";
     return `<a href="${item.href}" class="bza__nav-item${active}" data-nav-id="${item.navId}" title="${item.label}">
       <span class="bza__nav-icon" aria-hidden="true">${item.icon}</span>
       <span class="bza__nav-label">${item.label}</span>
+      ${badge}
     </a>`;
   }
   // Item has a sub-nav. The main link still navigates to the parent
@@ -270,6 +276,25 @@ async function init() {
   wireDarkMode();
   wireLogout();
   wireSubnavToggles();
+  wireNotifBadge(client, profile);
+}
+
+function setNotifBadge(count) {
+  const badge = document.getElementById("gr-side-notif-badge");
+  if (!badge) return;
+  badge.textContent = count > 99 ? "99+" : String(count);
+  badge.hidden = count === 0;
+  badge.setAttribute("aria-label", `${count} unread`);
+}
+
+async function wireNotifBadge(client, profile) {
+  if (!client || !profile?.id) return;
+  const { loadUnreadNotificationCount } = await import("/nav-notify.js");
+  const refresh = async () => setNotifBadge(await loadUnreadNotificationCount(client, profile.id));
+  refresh();
+  // notifications.js fires this after mark-read / dismiss so the badge
+  // drops without a reload.
+  window.addEventListener("gr:notifications-changed", refresh);
 }
 
 function wireDarkMode() {

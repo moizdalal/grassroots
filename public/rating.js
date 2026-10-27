@@ -71,6 +71,11 @@ export async function fetchRatingsBatch(consultantIds) {
   return new Map(ids.map((id) => [id, ratingCache.get(id)]));
 }
 
+/** Drop a cached rating, e.g. after a new review lands on this page. */
+export function forgetRating(consultantId) {
+  ratingCache.delete(consultantId);
+}
+
 /**
  * Fetch one consultant's rating (cached). Use the API helper for the rest of
  * the consultant profile if you need education/portfolio too.

@@ -1755,7 +1755,7 @@ app.get("/api/listings/:id/owner-bids", async (req, res) => {
     }
 
     const bidCols = `id, listing_id, consultant_id, amount_cents, proposal_fee_cents, service_fee_cents, move_forward_status, message, status,
-         counter_offer_cents, counter_offer_message, accepted_at, proposal_due_at, proposal_path, created_at,
+         counter_offer_cents, counter_offer_message, counter_expires_at, counter_responded_at, counter_response_message, counter_attempted, accepted_at, proposal_due_at, proposal_path, created_at,
          profiles!bids_consultant_id_fkey ( id, full_name, linkedin_url, avatar_path )`;
     const loadBids = (cols) => supabase
       .from("bids")
@@ -2371,7 +2371,9 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
         amount,
         currency: "usd",
         customer: owner.stripe_customer_id,
-        automatic_payment_methods: { enabled: true, allow_redirects: "never" },
+        // Card only: bank debits sit in `processing` for days, and the
+        // confirm step needs `succeeded`.
+        payment_method_types: ["card"],
         // Save the card to the customer so retainer subscriptions (and any
         // future PI on this customer) can charge off-session without
         // re-prompting for card details.
@@ -2382,7 +2384,9 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
           owner_id: viewer.id,
           consultant_id: bid.consultant_id,
         },
-      }, idemKey("pi", "bid", bidId, bid.payment_intent_id || "none", amount));
+        // "pi-card", not "pi": keys used before the card-only switch were
+        // sent with other params, and Stripe rejects a changed request.
+      }, idemKey("pi-card", "bid", bidId, bid.payment_intent_id || "none", amount));
       const { error: linkErr } = await supabase
         .from("bids")
         .update({
@@ -2630,6 +2634,17 @@ async function releaseStandardBid(bid, { claimEq = {}, payoutCents = null } = {}
   return { ok: true, transfer_id: transferId, fundsRouted, payout_cents: payoutAmount };
 }
 
+/* Tell the consultant an owner-initiated release went through. Same copy
+   as the review-window release job. Never throws. */
+async function notifyPaymentReleased({ bidId, consultantId, listingId, payoutCents, free = false }) {
+  const { data: listing } = await supabase
+    .from("listings").select("title").eq("id", listingId).maybeSingle();
+  const title = listing?.title || "your engagement";
+  await notifyUser(consultantId, free
+    ? { type: "payment_released", title: "Engagement marked complete", body: `The business marked "${title}" complete.`, link: `/engagement.html?bid=${bidId}` }
+    : { type: "payment_released", title: "Payment released", body: `${dollars(payoutCents)} from "${title}" is on its way to your Stripe balance.`, link: `/engagement.html?bid=${bidId}` });
+}
+
 // Owner: release escrowed funds to the consultant after marking work
 // complete + reviewing.
 //
@@ -2676,6 +2691,10 @@ app.post("/api/stripe/release-funds", async (req, res) => {
 
     const result = await releaseStandardBid(bid);
     if (!result.ok) return res.status(result.status).json({ error: result.error });
+    await notifyPaymentReleased({
+      bidId, consultantId: bid.consultant_id, listingId: bid.listing_id,
+      payoutCents: result.payout_cents, free: Number(bid.payment_amount_cents) === 0,
+    });
     return res.json(result);
   } catch (err) {
     return res.status(500).json({ error: err.message || "Could not release funds." });
@@ -2698,6 +2717,7 @@ app.post("/api/stripe/release-funds", async (req, res) => {
 // to claw back from the consultant. New PIs never need that since funds
 // haven't moved yet.
 const REFUND_WINDOW_MS = 24 * 60 * 60 * 1000;
+const DELIVERED_REFUND_ERROR = "The consultant already delivered the work, so you can't refund it yourself. Request changes, report a problem, or contact support instead.";
 
 app.post("/api/stripe/refund-payment", async (req, res) => {
   if (!requireStripe(res)) return;
@@ -2709,7 +2729,7 @@ app.post("/api/stripe/refund-payment", async (req, res) => {
   try {
     const { data: bid, error: bidErr } = await supabase
       .from("bids")
-      .select("id, listing_id, payment_intent_id, payment_status, paid_at, payment_amount_cents")
+      .select("id, listing_id, payment_intent_id, payment_status, paid_at, payment_amount_cents, delivered_at")
       .eq("id", bidId)
       .maybeSingle();
     if (bidErr || !bid) return res.status(404).json({ error: "Bid not found." });
@@ -2744,6 +2764,12 @@ app.post("/api/stripe/refund-payment", async (req, res) => {
       return res.status(400).json({ error: "No paid_at timestamp — contact support." });
     }
 
+    // Once the work is delivered, the business reviews it instead (Terms
+    // §6.4): release, request changes, or report a problem to support.
+    if (bid.delivered_at) {
+      return res.status(409).json({ error: DELIVERED_REFUND_ERROR, delivered: true });
+    }
+
     const elapsed = Date.now() - new Date(bid.paid_at).getTime();
     if (elapsed > REFUND_WINDOW_MS) {
       return res.status(403).json({
@@ -2757,7 +2783,8 @@ app.post("/api/stripe/refund-payment", async (req, res) => {
 
     // Claim held → refunded before calling Stripe, so a release racing
     // this refund can't also go through. Rolled back if Stripe fails.
-    const claimed = await casUpdate("bids", bidId, "held", { payment_status: "refunded" }, "payment_status");
+    // delivered_at null in the claim: a delivery landing mid-refund wins.
+    const claimed = await casUpdate("bids", bidId, "held", { payment_status: "refunded" }, "payment_status", { delivered_at: null });
     if (!claimed) {
       return res.status(409).json({ error: "This payment changed while you were refunding it. Reload and try again." });
     }
@@ -2953,13 +2980,15 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
       amount: totalCents,
       currency: "usd",
       customer: owner.stripe_customer_id,
-      automatic_payment_methods: { enabled: true, allow_redirects: "never" },
+      // Card only: bank debits sit in `processing` for days, and the
+      // confirm step needs `succeeded`.
+      payment_method_types: ["card"],
       metadata: {
         phase: "proposal_batch",
         owner_id: viewer.id,
         bid_ids: bidIds.join(","),
       },
-    }, idemKey("pi", "proposals", batchKey, totalCents));
+    }, idemKey("pi-card", "proposals", batchKey, totalCents));
 
     // Pre-create the per-bid phase payment rows so the confirm step has
     // something to flip to 'held'. amount_cents stays the offer (proposal
@@ -3162,7 +3191,7 @@ app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
     // One key per (bid, prior retainer row state, terms) so a double-click
     // replays the same Product/Price/Subscription instead of billing twice.
     const startKey = idemKey(
-      "retainer-start", bidId, existing?.id || "new", existing?.status || "-",
+      "retainer-start-card", bidId, existing?.id || "new", existing?.status || "-",
       cadence, feeCents, cancelAtUnix || "open"
     );
     const product = await stripe.products.create({
@@ -3186,6 +3215,7 @@ app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
       customer: owner.stripe_customer_id,
       items: [{ price: price.id }],
       collection_method: "charge_automatically",
+      payment_settings: { payment_method_types: ["card"] },
       ...(cancelAtUnix ? { cancel_at: cancelAtUnix, proration_behavior: "none" } : {}),
       metadata: {
         bid_id: bidId,
@@ -3434,6 +3464,7 @@ app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
         customer: ownerProfile.stripe_customer_id,
         items: [{ price: price.id }],
         collection_method: "charge_automatically",
+        payment_settings: { payment_method_types: ["card"] },
         ...(cancelAtUnix ? { cancel_at: cancelAtUnix, proration_behavior: "none" } : {}),
         metadata: {
           bid_id: bidId,
@@ -3847,6 +3878,7 @@ app.post("/api/stripe/retainer/release-period", async (req, res) => {
     if (result.conflict) return res.status(409).json({ error: "This period changed while you were releasing it. Reload and try again." });
     if (!result.ok) return res.status(409).json({ error: result.error });
 
+    await notifyPaymentReleased({ bidId, consultantId: bid.consultant_id, listingId: bid.listing_id, payoutCents: result.payout_cents });
     return res.json({ ok: true, transfer_id: result.transfer_id });
   } catch (err) {
     return res.status(500).json({ error: err.message || "Could not release period." });
@@ -3935,7 +3967,9 @@ app.post("/api/stripe/phased/start-service", async (req, res) => {
       amount: feeBreakdown.businessTotalCents,
       currency: "usd",
       customer: owner.stripe_customer_id,
-      automatic_payment_methods: { enabled: true, allow_redirects: "never" },
+      // Card only: bank debits sit in `processing` for days, and the
+      // confirm step needs `succeeded`.
+      payment_method_types: ["card"],
       metadata: {
         phase: "service",
         owner_id: viewer.id,
@@ -3943,7 +3977,7 @@ app.post("/api/stripe/phased/start-service", async (req, res) => {
         consultant_id: bid.consultant_id,
         listing_id: bid.listing_id,
       },
-    }, idemKey("pi", "service", bidId, existing?.payment_intent_id || "none", feeBreakdown.businessTotalCents));
+    }, idemKey("pi-card", "service", bidId, existing?.payment_intent_id || "none", feeBreakdown.businessTotalCents));
 
     // Upsert the phase row so a previously-failed attempt can be retried.
     // amount_cents stays the offer (service fee); the fee columns record
@@ -4090,6 +4124,7 @@ app.post("/api/stripe/phased/release-service", async (req, res) => {
     if (result.conflict) return res.status(409).json({ error: "This payment changed while you were releasing it. Reload and try again." });
     if (!result.ok) return res.status(409).json({ error: result.error });
 
+    await notifyPaymentReleased({ bidId, consultantId: bid.consultant_id, listingId: bid.listing_id, payoutCents: result.payout_cents });
     return res.json({ ok: true, transfer_id: result.transfer_id });
   } catch (err) {
     return res.status(500).json({ error: err.message || "Could not release service funds." });
@@ -4224,6 +4259,7 @@ app.post("/api/stripe/phased/proposal-decision", async (req, res) => {
       .eq("id", bidId);
     if (updBidErr) return res.status(500).json({ error: updBidErr.message });
 
+    await notifyPaymentReleased({ bidId, consultantId: bid.consultant_id, listingId: bid.listing_id, payoutCents: result.payout_cents });
     return res.json({ ok: true, transfer_id: transfer.id, decision });
   } catch (err) {
     return res.status(500).json({ error: err.message || "Could not record decision." });
@@ -4290,6 +4326,8 @@ const PHASE_RELEASE_COLS = `id, bid_id, phase, period_index, status, amount_cent
 
 // What the consultant can mark delivered and what auto-releases.
 const DELIVERABLE_KINDS = new Set(["one_time", "retainer_first", "service", "retainer_period"]);
+// What the owner releases by submitting their review.
+const APPROVABLE_KINDS = new Set(["one_time", "retainer_first", "service"]);
 
 function addCadence(ms, cadence) {
   if (cadence === "weekly") return ms + 7 * DAY_MS;
@@ -4748,9 +4786,9 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
 
     const { data: bid } = await supabase.from("bids").select(BID_RELEASE_COLS).eq("id", bidId).maybeSingle();
     const { data: rows } = await supabase.from("bid_phase_payments").select(PHASE_RELEASE_COLS).eq("bid_id", bidId);
-    // Held payments, plus finished ones support decided (so both sides
-    // can see the outcome on the page).
-    const shown = (row, status) => row.paid_at && (status === "held" || Boolean(row.support_outcome) || /^give_back/.test(row.consultant_choice || ""));
+    // Held and released payments, plus finished ones support decided, so
+    // both sides keep a settled record on the page.
+    const shown = (row, status) => row.paid_at && (status === "held" || status === "released" || Boolean(row.support_outcome) || /^give_back/.test(row.consultant_choice || ""));
     const items = [
       ...(bid && shown(bid, bid.payment_status) ? [{ kind: "bid", key: `bid-${bid.id}`, bidId, row: bid, cents: bid.payment_amount_cents }] : []),
       ...(rows || []).filter((r) => shown(r, r.status)).map((r) => ({ kind: "phase", key: `pay-${r.id}`, bidId, row: r, cents: r.amount_cents })),
@@ -4790,6 +4828,10 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
         free: Number(item.cents) === 0,
         can_mark_delivered: held && role === "consultant" && DELIVERABLE_KINDS.has(kind) && !row.delivered_at,
         can_request_changes: held && role === "owner" && Boolean(win) && win.opensAt <= nowMs && !onHold,
+        // Released by review on the engagement page (release-funds or
+        // release-service). Allowed during a report: the business can still
+        // release it itself.
+        can_approve: held && role === "owner" && APPROVABLE_KINDS.has(kind) && Boolean(win) && win.opensAt <= nowMs && !partiallyRefunded && !waiting,
         // Reported problem + support outcome (Terms §7.1).
         status,
         released_at: row.released_at || null,
@@ -4817,6 +4859,9 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
           gross_cents: money.gross_cents,
           give_back_cents: money.give_back_cents,
           payout_cents: money.payout_cents,
+          // What the consultant got. Legacy rows with no stored payout
+          // transferred the full amount.
+          ...(status === "released" ? { released_payout_cents: Number(row.consultant_payout_cents ?? item.cents) } : {}),
           // Custom split: what went where (refunded_cents is the business's part).
           ...(row.support_outcome === "split" ? { split_refund_cents: Number(row.refunded_cents || 0), split_transfer_cents: Number(row.consultant_payout_cents || 0) } : {}),
         },
