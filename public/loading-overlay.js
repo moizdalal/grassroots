@@ -47,6 +47,10 @@
     if (!el) return false;
     if (el.hidden) return false;
     if (el.classList && el.classList.contains("hidden")) return false;
+    // Error paths swap in an error message (`gr-status error`) but leave
+    // data-loading="true"; an error gate is done loading, so drop the
+    // overlay instead of covering the message until the safety timeout.
+    if (el.classList && el.classList.contains("error")) return false;
     // Preferred: explicit data-loading="true" on the gate element. Falls
     // back to text-match on the literal word "loading" for gates that
     // haven't migrated yet — once every gate carries data-loading, the
@@ -137,7 +141,7 @@
       characterData: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ["hidden", "class", "style"],
+      attributeFilter: ["hidden", "class", "style", "data-loading"],
     });
   });
 })();

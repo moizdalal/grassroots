@@ -645,6 +645,13 @@ async function saveReview(payload) {
     } else {
       writeLocalJson(reviewStorageKey(payload.bid_id), data);
       reviewState = data;
+      await insertNotification(
+        payload.consultant_id,
+        "You got a new review",
+        `The business reviewed your work on "${currentListing?.title || "your engagement"}".`,
+        `/engagement.html?bid=${payload.bid_id}`,
+        "consultant_review"
+      );
       return data;
     }
   }
@@ -980,7 +987,7 @@ async function submitBusinessReview() {
     if (bizReviewState?.id && bizReviewStore === "remote") {
       await insertNotification(
       currentListing.owner_id,
-      "A student rated your business",
+      "A consultant reviewed your business",
       `They left a review on "${currentListing.title}".`,
       `/engagement.html?bid=${currentBid.id}`,
       "business_review"
@@ -1785,7 +1792,7 @@ async function saveOwnerAvailability() {
   await insertNotification(
     currentBid.consultant_id,
     "Pick a kickoff time",
-    `Your offer for "${currentListing.title}" was accepted. Choose a meeting time within the business's availability.`,
+    `The business shared their availability for "${currentListing.title}". Choose a time that works for you.`,
     `/engagement.html?bid=${currentBid.id}`,
     "meeting_availability"
   );
