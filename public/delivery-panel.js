@@ -216,7 +216,7 @@ function describe(p, role) {
   }
   if (p.kind === "proposal") {
     return {
-      pill: ["held", "warn"],
+      pill: ["Held", "warn"],
       lines: [role === "owner"
         ? "This releases when you decide whether to move forward."
         : "This releases when the business decides whether to move forward."],
@@ -259,7 +259,7 @@ function describe(p, role) {
     };
   }
   return {
-    pill: ["held", "warn"],
+    pill: ["Held", "warn"],
     lines: role === "owner"
       ? ["Grassroots is holding this until the consultant marks the work delivered."]
       : ["Grassroots is holding this for you. Mark the work delivered when it's done."],

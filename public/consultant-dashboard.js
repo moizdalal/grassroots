@@ -104,7 +104,7 @@ async function loadData(client, userId) {
   const { data: bids } = await client
     .from("bids")
     .select(
-      "id, listing_id, consultant_id, amount_cents, message, status, payment_status, paid_at, released_at, counter_offer_cents, counter_offer_message, counter_expires_at, counter_responded_at, counter_response_message, counter_attempted, accepted_at, proposal_due_at, proposal_path, created_at"
+      "id, listing_id, consultant_id, amount_cents, consultant_payout_cents, message, status, payment_status, paid_at, released_at, counter_offer_cents, counter_offer_message, counter_expires_at, counter_responded_at, counter_response_message, counter_attempted, accepted_at, proposal_due_at, proposal_path, created_at"
     )
     .eq("consultant_id", userId)
     .order("created_at", { ascending: false });
@@ -595,23 +595,21 @@ function renderConsultantStats(bids) {
     responseEl.textContent = "—";
   }
 
-  // Average payout: mean of released bids' bid amount. Stripe fee
-  // absorption is silent per the fee structure, so this matches what
-  // the consultant sees in their stripe account.
+  // Average payout: what actually landed with the consultant, after the
+  // card fee and platform fee. consultant_payout_cents is stamped when
+  // the payment is created; older rows fall back to the agreed price.
   const payoutEl = $("cdash-stat-payout");
   const payoutDetailEl = $("cdash-stat-payout-detail");
+  const payoutOf = (b) =>
+    Number(b.consultant_payout_cents ?? b.counter_offer_cents ?? b.amount_cents) || 0;
   if (released.length && payoutEl) {
-    const avgCents = released.reduce((s, b) => s + (Number(b.amount_cents) || 0), 0) / released.length;
+    const avgCents = released.reduce((s, b) => s + payoutOf(b), 0) / released.length;
     payoutEl.textContent = fmtUSD(avgCents);
     if (payoutDetailEl) payoutDetailEl.textContent = `Across ${released.length} released offer${released.length === 1 ? "" : "s"}`;
   } else {
     if (payoutEl) payoutEl.textContent = "—";
     if (payoutDetailEl) payoutDetailEl.textContent = "No released offers yet";
   }
-
-  // Active bids count
-  const activeEl = $("cdash-stat-active");
-  if (activeEl) activeEl.textContent = String(active.length);
 
   // Pipeline cells
   const setPipeline = (id, n) => {
@@ -993,12 +991,16 @@ async function init() {
       window.location.replace("/signin.html?next=/consultant-dashboard.html");
       return;
     }
-    gate.hidden = true;
+    // Show the shell (the journey flowers measure their container) but
+    // keep the gate in its loading state so the loader overlay stays up
+    // until the data has rendered. Otherwise the panels sit blank.
+    gate.style.display = "none";
     shell.hidden = false;
     setupShell();
 
     if (isTutorialGarden()) {
       await runTutorialGarden(client, session);
+      gate.hidden = true;
       return;
     }
 
@@ -1009,8 +1011,11 @@ async function init() {
       return;
     }
     renderDashboard(client, data);
+    gate.hidden = true;
   } catch (err) {
     console.error(err);
+    gate.style.display = "";
+    gate.removeAttribute("data-loading");
     gate.textContent = err.message || "Could not load dashboard.";
     gate.className = "gr-status error";
   }

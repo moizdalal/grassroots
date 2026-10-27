@@ -1063,12 +1063,18 @@ function populateListing(listing) {
   return { profile, biz };
 }
 
-function populateAvatarIfAvailable(client, profile) {
+// Logo when the business has one; otherwise the same initials the
+// marketplace card shows (business name, then the owner's name).
+function populateAvatarIfAvailable(client, profile, biz) {
+  const wrap = document.getElementById("ld-biz-avatar-wrap");
   const url = publicAvatarUrl(client, profile?.avatar_path);
   if (url) {
     document.getElementById("ld-biz-avatar").src = url;
-    document.getElementById("ld-biz-avatar-wrap").hidden = false;
+  } else {
+    wrap.textContent = getInitials(biz?.business_name || profile?.full_name || "Business");
+    wrap.classList.add("ld-bio__avatar-wrap--initials");
   }
+  wrap.hidden = false;
 }
 
 function formatConsultantEducationLine(education) {
@@ -3345,8 +3351,8 @@ async function init() {
       return;
     }
 
-    const { profile } = populateListing(listing);
-    populateAvatarIfAvailable(client, profile);
+    const { profile, biz } = populateListing(listing);
+    populateAvatarIfAvailable(client, profile, biz);
     populateBusinessBadges(client, listing.owner_id);
     setOwnerSidebarVisible(isOwner);
     if (!isOwner) setOfferRailVisible(false);

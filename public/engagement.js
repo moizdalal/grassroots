@@ -126,9 +126,9 @@ const END_HOUR = 20;
 const SLOT_COUNT = ((END_HOUR - START_HOUR) * 60) / SLOT_MINUTES;
 const RATING_DIMENSIONS = [
   ["work_product_quality", "Work product quality"],
-  ["communication", "communication"],
-  ["timeliness", "timeliness"],
-  ["professionalism", "professionalism"],
+  ["communication", "Communication"],
+  ["timeliness", "Timeliness"],
+  ["professionalism", "Professionalism"],
   ["cost_value", "Cost value"],
 ];
 const BIZ_REVIEW_DIMENSIONS = [

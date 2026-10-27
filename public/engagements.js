@@ -46,7 +46,7 @@ async function loadEngagements(client, userId) {
   // All accepted bids for this consultant — these are the engagements.
   const { data: bids, error: bidsErr } = await client
     .from("bids")
-    .select("id, listing_id, consultant_id, amount_cents, status, accepted_at, proposal_due_at, proposal_path, created_at")
+    .select("id, listing_id, consultant_id, amount_cents, status, payment_status, released_at, accepted_at, proposal_due_at, proposal_path, created_at")
     .eq("consultant_id", userId)
     .eq("status", "accepted")
     .order("accepted_at", { ascending: false });
@@ -108,10 +108,27 @@ function engagementState(eng) {
   const { bid, listing, schedule } = eng;
   const listingClosed = listing?.status === "closed";
   const scheduleStatus = schedule?.status || null;
+  // Paid out (or the listing auto-completed on release) means the work
+  // is done, whatever the kickoff schedule row still says. Checked
+  // first so a stale "awaiting_consultant" row can't nag about kickoff.
+  const finished =
+    bid.payment_status === "released" || listing?.status === "completed";
 
-  // Past: review submitted (schedule completed) OR listing closed. The
-  // listing-closed case keeps closed-but-unreviewed work in "past" so it
-  // doesn't clutter the current list with stalled engagements.
+  // Past: paid out, review submitted (schedule completed) OR listing
+  // closed. The listing-closed case keeps closed-but-unreviewed work in
+  // "past" so it doesn't clutter the current list with stalled
+  // engagements.
+  if (finished) {
+    return {
+      bucket: "past",
+      label: "Completed",
+      pill: "completed",
+      action: null,
+      summary: bid.released_at
+        ? `Paid out ${fmtDate(bid.released_at)}`
+        : `Accepted ${fmtDate(bid.accepted_at)}`,
+    };
+  }
   if (scheduleStatus === "completed") {
     return {
       bucket: "past",

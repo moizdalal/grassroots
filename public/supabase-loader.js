@@ -1,4 +1,5 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+// Self-hosted bundle (see src/supabase-browser.js / npm run build:supabase).
+import { createClient } from "/vendor/supabase-js.js";
 
 let clientPromise;
 
