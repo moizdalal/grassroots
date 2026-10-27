@@ -6702,9 +6702,15 @@ body.gr-has-side-nav .bza__side {
   }
 
   .bza__row-budget,
-  .bza__row-metric-block,
-  .bza__row-chev {
+  .bza__row-metric-block {
     grid-column: 2 / -1;
+    justify-self: start;
+  }
+
+  /* The whole row is the link; on a phone the lone chevron just
+     leaves an empty line under the budget. */
+  .bza__row-chev {
+    display: none;
   }
 }
 
