@@ -1,8 +1,7 @@
 // admin.js — controller for the admin page. Tabs across overview /
-// users / engagements / calendar. Today every renderX() reads from
-// fixtures.js (seeded fake data); when the page gets wired to live
-// data, each export it imports gets swapped for a supabase query
-// that returns the same shape.
+// users / engagements / calendar read live marketplace rows that
+// data.js loads from /api/admin/marketplace; payments, emails and
+// health fetch their own endpoints when opened.
 //
 // Access control: page is signed-in-only AND the user's email must
 // be in ADMIN_EMAILS below. For production, replace the allow-list
@@ -18,8 +17,8 @@ import {
   totalVolumeCents, bidAcceptanceRate, avgEngagementValueCents, kickoffsThisWeek,
   moneyMovedSeries, funnelData, engagementStatusBreakdown, offersByCategory,
   topConsultants, recentActivity, upcomingKickoffs, allKickoffs, userStats,
-  userGrowthByWeek,
-} from "./fixtures.js";
+  userGrowthByWeek, loadAdminData,
+} from "./data.js";
 
 import {
   renderLineChart, renderBarChart, renderDonut, renderFunnel, renderGroupedBars,
@@ -196,8 +195,6 @@ function activateTab(name) {
 
 tabs.forEach((t) => t.addEventListener("click", () => activateTab(t.dataset.tab)));
 
-const initialTab = new URL(location.href).searchParams.get("tab") || "overview";
-activateTab(initialTab);
 
 /* ============================================================== */
 /*                            OVERVIEW                             */
@@ -304,7 +301,7 @@ function renderTopList() {
       ${avatarMarkup(row.user)}
       <div class="adm-top-meta">
         <span class="adm-top-name">${esc(row.user.name)}</span>
-        <span class="adm-top-sub">${esc(row.user.school || row.user.business_type || "")}</span>
+        <span class="adm-top-sub">${esc(row.user.school || row.user.business_name || "")}</span>
       </div>
       <span class="adm-top-value">${fmtMoneyShort(row.cents)}</span>
     </li>
@@ -599,7 +596,6 @@ function openUserDrawer(userId) {
     </div>
     <dl class="adm-defs">
       ${user.business_name ? `<div><dt>Business</dt><dd>${esc(user.business_name)}</dd></div>` : ""}
-      ${user.business_type ? `<div><dt>Type</dt><dd>${esc(user.business_type)}</dd></div>` : ""}
       ${user.school ? `<div><dt>School</dt><dd>${esc(user.school)}</dd></div>` : ""}
       ${user.major ? `<div><dt>Major</dt><dd>${esc(user.major)}</dd></div>` : ""}
       ${user.city ? `<div><dt>City</dt><dd>${esc(user.city)}</dd></div>` : ""}
@@ -678,8 +674,8 @@ function openEngagementDrawer(engId) {
     <h4 class="adm-drawer-sec">Listing</h4>
     <dl class="adm-defs">
       <div><dt>Posted</dt><dd>${esc(fmtDate(listing?.created_at))}</dd></div>
-      <div><dt>Budget range</dt><dd>${fmtMoneyShort(listing?.budget_min_cents)} – ${fmtMoneyShort(listing?.budget_max_cents)}</dd></div>
-      <div><dt>Turnaround</dt><dd>${listing?.turnaround_days} days</dd></div>
+      <div><dt>Budget</dt><dd>${listing?.budget_cents != null ? fmtMoneyShort(listing.budget_cents) : "—"}</dd></div>
+      <div><dt>Turnaround</dt><dd>${listing?.turnaround_days != null ? `${listing.turnaround_days} days` : "—"}</dd></div>
       <div><dt>Listing status</dt><dd>${esc(capFirst(listing?.status))}</dd></div>
     </dl>
     <h4 class="adm-drawer-sec">Offers on this listing (${competingBids.length})</h4>
@@ -715,7 +711,7 @@ document.getElementById("adm-now-stamp").textContent =
 /*                            HEALTH                               */
 /* ============================================================== */
 /* Live perf + business KPIs. Unlike the rest of the admin (which
-   reads from fixtures.js), this tab fetches real data from
+   loads data.js once on page load), this tab fetches real data from
    /api/admin/health-summary on every activation. The endpoint is
    admin-gated server-side so an unauthorized fetch returns 403.   */
 
@@ -1188,3 +1184,23 @@ function capFirst(value) {
   const s = String(value || "");
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
+
+/* ============================================================== */
+/*                          FIRST RENDER                           */
+/* ============================================================== */
+// Runs last so every module-level `let` the renderers read (moneyRange,
+// userFilter, …) is initialized. Load marketplace rows first; a failure
+// leaves overview / users / engagements / calendar empty but keeps
+// payments, emails and health usable.
+try {
+  await loadAdminData();
+} catch (err) {
+  console.error("admin data failed to load", err);
+  const gate = document.getElementById("adm-gate");
+  gate.className = "adm-gate adm-gate--error";
+  gate.textContent = "Could not load marketplace data: " + (err.message || "unknown error");
+  gate.hidden = false;
+}
+
+const initialTab = new URL(location.href).searchParams.get("tab") || "overview";
+activateTab(initialTab);
