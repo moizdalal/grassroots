@@ -1765,12 +1765,36 @@ async function showConsultantView(client, session, listing, existingBid) {
      Stripe before locking the gate — handles the lag where the
      account.updated webhook hasn't fired yet. */
   let payoutsBlocked = true;
+  // New consultants must pass training before any offer, free ones
+  // included (consultants with earlier offers are exempt). The real gate
+  // is the bids_require_training trigger; this just explains it before
+  // they fill in the form. Starts open so a slow or failed check never
+  // blocks someone who is cleared.
+  let trainingBlocked = false;
   // A free standard offer never pays out, so it doesn't need payouts set up.
   const isFreeOffer = () => !isPhased && !isRetainer && amountInput.value.trim() !== "" && Number(amountInput.value) === 0;
   const syncSubmitDisabled = () => {
-    if (payoutsBlocked && !isFreeOffer()) submitBtn.setAttribute("aria-disabled", "true");
+    if (trainingBlocked || (payoutsBlocked && !isFreeOffer())) submitBtn.setAttribute("aria-disabled", "true");
     else submitBtn.removeAttribute("aria-disabled");
   };
+  const showTrainingToast = () =>
+    showToast("Pass consultant training before you send an offer. It takes about 25 minutes.", {
+      kind: "error",
+      duration: 6000,
+      action: {
+        label: "Start training",
+        onClick: () => {
+          window.location.href = "/training.html";
+        },
+      },
+    });
+  (async () => {
+    const { data: cleared, error } = await client.rpc("my_training_cleared");
+    // No function yet (migration not applied) means no trigger either.
+    if (error) return;
+    trainingBlocked = cleared === false;
+    syncSubmitDisabled();
+  })();
   const setPayoutsBlocked = (blocked) => {
     payoutsBlocked = blocked;
     syncSubmitDisabled();
@@ -1898,6 +1922,10 @@ async function showConsultantView(client, session, listing, existingBid) {
 
   /* --- Submit offer --- */
   submitBtn.addEventListener("click", async () => {
+    if (trainingBlocked) {
+      showTrainingToast();
+      return;
+    }
     if (payoutsBlocked && !isFreeOffer()) {
       showToast(
         "Set up payouts before you can submit an offer. Grassroots can't pay you until your Stripe account is verified.",
@@ -1995,7 +2023,13 @@ async function showConsultantView(client, session, listing, existingBid) {
     // Insert-only: offers can't be edited once submitted (enforced in the DB).
     const { error } = await client.from("bids").insert(payload);
     if (error) {
-      showError(error.code === "23505" ? "You already sent an offer on this listing." : error.message);
+      if (error.hint === "training_required") {
+        trainingBlocked = true;
+        syncSubmitDisabled();
+        showTrainingToast();
+      } else {
+        showError(error.code === "23505" ? "You already sent an offer on this listing." : error.message);
+      }
       submitBtn.disabled = false;
       submitBtn.classList.remove("is-loading");
       return;

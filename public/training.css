@@ -1,0 +1,572 @@
+/* training.css — consultant training modules + quiz (training.html). */
+
+.tr-intro {
+  margin-bottom: var(--space-5);
+}
+
+/* .gr-page-eyebrow is documented in brandkit.md but never defined, so the
+   tracker is scoped here. body.gr-body beats the universal text-transform
+   reset (brandkit "Known cascade traps" #2). */
+body.gr-body .tr-eyebrow {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--type-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fo-accent);
+}
+
+.tr-intro .gr-subtitle {
+  margin-bottom: 0;
+}
+
+.tr-latest[hidden] {
+  display: none !important;
+}
+
+.tr-latest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+}
+
+.tr-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---- step rail ---- */
+.tr-steps {
+  list-style: none;
+  margin: 0 0 var(--space-5);
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.tr-step {
+  width: 100%;
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--fo-line);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--fo-text-2);
+  font-family: var(--font-body);
+  font-size: var(--type-meta);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.tr-step:hover {
+  border-color: var(--fo-line-strong);
+  color: var(--fo-text);
+}
+.tr-step.is-current {
+  border-color: var(--fo-accent);
+  color: var(--fo-text);
+  font-weight: 600;
+}
+.tr-step[aria-disabled="true"] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tr-step__num {
+  flex: none;
+  width: 1.6rem;
+  height: 1.6rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--fo-line-strong);
+  font-size: var(--type-meta);
+  font-variant-numeric: tabular-nums;
+}
+.tr-step.is-current .tr-step__num {
+  border-color: var(--fo-accent);
+  color: var(--fo-accent);
+}
+.tr-step.is-done .tr-step__num {
+  background: var(--fo-accent);
+  border-color: var(--fo-accent);
+  color: var(--fo-accent-on);
+}
+
+.tr-step__label {
+  line-height: 1.25;
+}
+
+/* ---- panel ---- */
+.tr-panel {
+  padding: var(--space-6);
+  border: 1px solid var(--fo-line);
+  border-radius: 14px;
+  background: var(--fo-surface);
+  outline: none;
+}
+:root:not([data-theme="light"]) .tr-panel {
+  background: transparent;
+}
+
+.tr-panel__title {
+  margin: var(--space-1) 0 var(--space-2);
+  font-size: var(--type-h1);
+}
+
+.tr-panel__goal {
+  margin: 0 0 var(--space-5);
+  font-size: var(--type-body);
+  color: var(--fo-text-2);
+}
+
+.tr-lesson {
+  padding: var(--space-5) 0;
+  border-top: 1px solid var(--fo-line);
+}
+
+.tr-lesson__title {
+  margin: 0 0 var(--space-3);
+  font-size: var(--type-h3);
+}
+
+.tr-lesson__num {
+  margin-right: var(--space-1);
+  color: var(--fo-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.tr-lesson__intro {
+  margin: 0 0 var(--space-2);
+  font-size: var(--type-body);
+}
+
+.tr-lesson__points {
+  margin: 0;
+  padding-left: var(--space-5);
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--type-body);
+  line-height: 1.55;
+  color: var(--fo-text);
+}
+
+/* Must-know lesson: an accent-bordered card instead of a plain section. */
+.tr-lesson--key {
+  margin: var(--space-3) 0;
+  padding: var(--space-5);
+  border: 1px solid var(--fo-accent);
+  border-radius: 12px;
+  background: var(--fo-accent-soft);
+}
+.tr-lesson--key + .tr-lesson {
+  border-top: 0;
+}
+.tr-lesson--key .tr-lesson__intro {
+  font-weight: 600;
+}
+
+.tr-example {
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--fo-accent);
+  border-radius: 0 10px 10px 0;
+  background: var(--fo-surface-2);
+}
+:root:not([data-theme="light"]) .tr-example {
+  background: transparent;
+  border-top: 1px solid var(--fo-line);
+  border-right: 1px solid var(--fo-line);
+  border-bottom: 1px solid var(--fo-line);
+}
+
+body.gr-body .tr-example__label {
+  margin-bottom: var(--space-1);
+  font-size: var(--type-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fo-text-3);
+}
+
+.tr-example__text {
+  margin: 0;
+  font-size: var(--type-body);
+  font-style: italic;
+  line-height: 1.55;
+  color: var(--fo-text);
+}
+
+.tr-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--fo-line);
+}
+
+/* ---- quiz ---- */
+.tr-quiz {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.tr-q {
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--fo-line);
+  border-radius: 12px;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.tr-q__prompt {
+  padding: 0;
+  margin-bottom: var(--space-2);
+  font-size: var(--type-body);
+  font-weight: 600;
+  color: var(--fo-text);
+  line-height: 1.45;
+}
+
+.tr-q__num {
+  color: var(--fo-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.tr-q__option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-height: 2.5rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: var(--type-body);
+  color: var(--fo-text);
+  cursor: pointer;
+}
+.tr-q__option:hover {
+  background: var(--fo-accent-soft);
+}
+.tr-q__option:has(input:checked) {
+  border-color: var(--fo-accent);
+  background: var(--fo-accent-soft);
+}
+.tr-q__option input {
+  margin-top: 0.2rem;
+  accent-color: var(--fo-accent);
+}
+
+.tr-quiz__count {
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+}
+
+/* ---- result review ---- */
+.tr-review {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.tr-review__item {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--fo-line);
+  border-left-width: 3px;
+  border-radius: 10px;
+}
+.tr-review__item.is-right {
+  border-left-color: var(--fo-accent);
+}
+.tr-review__item.is-wrong {
+  border-left-color: var(--fo-accent-warm);
+}
+
+.tr-review__prompt {
+  margin: 0 0 var(--space-1);
+  font-size: var(--type-body);
+  font-weight: 600;
+}
+
+.tr-review__line,
+.tr-review__why {
+  margin: 0;
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+}
+.tr-review__why {
+  margin-top: var(--space-1);
+  color: var(--fo-text-3);
+}
+
+/* ---- overall progress ---- */
+.tr-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.tr-progress__track {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--fo-line);
+  overflow: hidden;
+}
+.tr-progress__fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: var(--fo-accent);
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.tr-progress__label {
+  flex: none;
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Step check pops once when a module is completed. */
+.tr-step.just-done .tr-step__num {
+  animation: tr-check-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes tr-check-pop {
+  0% { transform: scale(0.4); }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* ---- scroll reveal (revealOnScroll in training.js) ----
+   Only hides once the panel is .tr-armed, so content never gets stuck
+   invisible if the observer doesn't run. */
+.tr-reveal {
+  transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.tr-armed .tr-reveal:not(.is-in) {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+/* ---- visuals ---- */
+.tr-visual {
+  margin: var(--space-4) 0 0;
+  padding: var(--space-4);
+  border: 1px solid var(--fo-line);
+  border-radius: 12px;
+  background: var(--fo-surface-2);
+}
+:root:not([data-theme="light"]) .tr-visual {
+  background: transparent;
+}
+
+/* Payment timeline: six nodes on a line that draws in left to right. */
+.tr-timeline__list {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.tr-timeline__list::before {
+  content: "";
+  position: absolute;
+  top: 0.9rem;
+  left: 8%;
+  right: 8%;
+  height: 2px;
+  background: var(--fo-accent);
+  transform-origin: left center;
+  transition: transform 1.2s ease 0.2s;
+}
+.tr-timeline__step {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  text-align: center;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  transition-delay: calc(var(--i) * 0.18s + 0.2s);
+}
+/* Waiting to scroll into view: line undrawn, steps hidden. */
+.tr-armed .tr-reveal:not(.is-in) .tr-timeline__list::before {
+  transform: scaleX(0);
+}
+.tr-armed .tr-reveal:not(.is-in) .tr-timeline__step {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.tr-timeline__dot {
+  width: 1.8rem;
+  height: 1.8rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--fo-accent);
+  color: var(--fo-accent-on);
+  font-size: var(--type-meta);
+  font-weight: 700;
+  box-shadow: 0 0 0 4px var(--fo-bg);
+}
+.tr-timeline__title {
+  font-size: var(--type-meta);
+  font-weight: 600;
+  color: var(--fo-text);
+  line-height: 1.3;
+}
+.tr-timeline__note {
+  font-size: var(--type-eyebrow);
+  color: var(--fo-text-2);
+  line-height: 1.35;
+}
+
+/* Fee calculator */
+.tr-fees__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+.tr-fees__label {
+  font-size: var(--type-meta);
+  font-weight: 600;
+  color: var(--fo-text-2);
+}
+.tr-fees__amount {
+  font-family: var(--font-display);
+  font-size: var(--type-h2);
+  font-weight: 600;
+  color: var(--fo-accent);
+  font-variant-numeric: tabular-nums;
+}
+.tr-fees__range {
+  width: 100%;
+  min-height: 32px;
+  accent-color: var(--fo-accent);
+  cursor: pointer;
+}
+.tr-fees__bar {
+  display: flex;
+  height: 14px;
+  margin: var(--space-3) 0;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--fo-line);
+}
+.tr-fees__seg {
+  display: block;
+  height: 100%;
+  transition: width 0.35s ease;
+}
+.tr-fees__seg--keep { background: var(--fo-accent); }
+.tr-fees__seg--card { background: var(--fo-text-3); }
+.tr-fees__seg--platform { background: var(--fo-line-strong); }
+
+.tr-fees__legend {
+  margin: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+.tr-fees__legend > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--type-meta);
+}
+.tr-fees__legend dt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--fo-text-2);
+}
+.tr-fees__legend dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--fo-text);
+}
+.tr-fees__legend > div:first-child dd {
+  font-weight: 700;
+  color: var(--fo-accent);
+}
+.tr-fees__swatch {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 3px;
+}
+.tr-fees__note {
+  margin: var(--space-3) 0 0;
+  font-size: var(--type-meta);
+  color: var(--fo-text-3);
+}
+
+@media (max-width: 760px) {
+  .tr-steps {
+    grid-template-columns: 1fr;
+  }
+  /* Timeline stacks vertically on phones, line down the left. */
+  .tr-timeline__list {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+  .tr-timeline__list::before {
+    top: 0.9rem;
+    bottom: 0.9rem;
+    left: 0.9rem;
+    right: auto;
+    width: 2px;
+    height: auto;
+    transform-origin: top center;
+  }
+  .tr-armed .tr-reveal:not(.is-in) .tr-timeline__list::before {
+    transform: scaleY(0);
+  }
+  .tr-timeline__step {
+    grid-template-columns: 1.8rem 1fr;
+    justify-items: start;
+    text-align: left;
+    column-gap: var(--space-3);
+    row-gap: 0;
+  }
+  .tr-timeline__dot {
+    grid-row: span 2;
+  }
+  .tr-panel {
+    padding: var(--space-4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tr-step,
+  .tr-progress__fill,
+  .tr-reveal,
+  .tr-timeline__list::before,
+  .tr-timeline__step,
+  .tr-fees__seg {
+    transition: none;
+  }
+  .tr-step.just-done .tr-step__num {
+    animation: none;
+  }
+}

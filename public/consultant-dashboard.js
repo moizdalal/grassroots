@@ -704,6 +704,15 @@ function renderDashboard(client, data) {
   // status is the additional gate on the payouts banner; cheap fetch
   // (cached server-side) that fails silently if the account-status
   // endpoint is unavailable.
+  // Training nudge: shown until the consultant passes (or is exempt). A
+  // failed check (e.g. migration not applied yet) leaves it hidden.
+  const trainingBanner = $("cdash-training-banner");
+  if (trainingBanner) {
+    client.rpc("my_training_cleared").then(({ data: cleared, error }) => {
+      if (!error && cleared === false) trainingBanner.hidden = false;
+    });
+  }
+
   const browseCta = $("cdash-browse-cta");
   const payoutsBanner = $("cdash-payouts-banner");
   if (engagements.length === 0) {

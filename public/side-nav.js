@@ -23,6 +23,8 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/></svg>',
   payouts:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-1"/><path d="M16 12a2 2 0 0 0 0 4h5v-4z"/></svg>',
+  training:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10 12 5l10 5-10 5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg>',
   notifications:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
   chevron:
@@ -57,6 +59,7 @@ function buildNavItems(role) {
       { href: "/inbox.html", label: "Inbox", icon: ICONS.inbox, navId: "inbox" },
       { href: "/notifications.html", label: "Notifications", icon: ICONS.notifications, navId: "notifications" },
       { href: "/payouts.html", label: "Payouts", icon: ICONS.payouts, navId: "payouts" },
+      { href: "/training.html", label: "Training", icon: ICONS.training, navId: "training" },
     ];
   }
   // Default to the owner layout. This is also what unauthenticated visitors
@@ -86,6 +89,7 @@ function inferActiveNavId(role) {
   if (path === "/marketplace.html") return role === "consultant" ? "marketplace" : null;
   if (path === "/engagements.html") return "engagements";
   if (path === "/payouts.html") return role === "consultant" ? "payouts" : null;
+  if (path === "/training.html") return role === "consultant" ? "training" : null;
   if (path === "/notifications.html") return "notifications";
   if (path === "/inbox.html") return "inbox";
   if (path === "/settings.html") return "settings";
