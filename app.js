@@ -311,7 +311,7 @@ async function emailUser(userId, event, data, { key, keyEvent } = {}) {
       console.warn("[email] no address for user", userId, error?.message || "");
       return;
     }
-    const msg = buildNotificationEmail(event, data, emailBaseUrl());
+    const msg = buildNotificationEmail(event, { ...(await emailNames(data)), ...data }, emailBaseUrl());
     if (!msg) return;
     await sendEmail({
       to,
@@ -323,6 +323,32 @@ async function emailUser(userId, event, data, { key, keyEvent } = {}) {
     });
   } catch (err) {
     console.warn("[email] emailUser failed", event, err?.message || err);
+  }
+}
+
+// The consultant's and business's names for email copy. Never throws; the
+// copy falls back to "the consultant" / "the business" when one is missing.
+async function emailNames(data) {
+  if (!data?.bidId || (data.consultantName && data.businessName)) return {};
+  try {
+    const { data: bid } = await supabase
+      .from("bids").select("consultant_id, listing_id").eq("id", data.bidId).maybeSingle();
+    if (!bid) return {};
+    const { data: listing } = await supabase
+      .from("listings").select("owner_id").eq("id", bid.listing_id).maybeSingle();
+    const ownerId = listing?.owner_id || null;
+    const [consultant, owner, business] = await Promise.all([
+      supabase.from("profiles").select("full_name").eq("id", bid.consultant_id).maybeSingle(),
+      ownerId ? supabase.from("profiles").select("full_name").eq("id", ownerId).maybeSingle() : { data: null },
+      ownerId ? supabase.from("business_profiles").select("business_name").eq("user_id", ownerId).maybeSingle() : { data: null },
+    ]);
+    return {
+      consultantName: consultant.data?.full_name || null,
+      businessName: business.data?.business_name || owner.data?.full_name || null,
+    };
+  } catch (err) {
+    console.warn("[email] name lookup failed", err?.message || err);
+    return {};
   }
 }
 
@@ -4805,7 +4831,7 @@ app.post("/api/engagement/mark-delivered", async (req, res) => {
       link: `/engagement.html?bid=${bidId}#${t.item.key}`,
       email: {
         event: "work_delivered",
-        data: { title: t.ctx.title, bidId, label, reviewByMs: win.releaseAt, free: !(Number(t.item.cents) > 0), note },
+        data: { title: t.ctx.title, bidId, label, reviewByMs: win.releaseAt, free: !(Number(t.item.cents) > 0), amountCents: t.item.cents, note },
         key: `${t.item.key}:${deliveredAt}`,
       },
     });
@@ -4910,7 +4936,7 @@ app.post("/api/notify/event", async (req, res) => {
         return res.status(409).json({ error: "Nothing to send." });
       }
       to = bid.consultant_id;
-      data = { ...base, counterCents: bid.counter_offer_cents, expiresAt: bid.counter_expires_at, note: bid.counter_offer_message };
+      data = { ...base, amountCents: bid.amount_cents, counterCents: bid.counter_offer_cents, expiresAt: bid.counter_expires_at, note: bid.counter_offer_message };
       key = `${bid.id}:${bid.counter_expires_at}`;
     } else if (["counter_accepted", "counter_declined", "counter_rescinded"].includes(event)) {
       // Accepting and keeping the original both leave the bid pending, so
