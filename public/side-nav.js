@@ -6,6 +6,7 @@
 // dashboard injects its own from the loaded data).
 
 import { getInitials } from "/initials.js";
+import "/mobile-nav.js";
 
 const COLLAPSE_KEY = "grassroots_dash_sidebar_collapsed";
 const ENG_SUBNAV_KEY = "grassroots_side_engagements_open";

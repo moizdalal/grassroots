@@ -3,6 +3,12 @@
    see /placeholders.js. */
 [hidden][data-placeholder] { display: none !important; }
 
+/* The hidden attribute always wins. Component rules like
+   `.bza__banner { display: flex }` otherwise beat the UA [hidden] rule
+   and leave "hidden" elements on screen (payouts banner, preview links,
+   empty pills). Show an element by removing the attribute, never with CSS. */
+[hidden] { display: none !important; }
+
 :root {
   /* Enable height/width transitions to auto/min/max-content so any
      collapsing component animates smoothly without bespoke max-height
@@ -844,7 +850,7 @@ img.gr-listing-logo {
 
 .pf-portfolio-item__delete:hover {
   color: var(--fo-plan, #c46f44);
-  background: rgba(196, 111, 68, 0.1);
+  background: color-mix(in srgb, var(--fo-plan) 10%, transparent);
 }
 
 .pf-portfolio-add {
@@ -2230,7 +2236,7 @@ summary:focus-visible,
 }
 
 .gr-btn--danger:hover:not(:disabled) {
-  background: rgba(196, 111, 68, 0.1);
+  background: color-mix(in srgb, var(--fo-plan) 10%, transparent);
   border-color: var(--fo-plan, #c46f44);
   color: var(--fo-plan, #c46f44);
 }
@@ -4325,12 +4331,12 @@ button.gr-bid-link {
 
 .gr-pill--pending,
 .gr-pill--warn {
-  background: rgba(232, 142, 90, 0.18);
+  background: color-mix(in srgb, var(--fo-accent-warm) 18%, transparent);
   color: var(--fo-accent-warm, #e88e5a);
 }
 
 .gr-pill--paused {
-  background: rgba(232, 142, 90, 0.12);
+  background: color-mix(in srgb, var(--fo-accent-warm) 12%, transparent);
   color: var(--fo-accent-warm, #e88e5a);
 }
 
@@ -4342,7 +4348,7 @@ button.gr-bid-link {
 }
 
 .gr-pill--danger {
-  background: rgba(196, 111, 68, 0.18);
+  background: color-mix(in srgb, var(--fo-plan) 18%, transparent);
   color: var(--fo-plan, #c46f44);
 }
 
@@ -4580,8 +4586,8 @@ button.gr-bid-link {
 
 /* --- Counter banner (consultant view) --- */
 .ld-counter-banner {
-  background: rgba(232, 142, 90, 0.08);
-  border: 1px solid rgba(232, 142, 90, 0.2);
+  background: color-mix(in srgb, var(--fo-accent-warm) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fo-accent-warm) 20%, transparent);
   border-radius: 12px;
   padding: 1rem 1.15rem;
   margin-bottom: 1rem;
@@ -6127,6 +6133,18 @@ button, input, select, textarea {
 .gr-cookie-banner.is-leaving {
   opacity: 0;
   transform: translateY(0.5rem);
+}
+
+/* While the notice is up, reserve room under the page so it never
+   sits on top of the last row of content. */
+body:has(> .gr-cookie-banner.is-visible) {
+  padding-bottom: 5.5rem;
+}
+
+@media (max-width: 560px) {
+  body:has(> .gr-cookie-banner.is-visible) {
+    padding-bottom: 7.5rem;
+  }
 }
 
 .gr-cookie-banner__msg {

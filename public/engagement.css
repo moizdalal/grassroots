@@ -629,7 +629,9 @@
 
 /* Star rating widget — interactive sibling of .gr-rating. Uses the same
    two-layer ★ technique (line color underneath, accent color clipped on
-   top) so the visual matches the read-only chip. Half-step clicks are
+   top) so the visual matches the read-only chip. The five ★ glyphs live
+   in the markup of each layer — don't add them again via ::before, or
+   each row renders ten stars. Half-step clicks are
    handled by 10 invisible button overlays positioned over the stars. */
 .eg-stars {
   position: relative;
@@ -648,10 +650,6 @@
   user-select: none;
 }
 
-.eg-stars__bg::before {
-  content: "★★★★★";
-}
-
 .eg-stars__fill {
   position: absolute;
   top: 0;
@@ -660,10 +658,6 @@
   white-space: nowrap;
   color: var(--fo-accent);
   transition: width 0.15s ease;
-}
-
-.eg-stars__fill::before {
-  content: "★★★★★";
 }
 
 .eg-stars__hits {
@@ -731,5 +725,27 @@
 
   .eg-rating-row {
     grid-template-columns: 1fr;
+  }
+
+  /* Kickoff grid on phones: narrower day columns, and the time labels
+     stay pinned while the grid scrolls sideways inside its wrapper. */
+  .eg-calendar {
+    grid-template-columns: 58px repeat(7, minmax(64px, 1fr));
+    gap: 0.25rem;
+    min-width: 540px;
+  }
+
+  .eg-calendar__time {
+    font-size: var(--type-eyebrow);
+    white-space: nowrap;
+  }
+
+  .eg-calendar__corner,
+  .eg-calendar__time {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    /* Match the panel behind the grid so scrolled slots slide under. */
+    background: var(--fo-surface);
   }
 }

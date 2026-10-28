@@ -104,6 +104,7 @@ Set on `<html data-theme="…">` by `theme.js` synchronously in head. Tokens def
 
 - Pure red (#cc0000-ish, `#c0392b`-class) — anywhere
 - Random orange that isn't `--fo-accent-warm`
+- Hardcoded warm tints like `rgba(232, 142, 90, 0.18)`. That is the dark-theme `--fo-accent-warm` value, so in light theme it turns peach/pink against the terracotta text. Derive tints from the token: `color-mix(in srgb, var(--fo-accent-warm) 18%, transparent)` (same for `--fo-plan`).
 - Any color picked from outside this token set, except for guaranteed-contrast hovers (see below)
 
 ### Guaranteed-contrast exception
@@ -228,6 +229,8 @@ Auto-injecting dismissible bottom pill that explains we use cookies and links to
 
 Pinned bottom-right on desktop (`max-width: 28rem`, pill shape), full-width across the bottom on screens ≤ 560 px. z-index `1400` — above page chrome, below modals (1500-1700) so opening a modal cleanly hides it.
 
+While the banner is visible, `body` gets bottom padding (5.5rem; 7.5rem at ≤ 560 px) via `body:has(> .gr-cookie-banner.is-visible)`, so it never covers the last row of content.
+
 Don't render the banner on `/region-unavailable.html` (the geo-block page); the script skips that path. If you add other "no-account" landing pages, add their paths to the skip list in `cookie-banner.js`.
 
 ### `.ld-cv__deal` — offer terms block
@@ -248,6 +251,12 @@ Bio tab order is fixed: header (name, degree line, `.pf-bv__meta-row` with city 
 - `.gr-subtitle` — page subtitle (display or body font per page)
 
 Side nav (`.bza__side`) injects via `side-nav.js` unless the page renders its own `<aside class="bza__side">`. Loading overlay (`loading-overlay.js`) auto-injects on every page that imports it.
+
+### Phone layout (≤ 768 px) — `.bza-mbar` top bar + drawer
+
+`mobile-nav.js` (imported by `side-nav.js`; the two dashboards load it with their own `<script>` tag) injects `.bza-mbar` (wordmark + menu button, 56 px, sticky) and `.bza-mbar__scrim` into `.bza`. At ≤ 768 px the `.bza__side` sidebar becomes an off-canvas drawer (`min(300px, 84vw)`, slides from the left; `.bza--nav-open` on `.bza` opens it). The desktop collapsed state is lifted while on a phone and restored above the breakpoint. Content runs full width with a 16 px gutter (`.bza__main { padding: 1.25rem 16px 2.5rem }`). Escape, the scrim, or any nav item closes the drawer.
+
+Wide content on phones scrolls inside its own container, never the page: the kickoff grid (`.eg-calendar-wrap`, sticky time column), the journey flowers plant row, and the marketplace section tracks. Check with `document.documentElement.scrollWidth === clientWidth` at 390 px.
 
 ---
 
@@ -349,7 +358,7 @@ These have all caused real bugs. Check them first when a visual change isn't tak
 
 2. **`body.gr-body * { text-transform: none }` is a universal reset** that silently breaks any element trying to use `text-transform: uppercase`. The selector has specificity (1, 1) which beats single-class rules. To assert uppercase on a tracker (eyebrow, stat label, etc.), bump specificity (e.g. `body.gr-body .your-class`) or use `!important`. Already done for `.gr-section-h`.
 
-3. **`[hidden]` doesn't always hide.** The HTML attribute's default is `display: none`, but rules like `.pf-layout { display: grid }` or `.gr-flex { display: flex }` override it because they have higher specificity than the UA `[hidden]` rule. When a hidden panel is still rendering, look for a `display:` rule on its other classes. Fix with an explicit `.your-class[hidden] { display: none !important }`.
+3. **`[hidden]` used to lose to component `display` rules.** Rules like `.bza__banner { display: flex }` beat the UA `[hidden]` rule, so "hidden" banners, links and pills stayed on screen. `grassroots.css` now has a global `[hidden] { display: none !important }`, so the attribute always wins. To show something, remove the attribute; never style `[hidden]` back to visible. Per-class `.x[hidden]` rules are now redundant but harmless.
 
 ---
 
