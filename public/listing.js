@@ -1777,6 +1777,36 @@ async function showConsultantView(client, session, listing, existingBid) {
   };
   setPayoutsBlocked(true);
   amountInput?.addEventListener("input", syncSubmitDisabled);
+  // Set when Stripe is active but no attestation is on file, so the
+  // click-time toast asks for the right thing.
+  let needsAttestation = false;
+  const fetchUsPersonAttested = async () => {
+    try {
+      const { data: { session: s } } = await client.auth.getSession();
+      const headers = new Headers();
+      if (s?.access_token) headers.set("Authorization", `Bearer ${s.access_token}`);
+      const res = await fetch("/api/stripe/us-person-attestation", { headers });
+      if (!res.ok) return false;
+      return !!(await res.json())?.attested;
+    } catch (_) {
+      return false;
+    }
+  };
+  const showAttestationToast = () => {
+    showToast(
+      "Confirm your US tax status before you submit a paid offer. It takes one checkbox.",
+      {
+        kind: "error",
+        duration: 6000,
+        action: {
+          label: "Confirm tax status",
+          onClick: () => {
+            window.location.href = "/payouts.html";
+          },
+        },
+      }
+    );
+  };
   (async () => {
     const readProfileStatus = async () => {
       const { data: prof, error } = await client
@@ -1813,7 +1843,13 @@ async function showConsultantView(client, session, listing, existingBid) {
       }
       // Non-active accounts stay payoutsBlocked. The disabled submit
       // + click-time toast covers the prompt — no separate banner.
-      if (status === "active") setPayoutsBlocked(false);
+      // Active accounts also need a US-person attestation (consultants
+      // onboarded before the gate existed won't have one). The
+      // bids_require_us_person_attestation trigger enforces it too.
+      if (status === "active") {
+        if (await fetchUsPersonAttested()) setPayoutsBlocked(false);
+        else needsAttestation = true;
+      }
     } catch (_) {
       // If we can't read the column (older schema), keep the gate up —
       // better the user sees the toast than ships a bid that can't be
@@ -1898,6 +1934,10 @@ async function showConsultantView(client, session, listing, existingBid) {
 
   /* --- Submit offer --- */
   submitBtn.addEventListener("click", async () => {
+    if (payoutsBlocked && !isFreeOffer() && needsAttestation) {
+      showAttestationToast();
+      return;
+    }
     if (payoutsBlocked && !isFreeOffer()) {
       showToast(
         "Set up payouts before you can submit an offer. Grassroots can't pay you until your Stripe account is verified.",
@@ -1994,6 +2034,12 @@ async function showConsultantView(client, session, listing, existingBid) {
 
     // Insert-only: offers can't be edited once submitted (enforced in the DB).
     const { error } = await client.from("bids").insert(payload);
+    if (error && /us_person_attestation_required/.test(error.message || "")) {
+      showAttestationToast();
+      submitBtn.disabled = false;
+      submitBtn.classList.remove("is-loading");
+      return;
+    }
     if (error) {
       showError(error.code === "23505" ? "You already sent an offer on this listing." : error.message);
       submitBtn.disabled = false;
