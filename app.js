@@ -17,7 +17,7 @@ const {
   stableHash,
   createPaymentIntentOnce,
 } = require("./lib/stripe-compat");
-const { sendEmail } = require("./lib/email");
+const { sendEmail, setSendLogger } = require("./lib/email");
 const { buildNotificationEmail } = require("./lib/notification-emails");
 const { schoolMatchesEmail } = require("./lib/schools");
 const {
@@ -156,6 +156,21 @@ const supabase = hasSupabaseAdminConfig
       auth: { persistSession: false },
     })
   : null;
+
+// Record every Resend attempt for the admin Emails tab. No addresses.
+if (supabase) {
+  setSendLogger(async ({ event, status, httpStatus, resendId, error }) => {
+    const { error: dbError } = await supabase.from("email_log").insert({
+      event: String(event || "other").slice(0, 64),
+      status,
+      http_status: httpStatus ?? null,
+      environment: process.env.VERCEL_ENV || "development",
+      resend_id: resendId || null,
+      error: error || null,
+    });
+    if (dbError) console.warn("[email_log] insert failed:", dbError.message);
+  });
+}
 
 const { syncInstagramProfileAvatar } = require("./lib/instagram-profile-pic");
 
@@ -6114,6 +6129,85 @@ app.get("/api/admin/payments/audit", async (req, res) => {
     .limit(100);
   if (error) return res.status(500).json({ error: error.message });
   return res.json({ entries: data || [] });
+});
+
+/* ── admin: email volume ─────────────────────────────────────── */
+// Resend plan caps. Defaults are the free plan; set these env vars after
+// upgrading so the admin Emails tab measures against the right limits.
+const EMAIL_DAILY_LIMIT = Number(process.env.RESEND_DAILY_LIMIT) || 100;
+const EMAIL_MONTHLY_LIMIT = Number(process.env.RESEND_MONTHLY_LIMIT) || 3000;
+
+// Daily counts, month-to-date and recent failures from email_log. Days are
+// UTC, which is how Resend counts its daily quota.
+app.get("/api/admin/emails", async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+
+  const days = Math.max(7, Math.min(90, Number(req.query.days) || 30));
+  const now = new Date();
+  const todayStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const monthStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
+  const windowStart = todayStart - (days - 1) * 86400000;
+  const since = new Date(Math.min(windowStart, monthStart)).toISOString();
+
+  // Page through rows (PostgREST caps a response at 1,000).
+  const rows = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from("email_log")
+      .select("sent_at, event, status, http_status, environment, error")
+      .gte("sent_at", since)
+      .order("sent_at", { ascending: false })
+      .range(from, from + 999);
+    if (error) return res.status(500).json({ error: error.message });
+    rows.push(...(data || []));
+    if (!data || data.length < 1000 || rows.length >= 20000) break;
+  }
+
+  const dayKey = (ms) => new Date(ms).toISOString().slice(0, 10);
+  const daily = new Map();
+  for (let i = 0; i < days; i++) daily.set(dayKey(windowStart + i * 86400000), { sent: 0, failed: 0 });
+
+  let today = 0, month = 0, failedInWindow = 0, limitHits = 0;
+  const byEvent = {};
+  for (const r of rows) {
+    const t = Date.parse(r.sent_at);
+    const bucket = daily.get(dayKey(t));
+    if (r.status === "sent") {
+      if (t >= todayStart) today++;
+      if (t >= monthStart) month++;
+      if (bucket) {
+        bucket.sent++;
+        byEvent[r.event] = (byEvent[r.event] || 0) + 1;
+      }
+    } else if (r.status === "failed" && t >= windowStart) {
+      if (bucket) bucket.failed++;
+      failedInWindow++;
+      if (r.http_status === 429) limitHits++;
+    }
+  }
+
+  const series = [...daily.entries()].map(([date, v]) => ({ date, ...v }));
+  const sentInWindow = series.reduce((s, d) => s + d.sent, 0);
+  const busiest = series.reduce((m, d) => (d.sent > m.sent ? d : m), { date: null, sent: 0 });
+
+  return res.json({
+    limits: { daily: EMAIL_DAILY_LIMIT, monthly: EMAIL_MONTHLY_LIMIT },
+    today,
+    month,
+    days,
+    sent_in_window: sentInWindow,
+    failed_in_window: failedInWindow,
+    limit_hits: limitHits,
+    busiest_day: busiest.date ? busiest : null,
+    daily: series,
+    by_event: Object.entries(byEvent).map(([event, sent]) => ({ event, sent })).sort((a, b) => b.sent - a.sent),
+    recent_failures: rows
+      .filter((r) => r.status === "failed")
+      .slice(0, 20)
+      .map((r) => ({ sent_at: r.sent_at, event: r.event, http_status: r.http_status, environment: r.environment, error: r.error })),
+  });
 });
 
 /* ──────────────────────────────────────────────────────────────
