@@ -245,11 +245,14 @@ Bio tab order is fixed: header (name, degree line, `.pf-bv__meta-row` with city 
 
 Transactional emails use one layout: `lib/email-template.js`. Copy for each event lives in `lib/notification-emails.js`.
 
-- Lowercase `grassroots` wordmark in Fraunces 600, then a white card (dark-forest surface in dark mode) holding a Fraunces heading, Figtree body, and one pill button in `--fo-accent` (#2f7a5a).
-- Colors are the light and dark-forest tokens from `field-office.css`, hardcoded because mail clients can't read CSS variables. Change both places together.
+- Lockup: sprout mark + lowercase `grassroots` wordmark in Fraunces 600, outside the card. Card order: glyph, listing title as an 11px caps eyebrow, heading (Fraunces), one intro line, progress stem (engagement emails), label / value facts, the other person's note with their initials, one closing line, one button. Payout emails lead with the amount as a 52px hero.
+- Glyphs: 44px moss-soft disc with a 24px stroke icon, one per event family (offer, counter, accepted, delivered, changes, payment, review, declined). Accepted is the outlined sprout. Declined and withdrawn use the muted grey disc.
+- Images live in `public/email/` as SVG sources plus 2x PNGs, built by `node scripts/build-email-assets.js`. Emails load the PNGs, since Gmail drops SVG. Each has a light and a dark file. Stem labels are live text, so no font is baked into an image.
+- Colors are the light and dark-forest tokens from `field-office.css`, hardcoded because mail clients can't read CSS variables. Change both places together. Muted text is #5f6862 (not `--fo-text-3`) so 11–13px text passes 4.5:1. Dark mode is border-only: no card or note fill.
 - Same voice as the site: sentence case, second person, short sentences, no exclamation points. Subjects name the listing in quotes.
-- One button per email, labelled with the action ("Review the offer"), always an absolute link.
-- The footer says why they got it, links to the dashboard, invites replies, and shows the mailing address. No unsubscribe link: these are transactional.
+- Subject emoji: one, leading, for good news or a call to act (📬 offer, ⏳ counter, 🤝 counter accepted, 🌱 accepted, 📦 delivered, ✏️ changes, ✅ released, 💸 paid, ⭐ review). Declines and withdrawals get none. Never emoji in the body.
+- One button per email, labelled with the action ("Review the offer"), always an absolute link. A second path is a text link beside it ("Ask for changes").
+- The footer says why they got it, links to email settings and the dashboard, invites replies, and shows the mailing address. No unsubscribe link: these are transactional.
 - Business-facing emails never mention free offers.
 
 ## Page shell
