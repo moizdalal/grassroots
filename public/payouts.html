@@ -26,6 +26,22 @@
 
       <p id="po-gate" class="gr-status" aria-live="polite">Loading…</p>
 
+      <!-- US-person attestation. Shown instead of the Stripe flow until
+           the server has a current attestation on file (account-session
+           returns 403 attestation_required). Bump the version in app.js
+           (US_PERSON_ATTESTATION_VERSION) if this wording changes. -->
+      <section id="po-attest" class="po-attest" hidden aria-labelledby="po-attest-h">
+        <h2 id="po-attest-h" class="gr-section-h">Before you start</h2>
+        <p class="po-attest__lede">Grassroots can only pay US persons for tax purposes. Stripe uses your tax ID to file a 1099-K when required.</p>
+        <label class="po-attest__check">
+          <input type="checkbox" id="po-attest-checkbox" />
+          <span>I'm a US citizen, permanent resident, or resident alien for tax purposes, and I'm allowed to do freelance work in the US.</span>
+        </label>
+        <p class="gr-field-hint po-attest__hint">On a student visa like F-1? You're usually a nonresident alien for tax, even with OPT or CPT. You can't take paid work on Grassroots yet. See <a href="/terms.html#work-authorization">work authorization</a>.</p>
+        <p id="po-attest-error" class="gr-status error" hidden></p>
+        <button type="button" class="gr-btn gr-btn--primary" id="po-attest-submit" disabled>Continue</button>
+      </section>
+
       <div id="po-shell" hidden>
         <!-- Status row (dot + headline label) sits at the very top so
              the account state is the first thing the user sees. The
@@ -95,7 +111,7 @@
             </button>
             <div class="po-collapsible__body" id="po-section-account-info">
               <div class="po-collapsible__inner">
-                <p class="gr-field-hint">Update your tax ID, business type, address, or bank info. Stripe handles 1099 issuance automatically each January.</p>
+                <p class="gr-field-hint">Update your tax ID, business type, address, or bank info.</p>
                 <div id="po-management" class="po-management"></div>
               </div>
             </div>
@@ -112,6 +128,21 @@
               <div class="po-collapsible__inner">
                 <p class="gr-field-hint">History of transfers from your Grassroots balance to your bank.</p>
                 <div id="po-payouts" class="po-payouts"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="po-collapsible" data-section-key="tax-documents">
+            <button type="button" class="po-collapsible__head" aria-expanded="true" aria-controls="po-section-tax-documents">
+              <span class="po-collapsible__title gr-section-h">Tax documents</span>
+              <span class="po-collapsible__chevron" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </button>
+            <div class="po-collapsible__body" id="po-section-tax-documents">
+              <div class="po-collapsible__inner">
+                <p class="gr-field-hint">If you pass the IRS threshold, your 1099-K shows up here by January 31.</p>
+                <div id="po-documents" class="po-documents"></div>
               </div>
             </div>
           </section>

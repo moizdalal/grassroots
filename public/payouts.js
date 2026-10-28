@@ -3,7 +3,7 @@ import { getSupabaseClient } from "/supabase-loader.js";
 const $ = (id) => document.getElementById(id);
 let pollInterval = null;
 let stripeConnect = null;
-let mountedComponents = { onboarding: false, management: false, payouts: false };
+let mountedComponents = { onboarding: false, management: false, payouts: false, documents: false };
 
 // Read a theme token off the root, with a fallback for safety.
 function tk(name, fallback = "") {
@@ -195,6 +195,7 @@ async function refreshStatus(client) {
       refreshBalanceSummary(client);
       mountAccountManagement();
       mountPayouts();
+      mountDocuments();
       stopPolling();
     } else {
       dot.dataset.state = data.details_submitted ? "review" : "pending";
@@ -292,6 +293,54 @@ function mountPayouts() {
   mountedComponents.payouts = true;
 }
 
+function mountDocuments() {
+  if (mountedComponents.documents || !stripeConnect) return;
+  const documents = stripeConnect.create("documents");
+  $("po-documents").appendChild(documents);
+  mountedComponents.documents = true;
+}
+
+// US-person attestation. The server refuses an account session until one
+// is on file, so this is the only way into the Stripe flow. Resolves once
+// the server has saved it.
+function showAttestation(client, version) {
+  const section = $("po-attest");
+  const checkbox = $("po-attest-checkbox");
+  const submit = $("po-attest-submit");
+  const error = $("po-attest-error");
+  $("po-gate").hidden = true;
+  section.hidden = false;
+  checkbox.addEventListener("change", () => { submit.disabled = !checkbox.checked; });
+  return new Promise((resolve) => {
+    submit.addEventListener("click", async () => {
+      if (!checkbox.checked) return;
+      submit.disabled = true;
+      error.hidden = true;
+      try {
+        const res = await authedFetch(client, "/api/stripe/us-person-attestation", {
+          method: "POST",
+          body: JSON.stringify({ us_person: true, version }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Could not save your confirmation.");
+        section.hidden = true;
+        $("po-gate").hidden = false;
+        resolve();
+      } catch (err) {
+        error.textContent = err.message;
+        error.hidden = false;
+        submit.disabled = !checkbox.checked;
+      }
+    });
+  });
+}
+
+async function requestAccountSession(client) {
+  const res = await authedFetch(client, "/api/stripe/account-session", { method: "POST" });
+  const data = await res.json().catch(() => ({}));
+  return { res, data };
+}
+
 async function init() {
   const gate = $("po-gate");
   try {
@@ -308,8 +357,11 @@ async function init() {
       return;
     }
 
-    const sessionRes = await authedFetch(client, "/api/stripe/account-session", { method: "POST" });
-    const sessionData = await sessionRes.json();
+    let { res: sessionRes, data: sessionData } = await requestAccountSession(client);
+    if (sessionRes.status === 403 && sessionData.code === "attestation_required") {
+      await showAttestation(client, sessionData.attestation_version);
+      ({ res: sessionRes, data: sessionData } = await requestAccountSession(client));
+    }
     if (!sessionRes.ok) throw new Error(sessionData.error || "Could not start onboarding.");
 
     // The v1.0 script-tag SDK exposes `StripeConnect.init(...)` (sync,
@@ -338,6 +390,10 @@ async function init() {
     });
 
     const onboarding = stripeConnect.create("account-onboarding");
+    // Collect eventually_due fields now (full SSN/ITIN, not just the last
+    // 4) so the IRS TIN match runs at setup instead of blocking a payout
+    // mid-engagement once the consultant nears the 1099-K threshold.
+    onboarding.setCollectionOptions({ fields: "eventually_due", futureRequirements: "include" });
     onboarding.setOnExit(() => refreshStatus(client));
     $("po-onboarding").appendChild(onboarding);
     mountedComponents.onboarding = true;

@@ -2059,13 +2059,30 @@ const CONSULTANT_BUSINESS_PROFILE = {
     "Independent consulting services arranged through the Grassroots Marketplace.",
 };
 
+/* US-person gate. Stripe files 1099-K for US persons only; nonresident
+   aliens (most F-1 students, even with OPT/CPT) need W-8BEN + 1042-S,
+   which Stripe doesn't support. So consultants attest before we create
+   or reopen their Stripe account. Bump the version when the wording in
+   payouts.html changes so everyone is asked again. */
+const US_PERSON_ATTESTATION_VERSION = "2026-10-28";
+
+function attestationRequiredError() {
+  const err = new Error("Confirm you're a US person for tax purposes before setting up payouts.");
+  err.code = "attestation_required";
+  err.status = 403;
+  return err;
+}
+
 async function ensureConsultantStripeAccount(viewerId) {
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("id, role, full_name, stripe_account_id, stripe_account_status")
+    .select("id, role, full_name, stripe_account_id, stripe_account_status, us_person_attested_at, us_person_attestation_version")
     .eq("id", viewerId)
     .maybeSingle();
   if (error) {
+    if (/us_person_attest/i.test(error.message || "")) {
+      throw new Error("Attestation schema not deployed yet — run supabase/migrations/add_us_person_attestation.sql.");
+    }
     if (/stripe_account_id|stripe_account_status|column .* does not exist/i.test(error.message || "")) {
       throw new Error("Payments schema not deployed yet — run supabase/migrations/add_stripe_fields.sql.");
     }
@@ -2073,6 +2090,11 @@ async function ensureConsultantStripeAccount(viewerId) {
   }
   if (!profile) throw new Error("Profile not found.");
   if (profile.role !== "consultant") throw new Error("Only consultants can set up payouts.");
+  // Fail closed: no attestation (or an outdated one) means no Stripe session,
+  // including for accounts created before this gate existed.
+  if (!profile.us_person_attested_at || profile.us_person_attestation_version !== US_PERSON_ATTESTATION_VERSION) {
+    throw attestationRequiredError();
+  }
 
   if (profile.stripe_account_id) {
     // Account already exists — backfill business_profile if Stripe still
@@ -2091,6 +2113,9 @@ async function ensureConsultantStripeAccount(viewerId) {
 
   const account = await stripe.accounts.create({
     type: "custom",
+    // US-only: 1099-K reporting needs a US TIN, and the attestation above
+    // already limits consultants to US persons.
+    country: "US",
     capabilities: {
       transfers: { requested: true },
       card_payments: { requested: true },
@@ -2134,6 +2159,37 @@ async function ensureOwnerStripeCustomer(viewerId) {
   return { ...profile, stripe_customer_id: customer.id };
 }
 
+// Consultant: record the US-person attestation that gates payout setup.
+app.post("/api/stripe/us-person-attestation", async (req, res) => {
+  const viewer = await getViewerFromRequest(req);
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
+  if (req.body?.us_person !== true || req.body?.version !== US_PERSON_ATTESTATION_VERSION) {
+    return res.status(400).json({ error: "Confirm the statement to continue." });
+  }
+  try {
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", viewer.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (profile?.role !== "consultant") {
+      return res.status(403).json({ error: "Only consultants can set up payouts." });
+    }
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({
+        us_person_attested_at: new Date().toISOString(),
+        us_person_attestation_version: US_PERSON_ATTESTATION_VERSION,
+      })
+      .eq("id", viewer.id);
+    if (updateError) throw new Error(updateError.message);
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "Could not save your confirmation." });
+  }
+});
+
 // Consultant: open the embedded onboarding component in our own UI.
 app.post("/api/stripe/account-session", async (req, res) => {
   if (!requireStripe(res)) return;
@@ -2147,6 +2203,8 @@ app.post("/api/stripe/account-session", async (req, res) => {
         account_onboarding: { enabled: true },
         account_management: { enabled: true },
         payouts: { enabled: true },
+        // Lets consultants download the 1099-K Stripe files for them.
+        documents: { enabled: true },
       },
     });
     return res.json({
@@ -2155,6 +2213,13 @@ app.post("/api/stripe/account-session", async (req, res) => {
       account_id: profile.stripe_account_id,
     });
   } catch (err) {
+    if (err.code === "attestation_required") {
+      return res.status(err.status).json({
+        error: err.message,
+        code: err.code,
+        attestation_version: US_PERSON_ATTESTATION_VERSION,
+      });
+    }
     return res.status(500).json({ error: err.message || "Could not create account session." });
   }
 });
@@ -2189,7 +2254,10 @@ app.get("/api/stripe/account-status", async (req, res) => {
       charges_enabled: charges,
       payouts_enabled: payouts,
       details_submitted: !!account.details_submitted,
-      requirements_due: account.requirements?.currently_due || [],
+      // eventually_due is a superset of currently_due. Onboarding collects
+      // eventually_due fields up front (full SSN for the 1099-K), so list
+      // those too rather than only what blocks payouts today.
+      requirements_due: account.requirements?.eventually_due || account.requirements?.currently_due || [],
     });
   } catch (err) {
     return res.status(500).json({ error: err.message || "Could not load account status." });
