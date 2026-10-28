@@ -1,6 +1,7 @@
 import { getSupabaseClient } from "/supabase-loader.js";
 import { renderRatingMarkup, fetchRatingFor, forgetRating } from "/rating.js";
 import { showSuccess, showError, showInfo } from "/toast.js";
+import { notifyEvent } from "/notify-event.js";
 import { confirmDialog } from "/confirm-modal.js";
 // payment-modal is only needed when the owner taps "pay service fee".
 // Lazy-load on demand so engagement.html stays light on first paint.
@@ -1034,6 +1035,7 @@ async function submitBusinessReview() {
       `/engagement.html?bid=${currentBid.id}`,
       "business_review"
       );
+      notifyEvent(supabase, "business_review", { bid_id: currentBid.id });
     }
     showSuccess("Your review has been saved.");
     renderBusinessReview();
@@ -1984,6 +1986,7 @@ async function submitReview() {
         cost_value: reviewRatings.cost_value,
         endorsement: endorsement || null,
       });
+      if (reviewStore === "remote") notifyEvent(supabase, "consultant_review", { bid_id: currentBid.id });
       scheduleState = await saveSchedule({
         ...(scheduleState || getDefaultSchedule()),
         status: "completed",

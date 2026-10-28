@@ -1386,3 +1386,63 @@ body.adm-body {
 .adm-pay-split__row .gr-label { flex: 1; min-width: 9rem; }
 .adm-pay-split__row .gr-label input { width: 100%; }
 .adm-pay-split textarea { width: 100%; }
+
+/* ============================================================== */
+/*                          EMAILS TAB                             */
+/* Usage vs the Resend plan caps. Meter turns warm at 70% of a cap. */
+.adm-kpis--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1180px) { .adm-kpis--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.adm-email-of {
+  font-family: var(--font-body);
+  font-size: var(--type-meta);
+  font-weight: 400;
+  color: var(--fo-text-3);
+}
+.adm-email-meter {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--fo-surface-2);
+  overflow: hidden;
+  margin: 0.2rem 0;
+}
+.adm-email-meter__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+.adm-email-meter__fill--good { background: var(--fo-accent); }
+.adm-email-meter__fill--warn { background: var(--fo-accent-warm); }
+
+.adm-email-bar--failed { fill: var(--fo-accent-warm); }
+.adm-email-cap {
+  stroke: var(--fo-accent-warm);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 5;
+  vector-effect: non-scaling-stroke;
+}
+.adm-email-cap__label {
+  fill: var(--fo-accent-warm);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.adm-email-events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+.adm-email-events__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: var(--type-body-sm, 0.92rem);
+  color: var(--fo-text);
+}
+.adm-email-events__n {
+  font-variant-numeric: tabular-nums;
+  color: var(--fo-text-2);
+}

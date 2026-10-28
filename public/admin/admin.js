@@ -186,6 +186,11 @@ function activateTab(name) {
         .then((m) => m.renderPayments())
         .catch((err) => console.warn("payments tab failed to load", err));
       break;
+    case "emails":
+      import("./emails.js")
+        .then((m) => m.renderEmails())
+        .catch((err) => console.warn("emails tab failed to load", err));
+      break;
   }
 }
 
