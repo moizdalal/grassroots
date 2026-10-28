@@ -6237,6 +6237,147 @@ app.get("/api/admin/emails", async (req, res) => {
 });
 
 /* ──────────────────────────────────────────────────────────────
+   ADMIN MARKETPLACE DATA — feeds the overview / users / engagements /
+   calendar tabs. Returns the raw rows in the shape the admin page's
+   aggregates expect; the page derives every KPI and chart from them.
+   An engagement is an accepted bid; its kickoff is the selected slot
+   on engagement_schedules.
+   ────────────────────────────────────────────────────────────── */
+
+// Page through a table (PostgREST caps a response at 1,000 rows).
+async function adminSelectAll(table, columns) {
+  const rows = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase.from(table).select(columns).range(from, from + 999);
+    if (error) throw new Error(`${table}: ${error.message}`);
+    rows.push(...(data || []));
+    if (!data || data.length < 1000 || rows.length >= 50000) break;
+  }
+  return rows;
+}
+
+// Stable avatar hue per user so colors don't shuffle between loads.
+function adminHue(id) {
+  let h = 0;
+  for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return h % 360;
+}
+
+app.get("/api/admin/marketplace", async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+
+  try {
+    const [profiles, consultantProfiles, businessProfiles, listingRows, bidRows, schedules, ratings] = await Promise.all([
+      adminSelectAll("profiles", "id, role, full_name, created_at"),
+      adminSelectAll("consultant_profiles", "user_id, school, major, city"),
+      adminSelectAll("business_profiles", "user_id, business_name, business_address"),
+      adminSelectAll("listings", "id, owner_id, title, category, contract_type, budget_cents, turnaround_days, status, created_at, business_display_name"),
+      adminSelectAll("bids", "id, listing_id, consultant_id, amount_cents, payment_amount_cents, status, payment_status, created_at, accepted_at, delivered_at, released_at"),
+      adminSelectAll("engagement_schedules", "bid_id, selected_start, status"),
+      adminSelectAll("consultant_review_summary", "consultant_id, rating_average"),
+    ]);
+
+    const cpBy = new Map(consultantProfiles.map((r) => [r.user_id, r]));
+    const bpBy = new Map(businessProfiles.map((r) => [r.user_id, r]));
+    const ratingBy = new Map(ratings.map((r) => [r.consultant_id, r.rating_average]));
+
+    const users = profiles
+      .filter((p) => p.role === "consultant" || p.role === "business_owner")
+      .map((p) => {
+        const cp = cpBy.get(p.id) || {};
+        const bp = bpBy.get(p.id) || {};
+        const rating = ratingBy.get(p.id);
+        return {
+          id: p.id,
+          name: p.full_name || "Unnamed user",
+          role: p.role,
+          school: cp.school || null,
+          major: cp.major || null,
+          business_name: bp.business_name || null,
+          city: cp.city || bp.business_address || null,
+          joined_at: p.created_at,
+          rating: rating != null ? Number(rating) : null,
+          hue: adminHue(p.id),
+        };
+      });
+    const userBy = new Map(users.map((u) => [u.id, u]));
+
+    const listings = listingRows.map((l) => {
+      const owner = userBy.get(l.owner_id);
+      return {
+        id: l.id,
+        title: l.title || "Untitled listing",
+        owner_id: l.owner_id,
+        owner_name: l.business_display_name || owner?.business_name || owner?.name || "—",
+        category: l.category || null,
+        contract_type: l.contract_type || "standard",
+        budget_cents: l.budget_cents,
+        turnaround_days: l.turnaround_days,
+        status: l.status,
+        created_at: l.created_at,
+        city: owner?.city || null,
+      };
+    });
+    const listingBy = new Map(listings.map((l) => [l.id, l]));
+
+    const bids = bidRows.map((b) => ({
+      id: b.id,
+      listing_id: b.listing_id,
+      consultant_id: b.consultant_id,
+      consultant_name: userBy.get(b.consultant_id)?.name || "—",
+      amount_cents: b.payment_amount_cents ?? b.amount_cents ?? 0,
+      status: b.status,
+      payment_status: b.payment_status || "unpaid",
+      submitted_at: b.created_at,
+    }));
+
+    const kickoffBy = new Map(
+      schedules.filter((s) => s.bid_id && s.selected_start).map((s) => [s.bid_id, s.selected_start]),
+    );
+
+    const engagements = bidRows
+      .filter((b) => b.status === "accepted")
+      .map((b) => {
+        const listing = listingBy.get(b.listing_id);
+        const consultant = userBy.get(b.consultant_id);
+        const kickoff_at = kickoffBy.get(b.id) || null;
+        const stage = b.payment_status === "released" ? 5
+          : b.delivered_at ? 4
+          : kickoff_at ? 3
+          : 2;
+        return {
+          id: b.id,
+          bid_id: b.id,
+          listing_id: b.listing_id,
+          listing_title: listing?.title || "Untitled listing",
+          listing_category: listing?.category || null,
+          contract_type: listing?.contract_type || "standard",
+          consultant_id: b.consultant_id,
+          consultant_name: consultant?.name || "—",
+          consultant_school: consultant?.school || null,
+          owner_id: listing?.owner_id || null,
+          owner_name: listing?.owner_name || "—",
+          owner_city: listing?.city || null,
+          amount_cents: b.payment_amount_cents ?? b.amount_cents ?? 0,
+          stage,
+          payment_status: b.payment_status || "unpaid",
+          kickoff_at,
+          completed_at: b.delivered_at,
+          released_at: b.payment_status === "released" ? b.released_at : null,
+          created_at: b.accepted_at || b.created_at,
+        };
+      });
+
+    return res.json({ now: new Date().toISOString(), users, listings, bids, engagements });
+  } catch (err) {
+    console.error("admin marketplace:", err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+/* ──────────────────────────────────────────────────────────────
    HEALTH TAB — real-user perf ingest + admin read endpoints.
    The browser beacon at /perf-beacon.js POSTs one row per page
    view to /api/metrics/page-load. The admin "health" tab queries
