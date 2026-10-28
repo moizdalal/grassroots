@@ -5560,9 +5560,64 @@ button.gr-bid-link {
   color: var(--fo-text-3);
 }
 
+/* US-person attestation (shown before the Stripe flow). Flat on the
+   page like the rest of /payouts.html; the checkbox row borrows the
+   bordered consent row from register (.reg-consent). */
+.po-attest {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  max-width: 36rem;
+  margin: var(--space-4) 0 var(--space-5);
+}
+
+.po-attest[hidden] {
+  display: none;
+}
+
+.po-attest__lede {
+  margin: 0;
+  color: var(--fo-text-2);
+  line-height: 1.5;
+}
+
+.po-attest__check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--card-border, var(--fo-line));
+  border-radius: 10px;
+  font-size: var(--type-meta);
+  color: var(--fo-text);
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.po-attest__check input[type="checkbox"] {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--fo-accent);
+  cursor: pointer;
+}
+
+.po-attest__hint {
+  margin: 0;
+}
+
+.po-attest__hint a {
+  color: var(--fo-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
 .po-onboarding,
 .po-management,
-.po-payouts {
+.po-payouts,
+.po-documents {
   background: transparent;
   border: 0;
   border-radius: 0;
