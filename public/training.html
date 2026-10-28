@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Grassroots — consultant training</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
+    <link rel="stylesheet" href="/grassroots.css" />
+    <link rel="stylesheet" href="/field-office.css" />
+    <link rel="stylesheet" href="/training.css" />
+    <script src="/theme.js"></script>
+    <script src="/cookie-banner.js" defer></script>
+    <script src="/loading-overlay.js"></script>
+  </head>
+  <body class="gr-body"><main class="gr-shell gr-shell--wide">
+      <p id="gate" class="gr-status" data-loading="true" aria-live="polite">Loading…</p>
+      <div id="tr-root" hidden></div>
+    </main>
+
+    <script type="module" src="/nav-session.js"></script>
+    <script type="module">
+      import { getSupabaseClient } from "/supabase-loader.js";
+      import { mountTraining } from "/training.js";
+
+      const gate = document.getElementById("gate");
+      const root = document.getElementById("tr-root");
+      const isMissing = (err) =>
+        !!err && /(does not exist|not found|could not find the table)/i.test(err.message || "");
+
+      function showGate(html, kind = "") {
+        gate.dataset.loading = "false";
+        gate.className = `gr-status ${kind}`.trim();
+        gate.innerHTML = html;
+      }
+
+      async function init() {
+        try {
+          const client = await getSupabaseClient();
+          const { data: { session } } = await client.auth.getSession();
+          if (!session) {
+            window.location.replace("/signin.html?next=/training.html");
+            return;
+          }
+          const userId = session.user.id;
+          const { data: profile, error } = await client
+            .from("profiles")
+            .select("role")
+            .eq("id", userId)
+            .single();
+          if (error) throw error;
+
+          // Training is for consultants only.
+          if (profile?.role !== "consultant") {
+            showGate('Training is for consultants. <a href="/dashboard.html">Go to your dashboard</a>.');
+            return;
+          }
+
+          mountTraining(root, {
+            userId,
+            async loadLatest() {
+              // A pass counts forever, so show it over any later attempt.
+              const { data, error } = await client
+                .from("training_quiz_attempts")
+                .select("score, total, passed, created_at")
+                .eq("user_id", userId)
+                .not("submitted_at", "is", null)
+                .order("passed", { ascending: false })
+                .order("created_at", { ascending: false })
+                .limit(1);
+              if (error && !isMissing(error)) throw error;
+              return data?.[0] || null;
+            },
+            async startQuiz() {
+              const { data, error } = await client.rpc("start_training_quiz");
+              if (error) throw error;
+              return data;
+            },
+            async submitQuiz(attemptId, answers) {
+              const { data, error } = await client.rpc("submit_training_quiz", {
+                p_attempt_id: attemptId,
+                p_answers: answers,
+              });
+              if (error) throw error;
+              return data;
+            },
+          });
+
+          gate.hidden = true;
+          root.hidden = false;
+        } catch (err) {
+          showGate(err.message || "Could not load training.", "error");
+        }
+      }
+
+      init();
+    </script>
+    <script type="module" src="/side-nav.js"></script>
+    <script defer src="/perf-beacon.js"></script>
+  </body>
+</html>

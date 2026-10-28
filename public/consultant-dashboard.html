@@ -93,6 +93,15 @@
             </span>
             <span class="bza__nav-label">Payouts</span>
           </a>
+          <a href="/training.html" class="bza__nav-item" title="Training">
+            <span class="bza__nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 10 12 5l10 5-10 5z"/>
+                <path d="M6 12v5c3 2 9 2 12 0v-5"/>
+              </svg>
+            </span>
+            <span class="bza__nav-label">Training</span>
+          </a>
 
           <!-- Hairline separating "what you do" (primary) from
                "account / system" (secondary). One rule, no labels. -->
@@ -150,6 +159,13 @@
           <!-- Payouts nudge — shown when the consultant has no engagements
                yet AND hasn't completed stripe onboarding. JS in
                consultant-dashboard.js toggles the hidden attribute. -->
+          <!-- Training nudge — shown until the consultant passes the quiz
+               (consultants with earlier offers are exempt). Offers are
+               blocked in the database until then. -->
+          <a class="bza__banner" id="cdash-training-banner" href="/training.html" hidden>
+            <span>Pass consultant training before you send your first offer.</span>
+            <span aria-hidden="true">→</span>
+          </a>
           <a class="bza__banner" id="cdash-payouts-banner" href="/payouts.html" hidden>
             <span>Set up payouts before your first offer comes in.</span>
             <span aria-hidden="true">→</span>
