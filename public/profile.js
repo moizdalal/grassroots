@@ -1,9 +1,16 @@
 import { getSupabaseClient } from "/supabase-loader.js";
 import { formatBudgetRange, parseBudgetRange } from "/sim-budget.js";
-import { getInitials } from "/initials.js";
 import { renderRatingMarkup } from "/rating.js";
 import { showSuccess, showError, showLoading } from "/toast.js";
 import { cropToSquare } from "/avatar-cropper.js";
+import {
+  renderConsultantBioHtml,
+  renderConsultantPastWorkHtml,
+  loadConsultantEngagements,
+  renderResumeEmbedHtml,
+  fetchResumeUrl,
+  RESUME_HIDDEN_HTML,
+} from "/consultant-viewer.js";
 
 const form = document.getElementById("profile-form");
 const gateEl = document.getElementById("profile-gate");
@@ -585,58 +592,6 @@ function getStorageFileName(filePath) {
   return String(filePath || "").split("/").pop() || "resume";
 }
 
-function getResumeActionMarkup(fileName, options = {}) {
-  const {
-    previewLabel = "Preview resume",
-    source = "self",
-    consultantId = "",
-    manage = false,
-  } = options;
-  const safeFileName = fileName || "resume";
-  const manageMarkup = manage
-    ? `
-      <button
-        type="button"
-        class="pf-bv__resume-btn pf-bv__resume-btn--manage"
-        data-resume-action="replace"
-      >Replace</button>
-      <button
-        type="button"
-        class="pf-bv__resume-btn pf-bv__resume-btn--danger"
-        data-resume-action="remove"
-      >Remove</button>
-    `
-    : "";
-  return `
-    <span class="pf-bv__resume-actions">
-      <button
-        type="button"
-        class="pf-bv__resume-btn"
-        data-resume-action="preview"
-        data-resume-source="${escapeAttr(source)}"
-        ${consultantId ? `data-resume-consultant-id="${escapeAttr(consultantId)}"` : ""}
-        data-resume-file-name="${escapeAttr(safeFileName)}"
-      >${escapeHtml(previewLabel)}</button>
-      <button
-        type="button"
-        class="pf-bv__resume-download"
-        data-resume-action="download"
-        data-resume-source="${escapeAttr(source)}"
-        ${consultantId ? `data-resume-consultant-id="${escapeAttr(consultantId)}"` : ""}
-        data-resume-file-name="${escapeAttr(safeFileName)}"
-        aria-label="Download resume"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M12 4v10"></path>
-          <path d="m8 10 4 4 4-4"></path>
-          <path d="M5 19h14"></path>
-        </svg>
-      </button>
-      ${manageMarkup}
-    </span>
-  `;
-}
-
 function openResumeViewer(url, fileName = "resume") {
   if (!resumeViewer || !resumeViewerFrame || !resumeViewerTitle || !resumeViewerDownload || !url) return;
   resumeViewerTitle.textContent = fileName;
@@ -948,151 +903,38 @@ async function handlePortfolioUpload() {
 async function renderBusinessPreview() {
   if (!businessView || !profileRow) return;
 
-  // Mirror the canonical consultant viewer modal that businesses see
-  // when they click a bid on their listing (see renderConsultantViewerContent
-  // + renderConsultantPastWorkPanel + loadResumePanel in listing.js). The
-  // settings preview should look identical: same title bar, same three
-  // tabs (bio / resume / past work), same panel content. Drop the
-  // proposal index + offer chrome from the bar — those are listing-flow
-  // artifacts and don't apply when the consultant is previewing themselves.
+  // Same panels a business sees when they open this consultant's offer
+  // on listing.html — both pages render from /api/consultant-profile/:id
+  // through consultant-viewer.js, so the preview can't drift. Only the
+  // offer chrome differs: no proposal index or amount/timeline, and the
+  // pitch tab shows a placeholder since pitches are written per offer.
 
   businessView.classList.add("pf-business-view--tabbed");
 
-  const cp = getRelatedRow(profileRow.consultant_profiles);
-  const avatarUrl = currentAvatarPath
-    ? supabase.storage.from("avatars").getPublicUrl(currentAvatarPath).data?.publicUrl
-    : null;
-  const name = profileRow.full_name || "consultant";
-  const linkedin = profileRow.linkedin_url || "";
-  const major = cp?.major || "";
-  const minor = cp?.minor || "";
-  const school = cp?.school || "";
-  const eduParts = [];
-  if (major) eduParts.push(major);
-  if (minor) eduParts.push(`Minor in ${minor}`);
-  if (school) eduParts.push(school);
-  const eduLine = eduParts.join(" · ");
-
-  // Pull rating aggregates from the same endpoint /my-reviews + the
-  // canonical viewer use, so the bio header chip + per-dim breakdown
-  // match exactly. Best-effort — preview still renders if it 4xxs.
-  let rating = null;
+  let data = null;
+  let loadError = "";
   try {
     const { data: { session } } = await supabase.auth.getSession();
     const headers = {};
     if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
     const res = await fetch(`/api/consultant-profile/${encodeURIComponent(userId)}`, { headers });
-    if (res.ok) {
-      const json = await res.json().catch(() => ({}));
-      rating = json?.rating || null;
-    }
-  } catch (_) { /* best-effort */ }
-
-  const avatarHtml = avatarUrl
-    ? `<img class="pf-bv__avatar" src="${escapeHtml(avatarUrl)}" alt="" />`
-    : `<div class="pf-bv__avatar-placeholder" aria-hidden="true">${escapeHtml(getInitials(name))}</div>`;
-
-  const dims = [
-    ["Work product", rating?.work_product_quality_avg],
-    ["communication", rating?.communication_avg],
-    ["timeliness", rating?.timeliness_avg],
-    ["professionalism", rating?.professionalism_avg],
-    ["Cost value", rating?.cost_value_avg],
-  ];
-  const ratingBreakdown = rating?.review_count
-    ? `
-      <div class="pf-bv__section">
-        <p class="pf-bv__section-title">Ratings · ${rating.review_count} review${rating.review_count === 1 ? "" : "s"}</p>
-        <div class="ld-cv__rating-grid">
-          ${dims.map(([label, val]) => `
-            <div class="ld-cv__rating-row">
-              <span class="ld-cv__rating-row__label">${label}</span>
-              ${renderRatingMarkup({ rating_average: val, review_count: 1 }, { size: "sm", showCount: false })}
-            </div>
-          `).join("")}
-        </div>
-      </div>
-    `
-    : "";
-
-  const bioPanel = `
-    <div class="pf-bv">
-      <div class="pf-bv__header">
-        ${avatarHtml}
-        <div>
-          <h2 class="pf-bv__name">${escapeHtml(name)}</h2>
-          ${eduLine ? `<p class="pf-bv__meta">${escapeHtml(eduLine)}</p>` : ""}
-        </div>
-      </div>
-      ${ratingBreakdown}
-      ${eduLine ? `
-        <div class="pf-bv__section">
-          <p class="pf-bv__section-title">Education</p>
-          <p class="pf-bv__detail">${escapeHtml(eduLine)}</p>
-        </div>
-      ` : ""}
-      ${linkedin ? `
-        <div class="pf-bv__section">
-          <p class="pf-bv__section-title">LinkedIn</p>
-          <p class="pf-bv__detail"><a href="${escapeHtml(linkedin)}" target="_blank" rel="noopener noreferrer">${escapeHtml(linkedin)}</a></p>
-        </div>
-      ` : ""}
-      ${(!linkedin && !eduLine && !ratingBreakdown) ? `
-        <p class="pf-bv__empty">This consultant hasn't shared any public bio details yet.</p>
-      ` : ""}
-    </div>
-  `;
-
-  const resumePublicEl = getResumePublicToggle();
-  const resumePublic = resumePublicEl ? resumePublicEl.checked : Boolean(profileRow.resume_public);
-  const hasVisibleResume = resumePublic && currentResumePath;
-  let resumePanelHtml;
-  if (hasVisibleResume) {
-    const resumeFileName = getStorageFileName(currentResumePath);
-    resumePanelHtml = `
-      <div class="pf-bv__section">
-        <p class="pf-bv__section-title">Resume</p>
-        <div class="pf-bv__resume-row">
-          ${resumeFileName ? `<span class="pf-bv__detail">${escapeHtml(resumeFileName)}</span>` : ""}
-          ${getResumeActionMarkup(resumeFileName, { source: "self" })}
-        </div>
-      </div>
-    `;
-  } else {
-    const reason = currentResumePath
-      ? "Your resume is uploaded but kept private. Flip 'visible to businesses' to share it."
-      : "This consultant has not made a resume publicly visible.";
-    resumePanelHtml = `<p class="ld-cv__panel-empty">${reason}</p>`;
+    const json = await res.json().catch(() => ({}));
+    if (res.ok && json.profile) data = json;
+    else loadError = json.error || "Could not load your profile preview.";
+  } catch (err) {
+    loadError = err?.message || "Could not load your profile preview.";
   }
 
-  const publicPortfolio = portfolioItems.filter((i) => i.is_public);
-  let workPanelHtml;
-  if (publicPortfolio.length) {
-    workPanelHtml = `
-      <div class="ld-cv__work-section">
-        <p class="ld-cv__work-section-title">Shared files</p>
-        <div class="ld-cv__work-list">
-          ${publicPortfolio.map((item) => {
-            const fileName = (item.file_path || "").split("/").pop() || "file";
-            const url = supabase.storage.from("portfolio").getPublicUrl(item.file_path).data?.publicUrl || "#";
-            return `
-              <div class="ld-cv__work-row">
-                <div>
-                  <p class="ld-cv__work-row__title">${escapeHtml(fileName)}</p>
-                  ${item.description ? `<p class="ld-cv__work-row__scope">${escapeHtml(item.description)}</p>` : ""}
-                  <a class="ld-cv__work-row__file" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Open file ↗</a>
-                </div>
-              </div>
-            `;
-          }).join("")}
-        </div>
-      </div>
-    `;
-  } else {
-    workPanelHtml = `<p class="ld-cv__panel-empty">No past engagements or shared files yet.</p>`;
-  }
+  const engagements = data ? await loadConsultantEngagements(supabase, userId).catch(() => []) : [];
 
-  const titleHtml = `${escapeHtml(name)} ${renderRatingMarkup(rating, { size: "md" })}`;
+  const name = data?.profile?.full_name || profileRow.full_name || "consultant";
+  const titleHtml = data
+    ? `${escapeHtml(name)} ${renderRatingMarkup(data.rating, { size: "md" })}`
+    : escapeHtml(name);
+  const errorHtml = `<p class="gr-status error">${escapeHtml(loadError)}</p>`;
+  const pitchPanel = `<p class="ld-cv__panel-empty">Your pitch shows here. Businesses open this tab first, with the message and files from your offer.</p>`;
+  const bioPanel = data ? renderConsultantBioHtml(data) : errorHtml;
+  const workPanel = data ? renderConsultantPastWorkHtml(engagements, data.portfolio || []) : errorHtml;
 
   businessView.innerHTML = `
     <div class="ld-cv__inner">
@@ -1104,17 +946,36 @@ async function renderBusinessPreview() {
         <button type="button" class="ld-cv__close" data-pf-preview-close aria-label="Close preview">&times;</button>
       </div>
       <div class="ld-cv__tabs" role="tablist" aria-label="Profile preview sections">
-        <button type="button" class="ld-cv__tab is-active" role="tab" data-pf-bv-tab="bio" aria-selected="true">Bio</button>
+        <button type="button" class="ld-cv__tab is-active" role="tab" data-pf-bv-tab="pitch" aria-selected="true">Pitch</button>
+        <button type="button" class="ld-cv__tab" role="tab" data-pf-bv-tab="bio" aria-selected="false">Bio</button>
         <button type="button" class="ld-cv__tab" role="tab" data-pf-bv-tab="resume" aria-selected="false">Resume</button>
         <button type="button" class="ld-cv__tab" role="tab" data-pf-bv-tab="work" aria-selected="false">Past work</button>
       </div>
       <div class="ld-cv__body">
-        <div class="ld-cv__panel is-active" role="tabpanel" data-pf-bv-panel="bio">${bioPanel}</div>
-        <div class="ld-cv__panel" role="tabpanel" data-pf-bv-panel="resume" hidden>${resumePanelHtml}</div>
-        <div class="ld-cv__panel" role="tabpanel" data-pf-bv-panel="work" hidden>${workPanelHtml}</div>
+        <div class="ld-cv__panel is-active" role="tabpanel" data-pf-bv-panel="pitch">${pitchPanel}</div>
+        <div class="ld-cv__panel" role="tabpanel" data-pf-bv-panel="bio" hidden>${bioPanel}</div>
+        <div class="ld-cv__panel" role="tabpanel" data-pf-bv-panel="resume" hidden></div>
+        <div class="ld-cv__panel" role="tabpanel" data-pf-bv-panel="work" hidden>${workPanel}</div>
       </div>
     </div>
   `;
+
+  const resumePanel = businessView.querySelector('[data-pf-bv-panel="resume"]');
+  let resumeLoaded = false;
+  async function loadPreviewResume() {
+    if (resumeLoaded || !resumePanel) return;
+    resumeLoaded = true;
+    if (!data) { resumePanel.innerHTML = errorHtml; return; }
+    if (!data.profile.resume_on_file) { resumePanel.innerHTML = RESUME_HIDDEN_HTML; return; }
+    resumePanel.innerHTML = `<p class="gr-status">Loading resume…</p>`;
+    try {
+      const body = await fetchResumeUrl(supabase, userId);
+      resumePanel.innerHTML = renderResumeEmbedHtml(body.url, body.file_name);
+    } catch (err) {
+      resumeLoaded = false;
+      resumePanel.innerHTML = `<p class="gr-status error">${escapeHtml(err?.message || "Could not load resume.")}</p>`;
+    }
+  }
 
   const tabs = businessView.querySelectorAll("[data-pf-bv-tab]");
   const panels = businessView.querySelectorAll("[data-pf-bv-panel]");
@@ -1140,6 +1001,7 @@ async function renderBusinessPreview() {
           p.hidden = true;
         }
       });
+      if (target === "resume") loadPreviewResume();
     });
   });
 }

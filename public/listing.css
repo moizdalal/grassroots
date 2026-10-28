@@ -2014,29 +2014,6 @@ body.ld-modal-open { overflow: hidden; }
 }
 
 /* ---- Bio header meta row (location · projects · joined · LinkedIn) ----- */
-.pf-bv__meta-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem;
-  margin: 0.35rem 0 0;
-  font-size: var(--type-meta);
-  color: var(--fo-text-2);
-}
-
-.pf-bv__dot {
-  color: var(--fo-text-3);
-}
-
-.pf-bv__link {
-  color: var(--fo-accent);
-  text-decoration: none;
-}
-
-.pf-bv__link:hover {
-  text-decoration: underline;
-}
-
 /* ---- Offer form: timeline + supporting files --------------------------- */
 .ld-offer-timeline-row input {
   flex: 1;
