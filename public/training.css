@@ -4,6 +4,13 @@
   margin-bottom: var(--space-5);
 }
 
+/* Fraunces' auto optical size picks its high-contrast display cut at
+   heading sizes, where the f's hairlines break up. Training only for now;
+   see brandkit.md (Type). */
+#tr-root :is(h1, h2, h3) {
+  font-variation-settings: "opsz" 24;
+}
+
 /* .gr-page-eyebrow is documented in brandkit.md but never defined, so the
    tracker is scoped here. body.gr-body beats the universal text-transform
    reset (brandkit "Known cascade traps" #2). */
