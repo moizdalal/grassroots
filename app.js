@@ -1742,6 +1742,8 @@ app.post("/api/register", upload.single("resume"), async (req, res) => {
       await attachInviteUser(supabase, inviteId, userId);
     }
 
+    await emailUser(userId, role === "consultant" ? "welcome_consultant" : "welcome_business", { fullName }, { key: userId });
+
     return res.status(201).json({
       message: "Registration complete.",
       userId,
@@ -1821,6 +1823,8 @@ app.post("/api/oauth-complete", express.json(), async (req, res) => {
     await supabase.auth.admin.updateUserById(userId, {
       user_metadata: { full_name: fullName, role },
     });
+
+    await emailUser(userId, "welcome_business", { fullName }, { key: userId });
 
     return res.status(201).json({ message: "Profile created.", userId, role });
   } catch (error) {
