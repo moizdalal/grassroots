@@ -536,6 +536,16 @@ async function bootRegistration() {
   document.getElementById("field-verified-school")?.addEventListener("change", refreshSchoolHint);
 
   if (!inviteToken) {
+    // "Post a project" links land here with ?role=owner. Students can't
+    // self-register, so the role picker is a dead step; start on account.
+    const ownerRadio = form.querySelector('input[name="role_choice"][value="business_owner"]');
+    if (new URLSearchParams(window.location.search).get("role") === "owner" && ownerRadio) {
+      ownerRadio.checked = true;
+      validateCurrentStep();
+      currentStep = 1;
+      showSlide(1);
+      return;
+    }
     showSlide(0);
     return;
   }

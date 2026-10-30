@@ -563,6 +563,15 @@ form.is-final .reg-consent {
   border-color: var(--fo-plan, #cc6666);
 }
 
+/* Empty until desktop-hint.js fills it on phones. */
+.reg-desktop-hint:empty {
+  display: none;
+}
+
+.reg-desktop-hint {
+  margin-top: var(--space-2);
+}
+
 /* --- Responsive --- */
 @media (max-width: 520px) {
   .reg-role-cards {
@@ -571,6 +580,11 @@ form.is-final .reg-consent {
 
   .reg-field-grid--2 {
     grid-template-columns: 1fr;
+  }
+
+  /* The feedback bubble sits on top of the create account row. */
+  .gr-suggest-btn {
+    display: none;
   }
 }
 

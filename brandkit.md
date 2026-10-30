@@ -233,6 +233,14 @@ While the banner is visible, `body` gets bottom padding (5.5rem; 7.5rem at ≤ 5
 
 Don't render the banner on `/region-unavailable.html` (the geo-block page); the script skips that path. If you add other "no-account" landing pages, add their paths to the skip list in `cookie-banner.js`.
 
+### `.gr-desktop-hint` — "works best on a computer" note
+
+Inline, dismissible note rendered by `desktop-hint.js` into the first `[data-desktop-hint]` mount on the page. Shows only on touch screens ≤ 720 px (`(max-width: 720px) and (pointer: coarse)`), until dismissed once (`localStorage["grassroots_desktop_hint_dismissed"] = "1"`, shared across pages). It informs and never blocks signup. It sits in the document flow, never fixed, so it can't stack with the cookie banner. Border-only in dark themes, `--fo-surface-2` fill in light. Mounts today: landing hero under the CTAs, register page under the subtitle. Give each mount an `:empty { display: none }` rule so desktop layouts don't keep its margin.
+
+### Touch-screen form fields
+
+`grassroots.css` forces `font-size: max(16px, 1em)` on every text field, select and textarea under `(pointer: coarse)`. iOS Safari zooms into any focused field under 16 px and stays zoomed. Don't set a field's font-size below that on touch screens.
+
 ### `.ld-cv__deal` — offer terms block
 
 The headline of the consultant offer viewer (`listing.html`): two side-by-side `.ld-cv__deal-item` boxes, **Offer** (amount, `--type-h2`, `--fo-accent`) and **Timeline** (days, `--type-h2`, `--fo-text`). Labels are `--type-eyebrow` uppercase in `--fo-text-3`. Border-only in dark themes; `--fo-surface-2` fill in light only. The pitch message never goes here — it lives in the default **Pitch** tab with its supporting files (`.ld-cv__file` rows, same border-only rule).

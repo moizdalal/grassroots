@@ -58,14 +58,15 @@
 
     <link rel="stylesheet" href="/grassroots.css" />
     <link rel="stylesheet" href="/field-office.css" />
-    <link rel="stylesheet" href="/garden-stem.css" />
-    <link rel="stylesheet" href="/home/nav.css?v=4" />
-    <link rel="stylesheet" href="/home/index.css?v=21" />
+    <link rel="stylesheet" href="/garden-stem.css?v=2" />
+    <link rel="stylesheet" href="/home/nav.css?v=6" />
+    <link rel="stylesheet" href="/home/index.css?v=27" />
     <script src="/theme.js?v=2"></script>
     <script src="/home/theme-default.js"></script>
     <script src="/placeholders.js"></script>
     <script src="/home/nav.js?v=3" defer></script>
     <script src="/cookie-banner.js" defer></script>
+    <script src="/desktop-hint.js" defer></script>
   </head>
 
   <body class="gr-body">
@@ -197,6 +198,7 @@
             <a class="gr-btn gr-btn--primary gr-btn--lg" href="/register.html?role=owner">Post a project</a>
             <a class="gr-btn gr-btn--ghost gr-btn--lg" href="/marketplace.html?guest=1">See what's live</a>
           </div>
+          <div class="ld-hero__desktop-hint" data-desktop-hint></div>
 
           <div class="ld-trust-row ld-reveal" aria-label="Recent activity" hidden data-placeholder="Real weekly business count and number of towns">
             <span class="ld-trust-row__avatars" aria-hidden="true">
@@ -214,7 +216,7 @@
             <div class="ld-hero__cards" id="ld-hero-cards" aria-hidden="true"></div>
             <div class="ld-hero__garden" id="ld-hero-garden" aria-hidden="true"></div>
             <p class="ld-hero__visual-caption">
-              Every business above grows a garden like this. Each root is <span class="ld-italic">a paid project</span>. Hover any to peek.
+              Every business above grows a garden like this. Each root is <span class="ld-italic">a paid project</span>. <span class="ld-peek-verb--hover">Hover</span><span class="ld-peek-verb--tap">Tap</span> any to peek.
             </p>
           </div>
         </div>
@@ -678,7 +680,7 @@
          motion. The pool of listings cycles through the floating
          hero cards over the top. -->
     <script type="module">
-      import { mountGardenStem } from "/garden-stem.js";
+      import { mountGardenStem } from "/garden-stem.js?v=4";
 
       const HERO_ROOTS = [
         { bidId: "hero-1", listingId: "hero-listing-1",
