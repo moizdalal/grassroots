@@ -38,15 +38,22 @@
     hint.className = "gr-desktop-hint";
     hint.setAttribute("role", "note");
     hint.innerHTML =
-      '<svg class="gr-desktop-hint__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<svg class="gr-desktop-hint__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
         '<rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2 19h20"/>' +
       "</svg>" +
       '<p class="gr-desktop-hint__msg">Grassroots works best on a computer. You can still sign up from your phone.</p>' +
       '<button class="gr-desktop-hint__dismiss" type="button" aria-label="Dismiss">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
       "</button>";
 
     mount.appendChild(hint);
+    // The styles live in grassroots.css, which a CDN can cache for hours
+    // after a deploy. If they didn't load, show nothing rather than an
+    // unstyled note (the width/height attributes above are a backstop).
+    if (getComputedStyle(hint).display !== "flex") {
+      hint.remove();
+      return;
+    }
     hint.querySelector(".gr-desktop-hint__dismiss").addEventListener("click", function () {
       safeWrite("1");
       hint.remove();
