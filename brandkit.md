@@ -25,7 +25,7 @@ Warm-direct. Sentence case, second person, ~10-word sentences, no exclamation po
 
 Two fonts, one rhythm. Loaded from Google Fonts in each page head (`Fraunces:opsz,wght@9..144,400..700` and `Figtree:ital,wght@0,300..900;1,300..900`).
 
-- **Fraunces** (serif, variable weight + opsz axis) — `--font-display`. All headings (h1-h4, page/section/card titles), hero numbers, and the logo wordmark. Always weight 600, upright, never italic.
+- **Fraunces** (serif, variable weight + opsz axis) — `--font-display`. All headings (h1-h4, page/section/card titles), hero numbers, and the logo wordmark. Always weight 600, upright, never italic. Exception under trial: the training page (`training.css`) pins headings to `"opsz" 24` because the auto display cut renders thin, broken-looking f's. If it holds up, roll it out site-wide.
 - **Figtree** (sans, variable weight 300-900) — `--font-body`. Body copy, buttons, inputs, nav, labels, eyebrows.
 
 Point every `font-family` at the tokens (`var(--font-display)`, `var(--font-body)`); don't hardcode family names. `grassroots.css` also sets h1-h4 to display, 600, upright. Manrope, Inter, Syne, Caveat and JetBrains Mono are retired. For numbers that must align (amounts in tables), use Figtree with `font-variant-numeric: tabular-nums` rather than a monospace.
