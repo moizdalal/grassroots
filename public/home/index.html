@@ -60,9 +60,27 @@
     <link rel="stylesheet" href="/field-office.css" />
     <link rel="stylesheet" href="/garden-stem.css?v=2" />
     <link rel="stylesheet" href="/home/nav.css?v=6" />
-    <link rel="stylesheet" href="/home/index.css?v=27" />
+    <link rel="stylesheet" href="/home/index.css?v=30" />
     <script src="/theme.js?v=2"></script>
     <script src="/home/theme-default.js"></script>
+    <script>
+      // Lite hero: a still picture instead of the animated garden, clouds
+      // and blurred layers. Decided before first paint so CSS and the hero
+      // script agree. Touch/no-hover or narrow screens, few cores, little
+      // memory, data saver, or reduced motion. Desktops that pass this but
+      // still can't hold ~30fps get switched over by the hero script.
+      (function () {
+        var mq = function (q) { return !!(window.matchMedia && window.matchMedia(q).matches); };
+        var nav = navigator, conn = nav.connection || {};
+        if (
+          mq("(hover: none), (pointer: coarse), (max-width: 720px)") ||
+          mq("(prefers-reduced-motion: reduce)") ||
+          (nav.hardwareConcurrency && nav.hardwareConcurrency <= 4) ||
+          (nav.deviceMemory && nav.deviceMemory <= 4) ||
+          conn.saveData === true
+        ) document.documentElement.classList.add("ld-lite");
+      })();
+    </script>
     <script src="/placeholders.js"></script>
     <script src="/home/nav.js?v=3" defer></script>
     <script src="/cookie-banner.js" defer></script>
@@ -680,7 +698,7 @@
          motion. The pool of listings cycles through the floating
          hero cards over the top. -->
     <script type="module">
-      import { mountGardenStem } from "/garden-stem.js?v=4";
+      import { mountGardenStem } from "/garden-stem.js?v=7";
 
       const HERO_ROOTS = [
         { bidId: "hero-1", listingId: "hero-listing-1",
@@ -710,10 +728,25 @@
       ];
 
       const garden = document.getElementById("ld-hero-garden");
-      // Hero garden: drag-to-reposition stays on so visitors can
+      // Phones and tablets get a still hero: nobody drags roots or
+      // hovers grass on touch, and the per-frame loops made the page
+      // lag. Tap-to-peek on a root still works.
+      // Set by the inline check in <head>.
+      const liteHero = document.documentElement.classList.contains("ld-lite");
+      // Desktop hero garden: drag-to-reposition stays on so visitors can
       // play with the roots, but clicks don't navigate (no listing
       // page behind these fakes). The hover card still pops on hover.
-      if (garden) mountGardenStem(garden, { roots: HERO_ROOTS, interactive: true, navigateOnClick: false });
+      const gardenStem = garden
+        ? mountGardenStem(garden, { roots: HERO_ROOTS, interactive: !liteHero, navigateOnClick: false, animate: !liteHero })
+        : null;
+      let freezeGrass = () => {};
+      // Hero on screen and tab visible. Loops below idle when it isn't.
+      let heroInView = true;
+      const heroEl = document.querySelector(".ld-hero");
+      if (heroEl && "IntersectionObserver" in window) {
+        new IntersectionObserver(([entry]) => { heroInView = entry.isIntersecting; }).observe(heroEl);
+      }
+      const heroActive = () => heroInView && !document.hidden;
 
       // ── grass blades along the soil line ─────────────────────────
       // Ported from the previous landing's interactive grass canvas,
@@ -724,7 +757,8 @@
         const SPROUT_GREEN = { r: 109, g: 191, b: 138 };
         const plot = garden.querySelector(".gs__plot");
         const earth = garden.querySelector(".gs__earth");
-        const prefersReducedHero = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+        // Static grass: drawn once, no sway loop, no cursor tracking.
+        const prefersReducedHero = liteHero || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
         if (plot && earth) {
           plot.style.position = "relative";
           const grassCanvas = document.createElement("canvas");
@@ -801,8 +835,9 @@
           function size() {
             const r = container.getBoundingClientRect();
             // Render at up to 3× device pixel ratio so blade edges stay
-            // crisp on hi-DPI displays (was capped at 2).
-            const dpr = Math.min(window.devicePixelRatio || 1, 3);
+            // crisp on hi-DPI displays. Phones cap at 2: a 3× canvas is
+            // 2.25× the pixels for a picture that never moves.
+            const dpr = Math.min(window.devicePixelRatio || 1, liteHero ? 2 : 3);
             // w spans the plot plus the bleed on both sides. Blades are planted only
             // over the soil (BLEED..w-BLEED); the bleed is room for them to bend into.
             w = Math.max(1, Math.floor(r.width)) + BLEED * 2;
@@ -885,8 +920,12 @@
             ctx.fillStyle = `rgb(${r}, ${g}, ${bC})`;
             ctx.fill();
           }
+          let frozen = false;
+          freezeGrass = () => { frozen = true; };
           function frame(nowMs) {
-            if (!document.body.contains(canvas)) return;
+            if (!document.body.contains(canvas) || frozen) return;
+            // Off screen or tab hidden: skip the redraw, keep the loop alive.
+            if (!prefersReducedHero && !heroActive()) { requestAnimationFrame(frame); return; }
             const t = nowMs * 0.001;
             ctx.clearRect(0, 0, w, HEIGHT_PX);
             const rect = canvas.getBoundingClientRect();
@@ -911,17 +950,25 @@
             }
             if (!prefersReducedHero) requestAnimationFrame(frame);
           }
-          window.addEventListener("mousemove",  (e) => { cursor.x = e.clientX; cursor.y = e.clientY; });
-          window.addEventListener("mouseleave", () => { cursor.x = -9999; cursor.y = -9999; });
-          const rebuild = () => { size(); positionAtSoil(); makeBlades(); if (prefersReducedHero) frame(0); };
+          if (!prefersReducedHero) {
+            window.addEventListener("mousemove",  (e) => { cursor.x = e.clientX; cursor.y = e.clientY; });
+            window.addEventListener("mouseleave", () => { cursor.x = -9999; cursor.y = -9999; });
+          }
+          // iOS fires resize whenever the address bar shows or hides mid-scroll.
+          // Only a width change needs new blades, so skip the rest.
+          let builtWidth = -1;
+          const rebuild = () => {
+            const width = Math.floor(container.getBoundingClientRect().width);
+            if (width === builtWidth) return;
+            builtWidth = width;
+            size(); positionAtSoil(); makeBlades(); if (prefersReducedHero) frame(0);
+          };
           window.addEventListener("resize", rebuild);
           if (typeof ResizeObserver !== "undefined") {
             new ResizeObserver(rebuild).observe(container);
           }
-          size();
-          positionAtSoil();
-          makeBlades();
-          if (prefersReducedHero) { frame(0); return; }
+          rebuild();
+          if (prefersReducedHero) return;
           requestAnimationFrame(frame);
         }
       }
@@ -1002,6 +1049,8 @@
         function rotate() {
           // Hold still while someone is hovering a card so it doesn't slide out from under them.
           if (cardsRoot.querySelector(".ld-hero-card:hover")) return;
+          // No point morphing cards nobody can see.
+          if (!heroActive()) return;
           const [leftCard, centerCard, rightCard] = cards;
           // Spawn the new card pre-positioned off-screen right so the
           // first transition step has somewhere to animate FROM.
@@ -1028,6 +1077,29 @@
         }
 
         if (!reduced) setInterval(rotate, 4400);
+      }
+
+      // ── Watchdog: desktops the <head> check let through but that can't
+      // keep the hero near 30fps get the lite version. Samples ~2s of
+      // on-screen frames (at least 20, so slow machines decide fast too),
+      // then decides once.
+      if (!liteHero) {
+        const samples = [];
+        let last = 0;
+        let watched = 0;
+        const watch = (now) => {
+          if (heroActive() && last) { samples.push(now - last); watched += now - last; }
+          last = now;
+          if (samples.length < 20 || watched < 2000) { requestAnimationFrame(watch); return; }
+          samples.sort((a, b) => a - b);
+          const median = samples[samples.length >> 1];
+          if (median > 33) {
+            document.documentElement.classList.add("ld-lite");
+            gardenStem?.freeze();
+            freezeGrass();
+          }
+        };
+        requestAnimationFrame(watch);
       }
 
       // ── How it works: each growth stage row fades up once as it scrolls in ──
