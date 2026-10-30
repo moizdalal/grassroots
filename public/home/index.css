@@ -443,6 +443,20 @@
       @media (max-width: 720px) {
         .ld-nav__links li.ld-nav__hide-sm { display: none; }
       }
+      /* Phones: mirrors nav.css. This file restates the nav rules, so the
+         phone overrides have to live here too or they lose the cascade. */
+      @media (max-width: 480px) {
+        .ld-nav { padding-inline: 16px; }
+        .ld-nav__inner { gap: var(--space-2); }
+        .ld-nav__links { gap: 0.25rem; }
+        .ld-nav__links li:has(> .ld-nav__theme) { display: none; }
+        .ld-nav__link { white-space: nowrap; }
+        .ld-nav__cta { padding: 0.5rem 0.9rem; font-size: 0.9rem; }
+      }
+      /* Smallest phones (iPhone SE, 320px): the sprout carries the brand. */
+      @media (max-width: 360px) {
+        .ld-nav__brand-text { display: none; }
+      }
       @media (prefers-reduced-motion: reduce) {
         .ld-nav, .ld-nav *,
         .ld-nav__brand-mark, .ld-sprout,
@@ -651,6 +665,14 @@
           justify-content: center;
         }
       }
+      .ld-hero__desktop-hint:empty { display: none; }
+      /* Garden caption: "Hover" for mice, "Tap" for touch screens. */
+      .ld-peek-verb--tap { display: none; }
+      @media (hover: none) {
+        .ld-peek-verb--hover { display: none; }
+        .ld-peek-verb--tap { display: inline; }
+      }
+      .ld-hero__desktop-hint { max-width: 26rem; margin: 0 auto var(--space-5); }
 
       .ld-trust-row {
         display: inline-flex; align-items: center; gap: 0.65rem;
@@ -1244,7 +1266,21 @@
         overflow: visible;
       }
       @media (max-width: 900px) { .ld-hero__visual { max-width: 500px; aspect-ratio: 1 / 1.2; } }
+      /* Off-stage cards sit past the viewport edge. body's overflow-x: clip
+         doesn't stop mobile browsers widening the layout viewport, so clip here. */
+      @media (max-width: 900px) { .ld-hero { overflow-x: clip; } }
+      /* .ld-hero's padding shorthand zeroes the .ld-shell gutter. Desktop
+         gets its margin from max-width; phones need it back. */
+      @media (max-width: 720px) { .ld-hero { padding-inline: 16px; } }
+      /* Phones: keep "Local business meets" on one line, and stack the two
+         CTAs at one shared width instead of a ragged wrap. */
+      @media (max-width: 420px) {
+        .ld-hero__title { font-size: 2.15rem; }
+        .ld-hero__ctas { flex-direction: column; align-items: stretch; max-width: 20rem; margin-inline: auto; }
+      }
       @media (max-width: 480px) {
+        .ld-hero-card.s-off-left  { transform: translate(calc(-50% - 12rem), -50%) scale(0.82) rotate(-12deg); }
+        .ld-hero-card.s-off-right { transform: translate(calc(-50% + 12rem), -50%) scale(0.82) rotate( 12deg); }
         .ld-hero-card.s-center  { width: 11.5rem; padding: 0.75rem 0.85rem; }
         .ld-hero-card.s-left, .ld-hero-card.s-right { width: 5.4rem; padding: 0.45rem 0.55rem; }
         .ld-hero-card.s-left  { transform: translate(calc(-50% - 8.5rem), -50%) scale(0.94) rotate(-4deg); }
@@ -3090,6 +3126,14 @@
         padding: 0 0 var(--space-4); margin: 0;
         font-size: var(--type-body); line-height: 1.6;
         color: var(--fo-text-2); max-width: 64ch;
+      }
+      /* Unstyled links fell back to UA blue (1.8:1 on dark-forest). Text
+         color carries contrast; the accent underline marks it as a link. */
+      .ld-faq__answer a {
+        color: var(--fo-text);
+        text-decoration: underline;
+        text-decoration-color: var(--fo-accent);
+        text-underline-offset: 0.18em;
       }
 
       /* ── final CTA — solid green on light ──────────────────── */

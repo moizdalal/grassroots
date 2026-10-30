@@ -492,6 +492,9 @@ function wireHoverCard(container, roots) {
     if (left + cardRect.width > plotRect.width - margin) {
       left = nodeRect.left - plotRect.left - cardRect.width - margin;
     }
+    // Narrow plots (phones): neither side fits a center node, so keep the
+    // card inside the plot even if it covers the node.
+    left = Math.max(margin, Math.min(plotRect.width - cardRect.width - margin, left));
     let top = nodeRect.top - plotRect.top + nodeRect.height / 2 - cardRect.height / 2;
     top = Math.max(margin, Math.min(plotRect.height - cardRect.height - margin, top));
     card.style.left = `${left}px`;
@@ -508,6 +511,15 @@ function wireHoverCard(container, roots) {
     rootEl.addEventListener("focus", () => showCard(rootEl), true);
     rootEl.addEventListener("mouseleave", hideCard);
     rootEl.addEventListener("blur", hideCard, true);
+    // Touch has no hover, and Safari's emulated mouseenter misses the
+    // drifting nodes. A tap shows the card instead.
+    rootEl.addEventListener("pointerup", (e) => {
+      if (e.pointerType !== "mouse") showCard(rootEl);
+    });
+  });
+  // ...and a tap anywhere else hides it.
+  document.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "mouse" && !e.target.closest?.(".gs__root")) hideCard();
   });
 }
 
