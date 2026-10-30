@@ -18,6 +18,10 @@
 // with a `type` and its data:
 //   { type: "flow", label, steps: [{ title, note }] }
 //   { type: "compare", label, do: { title, items[] }, dont: { title, items[] } }
+//   { type: "pairs", label, titles: [dont, do], rows: [[dont, do]] }
+//   { type: "scope", label, inside: { title, items[] }, outside: { title, items[] } }
+//   { type: "tags", label, do: { title, items[] }, dont: { title, items[] } }
+//   { type: "table", label, columns: [a, b], rows: [{ label, values: [bool, bool] }] }
 //   { type: "agenda", label, segments: [{ title, share, note }] }  (share: % of the call)
 //   { type: "cards", label, cards: [{ title, text, tone?: "good" | "warn" }] }
 //   { type: "chips", label, items[] }
@@ -148,10 +152,14 @@ export const MODULES = [
       {
         title: "Don't promise outcomes",
         visual: {
-          type: "compare",
-          label: "What you can promise",
-          do: { title: "Promise the work", items: ["Four weeks of posts", "A redesigned menu", "Delivered by Friday"] },
-          dont: { title: "Not the results", items: ["1,000 new followers", "Double the sales", "Page one on Google"] },
+          type: "pairs",
+          label: "Swap the result for the work",
+          titles: ["Don't promise", "Promise this instead"],
+          rows: [
+            ["1,000 new followers", "Four weeks of posts, 3 a week"],
+            ["Double the sales", "A redesigned menu and launch post"],
+            ["Page one on Google", "Fixed page titles by Friday"],
+          ],
         },
         points: [
           "You control the work, not how customers react to it. Commit to what you can deliver.",
@@ -226,10 +234,10 @@ export const MODULES = [
         title: "Handling scope creep",
         intro: "“Could you also…” is how a two-week job turns into two months.",
         visual: {
-          type: "compare",
+          type: "scope",
           label: "Is it part of the job?",
-          do: { title: "In scope", items: ["Revisions to the agreed work", "Questions about what you delivered", "Small fixes inside the plan"] },
-          dont: { title: "New listing", items: ["A whole new deliverable", "A different channel or platform", "Work after you've delivered"] },
+          inside: { title: "The agreed job", items: ["Revisions to the agreed work", "Questions about what you delivered", "Small fixes inside the plan"] },
+          outside: { title: "Goes in a new listing", items: ["A whole new deliverable", "A different channel or platform", "Work after you've delivered"] },
         },
         points: [
           "Learn to spot a request that falls outside what you agreed.",
@@ -272,10 +280,10 @@ export const MODULES = [
       {
         title: "Using AI responsibly",
         visual: {
-          type: "compare",
+          type: "tags",
           label: "AI at work",
           do: { title: "Fine", items: ["First drafts", "Brainstorming", "Research you double-check"] },
-          dont: { title: "Not okay", items: ["Client data without their OK", "Facts you didn't verify", "Passing it off without review"] },
+          dont: { title: "Not okay", items: ["Client data without their OK", "Facts you didn't verify", "Unreviewed output"] },
         },
         points: [
           "You own the facts, the tone and the originality, whoever wrote the first draft.",
@@ -369,14 +377,20 @@ export const MODULES = [
       {
         title: "Keep everything on Grassroots",
         visual: {
-          type: "compare",
+          type: "table",
           label: "Why it stays on the platform",
-          do: { title: "On Grassroots", items: ["Payment held until you deliver", "Refunds and support if things go wrong", "Tax reporting handled"] },
-          dont: { title: "Off-platform", items: ["None of that protection", "Breaks Terms section 11", "Can get your account suspended or closed"] },
+          columns: ["On Grassroots", "Off-platform"],
+          rows: [
+            { label: "Payment held until you deliver", values: [true, false] },
+            { label: "Refunds and support if things go wrong", values: [true, false] },
+            { label: "Tax reporting handled", values: [true, false] },
+            { label: "Keeps your account in good standing", values: [true, false] },
+          ],
         },
         points: [
           "Messages and payments stay on the platform.",
           "For 12 months after you meet someone here, don't move paid work with them off-platform.",
+          "Doing it anyway breaks Terms section 11 and can get your account suspended or closed.",
         ],
       },
       {

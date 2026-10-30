@@ -158,11 +158,83 @@ function renderChips({ label, items }) {
     </figure>`;
 }
 
+// Rows that swap a don't for a do, with an arrow between.
+function renderPairs({ label, titles, rows }) {
+  return `
+    <figure class="tr-visual tr-pairs">
+      ${visualLabel(label)}
+      <div class="tr-pairs__head" aria-hidden="true"><span>${escape(titles[0])}</span><span></span><span>${escape(titles[1])}</span></div>
+      <ul class="tr-pairs__list">
+        ${rows
+          .map(
+            ([no, yes]) => `
+          <li class="tr-pairs__row">
+            <span class="tr-pairs__no"><span class="tr-sr">${escape(titles[0])}: </span>${escape(no)}</span>
+            <span class="tr-pairs__arrow" aria-hidden="true">→</span>
+            <span class="tr-pairs__yes"><span class="tr-sr">${escape(titles[1])}: </span>${escape(yes)}</span>
+          </li>`
+          )
+          .join("")}
+      </ul>
+    </figure>`;
+}
+
+// A dashed boundary: in-scope items inside, out-of-scope ones outside it.
+function renderScope({ label, inside, outside }) {
+  const pills = (items) => items.map((it) => `<li class="tr-scope__item">${escape(it)}</li>`).join("");
+  return `
+    <figure class="tr-visual tr-scope">
+      ${visualLabel(label)}
+      <div class="tr-scope__box">
+        <p class="tr-scope__title">${escape(inside.title)}</p>
+        <ul class="tr-scope__items">${pills(inside.items)}</ul>
+      </div>
+      <div class="tr-scope__out">
+        <p class="tr-scope__title">${escape(outside.title)}</p>
+        <ul class="tr-scope__items">${pills(outside.items)}</ul>
+      </div>
+    </figure>`;
+}
+
+// Two rows of tags: plain for fine, struck through for not okay.
+function renderTags({ label, do: yes, dont }) {
+  const row = (g, kind) => `
+    <div class="tr-tags__row">
+      <p class="tr-tags__title tr-tags__title--${kind}">${escape(g.title)}</p>
+      <ul class="tr-tags__list">${g.items.map((it) => `<li class="tr-tag tr-tag--${kind}">${escape(it)}</li>`).join("")}</ul>
+    </div>`;
+  return `
+    <figure class="tr-visual tr-tags">
+      ${visualLabel(label)}
+      ${row(yes, "do")}${row(dont, "dont")}
+    </figure>`;
+}
+
+// A yes/no grid, one row per benefit.
+function renderTable({ label, columns, rows }) {
+  const cell = (v) =>
+    `<td class="tr-table__cell tr-table__cell--${v ? "yes" : "no"}"><span aria-hidden="true">${v ? "✓" : "✕"}</span><span class="tr-sr">${v ? "Yes" : "No"}</span></td>`;
+  return `
+    <figure class="tr-visual tr-table">
+      ${visualLabel(label)}
+      <table class="tr-table__grid">
+        <thead><tr><td></td>${columns.map((c) => `<th scope="col">${escape(c)}</th>`).join("")}</tr></thead>
+        <tbody>
+          ${rows.map((r) => `<tr><th scope="row">${escape(r.label)}</th>${r.values.map(cell).join("")}</tr>`).join("")}
+        </tbody>
+      </table>
+    </figure>`;
+}
+
 const VISUALS = {
   "payment-timeline": renderPaymentTimeline,
   "fee-calculator": renderFeeCalculator,
   flow: renderFlow,
   compare: renderCompare,
+  pairs: renderPairs,
+  scope: renderScope,
+  tags: renderTags,
+  table: renderTable,
   agenda: renderAgenda,
   cards: renderCards,
   chips: renderChips,

@@ -666,6 +666,160 @@ body.gr-body .tr-example__label {
   line-height: 1.45;
 }
 
+/* Pairs: don't → do, one swap per row. */
+.tr-pairs__head,
+.tr-pairs__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 2rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+}
+.tr-pairs__head {
+  margin-bottom: var(--space-2);
+  font-size: var(--type-meta);
+  font-weight: 700;
+  color: var(--fo-text-2);
+}
+.tr-pairs__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.tr-pairs__no,
+.tr-pairs__yes {
+  padding: var(--space-2) var(--space-3);
+  border-radius: 8px;
+  font-size: var(--type-body);
+}
+.tr-pairs__no {
+  color: var(--fo-text-2);
+  text-decoration: line-through;
+  text-decoration-color: var(--fo-accent-warm);
+  background: var(--fo-surface);
+}
+.tr-pairs__yes {
+  color: var(--fo-text);
+  font-weight: 600;
+  background: var(--fo-accent-soft);
+}
+.tr-pairs__arrow {
+  text-align: center;
+  font-size: var(--type-h2);
+  color: var(--fo-accent);
+}
+
+/* Scope: dashed boundary around the agreed job, extras outside it. */
+.tr-scope__box {
+  padding: var(--space-3) var(--space-4);
+  border: 2px dashed var(--fo-accent);
+  border-radius: 12px;
+}
+.tr-scope__out {
+  margin-top: var(--space-3);
+  padding: 0 var(--space-4);
+}
+.tr-scope__title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--type-meta);
+  font-weight: 700;
+  color: var(--fo-text);
+}
+.tr-scope__out .tr-scope__title {
+  color: var(--fo-accent-warm);
+}
+.tr-scope__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.tr-scope__item {
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+  background: var(--fo-accent-soft);
+  font-size: var(--type-meta);
+  color: var(--fo-text);
+}
+.tr-scope__out .tr-scope__item {
+  background: transparent;
+  border: 1px solid var(--fo-accent-warm);
+  color: var(--fo-text-2);
+}
+
+/* Tags: fine vs not okay as two rows of pills. */
+.tr-tags__row + .tr-tags__row {
+  margin-top: var(--space-3);
+}
+.tr-tags__title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--type-meta);
+  font-weight: 700;
+}
+.tr-tags__title--do { color: var(--fo-accent); }
+.tr-tags__title--dont { color: var(--fo-accent-warm); }
+.tr-tags__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.tr-tag {
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+  font-size: var(--type-meta);
+}
+.tr-tag--do {
+  background: var(--fo-accent);
+  color: var(--fo-accent-on);
+  font-weight: 600;
+}
+.tr-tag--dont {
+  border: 1px solid var(--fo-accent-warm);
+  color: var(--fo-text);
+  text-decoration: line-through;
+  text-decoration-color: var(--fo-accent-warm);
+}
+
+/* Table: yes/no grid. */
+.tr-table__grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--type-body);
+}
+.tr-table__grid th,
+.tr-table__grid td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--fo-line);
+}
+.tr-table__grid tbody tr:last-child > * {
+  border-bottom: 0;
+}
+.tr-table__grid thead th {
+  font-size: var(--type-meta);
+  font-weight: 700;
+  color: var(--fo-text);
+  text-align: center;
+  width: 7.5rem;
+}
+.tr-table__grid tbody th {
+  font-weight: 400;
+  text-align: left;
+  color: var(--fo-text);
+}
+.tr-table__cell {
+  text-align: center;
+  font-weight: 700;
+  font-size: var(--type-h3);
+}
+.tr-table__cell--yes { color: var(--fo-accent); background: var(--fo-accent-soft); }
+.tr-table__cell--no { color: var(--fo-accent-warm); }
+
 /* Chips: numbered pills. */
 .tr-chips__list {
   list-style: none;
@@ -673,6 +827,7 @@ body.gr-body .tr-example__label {
   padding: 0;
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: var(--space-2);
 }
 .tr-chip {
@@ -733,6 +888,32 @@ body.gr-body .tr-example__label {
   .tr-compare__grid,
   .tr-cards__grid {
     grid-template-columns: 1fr;
+  }
+  /* Pairs stack: the arrow turns downward between don't and do. */
+  .tr-pairs__head {
+    display: none;
+  }
+  .tr-pairs__row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .tr-pairs__arrow {
+    transform: rotate(90deg);
+    line-height: 1;
+  }
+  .tr-pairs__row + .tr-pairs__row {
+    margin-top: var(--space-2);
+  }
+  .tr-table__grid thead th {
+    width: 4.5rem;
+  }
+  /* Two buttons don't fit side by side on phones: stack, primary on top. */
+  .tr-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .tr-actions > span:empty {
+    display: none;
   }
   /* Agenda stacks: each segment becomes a row, bar length = share. */
   .tr-agenda__bar {
