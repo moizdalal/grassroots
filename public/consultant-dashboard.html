@@ -133,7 +133,7 @@
           </label>
 
           <div class="bza__side-foot">
-            <a class="bza__user" id="cdash-user-card" href="/settings.html#personal" title="Open profile settings">
+            <a class="bza__user" id="cdash-user-card" href="/profile.html" title="Open your profile">
               <span class="bza__user-avatar" id="cdash-user-avatar"></span>
               <span class="bza__user-meta">
                 <span class="bza__user-name" id="cdash-user-name">Your account</span>
@@ -192,51 +192,6 @@
               <p class="gr-empty-state__sub">Browse open listings and submit your first offer.</p>
               <a href="/marketplace.html" class="gr-btn gr-btn--primary">Browse opportunities near you</a>
             </div>
-
-            <!-- ── Stats + bid pipeline ──
-                 Self-evaluation surface so consultants can see how often
-                 their offers land and where active bids stand. JS hides
-                 the whole panel when there are no bids yet so the
-                 dashboard doesn't open on a "0 / 0 / 0" wall. -->
-            <section class="bza__panel cdash-stats-panel" id="cdash-stats-panel" aria-labelledby="cdash-stats-title" hidden>
-              <div class="bza__panel-h">
-                <span class="bza__panel-h-title" id="cdash-stats-title"><strong>Your numbers</strong> · last 90 days</span>
-              </div>
-              <div class="cdash-stats" role="list">
-                <div class="cdash-stat" role="listitem">
-                  <span class="cdash-stat__label">Acceptance rate</span>
-                  <span class="cdash-stat__value" id="cdash-stat-accept-rate">—</span>
-                  <span class="cdash-stat__detail" id="cdash-stat-accept-detail"></span>
-                </div>
-                <div class="cdash-stat" role="listitem">
-                  <span class="cdash-stat__label">Avg time to accept</span>
-                  <span class="cdash-stat__value" id="cdash-stat-response">—</span>
-                  <span class="cdash-stat__detail">From your offer to the owner's yes</span>
-                </div>
-                <div class="cdash-stat" role="listitem">
-                  <span class="cdash-stat__label">Avg payout</span>
-                  <span class="cdash-stat__value" id="cdash-stat-payout">—</span>
-                  <span class="cdash-stat__detail" id="cdash-stat-payout-detail">After fees, across released offers</span>
-                </div>
-              </div>
-
-              <!-- Bid pipeline — three-cell row with click-through to
-                   filtered views (engagements with status filters). -->
-              <div class="cdash-pipeline" role="list">
-                <a class="cdash-pipeline__cell" role="listitem" href="/engagements.html?filter=active" id="cdash-pipeline-active">
-                  <span class="cdash-pipeline__num">0</span>
-                  <span class="cdash-pipeline__label">Active offers</span>
-                </a>
-                <a class="cdash-pipeline__cell" role="listitem" href="/engagements.html?filter=accepted" id="cdash-pipeline-accepted">
-                  <span class="cdash-pipeline__num">0</span>
-                  <span class="cdash-pipeline__label">Accepted</span>
-                </a>
-                <a class="cdash-pipeline__cell" role="listitem" href="/engagements.html?filter=rejected" id="cdash-pipeline-rejected">
-                  <span class="cdash-pipeline__num">0</span>
-                  <span class="cdash-pipeline__label">Not selected</span>
-                </a>
-              </div>
-            </section>
 
             <!-- Half-column row beneath the journey: profile-
                  completion bucket card on the left, recent

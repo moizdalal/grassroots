@@ -1082,10 +1082,9 @@ body.gr-body .gr-section-h {
   }
 }
 
-/* Consultant stats panel — three metric cells in a responsive grid plus
-   a three-cell offer-pipeline strip at the foot (which owns the active
-   count). Sits between the journey hero and the .cdash__below row. */
-.cdash-stats-panel { margin-top: 1.5rem; }
+/* Consultant offer stats — three metric cells in a responsive grid plus
+   a three-cell offer-pipeline strip at the foot. Lives in the
+   "your numbers" section on /profile.html. */
 
 .cdash-stats {
   display: grid;
@@ -1205,8 +1204,7 @@ body.gr-body .gr-section-h {
 }
 
 .dash-view:has(#cdash-welcome) > .bza__page-h,
-.dash-view:has(#cdash-welcome) > #cdash-journey-panel,
-.dash-view:has(#cdash-welcome) > .cdash-stats-panel {
+.dash-view:has(#cdash-welcome) > #cdash-journey-panel {
   flex: 0 0 auto;
 }
 
@@ -2721,6 +2719,31 @@ body.gr-body .gr-section-h {
 
 .pf-bv__name {
   color: var(--fo-text);
+}
+
+/* Bio meta row (city · completed · joined · LinkedIn) — shared by the
+   listing consultant viewer and the settings preview-as-business modal. */
+.pf-bv__meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.35rem 0 0;
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+}
+
+.pf-bv__dot {
+  color: var(--fo-text-3);
+}
+
+.pf-bv__link {
+  color: var(--fo-accent);
+  text-decoration: none;
+}
+
+.pf-bv__link:hover {
+  text-decoration: underline;
 }
 
 .pf-bv__meta,
@@ -8544,6 +8567,11 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
   justify-content: space-between;
   gap: var(--space-3);
   flex-wrap: wrap;
+}
+
+.pp-section__meta {
+  font-size: var(--type-meta);
+  color: var(--fo-text-3);
 }
 
 .pp-section__head h2 {

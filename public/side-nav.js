@@ -190,7 +190,7 @@ function renderSidebar({ role, activeNavId }) {
         <span class="bza__darkmode-switch" aria-hidden="true"></span>
       </label>
       <div class="bza__side-foot">
-        <a class="bza__user" id="gr-side-user" href="/settings.html#personal" title="Open profile settings">
+        <a class="bza__user" id="gr-side-user" href="/profile.html" title="Open your profile">
           <span class="bza__user-avatar" id="gr-side-user-avatar"></span>
           <span class="bza__user-meta">
             <span class="bza__user-name" id="gr-side-user-name">Your account</span>
