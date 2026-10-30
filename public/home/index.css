@@ -3972,3 +3972,29 @@
         margin: 0;
         max-width: 32ch;
       }
+
+      /* ── Lite hero: a still, cheap hero ─────────────────────────
+         html.ld-lite is set by the inline check in index.html's <head>
+         (touch, narrow, few cores, low memory, data saver, reduced
+         motion) or later by the hero's frame-rate watchdog. The garden
+         and grass already render once there; these drop the GPU-heavy
+         layers. Clouds are 26 blurred, screen-blended blobs scrolling
+         forever. The sticky nav's backdrop blur re-blurs on every
+         scroll frame, a known jank source on Android, so it goes solid.
+         The page glows keep their blur: they're fixed layers painted
+         once, and dropping it measured no faster. */
+      .ld-lite .ld-hero .hero-clouds { display: none; }
+      .ld-lite .ld-hero__visual::before { filter: none; }
+      .ld-lite .ld-hero-card { will-change: auto; }
+      .ld-lite:not([data-theme="light"]) .ld-hero-card {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+      .ld-lite .ld-nav.is-scrolled {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: var(--fo-bg);
+      }
+      .ld-lite[data-theme="light"] .ld-nav.is-scrolled {
+        background: var(--fo-surface);
+      }
