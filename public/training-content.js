@@ -4,16 +4,23 @@
 //
 // Quiz questions and answers are NOT here: they live in the database
 // (supabase/migrations/seed_training_questions.sql) so the answer key never
-// reaches the browser. Grading happens in submit_training_quiz().
+// reaches the browser. Grading happens in submit_training_quiz(). If you
+// cut a fact from a lesson, check the quiz doesn't still test it.
 //
 // Wording rule: money is "held in Stripe", never "escrow" (the Terms say
 // Grassroots isn't an escrow company; pending a lawyer's review).
 // Free ($0) offers are mentioned here because this page is consultant-only.
 //
 // Lesson shape: { title, intro?, points[], example?: { label, text },
-// key?: true, visual?: "fee-calculator" | "payment-timeline" }. `key`
-// marks a lesson as a must-know habit and gives it a highlighted card.
-// `visual` adds an interactive graphic, rendered by training.js.
+// key?: true, visual? }. `key` marks a lesson as a must-know habit and
+// gives it a highlighted card. `visual` adds a graphic, rendered by
+// training.js: either "fee-calculator" | "payment-timeline", or an object
+// with a `type` and its data:
+//   { type: "flow", label, steps: [{ title, note }] }
+//   { type: "compare", label, do: { title, items[] }, dont: { title, items[] } }
+//   { type: "agenda", label, segments: [{ title, share, note }] }  (share: % of the call)
+//   { type: "cards", label, cards: [{ title, text, tone?: "good" | "warn" }] }
+//   { type: "chips", label, items[] }
 
 // Display copy only. The database enforces both (add_consultant_training.sql).
 export const PASS_SCORE = 8;
@@ -23,36 +30,48 @@ export const MODULES = [
   {
     id: "before",
     title: "Before the engagement",
-    goal: "You show up prepared, price honestly and only take work you can do well.",
+    goal: "Show up prepared, price honestly and take on work you can do well.",
     lessons: [
       {
         title: "How Grassroots works",
+        visual: {
+          type: "flow",
+          label: "How an offer turns into a payout",
+          steps: [
+            { title: "Business posts a listing", note: "What they need help with" },
+            { title: "You send an offer", note: "Price, message, files" },
+            { title: "They respond", note: "Accept, decline or counter" },
+            { title: "Paid and held", note: "Held in Stripe while you work" },
+            { title: "You deliver", note: "Then it's paid out to you" },
+          ],
+        },
         points: [
-          "Businesses post listings. You send an offer: a price, an optional message of up to 250 characters, and optional files.",
-          "You need to finish Stripe payout setup before you can send an offer. Until then, the submit button stays off.",
-          "You can't edit an offer after you send it, and you get one offer per listing.",
-          "A business can accept, decline or counter. Each business gets up to three counters per listing.",
-          "When a business accepts, it pays the full offer right away and the payment is held in Stripe. You don't have it yet. It's paid out after you deliver.",
+          "Your offer is a price, plus an optional note (250 characters max) and files.",
+          "Finish Stripe payout setup first. The submit button stays off until you do.",
+          "Offers are final. You can't edit one, and you get one per listing.",
+          "A business can counter up to three times per listing.",
+          "Accepted means paid, not yours yet. The money waits in Stripe until you deliver.",
         ],
       },
       {
         title: "Research the business and its industry",
+        intro: "Ten minutes of homework puts you ahead of most people who apply.",
         points: [
-          "Before the first call, look at their website, socials, reviews and competitors.",
-          "Learn the norms of their industry. A bakery, a law office and a gym market themselves very differently.",
-          "Read their customer reviews. They tell you what customers already love and what they complain about.",
-          "Note two or three things you learned and one question you still have. Bring them to the first call.",
-          "Show up already knowing the basics. Don't make the owner explain what their business does.",
+          "Look through their website, socials, reviews and competitors before the first call.",
+          "Learn how their industry markets itself. A bakery isn't a law office, and neither is a gym.",
+          "Read their customer reviews closely. You'll see what people love and what bugs them.",
+          "Write down two or three things you learned and one open question. Bring them to the call.",
+          "Never make the owner explain what their business does. You should already know.",
         ],
       },
       {
         title: "Show your preparation in the proposal",
         points: [
-          "Attach relevant files, examples or early research to your offer.",
-          "Open with their problem in their words, not with your résumé.",
-          "Say what you'll deliver, by when, and why you're a good fit. Keep it short.",
-          "The client should see that you've done your homework and know what you're talking about.",
-          "Proofread it. Typos in a proposal suggest typos in the work.",
+          "Attach files, examples or early research. Show, don't just tell.",
+          "Start with their problem in their words. Your résumé can wait.",
+          "Say what you'll deliver, when, and why you're the right fit. Keep it tight.",
+          "They should finish reading and think, this person gets it.",
+          "Proofread before you send. A typo in the pitch hints at typos in the work.",
         ],
         example: {
           label: "Example offer message",
@@ -63,38 +82,52 @@ export const MODULES = [
         title: "How pricing works",
         visual: "fee-calculator",
         points: [
-          "The business pays exactly your offer. Nothing is added on top.",
-          "Your payout is the offer minus card processing (2.9% + $0.30) and the platform fee: 10% of the part above $10, or 5% during launch.",
-          "The offer screen shows your take-home before you send it.",
-          "Paid offers are at least $10. You can also send a $0 offer for free work.",
-          "Pricing models are one-time, phased (a proposal fee, then a service fee) and retainer.",
-          "Price honestly. Don't underbid just to win the work.",
+          "The business pays exactly your offer. Nothing gets added on their side.",
+          "Fees come out of your payout: card processing (2.9% + $0.30) and the platform fee.",
+          "The platform fee is 10% of the part above $10. During launch it's 5%.",
+          "You'll see your take-home on the offer screen before you send.",
+          "Paid offers start at $10. You can also send a $0 offer for free work.",
+          "You can price one-time, phased (a proposal fee, then a service fee) or as a retainer.",
+          "Price what the work is worth. Underbidding to win teaches clients to undervalue you.",
         ],
       },
       {
         title: "Show up professionally",
-        intro: "Clients judge you in the first minute of a call. Look and act like someone they'd trust with their business.",
+        intro: "Clients size you up in the first minute. Make it easy for them to trust you.",
+        visual: {
+          type: "compare",
+          label: "What to wear on every client call",
+          do: { title: "Wear", items: ["Collared shirt", "Blouse", "Plain sweater", "One step above the client"] },
+          dont: { title: "Skip", items: ["Hats", "Gym clothes", "Pajamas", "Graphic tees"] },
+        },
         points: [
-          "Dress business casual for every client call: a clean, plain top like a collared shirt, blouse or sweater.",
-          "Skip hats, gym clothes, pajamas and graphic tees, even on video.",
-          "When in doubt, dress one step above the client. Meeting a law office? Go a level up.",
-          "On video, pick a quiet, tidy, well-lit spot. Use background blur if your space is busy.",
-          "Keep your camera on and at eye level. Test your link, camera and mic five minutes before.",
-          "Join a minute early. For in-person meetings, arrive 5 to 10 minutes early.",
-          "Silence your phone and close other tabs. Give the client your full attention.",
-          "Your profile photo follows the same rule: a clear, friendly, professional headshot.",
+          "Business casual applies on video too. Meeting a law office? Dress a level up.",
+          "Pick a quiet, tidy, well-lit spot. Blur the background if it's busy.",
+          "Camera on, at eye level. Test your link, camera and mic five minutes before.",
+          "Join video calls a minute early. Arrive 5 to 10 minutes early in person.",
+          "Silence your phone and close the other tabs. They get your full attention.",
+          "Same goes for your profile photo: clear, friendly and professional.",
         ],
       },
       {
         title: "Running the discovery call",
+        intro: "Know what you want to leave with. Reread the listing and write your questions first.",
+        visual: {
+          type: "agenda",
+          label: "A simple call agenda",
+          segments: [
+            { title: "Intros", share: 10, note: "A few minutes" },
+            { title: "Their goals", share: 60, note: "Most of the call" },
+            { title: "Constraints", share: 18, note: "Budget, timing, approvals" },
+            { title: "Next steps", share: 12, note: "Who does what, by when" },
+          ],
+        },
         points: [
-          "Prepare: reread the listing, write your questions and know what you want to leave with.",
-          "Use a simple agenda. Take a few minutes for introductions, most of the call for their goals, then constraints and next steps.",
-          "Ask open questions, like “What does success look like in three months?” or “What have you tried before?”",
-          "Listen more than you pitch. Take notes as they talk.",
-          "End with a clear, shared picture of the goal and agreed next steps.",
-          "Within a day, write it back to them in messages so you both have a record.",
-          "For the kickoff, the business picks a length and marks its free times. You choose a time inside those, and both of you get a calendar invite.",
+          "Ask open questions: “What does success look like in three months?” or “What have you tried?”",
+          "Listen more than you pitch, and take notes while they talk.",
+          "Wrap up with a shared picture of the goal and agreed next steps.",
+          "Within a day, write it back to them in messages. Now you both have a record.",
+          "For the kickoff, the business picks a length and marks free times. You choose one, and you both get an invite.",
         ],
         example: {
           label: "Example follow-up message",
@@ -103,28 +136,33 @@ export const MODULES = [
       },
       {
         title: "Asking clarifying questions",
-        intro: "Stop and ask when:",
+        intro: "Guessing is how projects go sideways. Stop and ask when:",
         points: [
-          "The goal is vague (“more customers,” “make it pop”).",
-          "It's unclear who approves the work.",
-          "The timeline or budget doesn't match the ask.",
-          "You'd be guessing about their customer, brand or past attempts.",
+          "The goal is fuzzy, like “more customers” or “make it pop.”",
+          "You don't know who signs off on the work.",
+          "The timeline or budget doesn't fit what they're asking for.",
+          "You'd be guessing about their customers, brand or past attempts.",
           "You need logins, assets or data you don't have yet.",
         ],
       },
       {
         title: "Don't promise outcomes",
+        visual: {
+          type: "compare",
+          label: "What you can promise",
+          do: { title: "Promise the work", items: ["Four weeks of posts", "A redesigned menu", "Delivered by Friday"] },
+          dont: { title: "Not the results", items: ["1,000 new followers", "Double the sales", "Page one on Google"] },
+        },
         points: [
-          "Commit to the work you'll deliver.",
-          "Don't promise results you can't control, like follower counts or sales numbers.",
+          "You control the work, not how customers react to it. Commit to what you can deliver.",
         ],
       },
       {
         title: "Knowing when to say no, and saying it kindly",
         points: [
-          "Some work will be outside your skills, on an unrealistic timeline or a poor fit.",
-          "Turn it down respectfully and leave the door open.",
-          "Saying no quickly is kinder than saying yes and disappearing.",
+          "Some jobs won't fit: outside your skills, an impossible timeline or just a bad match.",
+          "Pass politely and leave the door open for next time.",
+          "A quick no beats a yes followed by silence. Every time.",
         ],
         example: {
           label: "Try saying",
@@ -134,8 +172,8 @@ export const MODULES = [
       {
         title: "NDAs and confidentiality",
         points: [
-          "The Terms already commit you to keeping a business's private information confidential (section 13). Module 4 covers this.",
-          "If a business asks you to sign its own NDA, read it first. Contact support if anything looks unusual.",
+          "You've already agreed to keep a business's private info confidential (Terms section 13). Module 4 has more.",
+          "If a business wants you to sign its own NDA, read it first. Anything odd? Contact support.",
           "Never sign anything that moves the work or the payment off Grassroots.",
         ],
       },
@@ -144,20 +182,28 @@ export const MODULES = [
   {
     id: "during",
     title: "During the engagement",
-    goal: "Keep the client informed, keep the scope clear and keep the work moving.",
+    goal: "Keep the client in the loop, keep the scope clear and keep things moving.",
     lessons: [
       {
         title: "Respond on time, every time",
         key: true,
-        intro: "Fast, reliable replies are the habit clients notice most. Slow replies lose more work than weak skills do.",
+        intro: "Clients notice reply speed more than anything else. Slow replies lose more work than weak skills.",
+        visual: {
+          type: "cards",
+          label: "The one-day rule",
+          cards: [
+            { title: "1 business day", text: "Your max reply time for any client message, offer, counter or kickoff.", tone: "good" },
+            { title: "Daily", text: "Check your inbox and notifications, exams and breaks included.", tone: "good" },
+            { title: "Never silent", text: "To a client, silence looks like you walked away.", tone: "warn" },
+          ],
+        },
         points: [
-          "Reply to every client message within one business day, even if only to say when you'll have a full answer.",
-          "Do the same for offers, counters and kickoff scheduling. After the business shares its free times, the kickoff waits on you to pick one.",
-          "Check your Grassroots inbox and notifications at least once a day, including during exams and breaks.",
-          "If you'll be hard to reach, tell the client ahead of time. Give the dates and when they'll hear from you next.",
-          "Never go silent. To a client, silence looks like you've walked away, and it's a common reason they report a problem.",
-          "Communication and timeliness are two of the five ratings a business gives you. Slow replies cost you on both.",
-          "If you do reply late, apologize briefly and answer the question. Don't over-explain.",
+          "No full answer yet? Reply anyway and say when you'll have one.",
+          "Once the business shares its free times, the kickoff is waiting on you to pick one.",
+          "Going to be hard to reach? Tell the client ahead of time, with dates and when you'll be back.",
+          "Going quiet is a common reason clients report a problem.",
+          "Communication and timeliness are two of your five ratings. Slow replies hurt both.",
+          "Replied late? Apologize briefly and answer the question. Skip the long explanation.",
         ],
         example: {
           label: "A quick reply beats a perfect late one",
@@ -167,9 +213,9 @@ export const MODULES = [
       {
         title: "Agree on a communication cadence",
         points: [
-          "At kickoff, agree how often you'll send updates, how fast you'll reply and who the point of contact is.",
-          "Send updates on schedule even when there's little news. “On track for Friday” is a useful update.",
-          "Use the engagement's message thread so there's a record.",
+          "Settle it at kickoff: how often you'll update, how fast you'll reply and who to contact.",
+          "Send updates on schedule, even quiet ones. “On track for Friday” counts.",
+          "Keep it in the engagement's message thread so there's a record.",
         ],
         example: {
           label: "Try saying at kickoff",
@@ -178,11 +224,18 @@ export const MODULES = [
       },
       {
         title: "Handling scope creep",
+        intro: "“Could you also…” is how a two-week job turns into two months.",
+        visual: {
+          type: "compare",
+          label: "Is it part of the job?",
+          do: { title: "In scope", items: ["Revisions to the agreed work", "Questions about what you delivered", "Small fixes inside the plan"] },
+          dont: { title: "New listing", items: ["A whole new deliverable", "A different channel or platform", "Work after you've delivered"] },
+        },
         points: [
-          "Learn to spot a new request that falls outside the agreed scope.",
-          "Explain calmly how it changes the offer. New work goes in a new listing, not the current engagement.",
-          "Don't quietly do extra work for free. It sets an expectation you can't keep up.",
-          "If it keeps happening, contact support. They'll mediate.",
+          "Learn to spot a request that falls outside what you agreed.",
+          "Calmly explain how it changes the offer. New work goes in a new listing.",
+          "Don't quietly do extra work for free. It sets an expectation you can't keep.",
+          "If it keeps happening, contact support. They'll step in and mediate.",
         ],
         example: {
           label: "Try saying",
@@ -192,17 +245,17 @@ export const MODULES = [
       {
         title: "Managing your schedule and deadlines",
         points: [
-          "Be upfront about exams, breaks and busy weeks.",
-          "If you'll miss a deadline, say so the day you know.",
-          "Timeliness is one of the five ratings the business gives you.",
+          "Exams, breaks, a packed week: tell clients early.",
+          "Going to miss a deadline? Say so the day you know, not the day it's due.",
+          "Timeliness is one of the five ratings a business gives you.",
         ],
       },
       {
         title: "Explaining things in plain language",
         points: [
-          "Most owners aren't marketers. Skip the jargon.",
-          "Explain your thinking in terms they can act on.",
-          "Lead with what it means for their business, then add detail if they want it.",
+          "Most owners aren't marketers. Leave the jargon out.",
+          "Explain your thinking in a way they can act on.",
+          "Lead with what it means for their business. Add detail if they ask.",
         ],
         example: {
           label: "Instead of “your CTR is low,” try",
@@ -213,16 +266,20 @@ export const MODULES = [
         title: "Keep asking when you're unsure",
         points: [
           "Clarifying questions don't stop after kickoff.",
-          "Treat the client as a resource, not someone to avoid bothering.",
+          "The client is your best source. Asking isn't bothering them.",
         ],
       },
       {
         title: "Using AI responsibly",
+        visual: {
+          type: "compare",
+          label: "AI at work",
+          do: { title: "Fine", items: ["First drafts", "Brainstorming", "Research you double-check"] },
+          dont: { title: "Not okay", items: ["Client data without their OK", "Facts you didn't verify", "Passing it off without review"] },
+        },
         points: [
-          "AI is fine for drafts, brainstorming and research that you check yourself.",
-          "Check its output carefully. You're responsible for the facts, the tone and the originality.",
+          "You own the facts, the tone and the originality, whoever wrote the first draft.",
           "Be ready to tell the client how you used it.",
-          "Never put a client's private data into an AI tool without their OK.",
         ],
       },
     ],
@@ -230,64 +287,75 @@ export const MODULES = [
   {
     id: "after",
     title: "Delivering and getting paid",
-    goal: "Finish cleanly, get paid on time and earn a strong review.",
+    goal: "Finish cleanly, get paid on time and earn a review you're proud of.",
     lessons: [
       {
         title: "Feedback isn't the same as marking work done",
         points: [
-          "Share the work, ask for feedback and revise where the engagement calls for it.",
-          "Only mark it delivered once the client has everything they need.",
-          "Marking it done too early hurts trust, and the client is less likely to respond well.",
+          "Share the work, ask what they think and revise where the job calls for it.",
+          "Mark it delivered only when the client has everything they need.",
+          "Marking it done too early chips away at trust, and clients notice.",
         ],
       },
       {
         title: "How the payment hold and release work",
         visual: "payment-timeline",
         points: [
-          "When you mark the work delivered, the business has 14 days to release payment, request changes or report a problem. They get a reminder on day 7.",
-          "If they do nothing, the payment releases to you automatically after 14 days.",
-          "If they request changes, update the work and mark it delivered again. The 14 days start over.",
-          "Retainers: each period's 14 days start when the period ends. You can mark a period delivered early to start them sooner.",
+          "Once you mark it delivered, the business has 14 days to release, request changes or report a problem. They're reminded on day 7.",
+          "If they do nothing, the payment releases to you automatically on day 14.",
+          "If they request changes, update the work and mark it delivered again. The 14 days restart.",
+          "Retainers: each period's 14 days start when the period ends. Mark it delivered early to start sooner.",
           "Proposal fees release once the business decides whether to move forward.",
-          "Anything still held 90 days after the charge goes to the Grassroots team for review. It doesn't release automatically.",
-          "Once released, the money goes to your Stripe account and then to your bank, usually in about 2 business days.",
+          "Anything still held 90 days after the charge goes to the Grassroots team for review. It won't release on its own.",
+          "After release, the money lands in Stripe, then your bank, usually in about 2 business days.",
         ],
       },
       {
         title: "When a business reports a problem",
-        intro: "The payment locks while Grassroots reviews it. There are three outcomes:",
+        intro: "The payment locks while Grassroots takes a look. It ends one of three ways:",
+        visual: {
+          type: "cards",
+          label: "Possible outcomes",
+          cards: [
+            { title: "Meets scope", text: "The payment is released to you.", tone: "good" },
+            { title: "Fixable", text: "Redo it once within 5 days, or give the money back. No answer in 5 days counts as giving it back." },
+            { title: "Scope breached", text: "The business gets a full refund.", tone: "warn" },
+          ],
+        },
         points: [
-          "The work meets scope: the payment is released to you.",
-          "It falls short but can be fixed: you have 5 days to redo it once, or give the money back. No answer in 5 days counts as giving it back.",
-          "Scope was breached: the business gets a full refund.",
-          "A one-time job can also be cancelled for a full refund within 24 hours of payment. Once a payment is released, it's final.",
+          "A one-time job can also be cancelled for a full refund within 24 hours of payment.",
+          "Once a payment is released, it's final.",
         ],
       },
       {
         title: "Hold a closing meeting when you can",
         points: [
           "Walk the client through the final work live and answer their questions.",
-          "Hand over everything they need: final files, any how-to notes and suggested next steps.",
-          "Return or delete any logins and private data they shared with you.",
-          "Mark it done together in the same meeting. It's the smoothest way to close out.",
+          "Hand over everything: final files, any how-to notes and suggested next steps.",
+          "Return or delete any logins and private data they shared.",
+          "Mark it done together in that meeting. It's the smoothest way to wrap up.",
         ],
       },
       {
         title: "Reviews",
+        visual: {
+          type: "chips",
+          label: "The five things a business rates you on",
+          items: ["Work quality", "Communication", "Timeliness", "Professionalism", "Cost value"],
+        },
         points: [
-          "The business rates you on five things: work quality, communication, timeliness, professionalism and cost value.",
-          "Reviews can't be edited, and negative ones aren't removed just for being negative.",
+          "Reviews can't be edited. A negative one isn't removed just for being negative.",
           "Your rating and engagement count move you up the stage ladder, from seedling to sequoia.",
-          "Ask for a review as part of every wrap-up.",
+          "Ask for a review every time you wrap up.",
         ],
       },
       {
         title: "Taxes and 1099s",
         points: [
           "You're an independent contractor, not an employee.",
-          "Grassroots, through Stripe, issues tax forms (like a 1099-K or 1099-NEC) to consultants who cross the IRS reporting thresholds.",
-          "The tax info you gave Stripe during payout setup is what's used. There's no separate W-9 to upload.",
-          "You owe income tax and self-employment tax on what you earn, whether or not you get a form. This isn't tax advice.",
+          "If you cross the IRS reporting thresholds, Grassroots (through Stripe) sends you a tax form, like a 1099-K or 1099-NEC.",
+          "It uses the tax info you gave Stripe during payout setup. There's no W-9 to upload.",
+          "You owe income and self-employment tax on what you earn, form or no form. This isn't tax advice.",
           "Update your bank or tax info any time on the payouts page.",
         ],
       },
@@ -296,37 +364,42 @@ export const MODULES = [
   {
     id: "trust",
     title: "Professionalism and trust",
-    goal: "These apply before, during and after every engagement.",
+    goal: "These hold before, during and after every engagement.",
     lessons: [
       {
         title: "Keep everything on Grassroots",
+        visual: {
+          type: "compare",
+          label: "Why it stays on the platform",
+          do: { title: "On Grassroots", items: ["Payment held until you deliver", "Refunds and support if things go wrong", "Tax reporting handled"] },
+          dont: { title: "Off-platform", items: ["None of that protection", "Breaks Terms section 11", "Can get your account suspended or closed"] },
+        },
         points: [
-          "Communication and payment stay on the platform.",
-          "For 12 months after you meet someone on Grassroots, don't move paid work with them off-platform (Terms section 11).",
-          "Going off-platform skips the payment hold, refunds and tax reporting. It can get your account suspended or closed.",
+          "Messages and payments stay on the platform.",
+          "For 12 months after you meet someone here, don't move paid work with them off-platform.",
         ],
       },
       {
         title: "Confidentiality",
         points: [
-          "Treat client data, logins, numbers and customer lists as private.",
-          "Use them only for the engagement. Return or delete them when it ends, or when the client asks (Terms section 13).",
-          "This duty lasts 2 years after the engagement, and forever for trade secrets and the business's customer data.",
-          "Ask before you show their work in your portfolio.",
+          "Client data, logins, numbers and customer lists are private. Treat them that way.",
+          "Use them only for the engagement. Return or delete them when it ends, or when asked (Terms section 13).",
+          "This lasts 2 years after the engagement, and forever for trade secrets and customer data.",
+          "Ask before you put their work in your portfolio.",
         ],
       },
       {
         title: "Represent yourself honestly",
         points: [
-          "Be clear that you're a student. Don't overstate your experience.",
-          "Fake credentials or impersonation can get you banned.",
+          "Be upfront that you're a student. Don't oversell your experience.",
+          "Fake credentials or pretending to be someone else can get you banned.",
         ],
       },
       {
         title: "Escalate when needed",
         points: [
-          "If a client goes silent, is unhappy or asks for something that feels wrong, contact support early.",
-          "For disagreements, try the inbox first. After 7 days with no agreement, email support with the bid ID.",
+          "Client gone quiet, unhappy or asking for something that feels off? Contact support early.",
+          "For disagreements, try the inbox first. No agreement after 7 days? Email support with the bid ID.",
           "Support replies within 2 business days.",
         ],
       },
