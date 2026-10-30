@@ -40,16 +40,36 @@
     label();
   }
 
+  // Once per frame at most. The page height is measured on load and
+  // resize only: reading scrollHeight right after toggling the nav class
+  // forced a layout on every scroll event, which made phones lag.
+  let maxScroll = 0;
+  let queued = false;
+  // Read in the scroll event, where layout is clean; reading scrollY in the
+  // frame callback after other scripts wrote styles forced a layout.
+  let y = window.scrollY;
+  function measure() {
+    maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+  }
   function update() {
-    if (nav) nav.classList.toggle("is-scrolled", window.scrollY > 8);
+    queued = false;
+    if (nav) nav.classList.toggle("is-scrolled", y > 8);
     if (navProgress) {
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      const p = max > 0 ? window.scrollY / max : 0;
-      navProgress.style.width = (p * 100).toFixed(2) + "%";
+      const p = maxScroll > 0 ? Math.min(1, y / maxScroll) : 0;
+      navProgress.style.transform = "scaleX(" + p.toFixed(4) + ")";
     }
   }
+  function queue() {
+    if (!queued) { queued = true; requestAnimationFrame(update); }
+  }
 
+  measure();
   update();
-  window.addEventListener("scroll", update, { passive: true });
-  window.addEventListener("resize", update);
+  window.addEventListener("scroll", () => { y = window.scrollY; queue(); }, { passive: true });
+  window.addEventListener("resize", () => { measure(); queue(); });
+  // Content below the fold (fonts, images, scripted sections) changes the
+  // page height after load; re-measure when it does.
+  if (typeof ResizeObserver !== "undefined") {
+    new ResizeObserver(() => { measure(); queue(); }).observe(document.body);
+  }
 })();
