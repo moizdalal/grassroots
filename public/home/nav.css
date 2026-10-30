@@ -249,10 +249,13 @@
         position: absolute;
         left: 0; top: 0;
         height: 100%;
-        width: 0%;
+        /* Full width, scaled by nav.js: transform skips layout on every
+           scroll frame, where animating width did not. */
+        width: 100%;
         background: linear-gradient(90deg, var(--fo-accent), color-mix(in srgb, var(--fo-accent) 60%, transparent));
         transform-origin: left;
-        transition: width 0.12s linear;
+        transform: scaleX(0);
+        transition: transform 0.12s linear;
       }
 
       @media (max-width: 720px) {

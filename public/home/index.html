@@ -59,8 +59,8 @@
     <link rel="stylesheet" href="/grassroots.css?v=2" />
     <link rel="stylesheet" href="/field-office.css" />
     <link rel="stylesheet" href="/garden-stem.css?v=2" />
-    <link rel="stylesheet" href="/home/nav.css?v=6" />
-    <link rel="stylesheet" href="/home/index.css?v=30" />
+    <link rel="stylesheet" href="/home/nav.css?v=7" />
+    <link rel="stylesheet" href="/home/index.css?v=36" />
     <script src="/theme.js?v=2"></script>
     <script src="/home/theme-default.js"></script>
     <script>
@@ -82,7 +82,7 @@
       })();
     </script>
     <script src="/placeholders.js"></script>
-    <script src="/home/nav.js?v=3" defer></script>
+    <script src="/home/nav.js?v=4" defer></script>
     <script src="/cookie-banner.js" defer></script>
     <script src="/desktop-hint.js?v=2" defer></script>
   </head>
@@ -675,7 +675,7 @@
       ]
     </script>
 
-    <script src="/home/landing.js?v=2" defer></script>
+    <script src="/home/landing.js?v=3" defer></script>
     <script>
       // CTA form: fake submit (no backend), show success state in-place.
       (function () {
@@ -747,6 +747,8 @@
         new IntersectionObserver(([entry]) => { heroInView = entry.isIntersecting; }).observe(heroEl);
       }
       const heroActive = () => heroInView && !document.hidden;
+      let lastScrollAt = -Infinity;
+      window.addEventListener("scroll", () => { lastScrollAt = performance.now(); }, { passive: true });
 
       // ── grass blades along the soil line ─────────────────────────
       // Ported from the previous landing's interactive grass canvas,
@@ -954,13 +956,21 @@
             window.addEventListener("mousemove",  (e) => { cursor.x = e.clientX; cursor.y = e.clientY; });
             window.addEventListener("mouseleave", () => { cursor.x = -9999; cursor.y = -9999; });
           }
-          // iOS fires resize whenever the address bar shows or hides mid-scroll.
-          // Only a width change needs new blades, so skip the rest.
+          // Mobile browsers fire resize whenever the address bar shows or
+          // hides mid-scroll. Only a width change needs new blades; a soil
+          // line that moved just needs the canvas re-anchored, which is a
+          // style write, not a redraw.
           let builtWidth = -1;
+          let builtEarthH = -1;
           const rebuild = () => {
             const width = Math.floor(container.getBoundingClientRect().width);
-            if (width === builtWidth) return;
+            const earthH = Math.round(earthEl.getBoundingClientRect().height);
+            if (width === builtWidth) {
+              if (earthH !== builtEarthH) { builtEarthH = earthH; positionAtSoil(); }
+              return;
+            }
             builtWidth = width;
+            builtEarthH = earthH;
             size(); positionAtSoil(); makeBlades(); if (prefersReducedHero) frame(0);
           };
           window.addEventListener("resize", rebuild);
@@ -1010,6 +1020,7 @@
       const CARD_STAT = "Example business";
       const cardsRoot = document.getElementById("ld-hero-cards");
       const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      const canHover = window.matchMedia?.("(hover: hover)").matches;
       if (cardsRoot) {
         function fillCard(card, B) {
           card.querySelector(".ld-hero-card__avatar").textContent  = B.avatar;
@@ -1047,10 +1058,15 @@
         let poolIdx = 3 % BUSINESS_POOL.length;
 
         function rotate() {
-          // Hold still while someone is hovering a card so it doesn't slide out from under them.
-          if (cardsRoot.querySelector(".ld-hero-card:hover")) return;
-          // No point morphing cards nobody can see.
-          if (!heroActive()) return;
+          // Hold still while someone is hovering a card so it doesn't slide out
+          // from under them. Mouse devices only: touch browsers leave :hover
+          // stuck on the last card a finger brushed while scrolling, which
+          // froze the carousel for good.
+          if (canHover && cardsRoot.querySelector(".ld-hero-card:hover")) return;
+          // No point morphing cards nobody can see. And never mid-scroll: a
+          // running card transition makes the browser re-layer the page,
+          // and budget phones painted blank frames during flings.
+          if (!heroActive() || performance.now() - lastScrollAt < 900) return;
           const [leftCard, centerCard, rightCard] = cards;
           // Spawn the new card pre-positioned off-screen right so the
           // first transition step has somewhere to animate FROM.
