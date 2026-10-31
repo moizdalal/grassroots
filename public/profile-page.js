@@ -280,6 +280,89 @@ async function fetchRecentReviews(supabase, userId) {
   }
 }
 
+// "Your numbers" — offer stats + pipeline for the last 90 days. Moved
+// here from the consultant dashboard. Hides the section when there are
+// no recent bids — a "0 / 0 / 0" wall is worse than no section.
+async function fetchConsultantBids(supabase, userId) {
+  const { data, error } = await supabase
+    .from("bids")
+    .select("id, amount_cents, consultant_payout_cents, counter_offer_cents, status, payment_status, released_at, accepted_at, created_at")
+    .eq("consultant_id", userId);
+  if (error) return [];
+  return data || [];
+}
+
+function renderNumbers(bids) {
+  const section = $("pp-numbers-section");
+  if (!section) return;
+
+  const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const recent = bids.filter((b) => {
+    const t = b.created_at ? Date.parse(b.created_at) : NaN;
+    return Number.isFinite(t) && (now - t) <= NINETY_DAYS_MS;
+  });
+  section.classList.toggle("hidden", !recent.length);
+  if (!recent.length) return;
+
+  const accepted = recent.filter((b) => b.status === "accepted");
+  const rejected = recent.filter((b) => b.status === "rejected");
+  const active = recent.filter((b) => b.status === "pending" || b.status === "countered");
+  const released = recent.filter((b) => b.payment_status === "released" || b.released_at);
+
+  // Acceptance rate: among bids the owner has decided on. Pending +
+  // countered are still in flight so they don't count.
+  const decided = accepted.length + rejected.length;
+  if (decided > 0) {
+    $("pp-stat-accept-rate").textContent = `${Math.round((accepted.length / decided) * 100)}%`;
+    $("pp-stat-accept-detail").textContent = `${accepted.length} of ${decided} decided`;
+  } else {
+    $("pp-stat-accept-rate").textContent = "—";
+    $("pp-stat-accept-detail").textContent = "No decisions yet";
+  }
+
+  // Average time from offer to the owner's accept (no rejected_at
+  // exists, so accepted bids only).
+  const spans = accepted
+    .map((b) => Date.parse(b.accepted_at) - Date.parse(b.created_at))
+    .filter((ms) => Number.isFinite(ms) && ms >= 0);
+  $("pp-stat-response").textContent = spans.length
+    ? formatDuration(spans.reduce((s, n) => s + n, 0) / spans.length)
+    : "—";
+
+  // Average payout after fees; older rows fall back to the agreed price.
+  const payoutOf = (b) =>
+    Number(b.consultant_payout_cents ?? b.counter_offer_cents ?? b.amount_cents) || 0;
+  if (released.length) {
+    $("pp-stat-payout").textContent = fmtUSD(released.reduce((s, b) => s + payoutOf(b), 0) / released.length);
+    $("pp-stat-payout-detail").textContent = `Across ${released.length} released offer${released.length === 1 ? "" : "s"}`;
+  } else {
+    $("pp-stat-payout").textContent = "—";
+    $("pp-stat-payout-detail").textContent = "No released offers yet";
+  }
+
+  const setPipeline = (id, n) => {
+    const numEl = $(id)?.querySelector(".cdash-pipeline__num");
+    if (numEl) numEl.textContent = String(n);
+  };
+  setPipeline("pp-pipeline-active", active.length);
+  setPipeline("pp-pipeline-accepted", accepted.length);
+  setPipeline("pp-pipeline-rejected", rejected.length);
+}
+
+// Round to a friendly unit: "6h" or "2d" instead of "147 minutes".
+function formatDuration(ms) {
+  if (!Number.isFinite(ms) || ms < 0) return "—";
+  const minutes = ms / (60 * 1000);
+  if (minutes < 1) return "<1m";
+  if (minutes < 60) return `${Math.round(minutes)}m`;
+  const hours = minutes / 60;
+  if (hours < 24) return `${Math.round(hours)}h`;
+  const days = hours / 24;
+  if (days < 7) return `${Math.round(days)}d`;
+  return `${Math.round(days / 7)}w`;
+}
+
 async function mountConsultantGarden(supabase, userId) {
   const section = $("pp-garden-section");
   const container = $("pp-garden");
@@ -309,12 +392,14 @@ async function init() {
     renderHeader(profile);
 
     if (profile?.role === "consultant") {
-      const [stats, rating, recent] = await Promise.all([
+      const [stats, rating, recent, bids] = await Promise.all([
         loadConsultantStats(supabase, session.user.id, profile),
         fetchConsultantRating(session),
         fetchRecentReviews(supabase, session.user.id),
+        fetchConsultantBids(supabase, session.user.id),
       ]);
       renderMetrics(stats, rating);
+      renderNumbers(bids);
       await mountConsultantGarden(supabase, session.user.id);
       // consultant progression: parked — see parked/consultant-progression/.
       renderReviews(rating, recent);
