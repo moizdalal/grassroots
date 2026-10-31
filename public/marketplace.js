@@ -25,10 +25,17 @@ const SORT_KEY = "grassroots_marketplace_sort";
 // constant; everything downstream reads it.
 const LOCAL_RADIUS_MILES = 50;
 
+// How many listings the "Featured" row shows. Featured = the open
+// listings with the fewest offers, so overlooked work surfaces before
+// the category rows.
+const FEATURED_COUNT = 5;
+
 let allRows = [];
 let bizMap = {};
 // owner_id → badge summary (null = new business). null map = RPC unavailable.
 let badgeMap = null;
+// listing id → offer count. null map = RPC unavailable; Featured is skipped.
+let offerCounts = null;
 let consultantCity = null; // { lat, lng } once the session is resolved.
 let _client = null;
 
@@ -149,6 +156,27 @@ async function fetchOpenListings(client) {
     .order("created_at", { ascending: false });
 
   return { data, error };
+}
+
+async function loadOfferCounts(client, listingIds) {
+  if (!listingIds.length) return new Map();
+  const { data, error } = await client.rpc("get_listing_offer_counts", { target_listing_ids: listingIds });
+  if (error) {
+    console.warn("offer counts:", error.message || error);
+    return null;
+  }
+  return new Map((data || []).map((r) => [r.listing_id, r.offer_count]));
+}
+
+// Fewest offers first. Ties go to the older listing, since it has
+// waited longer for attention.
+function pickFeatured(rows) {
+  if (!offerCounts) return [];
+  return [...rows]
+    .sort((a, b) =>
+      (offerCounts.get(a.id) ?? 0) - (offerCounts.get(b.id) ?? 0)
+      || new Date(a.created_at) - new Date(b.created_at))
+    .slice(0, FEATURED_COUNT);
 }
 
 function renderResultCount(filteredCount, totalCount) {
@@ -391,6 +419,18 @@ function renderListings(rows, client) {
     return;
   }
 
+  const featuredRows = pickFeatured(rows);
+  if (featuredRows.length) {
+    listingGrid.appendChild(
+      renderSection({
+        title: "Featured",
+        subtitle: "Projects with the fewest offers so far",
+        rows: featuredRows,
+        client,
+      })
+    );
+  }
+
   // "Local" bucket — listings within LOCAL_RADIUS_MILES of the
   // consultant's home city. Only renders when (a) we know the
   // consultant's coords and (b) at least one listing is in range.
@@ -605,13 +645,15 @@ async function refreshListings(client) {
   // Fetch business profiles
   const ownerIds = [...new Set(allRows.map(r => r.owner_id))];
   if (ownerIds.length) {
-    const [{ data: bizProfiles }, badges] = await Promise.all([
+    const [{ data: bizProfiles }, badges, counts] = await Promise.all([
       client.from("business_profiles").select("user_id, business_name").in("user_id", ownerIds),
       loadBusinessBadges(client, ownerIds),
+      loadOfferCounts(client, allRows.map(r => r.id)),
     ]);
     bizMap = {};
     (bizProfiles || []).forEach(b => { bizMap[b.user_id] = b; });
     badgeMap = badges;
+    offerCounts = counts;
   }
 
   listingsStatus.textContent = "";

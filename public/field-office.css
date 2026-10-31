@@ -744,6 +744,10 @@ body.gr-body .gr-section-h {
   border-radius: 18px;
   padding: 1.5rem;
   display: grid;
+  /* minmax(0, 1fr) keeps the column at the card's width. With the
+     implicit auto column, a long business name grew it past the
+     card edge and the content spilled into the next card. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 1fr auto;
   gap: 1rem;
   text-decoration: none;
@@ -925,9 +929,13 @@ body.gr-body .gr-section-h {
   font-size: 0.95rem;
   color: var(--fo-text);
   letter-spacing: 0;
+  line-height: 1.25;
+  /* Two lines before clamping. One line cut most business names to a
+     single word at the 280px card width. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 :where(#listing-grid, #dash-listings-cards) .gr-listing-budget {
@@ -964,13 +972,16 @@ body.gr-body .gr-section-h {
   gap: 1rem;
 }
 
+/* Tags that don't fit wrap to a second row, which the max-height
+   hides. A tag drops out whole instead of being cut mid-word. */
 :where(#listing-grid, #dash-listings-cards) .gr-listing-tags {
   display: flex;
-  flex-wrap: nowrap;
-  gap: 0.45rem;
+  flex-wrap: wrap;
+  gap: 1rem 0.45rem;
   align-items: center;
   margin: 0;
   min-width: 0;
+  max-height: 1.85rem;
   overflow: hidden;
 }
 
