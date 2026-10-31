@@ -30,6 +30,21 @@ const LOCAL_RADIUS_MILES = 50;
 // the category rows.
 const FEATURED_COUNT = 5;
 
+// Fictitious "Sample" owners whose listings are examples of a
+// well-scoped post, not real work. Their accounts have no password and
+// a .invalid email. Cards from these owners get a "Sample" pill and
+// sort after real listings in Featured.
+const SAMPLE_OWNER_IDS = new Set([
+  "5a3b1e00-0000-4000-8000-00000000aa01", // Wilhelmina Sample · Copperline Hardware
+  "5a3b1e00-0000-4000-8000-00000000aa02", // Barnaby Sample · Muddy Paws Grooming Co.
+  "5a3b1e00-0000-4000-8000-00000000aa03", // Rosalind Sample · Spoke & Sprocket Bike Works
+  "5a3b1e00-0000-4000-8000-00000000aa04", // Teodoro Sample · La Esquina Taqueria
+]);
+
+function isSample(row) {
+  return SAMPLE_OWNER_IDS.has(row.owner_id);
+}
+
 let allRows = [];
 let bizMap = {};
 // owner_id → badge summary (null = new business). null map = RPC unavailable.
@@ -168,13 +183,14 @@ async function loadOfferCounts(client, listingIds) {
   return new Map((data || []).map((r) => [r.listing_id, r.offer_count]));
 }
 
-// Fewest offers first. Ties go to the older listing, since it has
-// waited longer for attention.
+// Real listings before samples, then fewest offers first. Ties go to
+// the older listing, since it has waited longer for attention.
 function pickFeatured(rows) {
   if (!offerCounts) return [];
   return [...rows]
     .sort((a, b) =>
-      (offerCounts.get(a.id) ?? 0) - (offerCounts.get(b.id) ?? 0)
+      isSample(a) - isSample(b)
+      || (offerCounts.get(a.id) ?? 0) - (offerCounts.get(b.id) ?? 0)
       || new Date(a.created_at) - new Date(b.created_at))
     .slice(0, FEATURED_COUNT);
 }
@@ -278,8 +294,13 @@ function renderCard(row, client) {
     ? `<p class="gr-listing-contract">${escapeHtml(capFirst(contractType))}</p>`
     : "";
 
-  const recency = formatRecency(row.created_at);
-  const recencyHtml = recency
+  // Samples swap the recency label for a "Sample" pill, and drop the
+  // business badges, which would describe a business that isn't real.
+  const sample = isSample(row);
+  const recency = sample ? null : formatRecency(row.created_at);
+  const recencyHtml = sample
+    ? `<span class="gr-pill gr-pill--live gr-pill--no-dot gr-listing-sample">Sample</span>`
+    : recency
     ? `<span class="gr-listing-recency${recency.stale ? " gr-listing-recency--stale" : ""}">${escapeHtml(recency.label)}</span>`
     : "";
 
@@ -297,7 +318,7 @@ function renderCard(row, client) {
   // tile with a meta stack (biz / budget / contract) on its right,
   // foot carries tags on the left and the view CTA on the right.
   const card = document.createElement("a");
-  card.className = "gr-listing-card";
+  card.className = sample ? "gr-listing-card gr-listing-card--sample" : "gr-listing-card";
   // withGuestParam appends ?guest=1 when the viewer is in guest mode
   // so the listing detail recognises them even if the link is opened
   // in a new tab (which would otherwise lose the sessionStorage flag).
@@ -311,7 +332,7 @@ function renderCard(row, client) {
       <div class="gr-listing-card-meta">
         <div class="gr-listing-biz-row">
           <p class="gr-listing-biz-name">${escapeHtml(businessName)}</p>
-          ${badgeMap ? renderBadgeIcons(badgeMap.get(row.owner_id)) : ""}
+          ${badgeMap && !sample ? renderBadgeIcons(badgeMap.get(row.owner_id)) : ""}
         </div>
         ${budgetHtml}
         ${contractHtml}
