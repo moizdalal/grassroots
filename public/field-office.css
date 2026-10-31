@@ -846,8 +846,7 @@ body.gr-body .gr-section-h {
 
 #listing-grid .gr-listing-sample {
   font-size: var(--type-meta);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.02em;
   padding: 0.3rem 0.75rem;
 }
 
