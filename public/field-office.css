@@ -836,6 +836,21 @@ body.gr-body .gr-section-h {
   background: var(--fo-text-3);
 }
 
+/* "Sample" pill on example listings (marketplace.js SAMPLE_OWNER_IDS).
+   Takes the recency slot, one step larger than eyebrow type so it
+   reads at a glance. The pill is taller than the recency text, so
+   sample cards get extra top padding to keep it clear of the title. */
+#listing-grid .gr-listing-card--sample {
+  padding-top: 3.2rem;
+}
+
+#listing-grid .gr-listing-sample {
+  font-size: var(--type-meta);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.3rem 0.75rem;
+}
+
 /* Title ─ one tranche below the original v2 mockup. Uses the
    `--type-h1` token (section-H1 scale) so the card title stays
    token-aligned with the rest of the system. 2-line clamp keeps the

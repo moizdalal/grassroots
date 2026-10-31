@@ -161,6 +161,8 @@ Single class with kind modifiers, all theme-aware. Built-in dot indicator via `:
 | `--danger` | warm coral |
 | `--no-dot` | drop the dot |
 
+Sample listings (example posts from the fictitious owners in `marketplace.js` `SAMPLE_OWNER_IDS`) show `--warn --no-dot` reading "Sample" in the card's recency slot, at `--type-meta` and uppercase (`.gr-listing-sample`).
+
 ### `.gr-biz-badge` — business trust badges
 
 Earned badges for businesses, rendered by `business-badges.js` from the `get_business_badges` RPC. Rules live in `supabase/migrations/add_business_badges.sql`. Clear scope reads `business_reviews.scope_clarity` from `supabase/migrations/add_business_reviews.sql`. Nobody sets a badge by hand.
