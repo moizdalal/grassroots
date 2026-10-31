@@ -299,7 +299,7 @@ function renderCard(row, client) {
   const sample = isSample(row);
   const recency = sample ? null : formatRecency(row.created_at);
   const recencyHtml = sample
-    ? `<span class="gr-pill gr-pill--warn gr-pill--no-dot gr-listing-sample">Sample</span>`
+    ? `<span class="gr-pill gr-pill--live gr-pill--no-dot gr-listing-sample">Sample</span>`
     : recency
     ? `<span class="gr-listing-recency${recency.stale ? " gr-listing-recency--stale" : ""}">${escapeHtml(recency.label)}</span>`
     : "";

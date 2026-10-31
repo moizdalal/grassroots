@@ -839,7 +839,9 @@ body.gr-body .gr-section-h {
 /* "Sample" pill on example listings (marketplace.js SAMPLE_OWNER_IDS).
    Takes the recency slot, one step larger than eyebrow type so it
    reads at a glance. The pill is taller than the recency text, so
-   sample cards get extra top padding to keep it clear of the title. */
+   sample cards get extra top padding to keep it clear of the title.
+   Solid accent fill with --fo-accent-on text, like the trust badges:
+   accent text on --fo-accent-soft was too low-contrast on dark cards. */
 #listing-grid .gr-listing-card--sample {
   padding-top: 3.2rem;
 }
@@ -848,6 +850,8 @@ body.gr-body .gr-section-h {
   font-size: var(--type-meta);
   letter-spacing: 0.02em;
   padding: 0.3rem 0.75rem;
+  background: var(--fo-accent);
+  color: var(--fo-accent-on);
 }
 
 /* Title ─ one tranche below the original v2 mockup. Uses the

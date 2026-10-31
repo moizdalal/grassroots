@@ -161,7 +161,7 @@ Single class with kind modifiers, all theme-aware. Built-in dot indicator via `:
 | `--danger` | warm coral |
 | `--no-dot` | drop the dot |
 
-Sample listings (example posts from the fictitious owners in `marketplace.js` `SAMPLE_OWNER_IDS`) show `--warn --no-dot` reading "Sample" in the card's recency slot, at `--type-meta` in sentence case, not uppercase (`.gr-listing-sample`).
+Sample listings (example posts from the fictitious owners in `marketplace.js` `SAMPLE_OWNER_IDS`) show a "Sample" pill in the card's recency slot: `--live --no-dot` restyled to a solid `--fo-accent` fill with `--fo-accent-on` text (the soft fill was too low-contrast on dark cards), `--type-meta`, sentence case, not uppercase (`.gr-listing-sample`).
 
 ### `.gr-biz-badge` — business trust badges
 
