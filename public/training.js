@@ -31,10 +31,15 @@ const TIMELINE_STEPS = [
 ];
 
 function renderPaymentTimeline() {
+  return renderFlow({ label: "How a payment moves from the business to your bank", steps: TIMELINE_STEPS });
+}
+
+// Numbered steps on a line; shares the timeline's draw-in animation.
+function renderFlow({ label, steps }) {
   return `
-    <figure class="tr-visual tr-timeline" aria-label="How a payment moves from the business to your bank">
-      <ol class="tr-timeline__list">
-        ${TIMELINE_STEPS.map(
+    <figure class="tr-visual tr-timeline" aria-label="${escape(label)}">
+      <ol class="tr-timeline__list" style="--n:${steps.length}">
+        ${steps.map(
           (s, i) => `
           <li class="tr-timeline__step" style="--i:${i}">
             <span class="tr-timeline__dot" aria-hidden="true">${i + 1}</span>
@@ -87,7 +92,160 @@ function wireFeeCalculator(scope) {
   update();
 }
 
-const VISUALS = { "payment-timeline": renderPaymentTimeline, "fee-calculator": renderFeeCalculator };
+const visualLabel = (label) => (label ? `<figcaption class="tr-visual__label">${escape(label)}</figcaption>` : "");
+
+// Two columns: what to do (check marks) and what to avoid (crosses).
+function renderCompare({ label, do: yes, dont }) {
+  const col = (c, kind) => `
+    <div class="tr-compare__col tr-compare__col--${kind}">
+      <p class="tr-compare__title">${escape(c.title)}</p>
+      <ul class="tr-compare__list">
+        ${c.items.map((it) => `<li><span class="tr-compare__mark" aria-hidden="true">${kind === "do" ? "✓" : "✕"}</span>${escape(it)}</li>`).join("")}
+      </ul>
+    </div>`;
+  return `
+    <figure class="tr-visual tr-compare">
+      ${visualLabel(label)}
+      <div class="tr-compare__grid">${col(yes, "do")}${col(dont, "dont")}</div>
+    </figure>`;
+}
+
+// A bar split by how much of the call each part takes.
+function renderAgenda({ label, segments }) {
+  return `
+    <figure class="tr-visual tr-agenda">
+      ${visualLabel(label)}
+      <ol class="tr-agenda__bar">
+        ${segments
+          .map(
+            (s, i) => `
+          <li class="tr-agenda__seg" style="--share:${Number(s.share) || 1};--i:${i}">
+            <span class="tr-agenda__fill" aria-hidden="true"></span>
+            <span class="tr-agenda__title">${escape(s.title)}</span>
+            <span class="tr-agenda__note">${escape(s.note)}</span>
+          </li>`
+          )
+          .join("")}
+      </ol>
+    </figure>`;
+}
+
+function renderCards({ label, cards }) {
+  return `
+    <figure class="tr-visual tr-cards">
+      ${visualLabel(label)}
+      <div class="tr-cards__grid" style="--n:${cards.length}">
+        ${cards
+          .map(
+            (c) => `
+          <div class="tr-card${c.tone ? ` tr-card--${c.tone}` : ""}">
+            <p class="tr-card__title">${escape(c.title)}</p>
+            <p class="tr-card__text">${escape(c.text)}</p>
+          </div>`
+          )
+          .join("")}
+      </div>
+    </figure>`;
+}
+
+function renderChips({ label, items }) {
+  return `
+    <figure class="tr-visual tr-chips">
+      ${visualLabel(label)}
+      <ol class="tr-chips__list">
+        ${items.map((it, i) => `<li class="tr-chip"><span class="tr-chip__num" aria-hidden="true">${i + 1}</span>${escape(it)}</li>`).join("")}
+      </ol>
+    </figure>`;
+}
+
+// Rows that swap a don't for a do, with an arrow between.
+function renderPairs({ label, titles, rows }) {
+  return `
+    <figure class="tr-visual tr-pairs">
+      ${visualLabel(label)}
+      <div class="tr-pairs__head" aria-hidden="true"><span>${escape(titles[0])}</span><span></span><span>${escape(titles[1])}</span></div>
+      <ul class="tr-pairs__list">
+        ${rows
+          .map(
+            ([no, yes]) => `
+          <li class="tr-pairs__row">
+            <span class="tr-pairs__no"><span class="tr-sr">${escape(titles[0])}: </span>${escape(no)}</span>
+            <span class="tr-pairs__arrow" aria-hidden="true">→</span>
+            <span class="tr-pairs__yes"><span class="tr-sr">${escape(titles[1])}: </span>${escape(yes)}</span>
+          </li>`
+          )
+          .join("")}
+      </ul>
+    </figure>`;
+}
+
+// A dashed boundary: in-scope items inside, out-of-scope ones outside it.
+function renderScope({ label, inside, outside }) {
+  const pills = (items) => items.map((it) => `<li class="tr-scope__item">${escape(it)}</li>`).join("");
+  return `
+    <figure class="tr-visual tr-scope">
+      ${visualLabel(label)}
+      <div class="tr-scope__box">
+        <p class="tr-scope__title">${escape(inside.title)}</p>
+        <ul class="tr-scope__items">${pills(inside.items)}</ul>
+      </div>
+      <div class="tr-scope__out">
+        <p class="tr-scope__title">${escape(outside.title)}</p>
+        <ul class="tr-scope__items">${pills(outside.items)}</ul>
+      </div>
+    </figure>`;
+}
+
+// Two rows of tags: plain for fine, struck through for not okay.
+function renderTags({ label, do: yes, dont }) {
+  const row = (g, kind) => `
+    <div class="tr-tags__row">
+      <p class="tr-tags__title tr-tags__title--${kind}">${escape(g.title)}</p>
+      <ul class="tr-tags__list">${g.items.map((it) => `<li class="tr-tag tr-tag--${kind}">${escape(it)}</li>`).join("")}</ul>
+    </div>`;
+  return `
+    <figure class="tr-visual tr-tags">
+      ${visualLabel(label)}
+      ${row(yes, "do")}${row(dont, "dont")}
+    </figure>`;
+}
+
+// A yes/no grid, one row per benefit.
+function renderTable({ label, columns, rows }) {
+  const cell = (v) =>
+    `<td class="tr-table__cell tr-table__cell--${v ? "yes" : "no"}"><span aria-hidden="true">${v ? "✓" : "✕"}</span><span class="tr-sr">${v ? "Yes" : "No"}</span></td>`;
+  return `
+    <figure class="tr-visual tr-table">
+      ${visualLabel(label)}
+      <table class="tr-table__grid">
+        <thead><tr><td></td>${columns.map((c) => `<th scope="col">${escape(c)}</th>`).join("")}</tr></thead>
+        <tbody>
+          ${rows.map((r) => `<tr><th scope="row">${escape(r.label)}</th>${r.values.map(cell).join("")}</tr>`).join("")}
+        </tbody>
+      </table>
+    </figure>`;
+}
+
+const VISUALS = {
+  "payment-timeline": renderPaymentTimeline,
+  "fee-calculator": renderFeeCalculator,
+  flow: renderFlow,
+  compare: renderCompare,
+  pairs: renderPairs,
+  scope: renderScope,
+  tags: renderTags,
+  table: renderTable,
+  agenda: renderAgenda,
+  cards: renderCards,
+  chips: renderChips,
+};
+
+// `visual` is a type name or { type, ...data } (see training-content.js).
+function renderVisual(v) {
+  if (!v) return "";
+  const spec = typeof v === "string" ? { type: v } : v;
+  return VISUALS[spec.type]?.(spec) || "";
+}
 
 // Fades lessons in as they scroll into view. Lessons start visible: the
 // hide-until-seen style only applies once `scope` has .tr-armed, which is
@@ -232,7 +390,7 @@ export function mountTraining(root, deps) {
     const done = state.done.includes(m.id);
     const isLast = idx === MODULES.length - 1;
     panelEl.innerHTML = `
-      <p class="tr-eyebrow">Module ${idx + 1} of ${MODULES.length}</p>
+      <p class="tr-eyebrow tr-eyebrow--panel">Module ${idx + 1} of ${MODULES.length}</p>
       <h2 class="tr-panel__title">${escape(m.title)}</h2>
       <p class="tr-panel__goal">${escape(m.goal)}</p>
       ${m.lessons
@@ -242,8 +400,8 @@ export function mountTraining(root, deps) {
           ${l.key ? '<p class="tr-eyebrow">Must-know habit</p>' : ""}
           <h3 class="tr-lesson__title"><span class="tr-lesson__num">${idx + 1}.${li + 1}</span> ${escape(l.title)}</h3>
           ${l.intro ? `<p class="tr-lesson__intro">${escape(l.intro)}</p>` : ""}
+          ${renderVisual(l.visual)}
           <ul class="tr-lesson__points">${l.points.map((p) => `<li>${escape(p)}</li>`).join("")}</ul>
-          ${l.visual && VISUALS[l.visual] ? VISUALS[l.visual]() : ""}
           ${
             l.example
               ? `<figure class="tr-example">
@@ -307,7 +465,7 @@ export function mountTraining(root, deps) {
   function renderQuizLocked() {
     const left = MODULES.filter((m) => !state.done.includes(m.id));
     panelEl.innerHTML = `
-      <p class="tr-eyebrow">Quiz</p>
+      <p class="tr-eyebrow tr-eyebrow--panel">Quiz</p>
       <h2 class="tr-panel__title">Finish the modules first</h2>
       <p class="tr-panel__goal">The quiz unlocks once you've completed all four modules.</p>
       <ul class="tr-lesson__points">${left.map((m) => `<li>${escape(m.title)}</li>`).join("")}</ul>
@@ -321,7 +479,7 @@ export function mountTraining(root, deps) {
     if (!allModulesDone()) return renderQuizLocked();
     if (!state.quiz) {
       panelEl.innerHTML = `
-        <p class="tr-eyebrow">Quiz</p>
+        <p class="tr-eyebrow tr-eyebrow--panel">Quiz</p>
         <h2 class="tr-panel__title">Check what you've learned</h2>
         <p class="tr-panel__goal">${QUIZ_LENGTH} questions drawn from all four modules. You need ${PASS_SCORE} correct to pass. Your result is saved.</p>
         <div class="tr-actions"><span></span>
@@ -332,7 +490,7 @@ export function mountTraining(root, deps) {
     const { questions, answers } = state.quiz;
     const answered = Object.keys(answers).length;
     panelEl.innerHTML = `
-      <p class="tr-eyebrow">Quiz</p>
+      <p class="tr-eyebrow tr-eyebrow--panel">Quiz</p>
       <h2 class="tr-panel__title">Check what you've learned</h2>
       <form class="tr-quiz" id="tr-quiz" novalidate>
         ${questions
@@ -365,7 +523,7 @@ export function mountTraining(root, deps) {
       // results (answers + reasons) only come back from the database on a pass.
       const byId = new Map((results || []).map((r) => [r.id, r]));
       panelEl.innerHTML = `
-        <p class="tr-eyebrow">Quiz result</p>
+        <p class="tr-eyebrow tr-eyebrow--panel">Quiz result</p>
         <h2 class="tr-panel__title">You passed with ${score} of ${total}</h2>
         <p class="tr-panel__goal">You're ready to send your first offer. Here's how you did.</p>
         <ol class="tr-review">
@@ -389,7 +547,7 @@ export function mountTraining(root, deps) {
         </div>`;
     } else {
       panelEl.innerHTML = `
-        <p class="tr-eyebrow">Quiz result</p>
+        <p class="tr-eyebrow tr-eyebrow--panel">Quiz result</p>
         <h2 class="tr-panel__title">You scored ${score} of ${total}</h2>
         <p class="tr-panel__goal">You need ${PASS_SCORE} to pass. Go back through the modules, then take a new quiz.</p>
         <div class="tr-actions"><span></span>
@@ -441,7 +599,7 @@ export function mountTraining(root, deps) {
 
     if (!passed) {
       const review = await confirmDialog({
-        title: "Please actually complete the course",
+        title: "Please actually complete the course 😂",
         body: `You scored ${score} of ${total}, and you need ${PASS_SCORE} to pass. Work through each module again, then retake the quiz.`,
         confirmLabel: "Back to module 1",
         cancelLabel: "Close",
