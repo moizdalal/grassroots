@@ -12,8 +12,10 @@
   // Sprout sway only — each leaf hinges from its base and rocks on its
   // own phase. CSS handles all motion (see .gr-loader-overlay*).
   // overflow:visible keeps rotated leaves from clipping at viewBox edges.
+  // The viewBox is also padded 20 units each side: Safari clips a filtered
+  // <svg> to its box even with overflow visible, so the sway needs room.
   overlay.innerHTML =
-    '<svg class="gr-loader-overlay__svg" xmlns="' + SVG_NS + '" viewBox="0 0 163 275" overflow="visible" aria-hidden="true">' +
+    '<svg class="gr-loader-overlay__svg" xmlns="' + SVG_NS + '" viewBox="-20 -20 203 315" overflow="visible" aria-hidden="true">' +
       '<g transform="translate(72, 130)">' +
         '<g class="gr-loader-overlay__stem">' +
           '<path d="M19 10.15C19 4.54431 14.7467 0 9.5 0C4.25329 0 0 4.54431 0 10.15C7.91804 91.2467 8.44249 120.691 0 134.85C0 140.456 4.25329 145 9.5 145C14.7467 145 19 140.456 19 134.85C16.2169 71.2734 12.3479 23.288 19 10.15Z"/>' +

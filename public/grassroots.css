@@ -5933,11 +5933,14 @@ button.gr-bid-link {
 }
 .gr-loader-overlay__svg {
   position: relative;
-  width: clamp(72px, 9vw, 112px);
+  /* Scaled up 203/163 to offset the padded viewBox — sprout renders the same size. */
+  width: clamp(90px, 11.2vw, 140px);
   height: auto;
+  overflow: visible;
   color: var(--green-light, #6dbf8a);
   fill: currentColor;
-  transform-origin: 50% 95%;
+  /* Stem base: (81.5, 261) in the padded -20 -20 203 315 viewBox. */
+  transform-origin: 50% 89%;
   animation: gr-loader-sway 4.2s ease-in-out infinite;
   filter: drop-shadow(0 6px 16px rgba(27, 67, 50, 0.18));
 }
