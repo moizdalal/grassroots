@@ -61,7 +61,7 @@
     <link rel="stylesheet" href="/grassroots.css?v=2" />
     <link rel="stylesheet" href="/field-office.css" />
     <link rel="stylesheet" href="/home/nav.css?v=7" />
-    <link rel="stylesheet" href="/home/for-students.css" />
+    <link rel="stylesheet" href="/home/for-students.css?v=21" />
     <script src="/theme.js?v=2"></script>
     <script src="/cookie-banner.js" defer></script>
     <script src="/home/theme-default.js"></script>
@@ -127,23 +127,9 @@
       <div class="fs-shell">
         <div class="fs-hero__grid">
           <div>
-            <span class="fs-hero__chip fs-reveal">
-              <span class="fs-hero__chip-tag">Invite only</span>
-            </span>
-
             <h1 class="fs-hero__h1 fs-reveal">
-              Get
-              <span class="fs-rotator" aria-label="Paid, hired, reviewed, shipped, paid">
-                <span class="fs-rotator__sizer" aria-hidden="true">reviewed.</span>
-                <span class="fs-rotator__inner" aria-hidden="true">
-                  <span class="fs-rotator__word">Paid.</span>
-                  <span class="fs-rotator__word">Hired.</span>
-                  <span class="fs-rotator__word">Reviewed.</span>
-                  <span class="fs-rotator__word">Cited.</span>
-                  <span class="fs-rotator__word">Paid.</span>
-                </span>
-              </span><br/>
-              For the work you <span class="fs-italic">actually</span> want to do.
+              Get <span class="fs-italic">paid</span><br/>
+              for the work you <span class="fs-italic">actually</span> want to do
             </h1>
 
             <p class="fs-hero__sub fs-reveal">
@@ -163,253 +149,246 @@
             </div>
           </div>
 
-          <!-- the signed receipt visual -->
-          <div class="fs-reveal">
-            <div class="fs-receipt" aria-hidden="true">
-              <div class="fs-receipt__head">
-                <div>
-                  <div class="fs-receipt__brand">grassroots <span class="fs-italic">· receipt</span></div>
+          <!-- a laptop showing the student marketplace (same layout as
+               /marketplace.html, with sample listings). A cursor opens a listing,
+               types an offer and submits it; then "accepted" and "paid"
+               notifications pop up, and it loops (script below) -->
+          <div class="fs-laptop fs-reveal" aria-hidden="true">
+            <div class="fs-laptop__screen">
+              <div class="fs-laptop__ui">
+                <div class="fs-mk__nav">
+                  <span class="fs-mk__brand">grassroots</span>
+                  <span class="fs-mk__links"><b>Marketplace</b><span>My offers</span><span>Inbox</span></span>
+                  <span class="fs-mk__me">JP</span>
                 </div>
-                <div class="fs-receipt__meta">
-                  Job #4821<br/>
-                  apr 02, 2026
+                <div class="fs-mk__page">
+                  <div class="fs-mk__head">
+                    <b>Opportunities <em>live now</em></b>
+                    <span>Small businesses post real work. Students bid, deliver, and build their portfolios.</span>
+                  </div>
+                  <div class="fs-mk__filters">
+                    <span class="fs-mk__search">Search by title, business, or keyword…</span>
+                    <span>All categories ▾</span>
+                    <span>Newest first ▾</span>
+                    <span>$ min – max</span>
+                  </div>
+                  <div class="fs-mk__grid">
+                    <div class="fs-mk__card" style="--i: 0">
+                      <span class="fs-mk__recency">Posted 2h ago</span>
+                      <b class="fs-mk__title">Menu redesign + window decals</b>
+                      <div class="fs-mk__biz"><span class="fs-mk__logo">SS</span>Side Street Coffee</div>
+                      <div class="fs-mk__tags"><span>Design</span><span>Print</span></div>
+                      <div class="fs-mk__foot"><b>$240</b><span>One time</span><i>View →</i></div>
+                    </div>
+                    <div class="fs-mk__card" style="--i: 1">
+                      <span class="fs-mk__recency">Posted today</span>
+                      <b class="fs-mk__title">Shopify cleanup + product photos</b>
+                      <div class="fs-mk__biz"><span class="fs-mk__logo">NB</span>North End Bikes</div>
+                      <div class="fs-mk__tags"><span>Shopify</span><span>Photo</span></div>
+                      <div class="fs-mk__foot"><b>$450</b><span>Phased</span><i>View →</i></div>
+                    </div>
+                    <div class="fs-mk__card" style="--i: 2">
+                      <span class="fs-mk__recency">Open</span>
+                      <b class="fs-mk__title">Weekly social posts retainer</b>
+                      <div class="fs-mk__biz"><span class="fs-mk__logo">RR</span>Rooster &amp; Rye</div>
+                      <div class="fs-mk__tags"><span>Social</span></div>
+                      <div class="fs-mk__foot"><b>$320/mo</b><span>Retainer</span><i>View →</i></div>
+                    </div>
+                    <div class="fs-mk__card" style="--i: 3">
+                      <span class="fs-mk__recency">5 bids</span>
+                      <b class="fs-mk__title">Brand refresh + new logo</b>
+                      <div class="fs-mk__biz"><span class="fs-mk__logo">MF</span>Marigold Florals</div>
+                      <div class="fs-mk__tags"><span>Brand</span><span>Logo</span></div>
+                      <div class="fs-mk__foot"><b>$600</b><span>Phased</span><i>View →</i></div>
+                    </div>
+                    <div class="fs-mk__card" style="--i: 4">
+                      <span class="fs-mk__recency">Posted yesterday</span>
+                      <b class="fs-mk__title">Market research for new location</b>
+                      <div class="fs-mk__biz"><span class="fs-mk__logo">SF</span>Split / Fix Shop</div>
+                      <div class="fs-mk__tags"><span>Research</span></div>
+                      <div class="fs-mk__foot"><b>$520</b><span>One time</span><i>View →</i></div>
+                    </div>
+                    <div class="fs-mk__card" style="--i: 5">
+                      <span class="fs-mk__recency">8 bids</span>
+                      <b class="fs-mk__title">Site copy + photo direction</b>
+                      <div class="fs-mk__biz"><span class="fs-mk__logo">AK</span>Alma Kitchen</div>
+                      <div class="fs-mk__tags"><span>Copy</span><span>Photo</span></div>
+                      <div class="fs-mk__foot"><b>$380</b><span>One time</span><i>View →</i></div>
+                    </div>
+                  </div>
                 </div>
+                <div class="fs-mk__panel">
+                  <span class="fs-mk__panel-biz"><span class="fs-mk__logo">SS</span>Side Street Coffee</span>
+                  <b class="fs-mk__panel-title">Menu redesign + window decals</b>
+                  <span class="fs-mk__panel-budget">Budget $240 · one time</span>
+                  <label>Offer amount</label>
+                  <span class="fs-mk__input fs-mk__amount"></span>
+                  <label>Your pitch</label>
+                  <span class="fs-mk__input fs-mk__input--tall fs-mk__pitch"></span>
+                  <span class="fs-mk__submit">Submit offer</span>
+                </div>
+                <svg class="fs-mk__cursor" viewBox="0 0 24 24"><path d="M5 3l14 8-6 1.6L10 19z" /></svg>
               </div>
-              <div class="fs-receipt__line"><span>Menu redesign</span><b>$240.00</b></div>
-              <div class="fs-receipt__line"><span>Window decals</span><b>$120.00</b></div>
-              <div class="fs-receipt__line"><span>· 2 rounds revision</span><b>—</b></div>
-              <div class="fs-receipt__hr fs-receipt__hr--dashed"></div>
-              <div class="fs-receipt__line"><span>Subtotal</span><b>$360.00</b></div>
-              <div class="fs-receipt__line"><span>Platform fee · 10%</span><b>−$36.00</b></div>
-              <div class="fs-receipt__hr"></div>
-              <div class="fs-receipt__line fs-receipt__line--total">
-                <span>Your cut</span>
-                <span>$324.00</span>
-              </div>
-              <div class="fs-receipt__hr fs-receipt__hr--dashed"></div>
-              <div class="fs-receipt__line" style="font-size: 0.72rem;">
-                <span>Reviewed on 6 dimensions</span><b>★ 4.9</b>
-              </div>
-              <div class="fs-receipt__foot">··· Paid via Stripe · same day ···</div>
-              <span class="fs-receipt__stamp">Released</span>
             </div>
-          </div>
-        </div>
-
-        <!-- marquee bar of words -->
-        <div class="fs-marquee" aria-hidden="true">
-          <div class="fs-marquee__viewport">
-            <div class="fs-marquee__track">
-              <span>Real briefs</span><i class="fs-marquee__bullet"></i>
-              <span>real money</span><i class="fs-marquee__bullet"></i>
-              <span>real reviews</span><i class="fs-marquee__bullet"></i>
-              <span>real owners</span><i class="fs-marquee__bullet"></i>
-              <span>your work, your portfolio</span><i class="fs-marquee__bullet"></i>
-              <span>no gig-economy slop</span><i class="fs-marquee__bullet"></i>
-              <span>real briefs</span><i class="fs-marquee__bullet"></i>
-              <span>real money</span><i class="fs-marquee__bullet"></i>
-              <span>real reviews</span><i class="fs-marquee__bullet"></i>
-              <span>real owners</span><i class="fs-marquee__bullet"></i>
-              <span>your work, your portfolio</span><i class="fs-marquee__bullet"></i>
-              <span>no gig-economy slop</span><i class="fs-marquee__bullet"></i>
+            <div class="fs-laptop__base"></div>
+            <div class="fs-laptop__toast">
+              <span class="fs-laptop__toast-icon">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 21V11M12 11C12 7 9 4.5 5 4.5C5 8.5 7.5 11 12 11ZM12 13C12 9.5 14.5 7 19 7C19 10.5 16.5 13 12 13Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>
+              </span>
+              <span class="fs-laptop__toast-body"><b>Grassroots</b><span class="fs-laptop__toast-text"></span></span>
             </div>
           </div>
         </div>
       </div>
     </header>
 
-    <!-- ── what you walk away with (bento) ── -->
-    <section class="fs-section" aria-labelledby="fs-bento-title">
-      <div class="fs-shell">
-        <div class="fs-section__head fs-reveal">
-          <h2 class="fs-section__title" id="fs-bento-title">
-            Money in your account. <span class="fs-italic">Work in your portfolio.</span> A name on the door.
+    <!-- ── why grassroots: heading on the left, what you walk away with on the right ── -->
+    <section class="fs-section" id="why" aria-labelledby="fs-why-title">
+      <div class="fs-shell fs-split">
+        <div class="fs-split__head fs-reveal">
+          <h2 class="fs-section__title fs-split__title" id="fs-why-title">
+            Money in your account. <span class="fs-italic">Work in your portfolio.</span> A name on the door
           </h2>
           <p class="fs-section__sub">
-            Grassroots isn't an internship and it isn't a gig platform. It's scoped consulting work for businesses in your town — paid like a contract, shaped like a resume line.
+            Not an internship. Not a gig app. Paid work for businesses in your town.
           </p>
         </div>
 
-        <div class="fs-bento">
-          <!-- (1) get paid -->
-          <div class="fs-bento__cell fs-bento__cell--paid fs-reveal">
-            <div class="fs-bento__num">01 / paid</div>
-            <h3 class="fs-bento__title">A paycheck, not a pat on the back.</h3>
-            <p class="fs-bento__body">You set the price on every bid. When the owner approves the work, the money lands in your account.</p>
+        <div class="fs-split__body">
+          <ol class="fs-rows fs-stagger fs-reveal">
+            <li class="fs-row">
+              <span class="fs-row__num" aria-hidden="true">01</span>
+              <div>
+                <h3 class="fs-row__title">A paycheck, not a pat on the back</h3>
+                <p class="fs-row__body">You set the price. Approved work pays out.</p>
+              </div>
+            </li>
+            <li class="fs-row">
+              <span class="fs-row__num" aria-hidden="true">02</span>
+              <div>
+                <h3 class="fs-row__title">The kind recruiters actually ask about</h3>
+                <p class="fs-row__body">You run the project, talk to the owner, and ship it.</p>
+              </div>
+            </li>
+            <li class="fs-row">
+              <span class="fs-row__num" aria-hidden="true">03</span>
+              <div>
+                <h3 class="fs-row__title">You own everything you ship</h3>
+                <p class="fs-row__body">Full IP and portfolio rights, in the contract.</p>
+              </div>
+            </li>
+            <li class="fs-row">
+              <span class="fs-row__num" aria-hidden="true">04</span>
+              <div>
+                <h3 class="fs-row__title">A real reference, not a LinkedIn endorsement</h3>
+                <p class="fs-row__body">A local owner who'll vouch for you for years.</p>
+              </div>
+            </li>
+            <li class="fs-row">
+              <span class="fs-row__num" aria-hidden="true">05</span>
+              <div>
+                <h3 class="fs-row__title">Three clients by graduation</h3>
+                <p class="fs-row__body">Paid projects, written references, verified earnings.</p>
+              </div>
+            </li>
+          </ol>
+
+          <!-- why you can trust it: the money and review guarantees -->
+          <ul class="fs-checks fs-checks--two fs-stagger fs-reveal" aria-label="Why you can trust Grassroots">
+            <li class="fs-check">
+              <b class="fs-check__head">Payment held before you start</b>
+            </li>
+            <li class="fs-check">
+              <b class="fs-check__head">Paid same day</b>
+            </li>
+            <li class="fs-check">
+              <b class="fs-check__head">A small fee, only on paid work</b>
+            </li>
+            <li class="fs-check">
+              <b class="fs-check__head">Reviews that stay with you</b>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── how it works: heading on the left, the five steps as a timeline on the right ── -->
+    <section class="fs-section" id="how" aria-labelledby="fs-how-title" style="padding-top: 0;">
+      <div class="fs-shell fs-split">
+        <div class="fs-split__head fs-reveal">
+          <h2 class="fs-section__title fs-split__title" id="fs-how-title">How it works</h2>
+          <p class="fs-section__sub">Five steps to your first paycheck.</p>
+        </div>
+
+        <div class="fs-split__body">
+          <ol class="fs-steps fs-stagger fs-reveal">
+            <li class="fs-step">
+              <h3 class="fs-step__title">Get in</h3>
+              <p class="fs-step__body">Apply, or refer 3 businesses to skip the line.</p>
+            </li>
+            <li class="fs-step">
+              <h3 class="fs-step__title">Build your bio</h3>
+              <p class="fs-step__body">School, skills, and what you want to work on.</p>
+            </li>
+            <li class="fs-step">
+              <h3 class="fs-step__title">Bid your price</h3>
+              <p class="fs-step__body">Pick a local listing, pitch, and name your number.</p>
+            </li>
+            <li class="fs-step">
+              <h3 class="fs-step__title">Ship the work</h3>
+              <p class="fs-step__body">The business has already paid before you start.</p>
+            </li>
+            <li class="fs-step">
+              <h3 class="fs-step__title">Get paid &amp; reviewed</h3>
+              <p class="fs-step__body">Paid same day, reviewed on six dimensions.</p>
+            </li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── requirements to join: heading on the left, checklist on the right, then the two ways in ── -->
+    <section class="fs-section" id="get-in" aria-labelledby="fs-reqs-title" style="padding-top: 0;">
+      <div class="fs-shell">
+        <div class="fs-split">
+          <div class="fs-split__head fs-reveal">
+            <h2 class="fs-section__title fs-split__title" id="fs-reqs-title">What it takes to get in</h2>
+            <p class="fs-section__sub">
+              We keep it small so the badge means something.
+            </p>
           </div>
 
-          <!-- (2) experience -->
-          <div class="fs-bento__cell fs-bento__cell--exp fs-reveal">
-            <div class="fs-bento__num">02 / experience</div>
-            <h3 class="fs-bento__title">The kind recruiters actually ask about.</h3>
-            <p class="fs-bento__body">Not "I did the Slack onboarding deck for an intern cohort." you ran the engagement. You talked to the owner. You shipped the thing.</p>
-            <div class="fs-tags">
-              <span class="fs-tag fs-tag--accent">Client-facing</span>
-              <span class="fs-tag">scoped delivery</span>
-              <span class="fs-tag">written brief</span>
-              <span class="fs-tag">on-budget</span>
-              <span class="fs-tag">6-dim review</span>
-              <span class="fs-tag">verified payout</span>
-              <span class="fs-tag">live revisions</span>
-            </div>
-          </div>
-
-          <!-- (3) ownership -->
-          <div class="fs-bento__cell fs-bento__cell--own fs-reveal">
-            <div class="fs-bento__num">03 / ownership</div>
-            <h3 class="fs-bento__title">You own everything you ship.</h3>
-            <p class="fs-bento__body">Full IP. Portfolio rights. Show it, tweet it, put it in a case study. The contract says so.</p>
-            <div class="fs-bento__art" aria-hidden="true">
-              <span class="fs-bento__art-stack"></span>
-              <span class="fs-bento__art-stack"></span>
-              <span class="fs-bento__art-stack"></span>
-            </div>
-          </div>
-
-          <!-- (4) relationships -->
-          <div class="fs-bento__cell fs-bento__cell--rel fs-reveal">
-            <div class="fs-bento__num">04 / relationships</div>
-            <h3 class="fs-bento__title">A real reference, not a LinkedIn endorsement.</h3>
-            <p class="fs-bento__body">Do good work for a local owner and they'll call you again. That's a person who picks up your call in two years.</p>
-            <div class="fs-bento__pair">
-              <span class="fs-bento__avatar">MR</span>
-              <div class="fs-bento__pair-link"></div>
-              <span class="fs-bento__avatar" style="background: color-mix(in srgb, var(--fo-accent-warm) 25%, transparent); color: var(--fo-accent-warm);">JP</span>
-            </div>
-          </div>
-
-          <!-- (5) resume -->
-          <div class="fs-bento__cell fs-bento__cell--res fs-reveal">
-            <div class="fs-bento__num">05 / resume</div>
-            <h3 class="fs-bento__title">Three clients by graduation.</h3>
-            <p class="fs-bento__body">A typical accepted student finishes:</p>
-            <ul class="fs-bento__list">
-              <li>3+ paid engagements</li>
-              <li>2 written client references</li>
-              <li>6-dimensional review badges</li>
-              <li>Verified earnings on file</li>
+          <div class="fs-split__body">
+            <ul class="fs-checks fs-stagger fs-reveal">
+              <li class="fs-check">
+                <b class="fs-check__head">A current college student</b>
+                <span class="fs-check__body">With a .edu email.</span>
+              </li>
+              <li class="fs-check">
+                <b class="fs-check__head">In or near a Grassroots town</b>
+                <span class="fs-check__body">No town yet? Apply anyway.</span>
+              </li>
+              <li class="fs-check">
+                <b class="fs-check__head">One thing you've made</b>
+                <span class="fs-check__body">No big portfolio needed.</span>
+              </li>
+              <li class="fs-check">
+                <b class="fs-check__head">A few lines on why</b>
+                <span class="fs-check__body">60 words is plenty.</span>
+              </li>
             </ul>
           </div>
         </div>
-      </div>
-    </section>
 
-    <!-- ── how it works for students ── -->
-    <section class="fs-section" id="how" aria-labelledby="fs-how-title" style="padding-top: 0;">
-      <div class="fs-shell">
-        <div class="fs-section__head fs-reveal">
-          <h2 class="fs-section__title" id="fs-how-title">How it works.</h2>
-        </div>
-
-        <div class="fs-how" id="fs-how-scrub">
-          <div class="fs-how__stage" id="fs-how-stage">
-            <div class="fs-how__deck" id="fs-how-deck">
-              <article class="fs-how__card" data-step="1">
-                <div class="fs-how__card-head">
-                  <span class="fs-how__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none">
-                      <path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M10 8l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M3 12h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                    </svg>
-                  </span>
-                  <span class="fs-how__tag">~ 5 min</span>
-                </div>
-                <div class="fs-how__num">01</div>
-                <h3 class="fs-how__title">Get in.</h3>
-                <p class="fs-how__body">Apply with a portfolio, a project, or even just one good piece of writing. Or — refer 3 businesses and skip the queue entirely.</p>
-              </article>
-
-              <article class="fs-how__card" data-step="2">
-                <div class="fs-how__card-head">
-                  <span class="fs-how__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.8"/>
-                      <path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                    </svg>
-                  </span>
-                  <span class="fs-how__tag">Verified</span>
-                </div>
-                <div class="fs-how__num">02</div>
-                <h3 class="fs-how__title">Build your bio.</h3>
-                <p class="fs-how__body">School, major, skills, what you'd love to work on. Owners read this before they pick a bid. Keep it human.</p>
-              </article>
-
-              <article class="fs-how__card" data-step="3">
-                <div class="fs-how__card-head">
-                  <span class="fs-how__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none">
-                      <path d="M3 13.5l8.5-8.5h7v7l-8.5 8.5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
-                      <circle cx="15.5" cy="8.5" r="1.4" stroke="currentColor" stroke-width="1.5"/>
-                    </svg>
-                  </span>
-                  <span class="fs-how__tag">No gatekeepers</span>
-                </div>
-                <div class="fs-how__num">03</div>
-                <h3 class="fs-how__title">Bid your price.</h3>
-                <p class="fs-how__body">Browse open listings in your town. Send a short pitch and a number. You're not being ranked against 90 strangers.</p>
-              </article>
-
-              <article class="fs-how__card" data-step="4">
-                <div class="fs-how__card-head">
-                  <span class="fs-how__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none">
-                      <path d="M22 2L11 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                      <path d="M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
-                    </svg>
-                  </span>
-                  <span class="fs-how__tag">Payment held</span>
-                </div>
-                <div class="fs-how__num">04</div>
-                <h3 class="fs-how__title">Ship the work.</h3>
-                <p class="fs-how__body">The business has already paid, and Grassroots holds it before you start. So you're not chasing an invoice — you're just doing the work.</p>
-              </article>
-
-              <article class="fs-how__card" data-step="5">
-                <div class="fs-how__card-head">
-                  <span class="fs-how__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none">
-                      <path d="M4 12l4.5 4.5L20 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M18 13l0.9 2.6 2.6 0.9-2.6 0.9-0.9 2.6-0.9-2.6-2.6-0.9 2.6-0.9z" fill="currentColor"/>
-                    </svg>
-                  </span>
-                  <span class="fs-how__tag">Same day</span>
-                </div>
-                <div class="fs-how__num">05</div>
-                <h3 class="fs-how__title">Get paid &amp; reviewed.</h3>
-                <p class="fs-how__body">Owner approves, Stripe releases, you're paid same day. You get reviewed on six dimensions — work, communication, timeliness, professionalism, collaboration, value — and it's all attached to your profile, for life.</p>
-              </article>
-            </div>
-            <div class="fs-how__pips" aria-hidden="true">
-              <span class="fs-how__pip"></span>
-              <span class="fs-how__pip"></span>
-              <span class="fs-how__pip"></span>
-              <span class="fs-how__pip"></span>
-              <span class="fs-how__pip"></span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── invite-only · the two paths in ── -->
-    <section class="fs-section" id="get-in" aria-labelledby="fs-paths-title">
-      <div class="fs-shell">
-        <div class="fs-section__head fs-section__head--center fs-reveal">
-          <h2 class="fs-section__title" id="fs-paths-title">
-            Two ways in. <span class="fs-italic">Both end the same.</span>
-          </h2>
-          <p class="fs-section__sub" style="margin: 0 auto;">
-            We keep the network small on purpose. Quality stays high, owners trust the badge, the badge stays valuable. Pick a path.
-          </p>
-        </div>
+        <h3 class="fs-paths__title fs-reveal" id="fs-paths-title">
+          Two ways in. <span class="fs-italic">Both end the same</span>
+        </h3>
 
         <div class="fs-paths">
           <!-- LEFT: apply -->
           <div class="fs-path fs-path--apply fs-reveal" id="apply">
-            <span class="fs-path__label">Path A · apply</span>
             <h3 class="fs-path__head">
-              Tell us who you are. <span class="fs-italic">2–3 weeks to hear back.</span>
+              Tell us who you are. <span class="fs-italic">2–3 weeks to hear back</span>
             </h3>
             <p class="fs-path__sub">We read every application. No algorithmic filtering, no portfolio AI scan.</p>
 
@@ -421,7 +400,7 @@
                 </label>
                 <label class="fs-field">
                   <span class="fs-field__label">School</span>
-                  <input type="text" name="school" placeholder="State college" required/>
+                  <input type="text" name="school" placeholder="State College" required/>
                 </label>
               </div>
               <div class="fs-apply-form__row">
@@ -440,7 +419,7 @@
               </label>
               <label class="fs-field">
                 <span class="fs-field__label">Why Grassroots? (60 words is plenty)</span>
-                <textarea name="why" rows="3" placeholder="tell us about a small business in your town and what you'd want to build for them."></textarea>
+                <textarea name="why" rows="3" placeholder="Tell us about a small business in your town and what you'd want to build for them."></textarea>
               </label>
               <button type="submit" class="fs-btn fs-btn--primary" id="fs-apply-submit" style="margin-top: 8px; justify-content: center;">
                 <span>Send application</span>
@@ -453,9 +432,8 @@
 
           <!-- RIGHT: refer (the shortcut) -->
           <div class="fs-path fs-path--refer fs-reveal" id="refer">
-            <span class="fs-path__label">Path B · refer 3 · skip the line</span>
             <h3 class="fs-path__head">
-              Bring 3 businesses. <span class="fs-italic">You're in.</span>
+              Bring 3 businesses. <span class="fs-italic">You're in</span>
             </h3>
             <p class="fs-path__sub">Generate your referral link. When 3 businesses sign up, post a listing, and complete an engagement using your link — you auto-join the network.</p>
 
@@ -521,7 +499,7 @@
       <div class="fs-shell">
         <div class="fs-section__head fs-section__head--center fs-reveal">
           <h2 class="fs-section__title" id="fs-faq-title">
-            Things students ask before <span class="fs-italic">applying.</span>
+            Things students ask before <span class="fs-italic">applying</span>
           </h2>
         </div>
         <div class="fs-faq">
@@ -561,7 +539,7 @@
     <section class="fs-final" aria-labelledby="fs-final-title">
       <div class="fs-shell">
         <h2 class="fs-final__title fs-reveal" id="fs-final-title">
-          Your first paycheck is <span class="fs-italic">five steps</span> from here.
+          Your first paycheck is <span class="fs-italic">five steps</span> from here
         </h2>
         <div class="fs-final__ctas fs-reveal">
           <a class="fs-btn fs-btn--primary fs-btn--lg" href="#apply">
@@ -639,6 +617,99 @@
         onScroll();
       })();
 
+      // ── hero laptop: a student sends an offer ──
+      // Scales the marketplace screen to fit the laptop, then loops: the
+      // cursor opens the first listing, types an offer and a pitch, submits,
+      // and "offer accepted" then "+$ paid" notifications pop up.
+      (function () {
+        var root = document.querySelector('.fs-laptop');
+        if (!root) return;
+        var screen = root.querySelector('.fs-laptop__screen');
+        var ui = root.querySelector('.fs-laptop__ui');
+        var card = ui.querySelector('.fs-mk__card');
+        var panel = ui.querySelector('.fs-mk__panel');
+        var amount = ui.querySelector('.fs-mk__amount');
+        var pitch = ui.querySelector('.fs-mk__pitch');
+        var submit = ui.querySelector('.fs-mk__submit');
+        var cursor = ui.querySelector('.fs-mk__cursor');
+        var toast = root.querySelector('.fs-laptop__toast');
+        var toastText = root.querySelector('.fs-laptop__toast-text');
+
+        function fit() { ui.style.setProperty('--k', (screen.clientWidth / 900).toFixed(4)); }
+        fit();
+        if (window.ResizeObserver) new ResizeObserver(fit).observe(screen);
+
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+        var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+        function moveTo(el, dx, dy) {
+          // offsets are in the unscaled 900px screen, the cursor's own space
+          var x = 0, y = 0, n = el;
+          while (n && n !== ui) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
+          cursor.style.transform = 'translate(' + (x + dx) + 'px, ' + (y + dy) + 'px)';
+        }
+        async function type(el, text, speed) {
+          el.textContent = '';
+          el.classList.add('is-typing');
+          for (var i = 0; i < text.length; i++) {
+            el.textContent += text[i];
+            await wait(speed);
+          }
+          el.classList.remove('is-typing');
+        }
+        function say(text) {
+          toast.classList.remove('is-on');
+          void toast.offsetWidth;
+          toastText.textContent = text;
+          toast.classList.add('is-on');
+        }
+        async function loop() {
+          for (;;) {
+            amount.textContent = '';
+            pitch.textContent = '';
+            submit.classList.remove('is-sent');
+            submit.textContent = 'Submit offer';
+            cursor.style.transform = 'translate(760px, 500px)';
+            await wait(1400);
+            moveTo(card, 150, 70);
+            await wait(900);
+            card.classList.add('is-hover');
+            await wait(450);
+            cursor.classList.add('is-click');
+            await wait(180);
+            cursor.classList.remove('is-click');
+            panel.classList.add('is-open');
+            card.classList.remove('is-hover');
+            await wait(700);
+            moveTo(amount, 120, 14);
+            await wait(700);
+            await type(amount, '$240', 120);
+            moveTo(pitch, 140, 20);
+            await wait(500);
+            await type(pitch, 'I can have two menu drafts to you by Friday.', 38);
+            await wait(300);
+            moveTo(submit, 110, 16);
+            await wait(800);
+            cursor.classList.add('is-click');
+            await wait(180);
+            cursor.classList.remove('is-click');
+            submit.classList.add('is-sent');
+            submit.textContent = 'Offer sent ✓';
+            await wait(1100);
+            panel.classList.remove('is-open');
+            cursor.style.transform = 'translate(760px, 500px)';
+            await wait(500);
+            say('Offer accepted · Side Street Coffee');
+            await wait(2400);
+            say('Payment released · paid same day');
+            await wait(2600);
+            toast.classList.remove('is-on');
+            await wait(800);
+          }
+        }
+        setTimeout(loop, 600);
+      })();
+
       // ── reveal on scroll ─────────────────────────────────
       (function () {
         var els = document.querySelectorAll('.fs-reveal');
@@ -658,121 +729,53 @@
         els.forEach(function (el) { io.observe(el); });
       })();
 
-      // ── how-it-works deck shuffle ─────────────────────────
-      // Continuous scroll scrub: progress through the 500vh-tall
-      // scrub container drives a "stepFloat" value [0, N-1]. Each
-      // card's phase = stepFloat - cardIndex, which controls whether
-      // it's waiting below (phase < 0), front-and-center (phase ≈ 0),
-      // or buried behind newer cards (phase > 0). Buried cards scale
-      // down, translate up, and tilt alternately so the active card
-      // sits on top of a visible fanned deck.
+
+      // ── split section motion ──
+      // Wraps each headline word in a span so the words can rise in one by
+      // one, gives list items a stagger index, and fills the how-it-works
+      // line (lighting each step's dot) as you scroll past it.
       (function () {
-        var scrub = document.getElementById('fs-how-scrub');
-        if (!scrub) return;
-        var cards = scrub.querySelectorAll('.fs-how__card');
-        if (cards.length < 2) return;
-        var pips = scrub.querySelectorAll('.fs-how__pip');
-        var prefersReduced = window.matchMedia &&
-          window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        var narrow = window.matchMedia &&
-          window.matchMedia('(max-width: 900px)').matches;
-        if (prefersReduced || narrow) return;
+        document.querySelectorAll('.fs-split__title').forEach(function (h) {
+          var n = 0;
+          var walker = document.createTreeWalker(h, NodeFilter.SHOW_TEXT);
+          var texts = [];
+          while (walker.nextNode()) texts.push(walker.currentNode);
+          texts.forEach(function (t) {
+            var frag = document.createDocumentFragment();
+            t.data.split(/(\s+)/).forEach(function (part) {
+              if (!part) return;
+              if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(part)); return; }
+              var w = document.createElement('span');
+              w.className = 'fs-word';
+              w.style.setProperty('--w', n++);
+              w.textContent = part;
+              frag.appendChild(w);
+            });
+            t.parentNode.replaceChild(frag, t);
+          });
+        });
+        document.querySelectorAll('.fs-stagger').forEach(function (list) {
+          Array.prototype.forEach.call(list.children, function (li, i) { li.style.setProperty('--i', i); });
+        });
 
-        scrub.classList.add('is-shuffling');
-
-        var N = cards.length;
+        var steps = document.querySelector('.fs-steps');
+        if (!steps) return;
+        var items = steps.querySelectorAll('.fs-step');
         var raf = 0;
-
-        function setCard(card, phase, i) {
-          var tilt = (i % 2 === 0) ? -1 : 1;
-          var tx, ty, scale, rotate, opacity, z;
-
-          if (phase >= 0) {
-            // active (phase=0) → buried (phase>0)
-            var depth = Math.min(phase, 4);
-            ty = -depth * 16;
-            scale = 1 - depth * 0.055;
-            rotate = tilt * depth * 1.1;
-            // Keep buried cards visible behind the active one — a real
-            // deck shows the edges of older cards as a fanned stack.
-            opacity = depth > 3 ? Math.max(0, 1 - (depth - 3) * 0.6) : 1;
-            z = 50 - Math.round(depth * 6);
-          } else {
-            // waiting below (phase in [-N, 0))
-            var dist = Math.min(-phase, 2);
-            // slide from 70vh below up to resting
-            ty = dist * (window.innerHeight * 0.7);
-            scale = 0.96;
-            rotate = tilt * dist * 1.4;
-            opacity = Math.max(0, 1 - dist * 0.9);
-            z = 50 - Math.round(dist * 4);
-          }
-
-          card.style.transform =
-            'translate3d(0,' + ty.toFixed(2) + 'px,0) ' +
-            'scale(' + scale.toFixed(3) + ') ' +
-            'rotate(' + rotate.toFixed(2) + 'deg)';
-          card.style.opacity = opacity.toFixed(3);
-          card.style.zIndex = String(z);
-        }
-
         function update() {
           raf = 0;
-          var rect = scrub.getBoundingClientRect();
-          var vh = window.innerHeight;
-          var total = rect.height - vh;
-          if (total <= 0) return;
-          var scrolled = Math.max(0, Math.min(total, -rect.top));
-          var p = scrolled / total;
-          var stepFloat = p * (N - 1);
-
-          for (var i = 0; i < N; i++) {
-            setCard(cards[i], stepFloat - i, i);
-          }
-
-          if (pips.length) {
-            var activeIdx = Math.round(stepFloat);
-            for (var j = 0; j < pips.length; j++) {
-              pips[j].classList.toggle('is-active', j === activeIdx);
-            }
-          }
+          var r = steps.getBoundingClientRect();
+          // the fill follows a point 60% of the way down the screen
+          var fill = Math.max(0, Math.min(1, (window.innerHeight * 0.6 - r.top) / r.height));
+          steps.style.setProperty('--fill', fill.toFixed(3));
+          items.forEach(function (li) {
+            li.classList.toggle('is-on', li.offsetTop <= fill * r.height + 4);
+          });
         }
-        function schedule() {
-          if (raf) return;
-          raf = requestAnimationFrame(update);
-        }
+        function schedule() { if (!raf) raf = requestAnimationFrame(update); }
         window.addEventListener('scroll', schedule, { passive: true });
         window.addEventListener('resize', schedule);
         update();
-      })();
-
-      // ── count-up number (the bento "paid" big number) ──
-      (function () {
-        var el = document.getElementById('fs-count-paid');
-        if (!el) return;
-        var to = 412;
-        var started = false;
-        function run() {
-          if (started) return;
-          started = true;
-          var dur = 1400;
-          var start = performance.now();
-          function step(t) {
-            var p = Math.min(1, (t - start) / dur);
-            var eased = 1 - Math.pow(1 - p, 3);
-            el.textContent = Math.round(eased * to);
-            if (p < 1) requestAnimationFrame(step);
-          }
-          requestAnimationFrame(step);
-        }
-        if ('IntersectionObserver' in window) {
-          var io = new IntersectionObserver(function (es) {
-            es.forEach(function (e) {
-              if (e.isIntersecting) { run(); io.disconnect(); }
-            });
-          }, { threshold: 0.4 });
-          io.observe(el);
-        } else { run(); }
       })();
 
       // ── referral link generator + slot animation ────────
@@ -814,7 +817,7 @@
             s.classList.add('is-filled');
             var state = s.querySelector('.fs-refer__slot-state');
             var step = s.querySelector('.fs-refer__slot-step');
-            if (state) state.textContent = 'completed!';
+            if (state) state.textContent = 'Completed!';
             if (step) step.textContent = '$' + (240 + Math.floor(Math.random() * 380)) + ' engagement closed';
             updateCount();
           });
@@ -837,7 +840,7 @@
             var code = makeCode();
             input.value = 'grassroots.work/r/' + code;
             hasLink = true;
-            label.textContent = 'copy';
+            label.textContent = 'Copy';
             // pulse the slots
             slots.forEach(function (s, i) {
               s.style.transition = 'all 0.4s cubic-bezier(0.22,1,0.36,1)';
@@ -845,7 +848,7 @@
               s.style.borderColor = 'rgba(255,255,255,0.55)';
               setTimeout(function () { s.style.borderColor = ''; }, 700 + i * 80);
             });
-            live.textContent = 'referral link generated. tap a slot to preview a completion.';
+            live.textContent = 'Referral link generated. Tap a slot to preview a completion.';
             return;
           }
           try {
@@ -853,17 +856,17 @@
             input.setSelectionRange(0, input.value.length);
             navigator.clipboard.writeText(input.value).then(function () {
               btn.classList.add('is-copied');
-              label.textContent = 'copied';
-              live.textContent = 'link copied to clipboard.';
+              label.textContent = 'Copied';
+              live.textContent = 'Link copied to clipboard.';
               setTimeout(function () {
                 btn.classList.remove('is-copied');
-                label.textContent = 'copy';
+                label.textContent = 'Copy';
               }, 1600);
             });
           } catch (e) {
             // fallback for older
             document.execCommand && document.execCommand('copy');
-            label.textContent = 'copied';
+            label.textContent = 'Copied';
           }
         });
       })();
@@ -876,7 +879,7 @@
         btn.addEventListener('click', function (e) {
           e.preventDefault();
           if (!f.checkValidity()) { f.reportValidity(); return; }
-          btn.innerHTML = '<span>✓ sent — we\'ll be in touch</span>';
+          btn.innerHTML = '<span>✓ Sent — we\'ll be in touch</span>';
           btn.style.background = 'var(--fo-accent)';
           btn.style.color = 'var(--fo-accent-on)';
           btn.disabled = true;

@@ -139,6 +139,25 @@ body.gr-body {
   text-transform: none;
 }
 
+/* Light mode: the home page's soft peach and green wash on every other page.
+   Plain gradients on the body (the same approach as the home page's lite
+   mode), alternating warm and green down the page so each screen gets some.
+   The home page paints its own glows with .ld-page-bg, so it's skipped. */
+[data-theme="light"] body.gr-body:not(:has(.ld-page-bg)) {
+  --pg-warm: color-mix(in srgb, var(--fo-accent-warm) 30%, transparent);
+  --pg-green: color-mix(in srgb, var(--fo-accent) 18%, transparent);
+  background-color: var(--fo-bg);
+  background-image:
+    radial-gradient(circle 520px at 0 0, var(--pg-warm), transparent),
+    radial-gradient(circle 460px at 100% 1000px, var(--pg-green), transparent),
+    radial-gradient(circle 480px at 0 2100px, var(--pg-warm), transparent),
+    radial-gradient(circle 460px at 100% 3200px, var(--pg-green), transparent),
+    radial-gradient(circle 480px at 0 4300px, var(--pg-warm), transparent),
+    radial-gradient(circle 460px at 100% 5400px, var(--pg-green), transparent),
+    radial-gradient(circle 480px at 0 6500px, var(--pg-warm), transparent);
+  background-repeat: no-repeat;
+}
+
 body.gr-body * {
   text-transform: none;
 }

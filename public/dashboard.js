@@ -961,13 +961,13 @@ function renderDashboard(client, data) {
     const t = l.created_at ? Date.parse(l.created_at) : NaN;
     return Number.isFinite(t) && (now - t) > STALE_AFTER_MS;
   }).length;
-  let welcomeLine = `Welcome back, ${firstName}.`;
+  let welcomeLine = `Welcome back, ${firstName}`;
   if (newOffers > 0 && staleListings > 0) {
-    welcomeLine = `Welcome back, ${firstName}. ${newOffers} new offer${newOffers === 1 ? "" : "s"} and ${staleListings} listing${staleListings === 1 ? "" : "s"} going stale.`;
+    welcomeLine = `Welcome back, ${firstName}. ${newOffers} new offer${newOffers === 1 ? "" : "s"} and ${staleListings} listing${staleListings === 1 ? "" : "s"} going stale`;
   } else if (newOffers > 0) {
-    welcomeLine = `Welcome back, ${firstName}. ${newOffers} new offer${newOffers === 1 ? "" : "s"} to review.`;
+    welcomeLine = `Welcome back, ${firstName}. ${newOffers} new offer${newOffers === 1 ? "" : "s"} to review`;
   } else if (staleListings > 0) {
-    welcomeLine = `Welcome back, ${firstName}. ${staleListings} listing${staleListings === 1 ? "" : "s"} could use a refresh.`;
+    welcomeLine = `Welcome back, ${firstName}. ${staleListings} listing${staleListings === 1 ? "" : "s"} could use a refresh`;
   }
   $("dash-welcome").textContent = welcomeLine;
 

@@ -650,7 +650,7 @@ function renderDashboard(client, data) {
   const firstName = (profile?.full_name || "").split(" ")[0] || "there";
   const welcomeEl = $("cdash-welcome");
   if (welcomeEl) {
-    welcomeEl.innerHTML = `Welcome back, ${escape(firstName)}.`;
+    welcomeEl.innerHTML = `Welcome back, ${escape(firstName)}`;
   }
 
   // Build a map of bid_id → unread thread so each plant in the journey

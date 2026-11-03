@@ -41,7 +41,9 @@
             rgba(255,255,255,0.03) 0, rgba(255,255,255,0.03) 1px,
             transparent 1px, transparent 3px);
       }
-      [data-theme="light"] .ab-bg__paper { opacity: 0.7; }
+      /* Light mode shows the site-wide peach and green wash on the body
+         (field-office.css) instead, like the home page. */
+      [data-theme="light"] .ab-bg__paper { display: none; }
 
       .ab-nav, .ab-cover, .ab-section, .ab-foot, .ab-band, .ab-letter { position: relative; z-index: 1; }
 
@@ -164,9 +166,9 @@
         color: #14201a;
       }
 
-      /* ── hero ── the old cover's big "About." on the left, the tagline on
-         the right across a faint vertical divider (stacked on phones), then
-         a short contents list. Sits on the page background, no panel. */
+      /* ── hero ── the old cover's big "About" on the left, the tagline on
+         the right across a faint vertical divider (stacked on phones).
+         Sits on the page background, no panel. */
       .ab-hero { padding: clamp(48px, 7vw, 96px) 0 clamp(24px, 4vw, 48px); }
       .ab-hero__title {
         display: grid;
@@ -198,33 +200,6 @@
         .ab-hero__word { padding: 0 0 0.25em; }
         .ab-hero__line2 { padding: 0.5em 0 0; border-left: 0; border-top: 1px solid var(--fo-line); }
       }
-      .ab-hero__toc {
-        display: grid;
-        margin-top: clamp(2.25rem, 5vw, 3.5rem);
-        border-top: 1px solid var(--fo-line);
-      }
-      .ab-hero__toc a {
-        display: flex;
-        align-items: baseline;
-        gap: 0.9rem;
-        padding: 0.55rem 0;
-        border-bottom: 1px dashed var(--fo-line);
-        font-family: var(--font-display);
-        font-weight: 600;
-        font-size: 1.1rem;
-        color: var(--fo-text);
-        text-decoration: none;
-        transition: color 0.2s ease, padding-left 0.25s ease;
-      }
-      .ab-hero__toc a:last-child { border-bottom: 0; }
-      .ab-hero__toc a span {
-        font-family: var(--font-body);
-        font-size: 0.8rem;
-        font-variant-numeric: tabular-nums;
-        color: var(--fo-accent);
-      }
-      .ab-hero__toc a:hover,
-      .ab-hero__toc a:focus-visible { color: var(--fo-accent); padding-left: 0.35rem; }
 
       /* ── basics: anatomy plate ──
          The logo in the middle with three labels joined by dashed leader
