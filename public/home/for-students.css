@@ -37,6 +37,17 @@
       [data-theme="light"] .fs-bg__grid { opacity: 0.18; }
       [data-theme="light"] .fs-bg__glow { opacity: 0.28; }
 
+      /* Dark themes: the home page's glows (peach top-left, green right,
+         peach bottom) in place of this page's own green glow. The layer is
+         fixed, so they stay with the screen like the home page's. */
+      :root:not([data-theme="light"]) .fs-bg {
+        background-image:
+          radial-gradient(circle 460px at 0 0, color-mix(in srgb, var(--fo-accent-warm) 18%, transparent), transparent),
+          radial-gradient(circle 440px at 100% 55%, color-mix(in srgb, var(--fo-accent) 26%, transparent), transparent),
+          radial-gradient(circle 420px at 30% 100%, color-mix(in srgb, var(--fo-accent-warm) 14%, transparent), transparent);
+      }
+      :root:not([data-theme="light"]) .fs-bg__glow { display: none; }
+
       /* keep content above bg */
       .fs-nav, .fs-hero, .fs-section, .fs-foot, .fs-band { position: relative; z-index: 1; }
 

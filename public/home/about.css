@@ -45,6 +45,17 @@
          (field-office.css) instead, like the home page. */
       [data-theme="light"] .ab-bg__paper { display: none; }
 
+      /* Dark themes: the home page's glows (peach top-left, green right,
+         peach bottom) in place of this page's own green glow. The layer is
+         fixed, so they stay with the screen like the home page's. */
+      :root:not([data-theme="light"]) .ab-bg {
+        background-image:
+          radial-gradient(circle 460px at 0 0, color-mix(in srgb, var(--fo-accent-warm) 18%, transparent), transparent),
+          radial-gradient(circle 440px at 100% 55%, color-mix(in srgb, var(--fo-accent) 26%, transparent), transparent),
+          radial-gradient(circle 420px at 30% 100%, color-mix(in srgb, var(--fo-accent-warm) 14%, transparent), transparent);
+      }
+      :root:not([data-theme="light"]) .ab-bg__paper { display: none; }
+
       .ab-nav, .ab-cover, .ab-section, .ab-foot, .ab-band, .ab-letter { position: relative; z-index: 1; }
 
       /* ── nav (matches site) ── */
