@@ -24,6 +24,16 @@
       ],
       "destination": "/region-unavailable.html",
       "permanent": false
+    },
+    {
+      "source": "/home/about.html",
+      "destination": "/about",
+      "permanent": true
+    },
+    {
+      "source": "/home/for-students.html",
+      "destination": "/for-students",
+      "permanent": true
     }
   ],
   "rewrites": [
@@ -34,6 +44,14 @@
     {
       "source": "/terms",
       "destination": "/terms.html"
+    },
+    {
+      "source": "/about",
+      "destination": "/home/about.html"
+    },
+    {
+      "source": "/for-students",
+      "destination": "/home/for-students.html"
     },
     {
       "source": "/health",

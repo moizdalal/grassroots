@@ -8,7 +8,7 @@
 // <body> and wires the theme toggle + scroll progress hairline. The
 // nav swaps in three guest-only CTAs:
 //   • "sign in"               → existing accounts
-//   • "for students"          → /home/for-students.html (consultant
+//   • "for students"          → /for-students (consultant
 //                               application — invite-only, so we point
 //                               curious consultants at the apply page
 //                               rather than the open register flow)
@@ -49,7 +49,7 @@ function renderNav() {
       <ul class="ld-nav__links">
         <li class="gr-guest-nav__chip" aria-hidden="true">Browsing as guest</li>
         <li><a class="ld-nav__link" href="/signin.html">Sign in</a></li>
-        <li class="ld-nav__hide-sm"><a class="ld-nav__link" href="/home/for-students.html">For students</a></li>
+        <li class="ld-nav__hide-sm"><a class="ld-nav__link" href="/for-students">For students</a></li>
         <li>
           <button class="ld-nav__theme" id="ld-nav-theme" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
             <svg class="ld-nav__theme-sun" viewBox="0 0 24 24" fill="none" aria-hidden="true">

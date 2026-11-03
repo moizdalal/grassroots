@@ -6638,8 +6638,8 @@ app.get("/sitemap.xml", async (_req, res) => {
   const STATIC_URLS = [
     { loc: `${origin}/`, changefreq: "weekly", priority: "1.0" },
     { loc: `${origin}/marketplace.html`, changefreq: "daily", priority: "0.9" },
-    { loc: `${origin}/home/about.html`, changefreq: "monthly", priority: "0.7" },
-    { loc: `${origin}/home/for-students.html`, changefreq: "monthly", priority: "0.7" },
+    { loc: `${origin}/about`, changefreq: "monthly", priority: "0.7" },
+    { loc: `${origin}/for-students`, changefreq: "monthly", priority: "0.7" },
     { loc: `${origin}/help.html`, changefreq: "monthly", priority: "0.6" },
     { loc: `${origin}/privacy`, changefreq: "yearly", priority: "0.3" },
     { loc: `${origin}/terms`, changefreq: "yearly", priority: "0.3" },
@@ -6701,6 +6701,21 @@ app.get("/privacy", (_req, res) => {
 app.get("/terms", (_req, res) => {
   res.sendFile("terms.html", { root: path.join(__dirname, "public") });
 });
+
+// Clean URLs for the marketing pages: /about and /for-students serve the
+// files in public/home, and the old .html addresses redirect to them so the
+// address bar never shows ".html". Mirrors the rewrites/redirects in vercel.json.
+const CLEAN_PAGES = { about: "about.html", "for-students": "for-students.html" };
+for (const [slug, file] of Object.entries(CLEAN_PAGES)) {
+  app.get(`/${slug}`, (_req, res) => {
+    res.setHeader("Cache-Control", "no-cache");
+    res.sendFile(file, { root: path.join(__dirname, "public", "home") });
+  });
+  app.get(`/home/${file}`, (req, res) => {
+    const q = req.originalUrl.indexOf("?");
+    res.redirect(301, `/${slug}${q === -1 ? "" : req.originalUrl.slice(q)}`);
+  });
+}
 
 app.use(
   express.static(path.join(__dirname, "public"), {
