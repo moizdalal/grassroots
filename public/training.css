@@ -4,6 +4,13 @@
   margin-bottom: var(--space-5);
 }
 
+/* Fraunces' auto optical size picks its high-contrast display cut at
+   heading sizes, where the f's hairlines break up. Training only for now;
+   see brandkit.md (Type). */
+#tr-root :is(h1, h2, h3) {
+  font-variation-settings: "opsz" 24;
+}
+
 /* .gr-page-eyebrow is documented in brandkit.md but never defined, so the
    tracker is scoped here. body.gr-body beats the universal text-transform
    reset (brandkit "Known cascade traps" #2). */
@@ -15,6 +22,14 @@ body.gr-body .tr-eyebrow {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--fo-accent);
+}
+
+/* "Module 1 of 4" / "Quiz" above the panel title: heading font, normal case. */
+body.gr-body .tr-eyebrow--panel {
+  font-family: var(--font-display);
+  font-size: var(--type-body);
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .tr-intro .gr-subtitle {
@@ -386,7 +401,7 @@ body.gr-body .tr-example__label {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--n, 6), minmax(0, 1fr));
   gap: var(--space-2);
 }
 .tr-timeline__list::before {
@@ -521,6 +536,324 @@ body.gr-body .tr-example__label {
   color: var(--fo-text-3);
 }
 
+/* Shared caption for the graphics below, and room before the details. */
+.tr-visual__label {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--type-h3);
+  font-weight: 600;
+  color: var(--fo-text);
+}
+.tr-visual + .tr-lesson__points {
+  margin-top: var(--space-4);
+}
+
+/* Compare: do / avoid columns. */
+.tr-compare__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+.tr-compare__col {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--fo-line);
+  border-top: 3px solid var(--fo-accent);
+  border-radius: 10px;
+  background: var(--fo-surface);
+}
+.tr-compare__col--dont {
+  border-top-color: var(--fo-accent-warm);
+}
+.tr-compare__title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--type-meta);
+  font-weight: 700;
+  color: var(--fo-text);
+}
+.tr-compare__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--type-body);
+}
+.tr-compare__list li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+.tr-compare__mark {
+  flex: none;
+  width: 1.1rem;
+  font-weight: 700;
+  color: var(--fo-accent);
+}
+.tr-compare__col--dont .tr-compare__mark {
+  color: var(--fo-accent-warm);
+}
+
+/* Agenda: one bar, each segment as wide as its share of the call. */
+.tr-agenda__bar {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 4px;
+}
+.tr-agenda__seg {
+  flex: var(--share) 1 0;
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 2px;
+}
+.tr-agenda__fill {
+  display: block;
+  height: 10px;
+  margin-bottom: var(--space-2);
+  border-radius: 999px;
+  background: var(--fo-accent);
+  opacity: calc(1 - var(--i) * 0.2);
+  transform-origin: left center;
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: calc(var(--i) * 0.15s + 0.2s);
+}
+.tr-armed .tr-reveal:not(.is-in) .tr-agenda__fill {
+  transform: scaleX(0);
+}
+.tr-agenda__title {
+  font-size: var(--type-meta);
+  font-weight: 600;
+  color: var(--fo-text);
+}
+.tr-agenda__note {
+  font-size: var(--type-eyebrow);
+  color: var(--fo-text-2);
+  line-height: 1.35;
+}
+
+/* Cards: a short row of headline facts. */
+.tr-cards__grid {
+  display: grid;
+  grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr));
+  gap: var(--space-3);
+}
+.tr-card {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--fo-line);
+  border-top: 3px solid var(--fo-line-strong);
+  border-radius: 10px;
+  background: var(--fo-surface);
+}
+.tr-card--good {
+  border-top-color: var(--fo-accent);
+}
+.tr-card--warn {
+  border-top-color: var(--fo-accent-warm);
+}
+.tr-card__title {
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-display);
+  font-size: var(--type-h2);
+  font-weight: 600;
+  color: var(--fo-text);
+}
+.tr-card__text {
+  margin: 0;
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+  line-height: 1.45;
+}
+
+/* Pairs: don't → do, one swap per row. */
+.tr-pairs__head,
+.tr-pairs__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 2rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+}
+.tr-pairs__head {
+  margin-bottom: var(--space-2);
+  font-size: var(--type-meta);
+  font-weight: 700;
+  color: var(--fo-text-2);
+}
+.tr-pairs__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.tr-pairs__no,
+.tr-pairs__yes {
+  padding: var(--space-2) var(--space-3);
+  border-radius: 8px;
+  font-size: var(--type-body);
+}
+.tr-pairs__no {
+  color: var(--fo-text-2);
+  text-decoration: line-through;
+  text-decoration-color: var(--fo-accent-warm);
+  background: var(--fo-surface);
+}
+.tr-pairs__yes {
+  color: var(--fo-text);
+  font-weight: 600;
+  background: var(--fo-accent-soft);
+}
+.tr-pairs__arrow {
+  text-align: center;
+  font-size: var(--type-h2);
+  color: var(--fo-accent);
+}
+
+/* Scope: dashed boundary around the agreed job, extras outside it. */
+.tr-scope__box {
+  padding: var(--space-3) var(--space-4);
+  border: 2px dashed var(--fo-accent);
+  border-radius: 12px;
+}
+.tr-scope__out {
+  margin-top: var(--space-3);
+  padding: 0 var(--space-4);
+}
+.tr-scope__title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--type-meta);
+  font-weight: 700;
+  color: var(--fo-text);
+}
+.tr-scope__out .tr-scope__title {
+  color: var(--fo-accent-warm);
+}
+.tr-scope__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.tr-scope__item {
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+  background: var(--fo-accent-soft);
+  font-size: var(--type-meta);
+  color: var(--fo-text);
+}
+.tr-scope__out .tr-scope__item {
+  background: transparent;
+  border: 1px solid var(--fo-accent-warm);
+  color: var(--fo-text-2);
+}
+
+/* Tags: fine vs not okay as two rows of pills. */
+.tr-tags__row + .tr-tags__row {
+  margin-top: var(--space-3);
+}
+.tr-tags__title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--type-meta);
+  font-weight: 700;
+}
+.tr-tags__title--do { color: var(--fo-accent); }
+.tr-tags__title--dont { color: var(--fo-accent-warm); }
+.tr-tags__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.tr-tag {
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+  font-size: var(--type-meta);
+}
+.tr-tag--do {
+  background: var(--fo-accent);
+  color: var(--fo-accent-on);
+  font-weight: 600;
+}
+.tr-tag--dont {
+  border: 1px solid var(--fo-accent-warm);
+  color: var(--fo-text);
+  text-decoration: line-through;
+  text-decoration-color: var(--fo-accent-warm);
+}
+
+/* Table: yes/no grid. */
+.tr-table__grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--type-body);
+}
+.tr-table__grid th,
+.tr-table__grid td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--fo-line);
+}
+.tr-table__grid tbody tr:last-child > * {
+  border-bottom: 0;
+}
+.tr-table__grid thead th {
+  font-size: var(--type-meta);
+  font-weight: 700;
+  color: var(--fo-text);
+  text-align: center;
+  width: 7.5rem;
+}
+.tr-table__grid tbody th {
+  font-weight: 400;
+  text-align: left;
+  color: var(--fo-text);
+}
+.tr-table__cell {
+  text-align: center;
+  font-weight: 700;
+  font-size: var(--type-h3);
+}
+.tr-table__cell--yes { color: var(--fo-accent); background: var(--fo-accent-soft); }
+.tr-table__cell--no { color: var(--fo-accent-warm); }
+
+/* Chips: numbered pills. */
+.tr-chips__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}
+.tr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3) var(--space-1) var(--space-1);
+  border: 1px solid var(--fo-line);
+  border-radius: 999px;
+  background: var(--fo-surface);
+  font-size: var(--type-meta);
+  font-weight: 600;
+  color: var(--fo-text);
+}
+.tr-chip__num {
+  width: 1.5rem;
+  height: 1.5rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--fo-accent);
+  color: var(--fo-accent-on);
+  font-size: var(--type-eyebrow);
+  font-weight: 700;
+}
+
 @media (max-width: 760px) {
   .tr-steps {
     grid-template-columns: 1fr;
@@ -552,6 +885,52 @@ body.gr-body .tr-example__label {
   .tr-timeline__dot {
     grid-row: span 2;
   }
+  .tr-compare__grid,
+  .tr-cards__grid {
+    grid-template-columns: 1fr;
+  }
+  /* Pairs stack: the arrow turns downward between don't and do. */
+  .tr-pairs__head {
+    display: none;
+  }
+  .tr-pairs__row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .tr-pairs__arrow {
+    transform: rotate(90deg);
+    line-height: 1;
+  }
+  .tr-pairs__row + .tr-pairs__row {
+    margin-top: var(--space-2);
+  }
+  .tr-table__grid thead th {
+    width: 4.5rem;
+  }
+  /* Two buttons don't fit side by side on phones: stack, primary on top. */
+  .tr-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .tr-actions > span:empty {
+    display: none;
+  }
+  /* Agenda stacks: each segment becomes a row, bar length = share. */
+  .tr-agenda__bar {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .tr-agenda__seg {
+    grid-template-columns: 5rem 1fr;
+    align-items: center;
+    column-gap: var(--space-3);
+  }
+  .tr-agenda__fill {
+    grid-row: span 2;
+    width: calc(var(--share) * 1%);
+    min-width: 0.6rem;
+    margin: 0;
+  }
   .tr-panel {
     padding: var(--space-4);
   }
@@ -560,6 +939,7 @@ body.gr-body .tr-example__label {
 @media (prefers-reduced-motion: reduce) {
   .tr-step,
   .tr-progress__fill,
+  .tr-agenda__fill,
   .tr-reveal,
   .tr-timeline__list::before,
   .tr-timeline__step,
