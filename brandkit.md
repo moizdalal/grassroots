@@ -15,6 +15,10 @@ Warm-direct. Sentence case, second person, ~10-word sentences, no exclamation po
 
 **Case rule (changed 2026-10-24, replaces the old all-lowercase rule):** headers, page titles, button labels, status messages, empty states, and placeholders use sentence case. Capitalize the first word of each sentence or standalone label, and proper nouns (Stripe, LinkedIn, Gainesville, University of Florida), acronyms (PDF, URL, ID, SEO), months, and days. Don't use title case. Words after a mid-sentence dash or inside parentheses stay lowercase ("Decision saved — moving forward").
 
+**Headings never end in a period** (added 2026-11-03): page titles, section titles, card titles and checklist leads stop on their last word ("How it works", not "How it works."). Question marks stay. Text a script writes into a heading follows the same rule ("Welcome back, Jordan"). Body copy keeps its periods.
+
+**No small labels above headings** (added 2026-11-03): marketing pages (`/home/*`) don't put an eyebrow, kicker, or numbered label ("01 · WHY GRASSROOTS", "PATH A · APPLY") above a heading. The heading stands on its own.
+
 **Brand name:** the wordmark/logo is the only lowercase text: `grassroots` in `.gr-nav__wordmark`, `.bza__brand-text`, `.ld-nav__brand-text`, and the other brand lockups. Everywhere else, in copy, titles, meta tags, emails, and legal text, write **Grassroots** or **Grassroots Marketplace** (legal entity: Grassroots Marketplace LLC).
 
 **Stored values:** categories, statuses, and contract types are stored lowercase in the database and used as keys. Don't change the stored values. Sentence-case them at render time with a `capFirst()` helper where they show on their own (tags, pills, filter options). Typed confirmation phrases ("delete my account") stay lowercase because the client lowercases input before it compares.
@@ -118,6 +122,10 @@ Illustrations that need colors the global token set doesn't carry (e.g. browns f
 Canonical examples:
 - `public/garden-stem.css` → `--gs-root`, `--gs-root-edge`, `--gs-soil-dot-color`
 - `public/home/index.css` → `.ld-hero__garden { --ld-soil-line, --ld-soil-fill, --ld-soil-deep, --ld-soil-grain }`
+
+### Light-mode page wash
+
+In the `light` theme every page gets the home page's soft peach and green wash: radial gradients of `--fo-accent-warm` (30%) and `--fo-accent` (18%) on `body.gr-body`, alternating left and right down the page (`field-office.css`). The home page paints its own glows with `.ld-page-bg`, so it's skipped. Pages with their own background layer turn it off in light mode so the wash shows (e.g. `.ab-bg__paper` on the about page). Dark themes are unchanged.
 
 ### Card backgrounds — dark mode has none
 

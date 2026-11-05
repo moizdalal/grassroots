@@ -767,7 +767,7 @@ function renderGuestRail() {
       </p>
       <div class="ld-guest-rail__actions">
         <a class="gr-btn gr-btn--primary" href="/register.html?role=owner">Post a project</a>
-        <a class="gr-btn gr-btn--ghost" href="/home/for-students.html">Apply as a consultant</a>
+        <a class="gr-btn gr-btn--ghost" href="/for-students">Apply as a consultant</a>
       </div>
       <div class="ld-guest-rail__divider" aria-hidden="true">Or</div>
       <div class="ld-guest-rail__secondary">
@@ -3384,9 +3384,9 @@ async function init() {
       // CTA that returns to this listing after sign-in.
       const nextUrl = encodeURIComponent(`/listing.html?id=${listingId}`);
       if (uid) {
-        showHint('Only consultants can submit a proposal. <a href="/home/for-students.html#apply">Apply as a consultant →</a>');
+        showHint('Only consultants can submit a proposal. <a href="/for-students#apply">Apply as a consultant →</a>');
       } else {
-        showHint(`<strong>Sign in to make an offer →</strong> <a href="/signin.html?next=${nextUrl}">sign in</a> · <a href="/home/for-students.html#apply">apply as a consultant</a>`);
+        showHint(`<strong>Sign in to make an offer →</strong> <a href="/signin.html?next=${nextUrl}">sign in</a> · <a href="/for-students#apply">apply as a consultant</a>`);
         // Hide attachments for guests — the file links may include
         // direct storage URLs the bucket RLS won't gate.
         const attachmentsWrap = document.getElementById("ld-attachments");

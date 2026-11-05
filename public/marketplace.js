@@ -106,7 +106,7 @@ function renderGuestBanner() {
         <p class="gr-guest-banner__sub">
           This is real, live work small businesses are paying students to do. Start by
           <a href="/register.html?role=owner">posting your own project</a>, or
-          <a href="/home/for-students.html">apply to join as a student consultant</a>.
+          <a href="/for-students">apply to join as a student consultant</a>.
         </p>
       </div>
       <div class="gr-guest-banner__actions">
