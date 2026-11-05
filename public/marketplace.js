@@ -103,7 +103,7 @@ function guestBannerSub(mode) {
   if (mode === "real") {
     return `This is real, live work small businesses are paying students to do. Start by
           <a href="/register.html?role=owner">posting your own project</a>, or
-          <a href="/for-students">apply to join as a student consultant</a>.`;
+          <a href="/for-students">apply to join as a student</a>.`;
   }
   if (mode === "sample") {
     return `These are example projects that show what a good post looks like.
@@ -111,7 +111,7 @@ function guestBannerSub(mode) {
           <a href="/for-students">apply to join as a student</a>.`;
   }
   return `Start by <a href="/register.html?role=owner">posting your own project</a>, or
-          <a href="/for-students">apply to join as a student consultant</a>.`;
+          <a href="/for-students">apply to join as a student</a>.`;
 }
 
 let guestBannerMode = null; // null until the banner is rendered.
