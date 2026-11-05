@@ -70,6 +70,48 @@
           </div>
         </section>
 
+        <!-- Consultant-only: offer stats + pipeline (moved here from the
+             consultant dashboard so the dashboard leads with profile
+             completion + notifications). Hidden until the consultant
+             has a bid in the last 90 days. -->
+        <section class="pp-section pp-section--numbers hidden" id="pp-numbers-section" aria-labelledby="pp-numbers-title">
+          <header class="pp-section__head">
+            <h2 id="pp-numbers-title">Your <span class="fo-title-italic">numbers</span></h2>
+            <span class="pp-section__meta">Last 90 days</span>
+          </header>
+          <div class="cdash-stats" role="list">
+            <div class="cdash-stat" role="listitem">
+              <span class="cdash-stat__label">Acceptance rate</span>
+              <span class="cdash-stat__value" id="pp-stat-accept-rate">—</span>
+              <span class="cdash-stat__detail" id="pp-stat-accept-detail"></span>
+            </div>
+            <div class="cdash-stat" role="listitem">
+              <span class="cdash-stat__label">Avg time to accept</span>
+              <span class="cdash-stat__value" id="pp-stat-response">—</span>
+              <span class="cdash-stat__detail">From your offer to the owner's yes</span>
+            </div>
+            <div class="cdash-stat" role="listitem">
+              <span class="cdash-stat__label">Avg payout</span>
+              <span class="cdash-stat__value" id="pp-stat-payout">—</span>
+              <span class="cdash-stat__detail" id="pp-stat-payout-detail">After fees, across released offers</span>
+            </div>
+          </div>
+          <div class="cdash-pipeline" role="list">
+            <a class="cdash-pipeline__cell" role="listitem" href="/engagements.html?filter=active" id="pp-pipeline-active">
+              <span class="cdash-pipeline__num">0</span>
+              <span class="cdash-pipeline__label">Active offers</span>
+            </a>
+            <a class="cdash-pipeline__cell" role="listitem" href="/engagements.html?filter=accepted" id="pp-pipeline-accepted">
+              <span class="cdash-pipeline__num">0</span>
+              <span class="cdash-pipeline__label">Accepted</span>
+            </a>
+            <a class="cdash-pipeline__cell" role="listitem" href="/engagements.html?filter=rejected" id="pp-pipeline-rejected">
+              <span class="cdash-pipeline__num">0</span>
+              <span class="cdash-pipeline__label">Not selected</span>
+            </a>
+          </div>
+        </section>
+
         <!-- Consultant-only: garden (bloomed engagements moved here
              from the dashboard journey). Lives above progression so
              a consultant who's debating the seedling progression can
