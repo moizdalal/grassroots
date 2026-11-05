@@ -49,6 +49,12 @@
   flex-shrink: 0;
 }
 
+/* Nothing to show on the left (no logo tile, no socials): drop the
+   column so the name doesn't sit behind an empty gutter. */
+.ld-bio__left:not(:has(> :not([hidden]))) {
+  display: none;
+}
+
 .ld-bio__column {
   flex: 1 1 auto;
   display: flex;
@@ -96,6 +102,23 @@
 /* Hide socials when bio is collapsed; show them when expanded. */
 .ld-bio:not(:has([aria-expanded="true"])) .ld-bio__socials {
   display: none;
+}
+
+/* No logo: initials on the accent tile, matching the marketplace card. */
+.ld-bio__avatar-wrap--initials {
+  color: var(--fo-accent-on);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  transition: width 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+              height 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+              border-radius 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+              font-size 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ld-bio:has([aria-expanded="true"]) .ld-bio__avatar-wrap--initials {
+  font-size: 2rem;
 }
 
 .ld-bio__avatar {
@@ -237,6 +260,10 @@
   color: var(--fo-text, var(--muted));
 }
 
+.ld-bio__badges {
+  margin: 0.35rem 0 0.25rem;
+}
+
 .ld-bio__about {
   margin: 0;
   font-size: var(--type-body);
@@ -266,7 +293,8 @@
 
 /* Bare social glyphs — no chrome. Sit under the avatar; their bottom
    line aligns with the bottom line of text in the body column. */
-.ld-bio__social-link {
+.ld-bio__social-link,
+.ld-bio__socials > a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -277,12 +305,16 @@
   transition: color 0.18s ease, transform 0.15s ease;
 }
 
-.ld-bio__social-link:hover {
+.ld-bio__social-link:hover,
+.ld-bio__socials > a:hover {
   color: var(--fo-text, var(--green-deep));
   transform: translateY(-1px);
 }
 
-.ld-bio__social-link svg {
+/* `.ld-bio__socials > a` covers the create-listing preview, which
+   renders bare links; without a size their SVGs collapsed to 0px. */
+.ld-bio__social-link svg,
+.ld-bio__socials > a svg {
   width: 1.25rem;
   height: 1.25rem;
 }
@@ -453,13 +485,17 @@
 .ld-modal__btn { min-width: 5.5rem; }
 body.ld-modal-open { overflow: hidden; }
 
-/* --- Consultant counter-response panel --- */
+/* --- Consultant counter-response panel ---
+   Neutral card with a warm left rule: the counter is waiting on the
+   consultant (pending, so --fo-accent-warm), but a full peach fill and
+   orange eyebrow read as an alarm. */
 .ld-counter-response {
   margin: 0.5rem 0 0.9rem;
-  padding: 0.85rem 0.95rem;
+  padding: 0.85rem 0.95rem 0.85rem 1.1rem;
   border-radius: 12px;
-  background: color-mix(in srgb, var(--fo-accent-warm, #e88e5a) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--fo-accent-warm, #e88e5a) 32%, transparent);
+  background: var(--fo-surface-2, transparent);
+  border: 1px solid var(--fo-line);
+  box-shadow: inset 3px 0 0 var(--fo-accent-warm);
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
@@ -472,7 +508,7 @@ body.ld-modal-open { overflow: hidden; }
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--fo-accent-warm, #e88e5a);
+  color: var(--fo-text-2);
 }
 .ld-counter-response__amount {
   margin: 0;
@@ -539,7 +575,7 @@ body.ld-modal-open { overflow: hidden; }
 .ld-counter-response__decline:focus-visible {
   border-color: var(--fo-plan, #c46f44);
   color: var(--fo-plan, #c46f44);
-  background: rgba(196, 111, 68, 0.08);
+  background: color-mix(in srgb, var(--fo-plan) 8%, transparent);
   transform: translateY(-1px);
   outline: none;
 }
@@ -828,7 +864,7 @@ body.ld-modal-open { overflow: hidden; }
 #ld-unlist-listing-btn:hover:not(:disabled) {
   border-color: var(--fo-plan, #c46f44);
   color: var(--fo-plan, #c46f44);
-  background: rgba(196, 111, 68, 0.08);
+  background: color-mix(in srgb, var(--fo-plan) 8%, transparent);
   transform: translateY(-1px);
 }
 
@@ -965,6 +1001,21 @@ body.ld-modal-open { overflow: hidden; }
 .ld-bid-existing__message {
   display: block;
   margin-top: 0.4rem;
+}
+
+/* Summary lines under the amount: counter history, status, timeline.
+   Spacing comes from the card's flex gap (field-office.css). */
+.ld-bid-existing__line {
+  display: block;
+}
+
+.ld-bid-existing__status {
+  color: var(--fo-text);
+  font-weight: 600;
+}
+
+.ld-bid-existing__breakdown {
+  margin-top: 0.2rem;
 }
 
 /* Pill is shared with the (now-removed) banner CSS; override the
@@ -1240,7 +1291,15 @@ body.ld-modal-open { overflow: hidden; }
   color: var(--fo-text-2);
 }
 
+.ld-offer-breakdown__line > span:first-child {
+  min-width: 0;
+}
+
+/* Values never wrap: "−$10.00 −$4.50" (list rate struck through next to
+   the launch rate) has to stay on one line. The label column wraps. */
 .ld-offer-breakdown__value {
+  flex: 0 0 auto;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
   color: var(--fo-text);
   font-weight: 600;
@@ -1363,24 +1422,25 @@ body.ld-modal-open { overflow: hidden; }
 .ld-offer-msg-remove {
   background: none;
   border: none;
-  font-size: var(--type-h2);
+  font: inherit;
+  font-size: var(--type-meta);
+  font-weight: 600;
   color: var(--muted);
   cursor: pointer;
   line-height: 1;
-  /* Min 32×32 hit target (WCAG 2.5.5). */
-  min-width: 2rem;
+  /* Min 32px tall hit target (WCAG 2.5.5). */
   min-height: 2rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 0.15rem;
+  padding: 0 0.4rem;
   border-radius: 4px;
   transition: color 0.15s ease, background 0.15s ease;
 }
 
 .ld-offer-msg-remove:hover {
   color: var(--fo-plan, #c46f44);
-  background: rgba(196, 111, 68, 0.1);
+  background: color-mix(in srgb, var(--fo-plan) 10%, transparent);
 }
 
 .ld-offer-submit {
@@ -1974,29 +2034,6 @@ body.ld-modal-open { overflow: hidden; }
 }
 
 /* ---- Bio header meta row (location · projects · joined · LinkedIn) ----- */
-.pf-bv__meta-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem;
-  margin: 0.35rem 0 0;
-  font-size: var(--type-meta);
-  color: var(--fo-text-2);
-}
-
-.pf-bv__dot {
-  color: var(--fo-text-3);
-}
-
-.pf-bv__link {
-  color: var(--fo-accent);
-  text-decoration: none;
-}
-
-.pf-bv__link:hover {
-  text-decoration: underline;
-}
-
 /* ---- Offer form: timeline + supporting files --------------------------- */
 .ld-offer-timeline-row input {
   flex: 1;

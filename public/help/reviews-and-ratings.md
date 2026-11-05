@@ -1,12 +1,20 @@
 # Reviews & ratings
 
-> After an engagement wraps, the business owner rates the consultant on five dimensions. This is the signal Grassroots uses to surface trusted consultants in search and to drive the stage-progression ladder.
+> After an engagement wraps, the business owner rates the consultant on five dimensions, and the student can rate the business. Owner reviews are the signal Grassroots uses to surface trusted consultants and to drive the stage-progression ladder.
 
 ## Who rates whom
 
-Only the **business owner** rates the consultant. Consultants don't rate businesses today.
+The business owner rates the consultant. That review is **required** to close an engagement. You can't mark a job complete without rating the consultant first.
 
-A review is **required** to close an engagement. You can't mark a job complete without rating the consultant first.
+The student rates the business after the work wraps. That review is optional and does not hold the payout. One review per engagement, and it can't be edited.
+
+A student can submit once any of these is true:
+
+- The owner marked the engagement complete.
+- The payment was released or refunded.
+- The phased service fee was released or refunded.
+- The proposal was declined and that fee was released or refunded.
+- A retainer ended after a period was billed, released, or refunded.
 
 ## The five dimensions
 
@@ -21,6 +29,20 @@ A review is **required** to close an engagement. You can't mark a job complete w
 Each is rated **0.5 to 5.0 stars in half-step increments** (so 4.5, 3.0, 1.5 are all valid).
 
 An optional written **endorsement** (up to 280 characters) lets you add a short note. Published quotes appear on the consultant's profile.
+
+## How a student rates a business
+
+Same scale: half stars from 0.5 to 5, plus an optional note up to 280 characters. The five dimensions:
+
+| Dimension | What it captures |
+|---|---|
+| **Scope clarity** | Was the work defined clearly? |
+| **Communication** | Were replies timely and clear? |
+| **Approval speed** | How quickly was delivered work approved? |
+| **Respect** | How was the working relationship? |
+| **Would work again** | Would you take another engagement with this business? |
+
+The business and the student can both read the review on the engagement page. It does not show on the marketplace card. Clear scope, the trust badge, uses the scope-clarity average once at least two reviews land in a 90-day window.
 
 ## How a consultant's overall rating is computed
 

@@ -231,6 +231,13 @@ const MIN_DAYS = 3;
 const PAGE_SIZE = 7;
 const TOOLTIP_FORMAT = { weekday: "short", month: "short", day: "numeric" };
 
+// The daily series includes today, so day 0 has one bucket.
+function sinceListedLabel(buckets) {
+  const days = Math.max(0, buckets - 1);
+  if (days === 0) return "Listed today";
+  return `${days} day${days === 1 ? "" : "s"} since listed`;
+}
+
 function padToMinDays(daily, min = MIN_DAYS) {
   if (!daily.length) return [];
   if (daily.length >= min) return daily;
@@ -598,7 +605,7 @@ export function renderAnalyticsPanel(container, analytics, opts = {}) {
       <div class="lv-section">
         <div class="lv-section__head">
           <p class="lv-section__eyebrow">Daily views</p>
-          <p class="lv-section__hint">${analytics.daily.length} day${analytics.daily.length === 1 ? "" : "s"} since listed</p>
+          <p class="lv-section__hint">${sinceListedLabel(analytics.daily.length)}</p>
         </div>
         ${histogram || '<p class="lv-panel__empty">No views yet.</p>'}
       </div>

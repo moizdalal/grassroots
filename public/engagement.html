@@ -9,8 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
-    <link rel="stylesheet" href="/grassroots.css" />
-    <link rel="stylesheet" href="/field-office.css" />
+    <link rel="stylesheet" href="/grassroots.css?v=2" />
+    <link rel="stylesheet" href="/field-office.css?v=2" />
     <script src="/theme.js"></script>
     <script src="/cookie-banner.js" defer></script>
     <script src="/loading-overlay.js"></script>
@@ -343,6 +343,39 @@
             </form>
 
             <p id="eg-review-status" class="gr-status" aria-live="polite"></p>
+          </section>
+
+          <section class="gr-card eg-panel hidden" id="eg-biz-review-panel">
+            <div class="eg-panel__head">
+              <div>
+                <p class="eg-kicker" id="eg-biz-review-kicker">Business review</p>
+                <h2 class="eg-panel__title" id="eg-biz-review-title">Rate this business</h2>
+              </div>
+            </div>
+
+            <p class="eg-panel__body" id="eg-biz-review-body"></p>
+
+            <form id="eg-biz-review-form" class="eg-review-form hidden">
+              <div class="eg-rating-grid" id="eg-biz-rating-grid"></div>
+
+              <label class="gr-label full-width">
+                <span>Short note</span>
+                <textarea
+                  id="eg-biz-endorsement"
+                  rows="4"
+                  maxlength="280"
+                  placeholder="What should the next student know?"
+                ></textarea>
+              </label>
+
+              <div class="eg-review-actions">
+                <button type="submit" class="gr-btn gr-btn--primary" id="eg-biz-submit-review" disabled>Submit review</button>
+              </div>
+            </form>
+
+            <div id="eg-biz-review-readonly" class="eg-rating-grid hidden"></div>
+            <p id="eg-biz-review-note" class="eg-panel__body hidden"></p>
+            <p id="eg-biz-review-status" class="gr-status" aria-live="polite"></p>
           </section>
         </div>
       </div>

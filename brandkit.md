@@ -15,6 +15,10 @@ Warm-direct. Sentence case, second person, ~10-word sentences, no exclamation po
 
 **Case rule (changed 2026-10-24, replaces the old all-lowercase rule):** headers, page titles, button labels, status messages, empty states, and placeholders use sentence case. Capitalize the first word of each sentence or standalone label, and proper nouns (Stripe, LinkedIn, Gainesville, University of Florida), acronyms (PDF, URL, ID, SEO), months, and days. Don't use title case. Words after a mid-sentence dash or inside parentheses stay lowercase ("Decision saved — moving forward").
 
+**Headings never end in a period** (added 2026-11-03): page titles, section titles, card titles and checklist leads stop on their last word ("How it works", not "How it works."). Question marks stay. Text a script writes into a heading follows the same rule ("Welcome back, Jordan"). Body copy keeps its periods.
+
+**No small labels above headings** (added 2026-11-03): marketing pages (`/home/*`) don't put an eyebrow, kicker, or numbered label ("01 · WHY GRASSROOTS", "PATH A · APPLY") above a heading. The heading stands on its own.
+
 **Brand name:** the wordmark/logo is the only lowercase text: `grassroots` in `.gr-nav__wordmark`, `.bza__brand-text`, `.ld-nav__brand-text`, and the other brand lockups. Everywhere else, in copy, titles, meta tags, emails, and legal text, write **Grassroots** or **Grassroots Marketplace** (legal entity: Grassroots Marketplace LLC).
 
 **Stored values:** categories, statuses, and contract types are stored lowercase in the database and used as keys. Don't change the stored values. Sentence-case them at render time with a `capFirst()` helper where they show on their own (tags, pills, filter options). Typed confirmation phrases ("delete my account") stay lowercase because the client lowercases input before it compares.
@@ -25,7 +29,7 @@ Warm-direct. Sentence case, second person, ~10-word sentences, no exclamation po
 
 Two fonts, one rhythm. Loaded from Google Fonts in each page head (`Fraunces:opsz,wght@9..144,400..700` and `Figtree:ital,wght@0,300..900;1,300..900`).
 
-- **Fraunces** (serif, variable weight + opsz axis) — `--font-display`. All headings (h1-h4, page/section/card titles), hero numbers, and the logo wordmark. Always weight 600, upright, never italic.
+- **Fraunces** (serif, variable weight + opsz axis) — `--font-display`. All headings (h1-h4, page/section/card titles), hero numbers, and the logo wordmark. Always weight 600, upright, never italic. Exception under trial: the training page (`training.css`) pins headings to `"opsz" 24` because the auto display cut renders thin, broken-looking f's. If it holds up, roll it out site-wide.
 - **Figtree** (sans, variable weight 300-900) — `--font-body`. Body copy, buttons, inputs, nav, labels, eyebrows.
 
 Point every `font-family` at the tokens (`var(--font-display)`, `var(--font-body)`); don't hardcode family names. `grassroots.css` also sets h1-h4 to display, 600, upright. Manrope, Inter, Syne, Caveat and JetBrains Mono are retired. For numbers that must align (amounts in tables), use Figtree with `font-variant-numeric: tabular-nums` rather than a monospace.
@@ -104,6 +108,7 @@ Set on `<html data-theme="…">` by `theme.js` synchronously in head. Tokens def
 
 - Pure red (#cc0000-ish, `#c0392b`-class) — anywhere
 - Random orange that isn't `--fo-accent-warm`
+- Hardcoded warm tints like `rgba(232, 142, 90, 0.18)`. That is the dark-theme `--fo-accent-warm` value, so in light theme it turns peach/pink against the terracotta text. Derive tints from the token: `color-mix(in srgb, var(--fo-accent-warm) 18%, transparent)` (same for `--fo-plan`).
 - Any color picked from outside this token set, except for guaranteed-contrast hovers (see below)
 
 ### Guaranteed-contrast exception
@@ -117,6 +122,10 @@ Illustrations that need colors the global token set doesn't carry (e.g. browns f
 Canonical examples:
 - `public/garden-stem.css` → `--gs-root`, `--gs-root-edge`, `--gs-soil-dot-color`
 - `public/home/index.css` → `.ld-hero__garden { --ld-soil-line, --ld-soil-fill, --ld-soil-deep, --ld-soil-grain }`
+
+### Light-mode page wash
+
+In the `light` theme every page gets the home page's soft peach and green wash: radial gradients of `--fo-accent-warm` (30%) and `--fo-accent` (18%) on `body.gr-body`, alternating left and right down the page (`field-office.css`). The home page paints its own glows with `.ld-page-bg`, so it's skipped. Pages with their own background layer turn it off in light mode so the wash shows (e.g. `.ab-bg__paper` on the about page). Dark themes are unchanged.
 
 ### Card backgrounds — dark mode has none
 
@@ -159,6 +168,25 @@ Single class with kind modifiers, all theme-aware. Built-in dot indicator via `:
 | `--closed` / `--completed` / `--muted` | grey |
 | `--danger` | warm coral |
 | `--no-dot` | drop the dot |
+
+Sample listings (example posts from the fictitious owners in `marketplace.js` `SAMPLE_OWNER_IDS`) show a "Sample" pill in the card's recency slot: `--live --no-dot` restyled to a solid `--fo-accent` fill with `--fo-accent-on` text (the soft fill was too low-contrast on dark cards), `--type-meta`, sentence case, not uppercase (`.gr-listing-sample`).
+
+### `.gr-biz-badge` — business trust badges
+
+Earned badges for businesses, rendered by `business-badges.js` from the `get_business_badges` RPC. Rules live in `supabase/migrations/add_business_badges.sql`. Clear scope reads `business_reviews.scope_clarity` from `supabase/migrations/add_business_reviews.sql`. Nobody sets a badge by hand.
+
+| Badge | Earned when | Lapses |
+|---|---|---|
+| Active client | payment released in the last 90 days | yes, rolling 90 days |
+| Repeat client | paid 2+ students, or rehired one | no |
+| Quick approver | median delivered → released under 3 days, 2+ engagements | yes, rolling 90 days |
+| Clear scope | Average scope clarity of 4.0 or higher across at least 2 student reviews in the last 90 days. Fewer than 2 reviews in that window, including a business with no student reviews yet, does not earn it. There is no payment-history fallback. | yes, rolling 90 days |
+
+- Every badge uses the same solid `--fo-accent` disc with a `--fo-accent-on` glyph. The glyph tells them apart, not color.
+- Marketplace card (`.gr-biz-badges`): icons only, right after the business name. Max 2, then `+N`. A business that has never released a payment shows a muted `New` chip.
+- Listing detail (`.gr-biz-badge-block`): a facts line ("3 students paid · approves in ~2 days") and one `.gr-biz-badge-pill` per badge, icon + two-word label, with the full meaning in `title`.
+- If the RPC fails, render nothing. Never fall back to `New`.
+- `?fakebadges=1` swaps in fixture data for previews.
 
 ### `.gr-avatar` — universal avatar
 
@@ -211,7 +239,17 @@ Auto-injecting dismissible bottom pill that explains we use cookies and links to
 
 Pinned bottom-right on desktop (`max-width: 28rem`, pill shape), full-width across the bottom on screens ≤ 560 px. z-index `1400` — above page chrome, below modals (1500-1700) so opening a modal cleanly hides it.
 
+While the banner is visible, `body` gets bottom padding (5.5rem; 7.5rem at ≤ 560 px) via `body:has(> .gr-cookie-banner.is-visible)`, so it never covers the last row of content.
+
 Don't render the banner on `/region-unavailable.html` (the geo-block page); the script skips that path. If you add other "no-account" landing pages, add their paths to the skip list in `cookie-banner.js`.
+
+### `.gr-desktop-hint` — "works best on a computer" note
+
+Inline, dismissible note rendered by `desktop-hint.js` into the first `[data-desktop-hint]` mount on the page. Shows only on touch screens ≤ 720 px (`(max-width: 720px) and (pointer: coarse)`), until dismissed once (`localStorage["grassroots_desktop_hint_dismissed"] = "1"`, shared across pages). It informs and never blocks signup. It sits in the document flow, never fixed, so it can't stack with the cookie banner. Border-only in dark themes, `--fo-surface-2` fill in light. Mounts today: landing hero under the CTAs, register page under the subtitle. Give each mount an `:empty { display: none }` rule so desktop layouts don't keep its margin.
+
+### Touch-screen form fields
+
+`grassroots.css` forces `font-size: max(16px, 1em)` on every text field, select and textarea under `(pointer: coarse)`. iOS Safari zooms into any focused field under 16 px and stays zoomed. Don't set a field's font-size below that on touch screens.
 
 ### `.ld-cv__deal` — offer terms block
 
@@ -220,6 +258,20 @@ The headline of the consultant offer viewer (`listing.html`): two side-by-side `
 Bio tab order is fixed: header (name, degree line, `.pf-bv__meta-row` with city · completed projects · joined · short `LinkedIn ↗` link) → education → ratings last. Never print a full URL in the meta row.
 
 ---
+
+## Email
+
+Transactional emails use one layout: `lib/email-template.js`. Copy for each event lives in `lib/notification-emails.js`.
+
+- Lockup: sprout mark + lowercase `grassroots` wordmark in Fraunces 600, outside the card. Card order: glyph, listing title as an 11px caps eyebrow, heading (Fraunces), one intro line, progress stem (engagement emails), label / value facts, the other person's note with their initials, one closing line, one button. Payout emails lead with the amount as a 52px hero.
+- Glyphs: 44px moss-soft disc with a 24px stroke icon, one per event family (offer, counter, accepted, delivered, changes, payment, review, declined). Accepted is the outlined sprout. Declined and withdrawn use the muted grey disc.
+- Images live in `public/email/` as SVG sources plus 2x PNGs, built by `node scripts/build-email-assets.js`. Emails load the PNGs, since Gmail drops SVG. Each has a light and a dark file. Stem labels are live text, so no font is baked into an image.
+- Colors are the light and dark-forest tokens from `field-office.css`, hardcoded because mail clients can't read CSS variables. Change both places together. Muted text is #5f6862 (not `--fo-text-3`) so 11–13px text passes 4.5:1. Dark mode is border-only: no card or note fill.
+- Same voice as the site: sentence case, second person, short sentences, no exclamation points. Subjects name the listing in quotes.
+- Subject emoji: one, leading, for good news or a call to act (📬 offer, ⏳ counter, 🤝 counter accepted, 🌱 accepted, 📦 delivered, ✏️ changes, ✅ released, 💸 paid, ⭐ review). Declines and withdrawals get none. Never emoji in the body.
+- One button per email, labelled with the action ("Review the offer"), always an absolute link. A second path is a text link beside it ("Ask for changes").
+- The footer says why they got it, links to email settings and the dashboard, invites replies, and shows the mailing address. No unsubscribe link: these are transactional.
+- Business-facing emails never mention free offers.
 
 ## Page shell
 
@@ -231,6 +283,12 @@ Bio tab order is fixed: header (name, degree line, `.pf-bv__meta-row` with city 
 - `.gr-subtitle` — page subtitle (display or body font per page)
 
 Side nav (`.bza__side`) injects via `side-nav.js` unless the page renders its own `<aside class="bza__side">`. Loading overlay (`loading-overlay.js`) auto-injects on every page that imports it.
+
+### Phone layout (≤ 768 px) — `.bza-mbar` top bar + drawer
+
+`mobile-nav.js` (imported by `side-nav.js`; the two dashboards load it with their own `<script>` tag) injects `.bza-mbar` (wordmark + menu button, 56 px, sticky) and `.bza-mbar__scrim` into `.bza`. At ≤ 768 px the `.bza__side` sidebar becomes an off-canvas drawer (`min(300px, 84vw)`, slides from the left; `.bza--nav-open` on `.bza` opens it). The desktop collapsed state is lifted while on a phone and restored above the breakpoint. Content runs full width with a 16 px gutter (`.bza__main { padding: 1.25rem 16px 2.5rem }`). Escape, the scrim, or any nav item closes the drawer.
+
+Wide content on phones scrolls inside its own container, never the page: the kickoff grid (`.eg-calendar-wrap`, sticky time column), the journey flowers plant row, and the marketplace section tracks. Check with `document.documentElement.scrollWidth === clientWidth` at 390 px.
 
 ---
 
@@ -309,6 +367,7 @@ Inside a label, mark optional fields with `<span class="gr-optional">optional</s
 - **Cards**: `border: 1px solid var(--fo-line)` on `var(--fo-surface)` background, radius `12–16px`. Subtle shadow only when the card is interactive.
 - **Inset surfaces**: nested cards/panels go to `--fo-surface-2`, then `--fo-surface-3` for the deepest layer.
 - **Status row patterns**: eyebrow (uppercase tracker, --type-eyebrow) → value (Fraunces, --type-body or --type-h3, weight 600). See `.eg-meta__label` / `.eg-meta__value` for the canonical pair.
+- **Money breakdown**: a short `<dl>` of label → amount rows, label in `--fo-text-2`, amount right-aligned with `tabular-nums`, last row (the total) weight 600. Negative lines use a real minus (`−$3.20`). See `.eg-delivery__breakdown` (who got what after support splits a payment) and `.adm-pay-kv` on the admin payments drawer.
 - **Page H1 + subtitle**: `gr-title` with `gr-subtitle` directly below. Don't add a third level above unless the page has a clear category (use `gr-page-eyebrow` for that).
 
 ---
@@ -331,7 +390,7 @@ These have all caused real bugs. Check them first when a visual change isn't tak
 
 2. **`body.gr-body * { text-transform: none }` is a universal reset** that silently breaks any element trying to use `text-transform: uppercase`. The selector has specificity (1, 1) which beats single-class rules. To assert uppercase on a tracker (eyebrow, stat label, etc.), bump specificity (e.g. `body.gr-body .your-class`) or use `!important`. Already done for `.gr-section-h`.
 
-3. **`[hidden]` doesn't always hide.** The HTML attribute's default is `display: none`, but rules like `.pf-layout { display: grid }` or `.gr-flex { display: flex }` override it because they have higher specificity than the UA `[hidden]` rule. When a hidden panel is still rendering, look for a `display:` rule on its other classes. Fix with an explicit `.your-class[hidden] { display: none !important }`.
+3. **`[hidden]` used to lose to component `display` rules.** Rules like `.bza__banner { display: flex }` beat the UA `[hidden]` rule, so "hidden" banners, links and pills stayed on screen. `grassroots.css` now has a global `[hidden] { display: none !important }`, so the attribute always wins. To show something, remove the attribute; never style `[hidden]` back to visible. Per-class `.x[hidden]` rules are now redundant but harmless.
 
 ---
 

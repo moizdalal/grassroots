@@ -91,7 +91,7 @@ function listingState(row) {
   // Map listing.status to a display state. Open = live; accepted work that
   // hasn't been paid out is "hired" whatever the listing's lock state.
   const s = (row.status || "").toLowerCase();
-  if (s === "completed") return "completed";
+  if (s === "completed" || row.__released) return "completed";
   if (row.__hired) return "hired";
   if (s === "open") return "open";
   if (s === "locked") return "locked";
@@ -230,6 +230,7 @@ async function loadData(client, userId) {
     if (bids.some((b) => b.status === "accepted" && !["released", "refunded"].includes(b.payment_status))) {
       l.__hired = true;
     }
+    if (bids.some((b) => b.status === "accepted" && b.payment_status === "released")) l.__released = true;
     l.__bidCount = bids.length;
     l.__bids = bids;
   }
@@ -336,8 +337,12 @@ function avatarHtml(client, path, initial, klass = "bza__inbox-avatar") {
   return `<div class="${klass}">${escape(initial || "?")}</div>`;
 }
 
-function daysOpenLabel(createdAt) {
+function daysOpenLabel(createdAt, state) {
   if (!createdAt) return "";
+  // Drafts were never open — say when they were started instead.
+  if (state === "draft") return `created ${createdAgoLabel(createdAt)}`;
+  // Finished work doesn't keep counting days open.
+  if (state === "completed" || state === "unlisted") return "";
   const ms = Date.now() - new Date(createdAt).getTime();
   const days = Math.floor(ms / 86400000);
   if (days <= 0) return "Open today";
@@ -345,6 +350,15 @@ function daysOpenLabel(createdAt) {
   if (days < 30) return `${days} days open`;
   const months = Math.floor(days / 30);
   return months === 1 ? "1 month open" : `${months} months open`;
+}
+
+function createdAgoLabel(createdAt) {
+  const days = Math.floor((Date.now() - new Date(createdAt).getTime()) / 86400000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 30) return `${days} days ago`;
+  const months = Math.floor(days / 30);
+  return months === 1 ? "1 month ago" : `${months} months ago`;
 }
 
 // Compact recency for my-listings cards: today, 1d, 6d, 1w, 4w, 1m, 12m.
@@ -384,6 +398,14 @@ function listingPrimaryAction(l, schedulesByBidId) {
   const accepted = bids.find((b) => b.status === "accepted");
   const state = listingState(l);
 
+  // Finished work: keep a quiet way back into the engagement, but never
+  // a to-do (a stale schedule row would otherwise ask for availability).
+  if (state === "completed") {
+    return accepted
+      ? { label: "View engagement", kind: "manage", quiet: true, href: `/engagement.html?bid=${accepted.id}` }
+      : null;
+  }
+
   if (accepted) {
     const sched = schedulesByBidId?.[accepted.id];
     const status = sched?.status || "awaiting_owner";
@@ -418,6 +440,15 @@ function listingPrimaryAction(l, schedulesByBidId) {
   return null;
 }
 
+// Does this listing need the owner? Drafts to finish, plus any
+// non-quiet primary action. Drives the sidebar badge, the card
+// "Needs you" tag and the my-listings count line, so all three agree.
+function needsOwner(l, schedulesByBidId) {
+  if (listingState(l) === "draft") return true;
+  const a = listingPrimaryAction(l, schedulesByBidId);
+  return !!a && !a.quiet;
+}
+
 // A listing is "stale" when it's been live (open) for more than four
 // weeks without a hire. Same threshold the welcome line uses on the
 // owner dashboard.
@@ -441,7 +472,7 @@ function listingRowHtml(l, schedulesByBidId) {
 
   const offerCount = l.__bidCount || 0;
   const offerLabel = offerCount === 1 ? "1 offer" : `${offerCount} offers`;
-  const openLabel = daysOpenLabel(l.created_at);
+  const openLabel = daysOpenLabel(l.created_at, state);
   const stalePill = isStaleListing(l)
     ? `<span class="gr-pill gr-pill--warn gr-pill--no-dot" title="Open more than four weeks">Stale</span>`
     : "";
@@ -656,10 +687,14 @@ function mountMyListingsView(listings, schedulesByBidId) {
       .sort(sorter);
 
     if (countEl) {
+      // "N need you" mirrors the sidebar "My listings" badge, so the
+      // badge number is always visible somewhere on this view.
       const total = listings.length;
-      countEl.textContent = filtered.length === total
+      const needYou = listings.filter((l) => needsOwner(l, schedulesByBidId)).length;
+      const base = filtered.length === total
         ? `${total} listing${total === 1 ? "" : "s"}`
         : `${filtered.length} of ${total}`;
+      countEl.textContent = needYou ? `${base} · ${needYou} need${needYou === 1 ? "s" : ""} you` : base;
     }
     if (!filtered.length) {
       host.innerHTML = "";
@@ -894,11 +929,7 @@ function renderDashboard(client, data) {
   // complete, AND any unpublished drafts that need finishing. Quiet
   // actions (e.g. "manage" while waiting on the consultant) are not
   // owner-action-needed and don't count toward the badge.
-  const actionsNeededCount = listings.filter((l) => {
-    if (listingState(l) === "draft") return true;
-    const a = listingPrimaryAction(l, schedulesByBidId);
-    return !!a && !a.quiet;
-  }).length;
+  const actionsNeededCount = listings.filter((l) => needsOwner(l, schedulesByBidId)).length;
   const listingsBadge = $("dash-listings-badge");
   if (actionsNeededCount > 0) {
     listingsBadge.textContent = String(actionsNeededCount);
@@ -930,13 +961,13 @@ function renderDashboard(client, data) {
     const t = l.created_at ? Date.parse(l.created_at) : NaN;
     return Number.isFinite(t) && (now - t) > STALE_AFTER_MS;
   }).length;
-  let welcomeLine = `Welcome back, ${firstName}.`;
+  let welcomeLine = `Welcome back, ${firstName}`;
   if (newOffers > 0 && staleListings > 0) {
-    welcomeLine = `Welcome back, ${firstName}. ${newOffers} new offer${newOffers === 1 ? "" : "s"} and ${staleListings} listing${staleListings === 1 ? "" : "s"} going stale.`;
+    welcomeLine = `Welcome back, ${firstName}. ${newOffers} new offer${newOffers === 1 ? "" : "s"} and ${staleListings} listing${staleListings === 1 ? "" : "s"} going stale`;
   } else if (newOffers > 0) {
-    welcomeLine = `Welcome back, ${firstName}. ${newOffers} new offer${newOffers === 1 ? "" : "s"} to review.`;
+    welcomeLine = `Welcome back, ${firstName}. ${newOffers} new offer${newOffers === 1 ? "" : "s"} to review`;
   } else if (staleListings > 0) {
-    welcomeLine = `Welcome back, ${firstName}. ${staleListings} listing${staleListings === 1 ? "" : "s"} could use a refresh.`;
+    welcomeLine = `Welcome back, ${firstName}. ${staleListings} listing${staleListings === 1 ? "" : "s"} could use a refresh`;
   }
   $("dash-welcome").textContent = welcomeLine;
 

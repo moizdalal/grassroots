@@ -250,6 +250,14 @@
   animation: gs-halo-burst 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.5s forwards;
 }
 
+/* Touch: the 4.5-unit node is too small to hit while it drifts. The
+   invisible halo (r=11) takes taps too, roughly doubling the target. */
+@media (pointer: coarse) {
+  .gs__root-halo {
+    pointer-events: all;
+  }
+}
+
 /* Hover/focus lift — subtle so the breathing drift carries the
    character, not the cursor response. */
 .gs__root:hover .gs__root-node,

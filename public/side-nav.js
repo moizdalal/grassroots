@@ -6,6 +6,7 @@
 // dashboard injects its own from the loaded data).
 
 import { getInitials } from "/initials.js";
+import "/mobile-nav.js";
 
 const COLLAPSE_KEY = "grassroots_dash_sidebar_collapsed";
 const ENG_SUBNAV_KEY = "grassroots_side_engagements_open";
@@ -23,6 +24,8 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/></svg>',
   payouts:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-1"/><path d="M16 12a2 2 0 0 0 0 4h5v-4z"/></svg>',
+  training:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10 12 5l10 5-10 5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg>',
   notifications:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
   chevron:
@@ -57,6 +60,7 @@ function buildNavItems(role) {
       { href: "/inbox.html", label: "Inbox", icon: ICONS.inbox, navId: "inbox" },
       { href: "/notifications.html", label: "Notifications", icon: ICONS.notifications, navId: "notifications" },
       { href: "/payouts.html", label: "Payouts", icon: ICONS.payouts, navId: "payouts" },
+      { href: "/training.html", label: "Training", icon: ICONS.training, navId: "training" },
     ];
   }
   // Default to the owner layout. This is also what unauthenticated visitors
@@ -86,6 +90,7 @@ function inferActiveNavId(role) {
   if (path === "/marketplace.html") return role === "consultant" ? "marketplace" : null;
   if (path === "/engagements.html") return "engagements";
   if (path === "/payouts.html") return role === "consultant" ? "payouts" : null;
+  if (path === "/training.html") return role === "consultant" ? "training" : null;
   if (path === "/notifications.html") return "notifications";
   if (path === "/inbox.html") return "inbox";
   if (path === "/settings.html") return "settings";
@@ -102,9 +107,15 @@ function renderNavItem(item, activeNavId) {
   const childActive = (item.sub || []).some((s) => s.navId === activeNavId);
   const active = activeNavId === item.navId || childActive ? " active" : "";
   if (!item.sub) {
+    // Notifications carries an unread badge (same markup as the dashboards'
+    // own sidebars); filled in by wireNotifBadge() once the count loads.
+    const badge = item.navId === "notifications"
+      ? '<span class="bza__nav-badge" id="gr-side-notif-badge" hidden></span>'
+      : "";
     return `<a href="${item.href}" class="bza__nav-item${active}" data-nav-id="${item.navId}" title="${item.label}">
       <span class="bza__nav-icon" aria-hidden="true">${item.icon}</span>
       <span class="bza__nav-label">${item.label}</span>
+      ${badge}
     </a>`;
   }
   // Item has a sub-nav. The main link still navigates to the parent
@@ -179,7 +190,7 @@ function renderSidebar({ role, activeNavId }) {
         <span class="bza__darkmode-switch" aria-hidden="true"></span>
       </label>
       <div class="bza__side-foot">
-        <a class="bza__user" id="gr-side-user" href="/settings.html#personal" title="Open profile settings">
+        <a class="bza__user" id="gr-side-user" href="/profile.html" title="Open your profile">
           <span class="bza__user-avatar" id="gr-side-user-avatar"></span>
           <span class="bza__user-meta">
             <span class="bza__user-name" id="gr-side-user-name">Your account</span>
@@ -269,6 +280,25 @@ async function init() {
   wireDarkMode();
   wireLogout();
   wireSubnavToggles();
+  wireNotifBadge(client, profile);
+}
+
+function setNotifBadge(count) {
+  const badge = document.getElementById("gr-side-notif-badge");
+  if (!badge) return;
+  badge.textContent = count > 99 ? "99+" : String(count);
+  badge.hidden = count === 0;
+  badge.setAttribute("aria-label", `${count} unread`);
+}
+
+async function wireNotifBadge(client, profile) {
+  if (!client || !profile?.id) return;
+  const { loadUnreadNotificationCount } = await import("/nav-notify.js");
+  const refresh = async () => setNotifBadge(await loadUnreadNotificationCount(client, profile.id));
+  refresh();
+  // notifications.js fires this after mark-read / dismiss so the badge
+  // drops without a reload.
+  window.addEventListener("gr:notifications-changed", refresh);
 }
 
 function wireDarkMode() {

@@ -643,3 +643,56 @@
   border-bottom-color: var(--fo-accent);
   outline: none;
 }
+
+/* ── phone layout (≤ 768px) ─────────────────────────────────────
+   Three fixed columns (140px axis + plants + 156px garden tile) left
+   no room for plants on a phone. Shrink the plant box (keeping the
+   1:1.6 viewBox ratio), narrow the axis, and drop the garden tile to
+   its own row under the plants. The plant row keeps scrolling inside
+   its own container. */
+@media (max-width: 768px) {
+  .cdash__journey-flowers {
+    --plant-w: 120px;
+    --plant-h: 192px;
+    --axis-w: 112px;
+    --meta-h: 64px;
+    padding: 1rem 0.75rem 0.85rem 0.5rem;
+  }
+
+  .cdash__journey-flowers-canvas {
+    grid-template-columns: var(--axis-w) minmax(0, 1fr);
+    row-gap: 0.75rem;
+  }
+
+  .cdash__journey-flowers-axis {
+    margin-right: 0;
+  }
+
+  .cdash__journey-flowers-axis-row {
+    right: 0.4rem;
+  }
+
+  .cdash__journey-flowers-axis-name {
+    font-size: var(--type-eyebrow);
+  }
+
+  .cdash__journey-flowers-garden-tile {
+    grid-column: 1 / -1;
+    width: auto;
+    height: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.6rem;
+    padding: 0.7rem 0.85rem;
+  }
+
+  .cdash__journey-flowers-garden-tile-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .cdash__journey-flowers-plants-wrap {
+    -webkit-mask-image: none;
+            mask-image: none;
+  }
+}

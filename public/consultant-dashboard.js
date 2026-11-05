@@ -104,7 +104,7 @@ async function loadData(client, userId) {
   const { data: bids } = await client
     .from("bids")
     .select(
-      "id, listing_id, consultant_id, amount_cents, message, status, payment_status, paid_at, released_at, counter_offer_cents, counter_offer_message, counter_expires_at, counter_responded_at, counter_response_message, counter_attempted, accepted_at, proposal_due_at, proposal_path, created_at"
+      "id, listing_id, consultant_id, amount_cents, consultant_payout_cents, message, status, payment_status, paid_at, released_at, counter_offer_cents, counter_offer_message, counter_expires_at, counter_responded_at, counter_response_message, counter_attempted, accepted_at, proposal_due_at, proposal_path, created_at"
     )
     .eq("consultant_id", userId)
     .order("created_at", { ascending: false });
@@ -532,114 +532,6 @@ function renderHealth(panel, health, consultantId) {
 }
 
 /* ============================================================== */
-/*                  STATS + BID PIPELINE                          */
-/* ============================================================== */
-
-// Render the four metric cells + the pipeline three-cell row. Window
-// to the last 90 days so the dashboard reflects recent behavior rather
-// than a lifetime average that hides recent improvements. Hides the
-// whole panel when the consultant has no bids yet — a "0 / 0 / 0" wall
-// is worse than no panel.
-function renderConsultantStats(bids) {
-  const panel = $("cdash-stats-panel");
-  if (!panel) return;
-
-  const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
-  const now = Date.now();
-  const recent = bids.filter((b) => {
-    const t = b.created_at ? Date.parse(b.created_at) : NaN;
-    return Number.isFinite(t) && (now - t) <= NINETY_DAYS_MS;
-  });
-
-  if (!recent.length) {
-    panel.hidden = true;
-    return;
-  }
-  panel.hidden = false;
-
-  const accepted = recent.filter((b) => b.status === "accepted");
-  const rejected = recent.filter((b) => b.status === "rejected");
-  const active = recent.filter((b) => b.status === "pending" || b.status === "countered");
-  const released = recent.filter((b) => b.payment_status === "released" || b.released_at);
-
-  // Acceptance rate: among bids the owner has decided on. Pending +
-  // countered are still in flight so they don't count toward the
-  // denominator.
-  const decided = accepted.length + rejected.length;
-  const acceptRateEl = $("cdash-stat-accept-rate");
-  const acceptDetailEl = $("cdash-stat-accept-detail");
-  if (decided > 0) {
-    const rate = Math.round((accepted.length / decided) * 100);
-    if (acceptRateEl) acceptRateEl.textContent = `${rate}%`;
-    if (acceptDetailEl) acceptDetailEl.textContent = `${accepted.length} of ${decided} decided`;
-  } else {
-    if (acceptRateEl) acceptRateEl.textContent = "—";
-    if (acceptDetailEl) acceptDetailEl.textContent = "No decisions yet";
-  }
-
-  // Average response time: how long it took the owner to act on an
-  // accepted offer. We don't have a per-bid "rejected_at" so this is
-  // measured on accepted bids only.
-  const responseEl = $("cdash-stat-response");
-  const responseSpans = accepted
-    .map((b) => {
-      const start = b.created_at ? Date.parse(b.created_at) : NaN;
-      const end = b.accepted_at ? Date.parse(b.accepted_at) : NaN;
-      return Number.isFinite(start) && Number.isFinite(end) ? end - start : NaN;
-    })
-    .filter((ms) => Number.isFinite(ms) && ms >= 0);
-  if (responseSpans.length && responseEl) {
-    const avgMs = responseSpans.reduce((s, n) => s + n, 0) / responseSpans.length;
-    responseEl.textContent = formatDuration(avgMs);
-  } else if (responseEl) {
-    responseEl.textContent = "—";
-  }
-
-  // Average payout: mean of released bids' bid amount. Stripe fee
-  // absorption is silent per the fee structure, so this matches what
-  // the consultant sees in their stripe account.
-  const payoutEl = $("cdash-stat-payout");
-  const payoutDetailEl = $("cdash-stat-payout-detail");
-  if (released.length && payoutEl) {
-    const avgCents = released.reduce((s, b) => s + (Number(b.amount_cents) || 0), 0) / released.length;
-    payoutEl.textContent = fmtUSD(avgCents);
-    if (payoutDetailEl) payoutDetailEl.textContent = `Across ${released.length} released offer${released.length === 1 ? "" : "s"}`;
-  } else {
-    if (payoutEl) payoutEl.textContent = "—";
-    if (payoutDetailEl) payoutDetailEl.textContent = "No released offers yet";
-  }
-
-  // Active bids count
-  const activeEl = $("cdash-stat-active");
-  if (activeEl) activeEl.textContent = String(active.length);
-
-  // Pipeline cells
-  const setPipeline = (id, n) => {
-    const cell = $(id);
-    if (!cell) return;
-    const numEl = cell.querySelector(".cdash-pipeline__num");
-    if (numEl) numEl.textContent = String(n);
-  };
-  setPipeline("cdash-pipeline-active", active.length);
-  setPipeline("cdash-pipeline-accepted", accepted.length);
-  setPipeline("cdash-pipeline-rejected", rejected.length);
-}
-
-// Round to a friendly unit so an avg response time reads as "6h" or
-// "2d" instead of "147532ms" or even "147 minutes".
-function formatDuration(ms) {
-  if (!Number.isFinite(ms) || ms < 0) return "—";
-  const minutes = ms / (60 * 1000);
-  if (minutes < 1) return "<1m";
-  if (minutes < 60) return `${Math.round(minutes)}m`;
-  const hours = minutes / 60;
-  if (hours < 24) return `${Math.round(hours)}h`;
-  const days = hours / 24;
-  if (days < 7) return `${Math.round(days)}d`;
-  return `${Math.round(days / 7)}w`;
-}
-
-/* ============================================================== */
 /*                      RENDER + INIT                             */
 /* ============================================================== */
 
@@ -652,7 +544,7 @@ function renderDashboard(client, data) {
   const firstName = (profile?.full_name || "").split(" ")[0] || "there";
   const welcomeEl = $("cdash-welcome");
   if (welcomeEl) {
-    welcomeEl.innerHTML = `Welcome back, ${escape(firstName)}.`;
+    welcomeEl.innerHTML = `Welcome back, ${escape(firstName)}`;
   }
 
   // Build a map of bid_id → unread thread so each plant in the journey
@@ -694,16 +586,20 @@ function renderDashboard(client, data) {
     });
   }
 
-  // Stats + bid pipeline — self-evaluation surface so consultants can
-  // see acceptance rate, response time, average payout, and active bids
-  // at a glance. Cheap to compute (O(bids) per render).
-  renderConsultantStats(bids || []);
-
   // Empty-state surfaces — both the browse CTA and the payouts nudge
   // only appear when the consultant has nothing in flight yet. Stripe
   // status is the additional gate on the payouts banner; cheap fetch
   // (cached server-side) that fails silently if the account-status
   // endpoint is unavailable.
+  // Training nudge: shown until the consultant passes (or is exempt). A
+  // failed check (e.g. migration not applied yet) leaves it hidden.
+  const trainingBanner = $("cdash-training-banner");
+  if (trainingBanner) {
+    client.rpc("my_training_cleared").then(({ data: cleared, error }) => {
+      if (!error && cleared === false) trainingBanner.hidden = false;
+    });
+  }
+
   const browseCta = $("cdash-browse-cta");
   const payoutsBanner = $("cdash-payouts-banner");
   if (engagements.length === 0) {
@@ -993,12 +889,16 @@ async function init() {
       window.location.replace("/signin.html?next=/consultant-dashboard.html");
       return;
     }
-    gate.hidden = true;
+    // Show the shell (the journey flowers measure their container) but
+    // keep the gate in its loading state so the loader overlay stays up
+    // until the data has rendered. Otherwise the panels sit blank.
+    gate.style.display = "none";
     shell.hidden = false;
     setupShell();
 
     if (isTutorialGarden()) {
       await runTutorialGarden(client, session);
+      gate.hidden = true;
       return;
     }
 
@@ -1009,8 +909,11 @@ async function init() {
       return;
     }
     renderDashboard(client, data);
+    gate.hidden = true;
   } catch (err) {
     console.error(err);
+    gate.style.display = "";
+    gate.removeAttribute("data-loading");
     gate.textContent = err.message || "Could not load dashboard.";
     gate.className = "gr-status error";
   }

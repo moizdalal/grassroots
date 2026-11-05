@@ -61,7 +61,10 @@ export function isPremature(bid, listing, _schedule) {
 
 // Detect what's waiting on the consultant. Used for the pulsing
 // action dot at the plant apex.
-export function detectAction(bid, _listing, schedule) {
+export function detectAction(bid, listing, schedule) {
+  // Finished work never nags: once the payout is released (or the
+  // listing is completed) a stale schedule row is history, not a to-do.
+  if (bid?.payment_status === "released" || listing?.status === "completed") return null;
   // Active owner counter awaiting the consultant's response. Takes
   // priority over kickoff scheduling since the bid hasn't been
   // accepted yet — there's nothing to schedule.

@@ -9,8 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
-    <link rel="stylesheet" href="/grassroots.css" />
-    <link rel="stylesheet" href="/field-office.css" />
+    <link rel="stylesheet" href="/grassroots.css?v=2" />
+    <link rel="stylesheet" href="/field-office.css?v=2" />
     <link rel="stylesheet" href="/plant-animations.css" />
     <link rel="stylesheet" href="/garden.css" />
     <script src="/theme.js"></script>
@@ -67,6 +67,48 @@
               <span class="pp-metric__label">Total earned</span>
               <span class="pp-metric__value" id="pp-metric-earned">$0</span>
             </div>
+          </div>
+        </section>
+
+        <!-- Consultant-only: offer stats + pipeline (moved here from the
+             consultant dashboard so the dashboard leads with profile
+             completion + notifications). Hidden until the consultant
+             has a bid in the last 90 days. -->
+        <section class="pp-section pp-section--numbers hidden" id="pp-numbers-section" aria-labelledby="pp-numbers-title">
+          <header class="pp-section__head">
+            <h2 id="pp-numbers-title">Your <span class="fo-title-italic">numbers</span></h2>
+            <span class="pp-section__meta">Last 90 days</span>
+          </header>
+          <div class="cdash-stats" role="list">
+            <div class="cdash-stat" role="listitem">
+              <span class="cdash-stat__label">Acceptance rate</span>
+              <span class="cdash-stat__value" id="pp-stat-accept-rate">—</span>
+              <span class="cdash-stat__detail" id="pp-stat-accept-detail"></span>
+            </div>
+            <div class="cdash-stat" role="listitem">
+              <span class="cdash-stat__label">Avg time to accept</span>
+              <span class="cdash-stat__value" id="pp-stat-response">—</span>
+              <span class="cdash-stat__detail">From your offer to the owner's yes</span>
+            </div>
+            <div class="cdash-stat" role="listitem">
+              <span class="cdash-stat__label">Avg payout</span>
+              <span class="cdash-stat__value" id="pp-stat-payout">—</span>
+              <span class="cdash-stat__detail" id="pp-stat-payout-detail">After fees, across released offers</span>
+            </div>
+          </div>
+          <div class="cdash-pipeline" role="list">
+            <a class="cdash-pipeline__cell" role="listitem" href="/engagements.html?filter=active" id="pp-pipeline-active">
+              <span class="cdash-pipeline__num">0</span>
+              <span class="cdash-pipeline__label">Active offers</span>
+            </a>
+            <a class="cdash-pipeline__cell" role="listitem" href="/engagements.html?filter=accepted" id="pp-pipeline-accepted">
+              <span class="cdash-pipeline__num">0</span>
+              <span class="cdash-pipeline__label">Accepted</span>
+            </a>
+            <a class="cdash-pipeline__cell" role="listitem" href="/engagements.html?filter=rejected" id="pp-pipeline-rejected">
+              <span class="cdash-pipeline__num">0</span>
+              <span class="cdash-pipeline__label">Not selected</span>
+            </a>
           </div>
         </section>
 

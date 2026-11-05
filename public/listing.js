@@ -23,8 +23,19 @@ import {
   loadListingAnalytics,
   renderAnalyticsPanel,
 } from "/listing-analytics.js";
-import { showToast, showSuccess, showError, showLoading } from "/toast.js";
+import { showToast, showSuccess, showError, showLoading, flashToast } from "/toast.js";
+import { confirmDialog } from "/confirm-modal.js";
 import { isGuest, setGuestMode, clearGuestModeIfSignedIn } from "/guest-mode.js";
+import { loadBusinessBadges, renderBadgeBlock } from "/business-badges.js";
+import { notifyEvent } from "/notify-event.js";
+import {
+  renderConsultantBioHtml,
+  renderConsultantPastWorkHtml,
+  loadConsultantEngagements,
+  renderResumeEmbedHtml,
+  fetchResumeUrl,
+  RESUME_HIDDEN_HTML,
+} from "/consultant-viewer.js";
 
 const gate = document.getElementById("listing-gate");
 const detail = document.getElementById("listing-detail");
@@ -278,6 +289,7 @@ function renderConsultantCounterPanel(client, listing, bid) {
           body: `The consultant accepted your ${formatUsd(counter)} counter on "${listing.title}". You can finalize the deal now.`,
           link: `/listing.html?id=${listing.id}`,
         });
+        notifyEvent(client, "counter_accepted", { bid_id: bid.id });
         statusEl.textContent = "Accepted. The business can now finalize.";
         statusEl.className = "gr-status ld-counter-response__status success";
       } else if (action === "rescind") {
@@ -305,6 +317,7 @@ function renderConsultantCounterPanel(client, listing, bid) {
           body: `The consultant withdrew their offer on "${listing.title}" after your counter.`,
           link: `/listing.html?id=${listing.id}`,
         });
+        notifyEvent(client, "counter_rescinded", { bid_id: bid.id });
         statusEl.textContent = "Offer rescinded.";
         statusEl.className = "gr-status ld-counter-response__status success";
       } else {
@@ -328,6 +341,7 @@ function renderConsultantCounterPanel(client, listing, bid) {
           body: `The consultant declined your counter on "${listing.title}". Their original ${formatUsd(bid.amount_cents)} offer is back on the table.`,
           link: `/listing.html?id=${listing.id}`,
         });
+        notifyEvent(client, "counter_declined", { bid_id: bid.id });
         statusEl.textContent = "Counter declined. Your original offer is back on the table.";
         statusEl.className = "gr-status ld-counter-response__status success";
       }
@@ -354,13 +368,14 @@ function renderConsultantCounterPanel(client, listing, bid) {
             const offerPanel = document.getElementById("ld-offer-panel");
             if (offerPanel) offerPanel.hidden = true;
           } else {
-            const newAmount = action === "accept" ? counter : bid.amount_cents;
-            existingEl.innerHTML = `
-              <span class="ld-bid-existing__header">
-                <span class="ld-bid-existing__amount">Offer submitted: <strong>${formatUsd(newAmount)}</strong></span>
-              </span>
-              ${bid.message ? `<span class="ld-bid-existing__message">${escapeHtml(bid.message)}</span>` : ""}
-            `;
+            // Mirror the update locally. The pre-counter price is known
+            // here even before add_bid_original_amount.sql is applied.
+            if (bid.original_amount_cents == null) bid.original_amount_cents = bid.amount_cents;
+            if (action === "accept") bid.amount_cents = counter;
+            bid.status = "pending";
+            bid.counter_offer_cents = null;
+            bid.counter_responded_at = now;
+            existingEl.innerHTML = offerSummaryHtml(bid, listing);
           }
         }
       } catch (_) {
@@ -492,45 +507,32 @@ async function sweepExpiredCounters(client, bids, listing) {
    ================================================================ */
 
 async function loadListing(client, id) {
-  // Contract fields are added to every attempt so the fallback that wins
-  // still includes them. Attempt order narrows from "best-case schema" to
-  // "minimum guaranteed schema" — earlier attempts are allowed to fail if
-  // the db hasn't run an optional column migration yet.
-  const contractFields = "contract_type, proposal_budget, retainer_terms, retainer_cadence, retainer_period_count, retainer_fee_cents";
-  const listingSelectAttempts = [
-    `id, owner_id, title, category, problem_summary, details, qualifications_required,
-     status, status_reason, status_reason_other, attachments, turnaround_days, created_at,
-     business_display_name, business_summary, listing_website_url, listing_social_links,
-     ${contractFields},
-     profiles!listings_owner_id_fkey ( id, full_name, linkedin_url, avatar_path )`,
-    `id, owner_id, title, category, problem_summary, details, qualifications_required,
-     status, attachments, turnaround_days, created_at,
-     business_display_name, business_summary, listing_website_url, listing_social_links,
-     ${contractFields},
-     profiles!listings_owner_id_fkey ( id, full_name, linkedin_url, avatar_path )`,
-    `id, owner_id, title, category, problem_summary, details, qualifications_required,
-     status, turnaround_days, created_at,
-     business_display_name, business_summary, listing_website_url, listing_social_links,
-     ${contractFields},
-     profiles!listings_owner_id_fkey ( id, full_name, linkedin_url, avatar_path )`,
-  ];
-
-  let data = null;
-  let error = null;
-  for (const select of listingSelectAttempts) {
-    const result = await client
-      .from("listings")
-      .select(select)
-      .eq("id", id)
-      .maybeSingle();
-
-    data = result.data;
-    error = result.error;
-    if (!error) break;
-    if (!isMissing(error)) return { listing: null, error };
-  }
+  // `*` instead of a column list: optional columns (attachments,
+  // status_reason, …) come back when their migration is applied and are
+  // simply absent when it isn't, so one request covers both schemas.
+  const { data, error } = await client
+    .from("listings")
+    .select("*, profiles!listings_owner_id_fkey ( id, full_name, linkedin_url, avatar_path )")
+    .eq("id", id)
+    .maybeSingle();
 
   if (error) return { listing: null, error };
+
+  // Attachments live in the private listing_attachments bucket; storage
+  // RLS lets anyone who can read the listing sign a URL for them.
+  const attachmentPaths = getListingAttachments(data)
+    .map((item) => String(item?.path || ""))
+    .filter(Boolean);
+  if (attachmentPaths.length) {
+    const { data: signed } = await client.storage
+      .from("listing_attachments")
+      .createSignedUrls(attachmentPaths, 60 * 60);
+    const urlByPath = new Map((signed || []).map((row) => [row.path, row.signedUrl]));
+    data.attachments.forEach((item) => {
+      const url = urlByPath.get(item?.path);
+      if (url) item.signed_url = url;
+    });
+  }
 
   if (data?.profiles) {
     const { data: bizData } = await client
@@ -560,7 +562,9 @@ async function loadMyBid(client, listingId, userId) {
   if (!userId) return { bid: null, available: true };
   const { data, error } = await client
     .from("bids")
-    .select("id, amount_cents, proposal_fee_cents, service_fee_cents, message, status, counter_offer_cents, counter_offer_message, counter_expires_at, counter_responded_at, counter_response_message, counter_attempted, accepted_at, proposal_due_at, proposal_path")
+    // `*` so optional columns (timeline_days, original_amount_cents) come
+    // through when their migrations are applied without erroring before.
+    .select("*")
     .eq("listing_id", listingId)
     .eq("consultant_id", userId)
     .maybeSingle();
@@ -780,7 +784,7 @@ function renderGuestRail(status = "open") {
       </p>
       <div class="ld-guest-rail__actions">
         <a class="gr-btn gr-btn--primary" href="/register.html?role=owner">Post a project</a>
-        <a class="gr-btn gr-btn--ghost" href="/home/for-students.html">Apply as a consultant</a>
+        <a class="gr-btn gr-btn--ghost" href="/for-students">Apply as a consultant</a>
       </div>
       <div class="ld-guest-rail__divider" aria-hidden="true">Or</div>
       <div class="ld-guest-rail__secondary">
@@ -809,7 +813,7 @@ function renderListingAttachments(listing) {
 
   attachmentsWrap.innerHTML = attachments
     .map((item) => {
-      const url = String(item?.public_url || "").trim();
+      const url = String(item?.signed_url || item?.public_url || "").trim();
       const name = String(item?.name || "attachment").trim();
       const detailBits = [
         String(item?.kind || "").trim(),
@@ -920,6 +924,19 @@ function attachLdSectionAnimation(details) {
       };
     }
   });
+}
+
+/* Trust badges under the owner name. Fire-and-forget: the bio renders
+   first and the block fills in once the RPC answers. */
+async function populateBusinessBadges(client, ownerId) {
+  const host = document.getElementById("ld-biz-badges");
+  if (!host || !ownerId) return;
+  const map = await loadBusinessBadges(client, [ownerId]);
+  if (!map) return;
+  const html = renderBadgeBlock(map.get(ownerId));
+  if (!html) return;
+  host.innerHTML = html;
+  host.hidden = false;
 }
 
 function populateListing(listing) {
@@ -1066,54 +1083,18 @@ function populateListing(listing) {
   return { profile, biz };
 }
 
-function populateAvatarIfAvailable(client, profile) {
+// Logo when the business has one; otherwise the same initials the
+// marketplace card shows (business name, then the owner's name).
+function populateAvatarIfAvailable(client, profile, biz) {
+  const wrap = document.getElementById("ld-biz-avatar-wrap");
   const url = publicAvatarUrl(client, profile?.avatar_path);
   if (url) {
     document.getElementById("ld-biz-avatar").src = url;
-    document.getElementById("ld-biz-avatar-wrap").hidden = false;
+  } else {
+    wrap.textContent = getInitials(biz?.business_name || profile?.full_name || "Business");
+    wrap.classList.add("ld-bio__avatar-wrap--initials");
   }
-}
-
-function formatConsultantEducationLine(education) {
-  // Prefer the structured educations array (chunk 3+); fall back to the
-  // legacy flat columns for rows that haven't been migrated to the new
-  // schema yet.
-  const primary = Array.isArray(education?.educations) && education.educations[0]
-    ? education.educations[0]
-    : education || {};
-  const degree = (primary.degree || "").trim();
-  const major = (primary.major || "").trim();
-  const school = (primary.school || "").trim();
-  // Format priority: "Bachelor's in marketing @ University of Florida".
-  const head = degree && major
-    ? `${degree} in ${major}`
-    : major || degree || "";
-  if (head && school) return `${head} @ ${school}`;
-  return head || school || "";
-}
-
-function renderEducationEntriesList(education) {
-  // Build a structured display of every entry in the educations array. If
-  // the array is empty/missing, return a single-line fallback from legacy
-  // flat fields.
-  const entries = Array.isArray(education?.educations) && education.educations.length
-    ? education.educations
-    : (education?.major || education?.school
-      ? [{ degree: null, major: education.major, minor: education.minor, school: education.school }]
-      : []);
-  if (!entries.length) return "";
-  return entries
-    .map((e) => {
-      const parts = [];
-      if (e.degree) parts.push(escapeHtml(e.degree));
-      if (e.major) parts.push(escapeHtml(`in ${e.major}`));
-      if (e.minor) parts.push(escapeHtml(`(minor: ${e.minor})`));
-      const head = parts.join(" ");
-      const school = e.school ? escapeHtml(e.school) : "";
-      if (head && school) return `<p class="pf-bv__detail">${head} · ${school}</p>`;
-      return `<p class="pf-bv__detail">${head || school}</p>`;
-    })
-    .join("");
+  wrap.hidden = false;
 }
 
 function resetOwnerStatusForm() {
@@ -1531,6 +1512,71 @@ function offerBreakdownHtml(f, opts = {}) {
   `;
 }
 
+// The consultant's read-only offer card: amount, counter history, status,
+// timeline, take-home and pitch. Used on load and after answering a counter.
+function offerSummaryHtml(bid, listing) {
+  const isPhased = listing.contract_type === "phased";
+  const isRetainer = listing.contract_type === "retainer";
+  const isAccepted = bid.status === "accepted";
+  const isCountered = bid.status === "countered" && bid.counter_offer_cents != null;
+  const stateBadge = isAccepted
+    ? `<span class="ld-accepted-badge">Accepted</span>`
+    : isCountered
+    ? `<span class="ld-accepted-badge ld-accepted-badge--countered">Countered</span>`
+    : "";
+  const messageHtml = bid.message
+    ? `<span class="ld-bid-existing__message">${escapeHtml(bid.message)}</span>`
+    : "";
+  const amountHtml = isPhased && bid.proposal_fee_cents != null
+    ? `<span class="ld-bid-existing__amount">Offer submitted:
+         <strong>${formatUsd(bid.proposal_fee_cents)}</strong> proposal +
+         <strong>${formatUsd(bid.service_fee_cents || 0)}</strong> full job</span>`
+    : `<span class="ld-bid-existing__amount">Offer submitted: <strong>${formatUsd(bid.amount_cents)}</strong></span>`;
+
+  // Counter history. original_amount_cents (add_bid_original_amount.sql)
+  // is the price the consultant first sent; without it we can't tell an
+  // accepted counter from a kept price, so the line is skipped.
+  const originalCents = Number(bid.original_amount_cents);
+  const counterAccepted =
+    bid.counter_responded_at &&
+    Number.isFinite(originalCents) &&
+    originalCents !== Number(bid.amount_cents);
+  const historyHtml = counterAccepted
+    ? `<span class="ld-bid-existing__line">Countered from ${formatUsd(originalCents)} to ${formatUsd(bid.amount_cents)}, accepted</span>`
+    : "";
+
+  const statusLine = isAccepted
+    ? "Accepted. Head to the engagement for next steps."
+    : isCountered
+    ? "The business sent a counter. Respond below."
+    : bid.status === "declined"
+    ? "This offer is closed."
+    : "Waiting on the business. You'll get a notification when they respond.";
+  const timelineHtml = bid.timeline_days
+    ? `<span class="ld-bid-existing__line">Timeline: ${escapeHtml(formatTimelineDays(bid.timeline_days))}</span>`
+    : "";
+
+  // Take-home for a single-price offer (standard or per retainer period).
+  // Phased offers show two prices, so the per-fee breakdown stays on the
+  // form only.
+  const takeHomeHtml = !isPhased && Number(bid.amount_cents) > 0
+    ? `<div class="ld-offer-breakdown ld-bid-existing__breakdown">${offerBreakdownHtml(
+        computeFees(Number(bid.amount_cents)),
+        isRetainer
+          ? { bizLabel: "Business pays per period", takeHomeLabel: "You take home per period" }
+          : {}
+      )}</div>`
+    : "";
+
+  return `
+    <span class="ld-bid-existing__header">${amountHtml}${stateBadge}</span>
+    ${historyHtml}
+    <span class="ld-bid-existing__line ld-bid-existing__status">${escapeHtml(statusLine)}</span>
+    ${timelineHtml}
+    ${takeHomeHtml}
+    ${messageHtml}`;
+}
+
 async function showConsultantView(client, session, listing, existingBid) {
   const panel = document.getElementById("ld-offer-panel");
   setOfferRailVisible(true);
@@ -1732,22 +1778,8 @@ async function showConsultantView(client, session, listing, existingBid) {
     const heading = document.querySelector(".ld-offer-panel__heading");
     if (heading) heading.textContent = "Your offer";
     const el = document.getElementById("ld-bid-existing");
-    const isAccepted = existingBid.status === "accepted";
     const isCountered = existingBid.status === "countered" && existingBid.counter_offer_cents != null;
-    const stateBadge = isAccepted
-      ? `<span class="ld-accepted-badge">Accepted</span>`
-      : isCountered
-      ? `<span class="ld-accepted-badge ld-accepted-badge--countered">Countered</span>`
-      : "";
-    const messageHtml = existingBid.message
-      ? `<span class="ld-bid-existing__message">${escapeHtml(existingBid.message)}</span>`
-      : "";
-    const amountHtml = isPhased && existingBid.proposal_fee_cents != null
-      ? `<span class="ld-bid-existing__amount">Offer submitted:
-           <strong>${formatUsd(existingBid.proposal_fee_cents)}</strong> proposal +
-           <strong>${formatUsd(existingBid.service_fee_cents || 0)}</strong> full job</span>`
-      : `<span class="ld-bid-existing__amount">Offer submitted: <strong>${formatUsd(existingBid.amount_cents)}</strong></span>`;
-    el.innerHTML = `<span class="ld-bid-existing__header">${amountHtml}${stateBadge}</span>${messageHtml}`;
+    el.innerHTML = offerSummaryHtml(existingBid, listing);
     el.hidden = false;
     formWrap.hidden = true;
 
@@ -1767,12 +1799,36 @@ async function showConsultantView(client, session, listing, existingBid) {
      Stripe before locking the gate — handles the lag where the
      account.updated webhook hasn't fired yet. */
   let payoutsBlocked = true;
+  // New consultants must pass training before any offer, free ones
+  // included (consultants with earlier offers are exempt). The real gate
+  // is the bids_require_training trigger; this just explains it before
+  // they fill in the form. Starts open so a slow or failed check never
+  // blocks someone who is cleared.
+  let trainingBlocked = false;
   // A free standard offer never pays out, so it doesn't need payouts set up.
   const isFreeOffer = () => !isPhased && !isRetainer && amountInput.value.trim() !== "" && Number(amountInput.value) === 0;
   const syncSubmitDisabled = () => {
-    if (payoutsBlocked && !isFreeOffer()) submitBtn.setAttribute("aria-disabled", "true");
+    if (trainingBlocked || (payoutsBlocked && !isFreeOffer())) submitBtn.setAttribute("aria-disabled", "true");
     else submitBtn.removeAttribute("aria-disabled");
   };
+  const showTrainingToast = () =>
+    showToast("Pass consultant training before you send an offer. It takes about 25 minutes.", {
+      kind: "error",
+      duration: 6000,
+      action: {
+        label: "Start training",
+        onClick: () => {
+          window.location.href = "/training.html";
+        },
+      },
+    });
+  (async () => {
+    const { data: cleared, error } = await client.rpc("my_training_cleared");
+    // No function yet (migration not applied) means no trigger either.
+    if (error) return;
+    trainingBlocked = cleared === false;
+    syncSubmitDisabled();
+  })();
   const setPayoutsBlocked = (blocked) => {
     payoutsBlocked = blocked;
     syncSubmitDisabled();
@@ -1834,12 +1890,12 @@ async function showConsultantView(client, session, listing, existingBid) {
     msgWrap.classList.add("hidden");
     msgToggleBtn.classList.remove("hidden");
     msgInput.value = "";
-    charCount.textContent = String(PITCH_MAX_CHARS);
+    charCount.textContent = `${PITCH_MAX_CHARS} characters left`;
   });
 
   msgInput.addEventListener("input", () => {
     const remaining = PITCH_MAX_CHARS - msgInput.value.length;
-    charCount.textContent = remaining;
+    charCount.textContent = `${remaining} character${remaining === 1 ? "" : "s"} left`;
     charCount.classList.toggle("ld-offer-char-count--low", remaining < 40);
   });
 
@@ -1900,6 +1956,10 @@ async function showConsultantView(client, session, listing, existingBid) {
 
   /* --- Submit offer --- */
   submitBtn.addEventListener("click", async () => {
+    if (trainingBlocked) {
+      showTrainingToast();
+      return;
+    }
     if (payoutsBlocked && !isFreeOffer()) {
       showToast(
         "Set up payouts before you can submit an offer. Grassroots can't pay you until your Stripe account is verified.",
@@ -1997,15 +2057,46 @@ async function showConsultantView(client, session, listing, existingBid) {
     // Insert-only: offers can't be edited once submitted (enforced in the DB).
     const { error } = await client.from("bids").insert(payload);
     if (error) {
-      showError(error.code === "23505" ? "You already sent an offer on this listing." : error.message);
+      if (error.hint === "training_required") {
+        trainingBlocked = true;
+        syncSubmitDisabled();
+        showTrainingToast();
+      } else {
+        showError(error.code === "23505" ? "You already sent an offer on this listing." : error.message);
+      }
       submitBtn.disabled = false;
       submitBtn.classList.remove("is-loading");
       return;
     }
-    showSuccess("Offer submitted.");
+    // Tell the business. notif_caller_can_send_to lets a bidder notify
+    // the listing owner. Best-effort: the offer is in either way.
+    try {
+      const { data: me } = await client.from("profiles").select("full_name").eq("id", myId).maybeSingle();
+      const who = String(me?.full_name || "").trim() || "A consultant";
+      // Free offers are consultant-only copy: never name a $0 price to
+      // the business.
+      const what = isPhased
+        ? (payload.proposal_fee_cents > 0
+          ? `${formatUsd(payload.proposal_fee_cents)} for a proposal and ${formatUsd(payload.service_fee_cents)} for the job`
+          : `${formatUsd(payload.service_fee_cents)} for the job`)
+        : isRetainer
+        ? `${formatUsd(payload.amount_cents)} per period`
+        : payload.amount_cents > 0 ? formatUsd(payload.amount_cents) : "";
+      await client.from("notifications").insert({
+        user_id: listing.owner_id,
+        type: "bid_received",
+        title: `New offer on ${listing.title}`,
+        body: what ? `${who} offered ${what}.` : `${who} sent you an offer.`,
+        link: `/listing.html?id=${listing.id}`,
+      });
+    } catch (notifyErr) {
+      console.warn("new offer notification failed:", notifyErr);
+    }
     // Offers are immutable once submitted — reload so the form is replaced
-    // by the read-only summary on next render. Keep the spinner up until
-    // navigation kicks in so the click can't appear "free" mid-network.
+    // by the read-only summary on next render. The toast is carried across
+    // the reload; keep the spinner up until navigation kicks in.
+    await notifyEvent(client, "offer_received", { listing_id: listingId });
+    flashToast("Offer submitted. The business has been notified.");
     window.location.reload();
   });
 
@@ -2440,81 +2531,10 @@ function renderPitchPanel(bid) {
   panel.innerHTML = `${messageHtml}${filesHtml}`;
 }
 
-function renderConsultantViewerContent({ profile, education, rating }) {
+function renderConsultantViewerContent(data) {
   const contentEl = document.getElementById("ld-cv-content");
   if (!contentEl) return;
-  const edu = education || {};
-
-  const avatarHtml = profile.avatar_url
-    ? `<img class="pf-bv__avatar" src="${escapeAttr(profile.avatar_url)}" alt="" />`
-    : `<div class="pf-bv__avatar-placeholder" aria-hidden="true">${escapeHtml(getInitials(profile.full_name))}</div>`;
-
-  const dims = [
-    ["Work product", rating?.work_product_quality_avg],
-    ["Communication", rating?.communication_avg],
-    ["Timeliness", rating?.timeliness_avg],
-    ["Professionalism", rating?.professionalism_avg],
-    ["Cost value", rating?.cost_value_avg],
-  ];
-  const ratingBreakdown = rating?.review_count
-    ? `
-      <div class="pf-bv__section">
-        <p class="pf-bv__section-title">Ratings · ${rating.review_count} review${rating.review_count === 1 ? "" : "s"}</p>
-        <div class="ld-cv__rating-grid">
-          ${dims.map(([label, val]) => `
-            <div class="ld-cv__rating-row">
-              <span class="ld-cv__rating-row__label">${label}</span>
-              ${renderRatingMarkup({ rating_average: val, review_count: 1 }, { size: "sm", showCount: false })}
-            </div>
-          `).join("")}
-        </div>
-      </div>
-    `
-    : "";
-
-  // Header: name, primary degree line, then a compact meta row (location,
-  // tenure, LinkedIn as a short link). Education detail sits directly under
-  // the header; ratings close out the panel.
-  const headerLine = formatConsultantEducationLine(edu);
-  const eduEntriesHtml = renderEducationEntriesList(edu);
-  const metaBits = [];
-  if (profile.city) metaBits.push(`<span>${escapeHtml(profile.city)}</span>`);
-  if (profile.completed_count) {
-    metaBits.push(`<span>${profile.completed_count} completed project${profile.completed_count === 1 ? "" : "s"}</span>`);
-  }
-  if (profile.member_since) {
-    const since = new Date(profile.member_since).toLocaleDateString("en-US", { month: "short", year: "numeric" });
-    metaBits.push(`<span>Joined ${escapeHtml(since)}</span>`);
-  }
-  if (profile.linkedin_url) {
-    metaBits.push(`<a class="pf-bv__link" href="${escapeAttr(profile.linkedin_url)}" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>`);
-  }
-  const metaRow = metaBits.length
-    ? `<p class="pf-bv__meta-row">${metaBits.join('<span class="pf-bv__dot" aria-hidden="true">·</span>')}</p>`
-    : "";
-
-  contentEl.innerHTML = `
-    <div class="pf-bv">
-      <div class="pf-bv__header">
-        ${avatarHtml}
-        <div>
-          <h2 class="pf-bv__name">${escapeHtml(profile.full_name)}</h2>
-          ${headerLine ? `<p class="pf-bv__meta">${escapeHtml(headerLine)}</p>` : ""}
-          ${metaRow}
-        </div>
-      </div>
-      ${eduEntriesHtml ? `
-        <div class="pf-bv__section">
-          <p class="pf-bv__section-title">Education</p>
-          ${eduEntriesHtml}
-        </div>
-      ` : ""}
-      ${ratingBreakdown}
-      ${(!profile.linkedin_url && !eduEntriesHtml && !ratingBreakdown) ? `
-        <p class="pf-bv__empty">This consultant hasn't shared any public bio details yet.</p>
-      ` : ""}
-    </div>
-  `;
+  contentEl.innerHTML = renderConsultantBioHtml(data);
 }
 
 async function renderConsultantPastWorkPanel(consultantId, data) {
@@ -2523,86 +2543,20 @@ async function renderConsultantPastWorkPanel(consultantId, data) {
   const portfolio = Array.isArray(data?.portfolio) ? data.portfolio : [];
   panel.innerHTML = `<p class="gr-status" data-cv-loading>Loading past work…</p>`;
 
-  const engagements = await loadConsultantEngagements(consultantId).catch(() => []);
+  const engagements = await loadCachedConsultantEngagements(consultantId).catch(() => []);
 
   if (consultantViewerState.bids[consultantViewerState.index]?.consultant_id !== consultantId) return;
 
-  const sections = [];
-  if (engagements.length) {
-    sections.push(`
-      <div class="ld-cv__work-section">
-        <p class="ld-cv__work-section-title">Past engagements</p>
-        <div class="ld-cv__work-list">
-          ${engagements.map((eng) => {
-            const title = eng.listings?.title || "engagement";
-            const scope = eng.listings?.description || "";
-            const amount = eng.amount_cents != null ? formatUsd(eng.amount_cents) : "";
-            return `
-              <div class="ld-cv__work-row">
-                <div>
-                  <p class="ld-cv__work-row__title">${escapeHtml(title)}</p>
-                  ${scope ? `<p class="ld-cv__work-row__scope">${escapeHtml(truncateScope(scope))}</p>` : ""}
-                </div>
-                ${amount ? `<span class="ld-cv__work-row__amount">${escapeHtml(amount)}</span>` : ""}
-              </div>
-            `;
-          }).join("")}
-        </div>
-      </div>
-    `);
-  }
-
-  if (portfolio.length) {
-    sections.push(`
-      <div class="ld-cv__work-section">
-        <p class="ld-cv__work-section-title">Shared files</p>
-        <div class="ld-cv__work-list">
-          ${portfolio.map((item) => {
-            const fileName = (item.file_path || "").split("/").pop() || "file";
-            const url = item.url || "#";
-            return `
-              <div class="ld-cv__work-row">
-                <div>
-                  <p class="ld-cv__work-row__title">${escapeHtml(fileName)}</p>
-                  ${item.description ? `<p class="ld-cv__work-row__scope">${escapeHtml(item.description)}</p>` : ""}
-                  <a class="ld-cv__work-row__file" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">Open file ↗</a>
-                </div>
-              </div>
-            `;
-          }).join("")}
-        </div>
-      </div>
-    `);
-  }
-
-  panel.innerHTML = sections.length
-    ? sections.join("")
-    : `<p class="ld-cv__panel-empty">No past engagements or shared files yet.</p>`;
+  panel.innerHTML = renderConsultantPastWorkHtml(engagements, portfolio);
 }
 
-async function loadConsultantEngagements(consultantId) {
+async function loadCachedConsultantEngagements(consultantId) {
   if (consultantViewerState.engagementsCache.has(consultantId)) {
     return consultantViewerState.engagementsCache.get(consultantId);
   }
-  const client = consultantViewerState.client;
-  if (!client) return [];
-  const { data, error } = await client
-    .from("bids")
-    .select("id, amount_cents, accepted_at, listings!inner(id, title, description, status)")
-    .eq("consultant_id", consultantId)
-    .eq("status", "accepted")
-    .order("accepted_at", { ascending: false })
-    .limit(20);
-  if (error) return [];
-  const list = data || [];
+  const list = await loadConsultantEngagements(consultantViewerState.client, consultantId);
   consultantViewerState.engagementsCache.set(consultantId, list);
   return list;
-}
-
-function truncateScope(text, max = 180) {
-  const trimmed = String(text || "").trim();
-  if (trimmed.length <= max) return trimmed;
-  return trimmed.slice(0, max - 1).trimEnd() + "…";
 }
 
 async function loadResumePanel(consultantId) {
@@ -2618,7 +2572,7 @@ async function loadResumePanel(consultantId) {
   const profile = data?.profile;
 
   if (!profile?.resume_on_file) {
-    const html = `<p class="ld-cv__panel-empty">This consultant has not made a resume publicly visible.</p>`;
+    const html = RESUME_HIDDEN_HTML;
     panel.innerHTML = html;
     consultantViewerState.resumeCache.set(consultantId, html);
     return;
@@ -2633,23 +2587,12 @@ async function loadResumePanel(consultantId) {
   panel.innerHTML = `<p class="gr-status">Loading resume…</p>`;
 
   try {
-    const client = consultantViewerState.client;
-    const { data: { session } } = await client.auth.getSession();
-    const headers = {};
-    if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-    const res = await fetch(`/api/consultant-profile/${encodeURIComponent(consultantId)}/resume`, { headers });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok || !body.url) throw new Error(body.error || "Could not open resume.");
+    const body = await fetchResumeUrl(consultantViewerState.client, consultantId);
 
     if (consultantViewerState.bids[consultantViewerState.index]?.consultant_id !== consultantId) return;
     if (consultantViewerState.activeTab !== "resume") return;
 
-    const html = `
-      <div class="ld-cv__resume-actions">
-        <a class="gr-btn gr-btn--ghost gr-btn--sm" href="${escapeAttr(body.url)}" target="_blank" rel="noopener noreferrer">Open in new tab ↗</a>
-      </div>
-      <iframe class="ld-cv__resume-frame" src="${escapeAttr(body.url)}" title="${escapeAttr((body.file_name || "resume"))}"></iframe>
-    `;
+    const html = renderResumeEmbedHtml(body.url, body.file_name);
     panel.innerHTML = html;
     consultantViewerState.resumeCache.set(consultantId, html);
   } catch (err) {
@@ -2666,11 +2609,13 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
 
   const list = document.getElementById("ld-bids-list");
   const budgetEl = document.getElementById("ld-counter-budget");
-  const totalCounters = bids.filter((b) => b.counter_offer_cents != null).length;
+  // A counter stays "used" after the consultant answers it (the offer
+  // fields clear but counter_attempted stays true).
+  const totalCounters = bids.filter((b) => b.counter_attempted || b.counter_offer_cents != null).length;
   budgetEl.textContent = `Counter-offers used: ${totalCounters} / 3`;
 
   if (!bids.length) {
-    list.innerHTML = '<p class="ld-bids-empty">No proposals yet.</p>';
+    list.innerHTML = '<p class="ld-bids-empty">No offers yet.</p>';
     return;
   }
 
@@ -2785,6 +2730,12 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
     const counterInfo = b.counter_offer_cents
       ? `<p class="ld-bid-card__counter">Your counter: <strong>${formatUsd(b.counter_offer_cents)}</strong>${b.counter_offer_message ? ` — "${escapeHtml(b.counter_offer_message)}"` : ""}</p>`
       : "";
+    // The consultant's note when they answered the counter (accept,
+    // keep their price, or withdraw). Saved on the bid; shown here so the
+    // business actually sees it.
+    const counterReply = !b.counter_offer_cents && b.counter_responded_at && b.counter_response_message
+      ? `<p class="ld-bid-card__counter">Their reply to your counter: "${escapeHtml(b.counter_response_message)}"</p>`
+      : "";
 
     // Amount stack — phased shows proposal + full-job rows; standard
     // shows a single value. Both use the same vertical stack so the
@@ -2822,6 +2773,7 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
       ${amountHtml}
       ${msg}
       ${counterInfo}
+      ${counterReply}
       <div class="ld-bid-card__foot">
         <div class="ld-bid-card__actions"></div>
         ${viewProfileLink}
@@ -3056,12 +3008,12 @@ async function handleAcceptBid(client, session, listing, bid, card) {
   // updates to the counter value). Reading from counter_offer_cents
   // here would let the owner pay their own discount unilaterally.
   const paidAmount = bid.amount_cents;
-  const offerLabel = Number(paidAmount) === 0 ? "free offer" : `${formatUsd(paidAmount)} proposal`;
+  const offerLabel = Number(paidAmount) === 0 ? "free offer" : `${formatUsd(paidAmount)} offer`;
   await client.from("notifications").insert({
     user_id: bid.consultant_id,
     type: "bid_accepted",
-    title: "Your bid was accepted.",
-    body: `Your ${offerLabel} for "${escapeHtml(listing.title)}" was accepted. The business is setting up kickoff availability now.`,
+    title: "Your offer was accepted",
+    body: `Your ${offerLabel} on "${listing.title}" was accepted. The business is sharing kickoff times next.`,
     link: engagementLink(bid.id),
   });
 
@@ -3096,6 +3048,25 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
       showError("A counter must be at least $10.");
       return;
     }
+    // Counters are one-shot, so a typo can't be undone. Warn (don't
+    // block) when the counter is at or above their ask, or above the
+    // listing's own budget max.
+    const askCents = Number(bid.amount_cents) || 0;
+    const budgetMaxCents = Number(listing.budget_cents) || 0;
+    const overAsk = askCents > 0 && cents >= askCents;
+    const overBudget = budgetMaxCents > 0 && cents > budgetMaxCents;
+    if (overAsk || overBudget) {
+      const reasons = [];
+      if (overAsk) reasons.push(`They asked for ${formatUsd(askCents)}. Your counter is ${formatUsd(cents)}.`);
+      if (overBudget) reasons.push(`Your budget max for this listing is ${formatUsd(budgetMaxCents)}.`);
+      const ok = await confirmDialog({
+        title: overAsk ? "That's more than they asked for. Send anyway?" : "That's above your budget. Send anyway?",
+        body: `${reasons.join(" ")} You only get one counter on this offer.`,
+        confirmLabel: "Send counter",
+        cancelLabel: "Go back",
+      });
+      if (!ok) return;
+    }
     sendBtn.disabled = true;
 
     const loader = showLoading("Sending counter…");
@@ -3118,10 +3089,11 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
     await client.from("notifications").insert({
       user_id: bid.consultant_id,
       type: "counter_offer",
-      title: "You received a counter-offer",
-      body: `The owner of "${escapeHtml(listing.title)}" countered your bid with ${formatUsd(cents)}. You have 24 hours to respond.`,
+      title: "You got a counteroffer",
+      body: `The business countered your offer on "${listing.title}" with ${formatUsd(cents)}. You have 24 hours to respond.`,
       link: `/listing.html?id=${listing.id}`,
     });
+    notifyEvent(client, "counter_received", { bid_id: bid.id });
 
     loader.dismiss();
     showSuccess("Counter offer sent. The consultant has 24 hours to respond.");
@@ -3389,8 +3361,9 @@ async function init() {
       return;
     }
 
-    const { profile } = populateListing(listing);
-    populateAvatarIfAvailable(client, profile);
+    const { profile, biz } = populateListing(listing);
+    populateAvatarIfAvailable(client, profile, biz);
+    populateBusinessBadges(client, listing.owner_id);
     setOwnerSidebarVisible(isOwner);
     if (!isOwner) setOfferRailVisible(false);
 
@@ -3469,9 +3442,9 @@ async function init() {
       // CTA that returns to this listing after sign-in.
       const nextUrl = encodeURIComponent(`/listing.html?id=${listingId}`);
       if (uid) {
-        showHint('Only consultants can submit a proposal. <a href="/home/for-students.html#apply">Apply as a consultant →</a>');
+        showHint('Only consultants can submit a proposal. <a href="/for-students#apply">Apply as a consultant →</a>');
       } else {
-        showHint(`<strong>Sign in to make an offer →</strong> <a href="/signin.html?next=${nextUrl}">sign in</a> · <a href="/home/for-students.html#apply">apply as a consultant</a>`);
+        showHint(`<strong>Sign in to make an offer →</strong> <a href="/signin.html?next=${nextUrl}">sign in</a> · <a href="/for-students#apply">apply as a consultant</a>`);
         // Hide attachments for guests — the file links may include
         // direct storage URLs the bucket RLS won't gate.
         const attachmentsWrap = document.getElementById("ld-attachments");

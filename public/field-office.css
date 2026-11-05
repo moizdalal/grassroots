@@ -139,6 +139,25 @@ body.gr-body {
   text-transform: none;
 }
 
+/* Light mode: the home page's soft peach and green wash on every other page.
+   Plain gradients on the body (the same approach as the home page's lite
+   mode), alternating warm and green down the page so each screen gets some.
+   The home page paints its own glows with .ld-page-bg, so it's skipped. */
+[data-theme="light"] body.gr-body:not(:has(.ld-page-bg)) {
+  --pg-warm: color-mix(in srgb, var(--fo-accent-warm) 30%, transparent);
+  --pg-green: color-mix(in srgb, var(--fo-accent) 18%, transparent);
+  background-color: var(--fo-bg);
+  background-image:
+    radial-gradient(circle 520px at 0 0, var(--pg-warm), transparent),
+    radial-gradient(circle 460px at 100% 1000px, var(--pg-green), transparent),
+    radial-gradient(circle 480px at 0 2100px, var(--pg-warm), transparent),
+    radial-gradient(circle 460px at 100% 3200px, var(--pg-green), transparent),
+    radial-gradient(circle 480px at 0 4300px, var(--pg-warm), transparent),
+    radial-gradient(circle 460px at 100% 5400px, var(--pg-green), transparent),
+    radial-gradient(circle 480px at 0 6500px, var(--pg-warm), transparent);
+  background-repeat: no-repeat;
+}
+
 body.gr-body * {
   text-transform: none;
 }
@@ -744,6 +763,10 @@ body.gr-body .gr-section-h {
   border-radius: 18px;
   padding: 1.5rem;
   display: grid;
+  /* minmax(0, 1fr) keeps the column at the card's width. With the
+     implicit auto column, a long business name grew it past the
+     card edge and the content spilled into the next card. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 1fr auto;
   gap: 1rem;
   text-decoration: none;
@@ -789,6 +812,23 @@ body.gr-body .gr-section-h {
   pointer-events: auto;
 }
 
+/* Marketplace: tuck the recency label inside the card's top-right
+   corner instead of floating it above the border, where it read as
+   detached from its card. The card's top padding grows to clear it,
+   and the track no longer needs headroom for it. */
+#listing-grid .gr-listing-card {
+  padding-top: 2.1rem;
+}
+
+#listing-grid .gr-listing-card-eyebrow {
+  top: 0.95rem;
+  right: 1.25rem;
+}
+
+#listing-grid .gr-marketplace-section__track {
+  padding-top: 0.5rem;
+}
+
 :where(#listing-grid, #dash-listings-cards) .gr-listing-recency {
   font-family: var(--font-body);
   font-size: var(--type-eyebrow);
@@ -823,6 +863,24 @@ body.gr-body .gr-section-h {
 
 :where(#listing-grid, #dash-listings-cards) .gr-listing-recency--locked::before {
   background: var(--fo-accent-warm);
+}
+
+/* "Sample" pill on example listings (marketplace.js SAMPLE_OWNER_IDS).
+   Takes the recency slot, one step larger than eyebrow type so it
+   reads at a glance. The pill is taller than the recency text, so
+   sample cards get extra top padding to keep it clear of the title.
+   Solid accent fill with --fo-accent-on text, like the trust badges:
+   accent text on --fo-accent-soft was too low-contrast on dark cards. */
+#listing-grid .gr-listing-card--sample {
+  padding-top: 3.2rem;
+}
+
+#listing-grid .gr-listing-sample {
+  font-size: var(--type-meta);
+  letter-spacing: 0.02em;
+  padding: 0.3rem 0.75rem;
+  background: var(--fo-accent);
+  color: var(--fo-accent-on);
 }
 
 /* Title ─ one tranche below the original v2 mockup. Uses the
@@ -904,6 +962,13 @@ body.gr-body .gr-section-h {
   min-width: 0;
 }
 
+:where(#listing-grid, #dash-listings-cards) .gr-listing-biz-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
 :where(#listing-grid, #dash-listings-cards) .gr-listing-biz-name {
   margin: 0;
   font-family: var(--font-body);
@@ -911,9 +976,13 @@ body.gr-body .gr-section-h {
   font-size: 0.95rem;
   color: var(--fo-text);
   letter-spacing: 0;
+  line-height: 1.25;
+  /* Two lines before clamping. One line cut most business names to a
+     single word at the 280px card width. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 :where(#listing-grid, #dash-listings-cards) .gr-listing-budget {
@@ -950,13 +1019,16 @@ body.gr-body .gr-section-h {
   gap: 1rem;
 }
 
+/* Tags that don't fit wrap to a second row, which the max-height
+   hides. A tag drops out whole instead of being cut mid-word. */
 :where(#listing-grid, #dash-listings-cards) .gr-listing-tags {
   display: flex;
-  flex-wrap: nowrap;
-  gap: 0.45rem;
+  flex-wrap: wrap;
+  gap: 1rem 0.45rem;
   align-items: center;
   margin: 0;
   min-width: 0;
+  max-height: 1.85rem;
   overflow: hidden;
 }
 
@@ -1068,20 +1140,15 @@ body.gr-body .gr-section-h {
   }
 }
 
-/* Consultant stats panel — four metric cells in a responsive grid plus
-   a three-cell bid-pipeline strip at the foot. Sits between the
-   journey hero and the .cdash__below row. */
-.cdash-stats-panel { margin-top: 1.5rem; }
+/* Consultant offer stats — three metric cells in a responsive grid plus
+   a three-cell offer-pipeline strip at the foot. Lives in the
+   "your numbers" section on /profile.html. */
 
 .cdash-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   padding: 0.75rem 0.25rem 1rem;
-}
-
-@media (max-width: 880px) {
-  .cdash-stats { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 520px) {
@@ -1188,9 +1255,10 @@ body.gr-body .gr-section-h {
 .dash-view:has(#cdash-welcome) {
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  /* 4rem = .bza__main top + bottom padding (32px each). */
-  height: calc(100vh - 4rem);
+  /* 4rem = .bza__main top + bottom padding (32px each). A floor, not a
+     fixed height: once the stats panel joined the column, a locked
+     height squeezed the cards below into thin bars. */
+  min-height: calc(100vh - 4rem);
 }
 
 .dash-view:has(#cdash-welcome) > .bza__page-h,
@@ -1200,7 +1268,9 @@ body.gr-body .gr-section-h {
 
 .dash-view:has(#cdash-welcome) > .cdash__below {
   flex: 1 1 0;
-  min-height: 0;
+  /* Fills leftover viewport height, but never shrinks below a readable
+     card; past that the page scrolls instead. */
+  min-height: 22rem;
   /* Force the implicit row to honour the flex height instead of growing
      to the tallest column's natural content. minmax(0, 1fr) is the
      standard grid escape hatch for "don't let content set the floor". */
@@ -1218,7 +1288,13 @@ body.gr-body .gr-section-h {
    layout can scroll naturally. */
 @media (max-width: 960px) {
   .dash-view:has(#cdash-welcome) {
-    height: auto;
+    min-height: 0;
+  }
+
+  .dash-view:has(#cdash-welcome) > .cdash__below {
+    flex: 0 0 auto;
+    min-height: 0;
+    grid-template-rows: none;
   }
 }
 
@@ -1967,7 +2043,7 @@ body.gr-body .gr-section-h {
 #ld-unlist-listing-btn:hover:not(:disabled) {
   border-color: var(--fo-accent-warm, #c46f44);
   color: var(--fo-accent-warm, #c46f44);
-  background: rgba(196, 111, 68, 0.08);
+  background: color-mix(in srgb, var(--fo-accent-warm) 8%, transparent);
   box-shadow: none;
 }
 
@@ -2090,7 +2166,7 @@ body.gr-body .gr-section-h {
 
 .ld-offer-msg-remove:hover {
   color: var(--fo-plan);
-  background: rgba(217, 119, 87, 0.1);
+  background: color-mix(in srgb, var(--fo-plan) 10%, transparent);
 }
 
 .ld-attachment-card {
@@ -2138,8 +2214,8 @@ body.gr-body .gr-section-h {
 }
 
 .ld-counter-banner {
-  background: rgba(232, 142, 90, 0.14);
-  border: 1px solid rgba(232, 142, 90, 0.3);
+  background: color-mix(in srgb, var(--fo-accent-warm) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fo-accent-warm) 30%, transparent);
 }
 
 .ld-counter-badge {
@@ -2705,6 +2781,31 @@ body.gr-body .gr-section-h {
   color: var(--fo-text);
 }
 
+/* Bio meta row (city · completed · joined · LinkedIn) — shared by the
+   listing consultant viewer and the settings preview-as-business modal. */
+.pf-bv__meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.35rem 0 0;
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+}
+
+.pf-bv__dot {
+  color: var(--fo-text-3);
+}
+
+.pf-bv__link {
+  color: var(--fo-accent);
+  text-decoration: none;
+}
+
+.pf-bv__link:hover {
+  text-decoration: underline;
+}
+
 .pf-bv__meta,
 .pf-bv__section-title,
 .pf-bv__portfolio-card__desc,
@@ -2748,7 +2849,7 @@ body.gr-body .gr-section-h {
 
 .pf-bv__resume-btn--danger:hover,
 .pf-bv__resume-btn--danger:focus-visible {
-  background: rgba(217, 119, 87, 0.12);
+  background: color-mix(in srgb, var(--fo-plan) 12%, transparent);
   color: var(--fo-plan);
   border-color: var(--fo-plan);
 }
@@ -4149,6 +4250,143 @@ body.gr-has-side-nav .bza__side {
   min-width: 0;
 }
 
+/* ── phone layout (≤ 768px) ────────────────────────────────────
+   mobile-nav.js injects .bza-mbar (brand + menu button) and a scrim.
+   The sidebar turns into an off-canvas drawer; content runs full
+   width with a 16px gutter. Hidden entirely above the breakpoint. */
+.bza-mbar,
+.bza-mbar__scrim {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .bza,
+  body.gr-has-side-nav .bza {
+    display: block;
+    min-height: 100vh;
+  }
+
+  .bza-mbar {
+    position: sticky;
+    top: 0;
+    z-index: 900;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    height: 56px;
+    padding: 0 16px;
+    background: var(--fo-surface);
+    border-bottom: 1px solid var(--fo-line);
+  }
+
+  .bza-mbar__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-display);
+    font-size: var(--type-h3);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--fo-text);
+    text-decoration: none;
+  }
+
+  .bza-mbar__brand img {
+    height: 22px;
+    width: auto;
+  }
+
+  .bza-mbar__toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-right: -8px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--fo-text);
+    cursor: pointer;
+  }
+
+  .bza-mbar__toggle:hover,
+  .bza-mbar__toggle:focus-visible {
+    background: var(--fo-surface-2);
+  }
+
+  .bza-mbar__toggle svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .bza__side,
+  body.gr-has-side-nav .bza__side {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 1000;
+    width: min(300px, 84vw);
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    border-radius: 0 24px 24px 0;
+    border-left: 0;
+    transform: translateX(-105%);
+    visibility: hidden;
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+                visibility 0s linear 0.28s;
+  }
+
+  .bza--nav-open .bza__side,
+  body.gr-has-side-nav .bza--nav-open .bza__side {
+    transform: none;
+    visibility: visible;
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .bza__side-toggle,
+  .bza__side-edge {
+    display: none;
+  }
+
+  .bza-mbar__scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    display: block;
+    background: rgba(8, 18, 14, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .bza--nav-open .bza-mbar__scrim {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  html.gr-nav-locked {
+    overflow: hidden;
+  }
+
+  .bza__main,
+  .bza__main.gr-shell {
+    padding: 1.25rem 16px 2.5rem;
+    width: auto;
+    max-width: none;
+  }
+}
+
+@media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+  .bza__side,
+  .bza-mbar__scrim {
+    transition: none;
+  }
+}
+
 .bza__page-h {
   display: flex;
   align-items: baseline;
@@ -4407,18 +4645,30 @@ body.gr-has-side-nav .bza__side {
 /* On narrow viewports the two columns stack and the page can scroll
    naturally — the no-scroll constraint only applies to desktop. */
 @media (max-width: 960px) {
-  .dash-view--home {
+  /* :not([hidden]) matches the specificity of the desktop lock above;
+     plain .dash-view--home lost to it, so phones kept a viewport-tall
+     view and the listings panel squeezed down to a single row. */
+  .dash-view--home:not([hidden]) {
     height: auto;
   }
   .dash-home-grid {
     grid-template-columns: 1fr;
+    flex: 0 0 auto;
   }
   .dash-listings-panel {
     flex: 0 0 auto;
-    min-height: 320px;
+    min-height: 0;
+  }
+  .dash-listings-rows-wrap {
+    flex: 0 0 auto;
+    overflow-y: visible;
   }
   #dash-garden {
     min-height: 420px;
+  }
+  .dash-page-h__side {
+    align-items: flex-start;
+    text-align: left;
   }
 }
 
@@ -5106,7 +5356,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__row-cta--complete {
-  background: rgba(232, 142, 90, 0.18);
+  background: color-mix(in srgb, var(--fo-accent-warm) 18%, transparent);
   color: var(--fo-accent-warm);
 }
 
@@ -5284,7 +5534,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__listing-type-pill--plan {
-  background: rgba(217, 119, 87, 0.16);
+  background: color-mix(in srgb, var(--fo-plan) 16%, transparent);
   color: var(--fo-plan);
 }
 
@@ -5836,7 +6086,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__health-stat:nth-child(2)::before {
-  background: linear-gradient(180deg, rgba(232, 142, 90, 0.12) 0%, transparent 70%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--fo-accent-warm) 12%, transparent) 0%, transparent 70%);
 }
 
 .bza__health-stat:nth-child(3)::before {
@@ -6534,9 +6784,15 @@ body.gr-has-side-nav .bza__side {
   }
 
   .bza__row-budget,
-  .bza__row-metric-block,
-  .bza__row-chev {
+  .bza__row-metric-block {
     grid-column: 2 / -1;
+    justify-self: start;
+  }
+
+  /* The whole row is the link; on a phone the lone chevron just
+     leaves an empty line under the budget. */
+  .bza__row-chev {
+    display: none;
   }
 }
 
@@ -8370,6 +8626,11 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
   justify-content: space-between;
   gap: var(--space-3);
   flex-wrap: wrap;
+}
+
+.pp-section__meta {
+  font-size: var(--type-meta);
+  color: var(--fo-text-3);
 }
 
 .pp-section__head h2 {

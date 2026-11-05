@@ -12,8 +12,10 @@
   // Sprout sway only — each leaf hinges from its base and rocks on its
   // own phase. CSS handles all motion (see .gr-loader-overlay*).
   // overflow:visible keeps rotated leaves from clipping at viewBox edges.
+  // The viewBox is also padded 20 units each side: Safari clips a filtered
+  // <svg> to its box even with overflow visible, so the sway needs room.
   overlay.innerHTML =
-    '<svg class="gr-loader-overlay__svg" xmlns="' + SVG_NS + '" viewBox="0 0 163 275" overflow="visible" aria-hidden="true">' +
+    '<svg class="gr-loader-overlay__svg" xmlns="' + SVG_NS + '" viewBox="-20 -20 203 315" overflow="visible" aria-hidden="true">' +
       '<g transform="translate(72, 130)">' +
         '<g class="gr-loader-overlay__stem">' +
           '<path d="M19 10.15C19 4.54431 14.7467 0 9.5 0C4.25329 0 0 4.54431 0 10.15C7.91804 91.2467 8.44249 120.691 0 134.85C0 140.456 4.25329 145 9.5 145C14.7467 145 19 140.456 19 134.85C16.2169 71.2734 12.3479 23.288 19 10.15Z"/>' +
@@ -47,6 +49,10 @@
     if (!el) return false;
     if (el.hidden) return false;
     if (el.classList && el.classList.contains("hidden")) return false;
+    // Error paths swap in an error message (`gr-status error`) but leave
+    // data-loading="true"; an error gate is done loading, so drop the
+    // overlay instead of covering the message until the safety timeout.
+    if (el.classList && el.classList.contains("error")) return false;
     // Preferred: explicit data-loading="true" on the gate element. Falls
     // back to text-match on the literal word "loading" for gates that
     // haven't migrated yet — once every gate carries data-loading, the
@@ -137,7 +143,7 @@
       characterData: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ["hidden", "class", "style"],
+      attributeFilter: ["hidden", "class", "style", "data-loading"],
     });
   });
 })();

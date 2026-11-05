@@ -3,6 +3,12 @@
    see /placeholders.js. */
 [hidden][data-placeholder] { display: none !important; }
 
+/* The hidden attribute always wins. Component rules like
+   `.bza__banner { display: flex }` otherwise beat the UA [hidden] rule
+   and leave "hidden" elements on screen (payouts banner, preview links,
+   empty pills). Show an element by removing the attribute, never with CSS. */
+[hidden] { display: none !important; }
+
 :root {
   /* Enable height/width transitions to auto/min/max-content so any
      collapsing component animates smoothly without bespoke max-height
@@ -168,6 +174,12 @@ img.gr-listing-logo {
   right: 0;
   z-index: 100;
   padding: 0.85rem clamp(1rem, 3vw, 1.5rem);
+}
+
+/* The fixed nav covers the top ~90px. Reserve it plus room for a field label
+   when the browser scrolls focus or an anchor into view (WCAG 2.4.11). */
+html:has(> body > .gr-nav) {
+  scroll-padding-top: 8rem;
 }
 
 .gr-nav__inner {
@@ -504,6 +516,16 @@ img.gr-listing-logo {
   background: var(--sky);
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
   outline: none;
+}
+
+/* iOS Safari zooms the page into any focused field under 16px and
+   doesn't zoom back out. Touch screens get 16px text in every field. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]),
+  select,
+  textarea {
+    font-size: max(16px, 1em) !important;
+  }
 }
 
 .gr-label input:focus,
@@ -844,7 +866,7 @@ img.gr-listing-logo {
 
 .pf-portfolio-item__delete:hover {
   color: var(--fo-plan, #c46f44);
-  background: rgba(196, 111, 68, 0.1);
+  background: color-mix(in srgb, var(--fo-plan) 10%, transparent);
 }
 
 .pf-portfolio-add {
@@ -2230,7 +2252,7 @@ summary:focus-visible,
 }
 
 .gr-btn--danger:hover:not(:disabled) {
-  background: rgba(196, 111, 68, 0.1);
+  background: color-mix(in srgb, var(--fo-plan) 10%, transparent);
   border-color: var(--fo-plan, #c46f44);
   color: var(--fo-plan, #c46f44);
 }
@@ -2805,6 +2827,11 @@ summary:focus-visible,
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.85rem;
+}
+
+/* Keep the "New" pill clear of the absolutely positioned dismiss ×. */
+.gr-notif-dismiss ~ .gr-notification-card__top {
+  padding-right: 1.75rem;
 }
 
 .gr-notification-card__copy {
@@ -4320,12 +4347,12 @@ button.gr-bid-link {
 
 .gr-pill--pending,
 .gr-pill--warn {
-  background: rgba(232, 142, 90, 0.18);
+  background: color-mix(in srgb, var(--fo-accent-warm) 18%, transparent);
   color: var(--fo-accent-warm, #e88e5a);
 }
 
 .gr-pill--paused {
-  background: rgba(232, 142, 90, 0.12);
+  background: color-mix(in srgb, var(--fo-accent-warm) 12%, transparent);
   color: var(--fo-accent-warm, #e88e5a);
 }
 
@@ -4337,11 +4364,101 @@ button.gr-bid-link {
 }
 
 .gr-pill--danger {
-  background: rgba(196, 111, 68, 0.18);
+  background: color-mix(in srgb, var(--fo-plan) 18%, transparent);
   color: var(--fo-plan, #c46f44);
 }
 
 .gr-pill--no-dot::before { display: none; }
+
+/* ── Business trust badges ───────────────────────────────────── */
+/* Rendered by business-badges.js. One icon shape for every badge; the
+   glyph tells them apart. Solid accent disc + --fo-accent-on glyph so
+   the 12px glyph clears contrast in every theme (accent-soft + accent
+   glyph was too faint on dark-forest). */
+.gr-biz-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 50%;
+  background: var(--fo-accent);
+  color: var(--fo-accent-on);
+  flex-shrink: 0;
+}
+
+.gr-biz-badge svg {
+  width: 0.7rem;
+  height: 0.7rem;
+}
+
+/* Card slot: icons only, after the business name. */
+.gr-biz-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex-shrink: 0;
+}
+
+.gr-biz-badges__item {
+  display: inline-flex;
+}
+
+.gr-biz-badges__more,
+.gr-biz-badges__new {
+  font-family: var(--font-body);
+  font-size: var(--type-eyebrow);
+  font-weight: 700;
+  color: var(--fo-text-3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.gr-biz-badges__more {
+  margin-left: 0.1rem;
+}
+
+.gr-biz-badges__new {
+  padding: 0.05rem 0.45rem;
+  border: 1px solid var(--fo-line-strong);
+  border-radius: 999px;
+}
+
+/* Detail block: facts line + icon-and-label pills. */
+.gr-biz-badge-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.gr-biz-badge-block__facts {
+  margin: 0;
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+}
+
+.gr-biz-badge-block__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gr-biz-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.65rem 0.2rem 0.25rem;
+  border: 1px solid var(--fo-line-strong);
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: var(--type-eyebrow);
+  font-weight: 700;
+  color: var(--fo-text);
+  white-space: nowrap;
+}
 
 .gr-sr-only {
   position: absolute;
@@ -4485,8 +4602,8 @@ button.gr-bid-link {
 
 /* --- Counter banner (consultant view) --- */
 .ld-counter-banner {
-  background: rgba(232, 142, 90, 0.08);
-  border: 1px solid rgba(232, 142, 90, 0.2);
+  background: color-mix(in srgb, var(--fo-accent-warm) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fo-accent-warm) 20%, transparent);
   border-radius: 12px;
   padding: 1rem 1.15rem;
   margin-bottom: 1rem;
@@ -5816,11 +5933,14 @@ button.gr-bid-link {
 }
 .gr-loader-overlay__svg {
   position: relative;
-  width: clamp(72px, 9vw, 112px);
+  /* Scaled up 203/163 to offset the padded viewBox — sprout renders the same size. */
+  width: clamp(90px, 11.2vw, 140px);
   height: auto;
+  overflow: visible;
   color: var(--green-light, #6dbf8a);
   fill: currentColor;
-  transform-origin: 50% 95%;
+  /* Stem base: (81.5, 261) in the padded -20 -20 203 315 viewBox. */
+  transform-origin: 50% 89%;
   animation: gr-loader-sway 4.2s ease-in-out infinite;
   filter: drop-shadow(0 6px 16px rgba(27, 67, 50, 0.18));
 }
@@ -6034,6 +6154,18 @@ button, input, select, textarea {
   transform: translateY(0.5rem);
 }
 
+/* While the notice is up, reserve room under the page so it never
+   sits on top of the last row of content. */
+body:has(> .gr-cookie-banner.is-visible) {
+  padding-bottom: 5.5rem;
+}
+
+@media (max-width: 560px) {
+  body:has(> .gr-cookie-banner.is-visible) {
+    padding-bottom: 7.5rem;
+  }
+}
+
 .gr-cookie-banner__msg {
   margin: 0;
   font-size: var(--type-meta);
@@ -6093,4 +6225,56 @@ button, input, select, textarea {
     transform: none;
   }
   .gr-cookie-banner.is-leaving { transform: none; }
+}
+
+/* ── desktop hint ─────────────────────────────────────────────── */
+/* Inline note rendered by desktop-hint.js on phones. Border-only in dark
+   themes, surface fill in light. Sits in the flow, never fixed, so it
+   can't stack with the cookie banner or cover a CTA. */
+.gr-desktop-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.4rem 0.55rem 0.8rem;
+  border: 1px solid var(--fo-line);
+  border-radius: 12px;
+  color: var(--fo-text-2);
+  font-family: var(--font-body);
+  font-size: var(--type-meta);
+  line-height: 1.4;
+  text-align: left;
+}
+[data-theme="light"] .gr-desktop-hint {
+  background: var(--fo-surface-2);
+}
+.gr-desktop-hint__icon {
+  flex-shrink: 0;
+  width: 1.1rem;
+  height: 1.1rem;
+  color: var(--fo-accent);
+}
+.gr-desktop-hint__msg {
+  flex: 1;
+  margin: 0;
+}
+.gr-desktop-hint__dismiss {
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fo-text-3);
+  cursor: pointer;
+}
+.gr-desktop-hint__dismiss svg {
+  width: 1rem;
+  height: 1rem;
+}
+.gr-desktop-hint__dismiss:focus-visible {
+  outline: 2px solid var(--fo-accent);
+  outline-offset: 2px;
 }

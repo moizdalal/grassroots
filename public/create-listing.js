@@ -1,7 +1,7 @@
 import { getSupabaseClient } from "/supabase-loader.js";
 import { formatBudgetRange } from "/sim-budget.js";
 import { confirmDialog } from "/confirm-modal.js";
-import { showError, showSuccess } from "/toast.js";
+import { showError, showSuccess, flashToast } from "/toast.js";
 
 const form = document.getElementById("listing-form");
 const gate = document.getElementById("gate");
@@ -310,14 +310,14 @@ async function uploadListingAttachments(listingId) {
       });
       if (error) throw error;
       uploadedPaths.push(meta.path);
-      const { data } = supabase.storage.from("listing_attachments").getPublicUrl(meta.path);
+      // The bucket is private: the listing page signs a short-lived URL
+      // from `path` for anyone who can read the listing.
       metadataRows.push({
         name: meta.name,
         path: meta.path,
         size: meta.size,
         content_type: meta.contentType,
         kind: meta.kind,
-        public_url: data?.publicUrl || "",
       });
     }
     return metadataRows;
@@ -339,7 +339,9 @@ function getCategory(value) {
 
 function renderCategoryDropdown() {
   const query = searchEl.value.trim().toLowerCase();
-  const filtered = CATEGORY_OPTIONS.filter((option) => option.label.includes(query));
+  const filtered = CATEGORY_OPTIONS.filter((option) =>
+    option.label.toLowerCase().includes(query) || String(option.value).toLowerCase().includes(query)
+  );
 
   if (!filtered.length) {
     dropdownEl.innerHTML = '<div class="ms-empty">No matches</div>';
@@ -409,7 +411,22 @@ function renderCategoryTags() {
 }
 
 
+// The latest validation toast. It's dismissed as soon as the user moves
+// steps or an action succeeds, so a fixed error doesn't linger on screen.
+let validationToast = null;
+
+function showValidationError(message) {
+  validationToast?.dismiss();
+  validationToast = showError(message);
+}
+
+function clearValidationError() {
+  validationToast?.dismiss();
+  validationToast = null;
+}
+
 function updateWizardUI() {
+  clearValidationError();
   slides.forEach((slide, index) => {
     const isActive = index === currentSlide;
     slide.classList.toggle("cl-slide--active", isActive);
@@ -753,7 +770,7 @@ nextBtn.addEventListener("click", () => {
     currentSlide = Math.min(currentSlide + 1, slides.length - 1);
     updateWizardUI();
   } catch (err) {
-    showError(err.message || "Fill in the required fields before continuing.");
+    showValidationError(err.message || "Fill in the required fields before continuing.");
   }
 });
 
@@ -1100,9 +1117,10 @@ form.addEventListener("submit", async (event) => {
     validateSlide(2);
     validateAttachmentSelection(selectedAttachments);
   } catch (err) {
-    showError(err.message || "Fix the highlighted fields first.");
+    showValidationError(err.message || "Fix the highlighted fields first.");
     return;
   }
+  clearValidationError();
 
   // Last chance to back out. Publishing flips status to 'open' and the
   // listing becomes visible to every consultant immediately, so we
@@ -1213,6 +1231,10 @@ form.addEventListener("submit", async (event) => {
       listingId = data.id;
     }
 
+    // Files are a nice-to-have on top of the listing. If the upload or
+    // the metadata write fails, keep the listing live and tell the user
+    // once, instead of rolling the whole post back.
+    let attachmentsFailed = false;
     try {
       const attachments = await uploadListingAttachments(listingId);
       if (attachments.length) {
@@ -1220,21 +1242,17 @@ form.addEventListener("submit", async (event) => {
           .from("listings")
           .update({ attachments })
           .eq("id", listingId);
-        if (updateError) throw updateError;
-      }
-    } catch (attachmentError) {
-      // For brand-new listings we can roll back by deleting; for an
-      // edited draft we leave the published row in place (the user
-      // can re-attach files from the listing page once it's live).
-      if (!editingDraftId) {
-        try {
-          const { error: deleteError } = await supabase.from("listings").delete().eq("id", listingId);
-          if (deleteError) console.warn("listing rollback failed:", deleteError);
-        } catch (deleteError) {
-          console.warn("listing rollback failed:", deleteError);
+        if (updateError) {
+          await supabase.storage
+            .from("listing_attachments")
+            .remove(attachments.map((a) => a.path))
+            .catch(() => {});
+          throw updateError;
         }
       }
-      throw attachmentError;
+    } catch (attachmentError) {
+      console.warn("listing attachments failed:", attachmentError);
+      attachmentsFailed = true;
     }
 
     // Geocode the listing in the background — non-fatal if it fails.
@@ -1254,7 +1272,13 @@ form.addEventListener("submit", async (event) => {
       } catch (_) { /* non-fatal */ }
     })();
 
-    showSuccess(editingDraftId ? "Listing published." : "Listing posted.");
+    // Shown on the listing page after the redirect below; a toast fired
+    // here would vanish with the navigation.
+    if (attachmentsFailed) {
+      flashToast("Your listing is live, but the files didn't upload. Try adding them again.", "error");
+    } else {
+      flashToast(editingDraftId ? "Listing published." : "Listing posted. Consultants can see it now.");
+    }
 
     // Let the tutorial (if active) jump to the "you're all set" step
     // before we navigate away. Synchronous — state is persisted before

@@ -1,6 +1,8 @@
 import { getSupabaseClient } from "/supabase-loader.js";
-import { renderRatingMarkup, fetchRatingFor } from "/rating.js";
+import { renderRatingMarkup, fetchRatingFor, forgetRating } from "/rating.js";
 import { showSuccess, showError, showInfo } from "/toast.js";
+import { notifyEvent } from "/notify-event.js";
+import { confirmDialog } from "/confirm-modal.js";
 // payment-modal is only needed when the owner taps "pay service fee".
 // Lazy-load on demand so engagement.html stays light on first paint.
 let _paymentModalPromise = null;
@@ -107,6 +109,17 @@ const ratingGrid = document.getElementById("eg-rating-grid");
 const endorsementInput = document.getElementById("eg-endorsement");
 const submitReviewBtn = document.getElementById("eg-submit-review");
 const reviewStatusEl = document.getElementById("eg-review-status");
+const bizReviewPanel = document.getElementById("eg-biz-review-panel");
+const bizReviewKicker = document.getElementById("eg-biz-review-kicker");
+const bizReviewTitle = document.getElementById("eg-biz-review-title");
+const bizReviewBody = document.getElementById("eg-biz-review-body");
+const bizReviewForm = document.getElementById("eg-biz-review-form");
+const bizRatingGrid = document.getElementById("eg-biz-rating-grid");
+const bizEndorsementInput = document.getElementById("eg-biz-endorsement");
+const bizSubmitBtn = document.getElementById("eg-biz-submit-review");
+const bizReviewReadonly = document.getElementById("eg-biz-review-readonly");
+const bizReviewNote = document.getElementById("eg-biz-review-note");
+const bizReviewStatusEl = document.getElementById("eg-biz-review-status");
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const SLOT_MINUTES = 30;
@@ -115,10 +128,17 @@ const END_HOUR = 20;
 const SLOT_COUNT = ((END_HOUR - START_HOUR) * 60) / SLOT_MINUTES;
 const RATING_DIMENSIONS = [
   ["work_product_quality", "Work product quality"],
-  ["communication", "communication"],
-  ["timeliness", "timeliness"],
-  ["professionalism", "professionalism"],
+  ["communication", "Communication"],
+  ["timeliness", "Timeliness"],
+  ["professionalism", "Professionalism"],
   ["cost_value", "Cost value"],
+];
+const BIZ_REVIEW_DIMENSIONS = [
+  ["scope_clarity", "Scope clarity"],
+  ["communication", "Communication"],
+  ["approval_speed", "Approval speed"],
+  ["respect", "Respect"],
+  ["would_work_again", "Would work again"],
 ];
 
 let supabase;
@@ -130,8 +150,10 @@ let ownerProfile = null;
 let consultantProfile = null;
 let scheduleStore = "remote";
 let reviewStore = "remote";
+let bizReviewStore = "remote";
 let scheduleState = null;
 let reviewState = null;
+let bizReviewState = null;
 let proposalPhase = null; // bid_phase_payments row for phase='proposal'
 let servicePhase = null;  // bid_phase_payments row for phase='service'
 let retainerSub = null;   // retainer_subscriptions row
@@ -139,6 +161,7 @@ let retainerDeclined = false; // owner clicked "close as one-off"
 let retainerPeriods = []; // bid_phase_payments rows for phase='retainer_period'
 const ownerSelection = new Set();
 const reviewRatings = Object.create(null);
+const bizReviewRatings = Object.create(null);
 let consultantChosen = null;
 let dragState = { active: false, nextValue: false };
 
@@ -255,6 +278,10 @@ function reviewStorageKey(bidId) {
   return `grassroots_consultant_review_${bidId}`;
 }
 
+function bizReviewStorageKey(bidId) {
+  return `grassroots_business_review_${bidId}`;
+}
+
 function toDateKey(date) {
   const y = date.getFullYear();
   const m = `${date.getMonth() + 1}`.padStart(2, "0");
@@ -294,11 +321,49 @@ function slotLabel(slotIndex) {
   return `${hour12}:${String(minute).padStart(2, "0")} ${suffix}`;
 }
 
-function slotToDate(weekStart, dayIndex, slotIndex) {
-  const base = parseDateKey(weekStart);
-  base.setDate(base.getDate() + dayIndex);
-  base.setHours(START_HOUR + Math.floor((slotIndex * SLOT_MINUTES) / 60), (slotIndex * SLOT_MINUTES) % 60, 0, 0);
-  return base;
+/* Time zones. The availability grid is wall-clock time in the business's
+   zone, stored as `owner_availability.tz` next to the slots, and both sides
+   see it in that zone. The picked meeting is saved as absolute ISO times
+   and shown in each viewer's own zone. Rows saved before the zone was
+   stored read as the viewer's zone, the old behavior. */
+const VIEWER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+
+function scheduleTz() {
+  return scheduleState?.owner_availability?.tz || VIEWER_TZ;
+}
+
+// "ET", "PT"… (falls back to "EDT" or "GMT-4" where shortGeneric is missing).
+function tzLabel(tz, at = new Date()) {
+  for (const timeZoneName of ["shortGeneric", "short"]) {
+    try {
+      const part = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName })
+        .formatToParts(at).find((p) => p.type === "timeZoneName");
+      if (part?.value) return part.value;
+    } catch (_) {}
+  }
+  return tz;
+}
+
+// How far `tz` is ahead of UTC at instant `at`, in ms.
+function tzOffsetMs(tz, at) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: tz, hourCycle: "h23",
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit",
+    }).formatToParts(at).map((p) => [p.type, p.value]),
+  );
+  const asUtc = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
+  return asUtc - Math.floor(at.getTime() / 1000) * 1000;
+}
+
+function slotToDate(weekStart, dayIndex, slotIndex, tz = scheduleTz()) {
+  const [y, m, d] = String(weekStart).split("-").map(Number);
+  const minutes = START_HOUR * 60 + slotIndex * SLOT_MINUTES;
+  const wall = Date.UTC(y, m - 1, d + dayIndex, Math.floor(minutes / 60), minutes % 60);
+  // Second pass settles DST edges, where the offset at the guess differs.
+  const guess = wall - tzOffsetMs(tz, new Date(wall));
+  return new Date(wall - tzOffsetMs(tz, new Date(guess)));
 }
 
 function addMinutes(date, mins) {
@@ -316,7 +381,7 @@ function formatDateTimeRange(startIso, endIso) {
   });
   const startTime = start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   const endTime = end.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  return `${day} · ${startTime} to ${endTime}`;
+  return `${day} · ${startTime} to ${endTime} ${tzLabel(VIEWER_TZ, start)}`;
 }
 
 function toIcsDate(date) {
@@ -347,6 +412,7 @@ function buildInviteHref() {
     `DTSTART:${toIcsDate(start)}`,
     `DTEND:${toIcsDate(end)}`,
     `SUMMARY:${escapeIcs(`Grassroots kickoff: ${currentListing.title}`)}`,
+    `LOCATION:${escapeIcs("Video call — share a link in your conversation")}`,
     `DESCRIPTION:${escapeIcs(`Kickoff meeting for "${currentListing.title}" between ${ownerName} and ${consultantName}.`)}`,
     "END:VEVENT",
     "END:VCALENDAR",
@@ -420,7 +486,7 @@ async function insertNotification(userId, title, body, link, type) {
 async function loadBid(bidId) {
   const { data, error } = await supabase
     .from("bids")
-    .select("id, listing_id, consultant_id, amount_cents, proposal_fee_cents, service_fee_cents, move_forward_status, move_forward_decided_at, message, status, accepted_at, proposal_due_at, payment_status, payment_amount_cents, paid_at")
+    .select("id, listing_id, consultant_id, amount_cents, proposal_fee_cents, service_fee_cents, move_forward_status, move_forward_decided_at, message, status, accepted_at, proposal_due_at, payment_status, payment_amount_cents, paid_at, delivered_at, released_at")
     .eq("id", bidId)
     .maybeSingle();
   return { data, error };
@@ -620,6 +686,13 @@ async function saveReview(payload) {
     } else {
       writeLocalJson(reviewStorageKey(payload.bid_id), data);
       reviewState = data;
+      await insertNotification(
+        payload.consultant_id,
+        "You got a new review",
+        `The business reviewed your work on "${currentListing?.title || "your engagement"}".`,
+        `/engagement.html?bid=${payload.bid_id}`,
+        "consultant_review"
+      );
       return data;
     }
   }
@@ -627,6 +700,60 @@ async function saveReview(payload) {
   writeLocalJson(reviewStorageKey(payload.bid_id), payload);
   reviewState = payload;
   return payload;
+}
+
+async function loadBusinessReview(bidId) {
+  const local = readLocalJson(bizReviewStorageKey(bidId));
+  const { data, error } = await supabase
+    .from("business_reviews")
+    .select("*")
+    .eq("bid_id", bidId)
+    .maybeSingle();
+
+  if (error && isMissing(error)) {
+    bizReviewStore = "local";
+    return local;
+  }
+  if (error) throw error;
+  if (data) {
+    bizReviewStore = "remote";
+    writeLocalJson(bizReviewStorageKey(bidId), data);
+    return data;
+  }
+  if (local) {
+    bizReviewStore = "local";
+    return local;
+  }
+  return null;
+}
+
+async function saveBusinessReview(payload) {
+  if (bizReviewState) return bizReviewState;
+  if (bizReviewStore === "remote") {
+    const { data, error } = await supabase
+      .from("business_reviews")
+      .insert(payload)
+      .select()
+      .single();
+
+    if (error?.code === "23505") {
+      const existing = await loadBusinessReview(payload.bid_id);
+      if (existing) return existing;
+      throw error;
+    }
+    if (error && isMissing(error)) {
+      bizReviewStore = "local";
+    } else if (error) {
+      throw error;
+    } else {
+      writeLocalJson(bizReviewStorageKey(payload.bid_id), data);
+      return data;
+    }
+  }
+
+  const saved = { ...payload, created_at: new Date().toISOString() };
+  writeLocalJson(bizReviewStorageKey(payload.bid_id), saved);
+  return saved;
 }
 
 /* Duration source of truth:
@@ -671,7 +798,9 @@ function renderCalendar(mode) {
   );
   const consultantChoice = new Set(mode === "consultant" ? chosenSlotRange() : []);
 
-  const parts = ['<div class="eg-calendar__corner"></div>'];
+  const tz = scheduleTz();
+  const zone = tzLabel(tz, slotToDate(weekStart, 0, 0, tz));
+  const parts = [`<div class="eg-calendar__corner" title="Times are in ${escapeHtml(tz.replace(/_/g, " "))}">${escapeHtml(zone)}</div>`];
   for (let dayIndex = 0; dayIndex < 7; dayIndex += 1) {
     const date = parseDateKey(weekStart);
     date.setDate(date.getDate() + dayIndex);
@@ -742,34 +871,179 @@ function updateReviewSubmitState() {
   submitReviewBtn.disabled = !ready;
 }
 
-function renderRatings() {
+function renderStarGrid(grid, dimensions, ratings, { interactive = true } = {}) {
+  if (!grid) return;
   // 5 stars, each with a left-half + right-half hit target so the user
   // can choose any 0.5-step value from 0.5 → 5. Visual fill is a
   // single .eg-stars__fill width track, matching the .gr-rating
   // component's pattern.
-  ratingGrid.innerHTML = RATING_DIMENSIONS.map(([key, label]) => {
-    const value = Number(reviewRatings[key]) || 0;
+  grid.innerHTML = dimensions.map(([key, label]) => {
+    const value = Number(ratings?.[key]) || 0;
     const fillPct = Math.max(0, Math.min(5, value)) / 5 * 100;
     const valueLabel = value ? `${value} of 5` : "Not yet rated";
-    const hits = Array.from({ length: 10 }, (_, i) => {
-      const v = (i + 1) / 2;
-      const star = v === 1 ? "star" : "stars";
-      return `<button type="button" class="eg-stars__hit" data-rating-key="${key}" data-rating-value="${v}" aria-label="Rate ${v} ${star}"></button>`;
-    }).join("");
+    const hits = interactive
+      ? `<span class="eg-stars__hits">${Array.from({ length: 10 }, (_, i) => {
+          const v = (i + 1) / 2;
+          const star = v === 1 ? "star" : "stars";
+          return `<button type="button" class="eg-stars__hit" data-rating-key="${key}" data-rating-value="${v}" aria-label="Rate ${label} ${v} ${star}"></button>`;
+        }).join("")}</span>`
+      : "";
     return `
       <div class="eg-rating-row">
         <div class="eg-rating-label">${label}</div>
-        <div class="eg-stars" data-value="${value}" role="img" aria-label="${valueLabel}">
+        <div class="eg-stars" data-value="${value}" role="img" aria-label="${label}: ${valueLabel}">
           <span class="eg-stars__track" aria-hidden="true">
             <span class="eg-stars__bg">★★★★★</span>
             <span class="eg-stars__fill" style="width: ${fillPct.toFixed(2)}%">★★★★★</span>
           </span>
-          <span class="eg-stars__hits">${hits}</span>
+          ${hits}
         </div>
       </div>
     `;
   }).join("");
+}
+
+function renderRatings() {
+  renderStarGrid(ratingGrid, RATING_DIMENSIONS, reviewRatings);
   updateReviewSubmitState();
+}
+
+function paymentSettled(status) {
+  return status === "released" || status === "refunded";
+}
+
+// Keep in sync with public.can_review_business in
+// supabase/migrations/add_business_reviews.sql.
+function engagementWrapped() {
+  if (scheduleState?.status === "completed") return true;
+  if (paymentSettled(currentBid?.payment_status)) return true;
+  if (paymentSettled(servicePhase?.status)) return true;
+  if (currentBid?.move_forward_status === "declined" && paymentSettled(proposalPhase?.status)) return true;
+  const retainerEnded = retainerSub?.status === "canceled" || retainerSub?.status === "completed";
+  const retainerSettled = Number(retainerSub?.periods_billed) > 0
+    || (retainerPeriods || []).some((period) => paymentSettled(period.status));
+  return Boolean(retainerEnded && retainerSettled);
+}
+
+function engagementStarted() {
+  if (scheduleState?.status === "scheduled" || scheduleState?.status === "completed") return true;
+  const pay = currentBid?.payment_status;
+  if (pay === "held" || pay === "authorizing" || paymentSettled(pay)) return true;
+  if (servicePhase?.status === "held" || paymentSettled(servicePhase?.status)) return true;
+  if (retainerSub) return true;
+  return false;
+}
+
+function updateBizSubmitState() {
+  if (!bizSubmitBtn) return;
+  const ready = BIZ_REVIEW_DIMENSIONS.every(([key]) => isValidRating(bizReviewRatings[key]));
+  bizSubmitBtn.disabled = !ready;
+}
+
+function renderBusinessReview() {
+  if (!bizReviewPanel) return;
+  const wrapped = engagementWrapped();
+  const visible = Boolean(bizReviewState) || wrapped || (viewRole === "consultant" && engagementStarted());
+  if (!visible) {
+    bizReviewPanel.classList.add("hidden");
+    return;
+  }
+  bizReviewPanel.classList.remove("hidden");
+  bizReviewKicker.textContent = "Business review";
+
+  if (bizReviewState) {
+    bizReviewTitle.textContent = viewRole === "owner" ? "How this student rated you" : "Your review";
+    bizReviewBody.textContent = viewRole === "owner"
+      ? "The student rated this business. Reviews stay as posted."
+      : "Your review has been saved. You can't edit it.";
+    bizReviewForm.classList.add("hidden");
+    bizReviewReadonly.classList.remove("hidden");
+    renderStarGrid(bizReviewReadonly, BIZ_REVIEW_DIMENSIONS, bizReviewState, { interactive: false });
+    const note = String(bizReviewState.endorsement || "").trim();
+    bizReviewNote.hidden = !note;
+    bizReviewNote.classList.toggle("hidden", !note);
+    bizReviewNote.textContent = note;
+    if (bizReviewStatusEl) {
+      bizReviewStatusEl.textContent = "";
+      bizReviewStatusEl.className = "gr-status";
+    }
+    return;
+  }
+
+  bizReviewReadonly.classList.add("hidden");
+  bizReviewNote.classList.add("hidden");
+  bizReviewNote.hidden = true;
+  bizReviewNote.textContent = "";
+
+  if (!wrapped || viewRole !== "consultant") {
+    bizReviewTitle.textContent = viewRole === "owner" ? "Student review" : "Rate this business";
+    bizReviewBody.textContent = viewRole === "owner"
+      ? "The student hasn't rated this business yet."
+      : "You can rate this business once the work is complete.";
+    bizReviewForm.classList.add("hidden");
+    if (bizReviewStatusEl) {
+      bizReviewStatusEl.textContent = "";
+      bizReviewStatusEl.className = "gr-status";
+    }
+    return;
+  }
+
+  bizReviewTitle.textContent = "Rate this business";
+  bizReviewBody.textContent = "Rate all five dimensions. A short note is optional. You can't edit this after you post it.";
+  bizReviewForm.classList.remove("hidden");
+  renderStarGrid(bizRatingGrid, BIZ_REVIEW_DIMENSIONS, bizReviewRatings);
+  updateBizSubmitState();
+  if (bizReviewStatusEl) {
+    bizReviewStatusEl.textContent = "";
+    bizReviewStatusEl.className = "gr-status";
+  }
+}
+
+async function submitBusinessReview() {
+  if (viewRole !== "consultant" || !engagementWrapped()) {
+    showError("You can rate this business once the work is complete.");
+    return;
+  }
+  const ready = BIZ_REVIEW_DIMENSIONS.every(([key]) => isValidRating(bizReviewRatings[key]));
+  if (!ready) {
+    showError("Rate the business on all five dimensions before submitting.");
+    return;
+  }
+
+  const endorsement = bizEndorsementInput?.value.trim() || "";
+  const payload = {
+    listing_id: currentListing.id,
+    bid_id: currentBid.id,
+    owner_id: currentListing.owner_id,
+    consultant_id: currentBid.consultant_id,
+    scope_clarity: bizReviewRatings.scope_clarity,
+    communication: bizReviewRatings.communication,
+    approval_speed: bizReviewRatings.approval_speed,
+    respect: bizReviewRatings.respect,
+    would_work_again: bizReviewRatings.would_work_again,
+    endorsement: endorsement || null,
+  };
+
+  if (bizSubmitBtn) bizSubmitBtn.disabled = true;
+  try {
+    bizReviewState = await saveBusinessReview(payload);
+    if (bizReviewState?.id && bizReviewStore === "remote") {
+      await insertNotification(
+      currentListing.owner_id,
+      "A consultant reviewed your business",
+      `They left a review on "${currentListing.title}".`,
+      `/engagement.html?bid=${currentBid.id}`,
+      "business_review"
+      );
+      notifyEvent(supabase, "business_review", { bid_id: currentBid.id });
+    }
+    showSuccess("Your review has been saved.");
+    renderBusinessReview();
+  } catch (err) {
+    console.error("submitBusinessReview failed", err);
+    showError(err?.message || "Could not save your review.");
+    updateBizSubmitState();
+  }
 }
 
 function hydrateSummary() {
@@ -1378,7 +1652,12 @@ function renderRefundCta() {
   const paidAt = currentBid?.paid_at ? new Date(currentBid.paid_at).getTime() : null;
   const inWindow = paidAt && Date.now() - paidAt < REFUND_WINDOW_MS;
 
-  if (paymentStatus === "held" && inWindow) {
+  // Delivered work is reviewed instead: release, request changes, or
+  // report a problem from the delivery panel.
+  if (currentBid?.delivered_at) {
+    refundBtn.classList.add("hidden");
+    refundHelper.classList.add("hidden");
+  } else if (paymentStatus === "held" && inWindow) {
     refundBtn.classList.remove("hidden");
     refundHelper.classList.add("hidden");
   } else if (paymentStatus === "held") {
@@ -1444,6 +1723,7 @@ function renderOwnerActions() {
 function renderByState() {
   hydrateSummary();
   renderOwnerActions();
+  renderBusinessReview();
 
   const schedule = scheduleState || getDefaultSchedule();
   scheduleState = schedule;
@@ -1511,8 +1791,10 @@ function renderByState() {
   }
 
   panelTitleEl.textContent = "Pick your kickoff time";
+  const ownerZone = tzLabel(scheduleTz());
   panelCopyEl.textContent =
-    "Choose one meeting time inside the availability the business highlighted, then submit it to generate the calendar invite.";
+    "Choose one meeting time inside the availability the business highlighted, then submit it to generate the calendar invite."
+    + (ownerZone !== tzLabel(VIEWER_TZ) ? ` Times are in the business's time zone (${ownerZone}). Your invite shows your own time.` : "");
   // Consultant doesn't pick a duration — the business owner locked it in
   // when they shared availability. Show it as a read-only line instead.
   showDurationReadonly();
@@ -1548,6 +1830,7 @@ async function saveOwnerAvailability() {
     duration_minutes: Number(durationSelect.value || "30"),
     owner_availability: {
       slots: [...ownerSelection].sort(),
+      tz: VIEWER_TZ,
     },
     selected_start: null,
     selected_end: null,
@@ -1557,7 +1840,7 @@ async function saveOwnerAvailability() {
   await insertNotification(
     currentBid.consultant_id,
     "Pick a kickoff time",
-    `Your offer for "${currentListing.title}" was accepted. Choose a meeting time within the business's availability.`,
+    `The business shared their availability for "${currentListing.title}". Choose a time that works for you.`,
     `/engagement.html?bid=${currentBid.id}`,
     "meeting_availability"
   );
@@ -1648,82 +1931,145 @@ async function toggleListingLock() {
   );
 }
 
-async function submitReview() {
-  const ready = RATING_DIMENSIONS.every(([key]) => isValidRating(reviewRatings[key]));
-  if (!ready) {
-    showError("Rate the consultant on all five dimensions before submitting.");
-    return;
+// The payment the owner's review releases, if any. Phased contracts use the
+// per-phase endpoint (release-service), which operates on
+// `bid_phase_payments` instead of the bid's payment columns.
+function pendingRelease() {
+  if (currentListing?.contract_type === "phased") {
+    return servicePhase?.status === "held"
+      ? { endpoint: "/api/stripe/phased/release-service", cents: Number(servicePhase.amount_cents) }
+      : null;
   }
+  return currentBid?.payment_status === "held"
+    ? { endpoint: "/api/stripe/release-funds", cents: Number(currentBid.payment_amount_cents) }
+    : null;
+}
 
-  const endorsement = endorsementInput.value.trim();
-
-  const payload = {
-    listing_id: currentListing.id,
-    bid_id: currentBid.id,
-    owner_id: currentListing.owner_id,
-    consultant_id: currentBid.consultant_id,
-    work_product_quality: reviewRatings.work_product_quality,
-    communication: reviewRatings.communication,
-    timeliness: reviewRatings.timeliness,
-    professionalism: reviewRatings.professionalism,
-    cost_value: reviewRatings.cost_value,
-    endorsement: endorsement || null,
-  };
-
-  await saveReview(payload);
-  scheduleState = await saveSchedule({
-    ...(scheduleState || getDefaultSchedule()),
-    status: "completed",
+async function postRelease(endpoint) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const headers = { "Content-Type": "application/json" };
+  if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ bid_id: currentBid.id }),
   });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Could not release the payment yet.");
+  return data;
+}
 
-  // Release escrowed funds to the consultant. Best-effort: review has saved
-  // either way; if the transfer fails (consultant hasn't onboarded yet, etc.)
-  // the owner sees the reason inline and can retry from the engagement page.
-  //
-  // Phased contracts use the per-phase endpoint (release-service), which
-  // operates on `bid_phase_payments` instead of the bid's
-  // `payment_intent_id` column (which is null for phased bids).
-  const isPhased = currentListing?.contract_type === "phased";
-  const releaseEndpoint = isPhased
-    ? "/api/stripe/phased/release-service"
-    : "/api/stripe/release-funds";
-  let releaseMessage = "";
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    const headers = { "Content-Type": "application/json" };
-    if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-    const res = await fetch(releaseEndpoint, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ bid_id: currentBid.id }),
-    });
-    const data = await res.json().catch(() => ({}));
-    const freeJob = !isPhased && Number(currentBid.payment_amount_cents) === 0;
-    if (!res.ok) {
-      releaseMessage = freeJob
-        ? ` Couldn't mark it complete yet: ${data.error || "try again shortly."}`
-        : ` Payout pending: ${data.error || "could not release the payment yet."}`;
-    } else {
-      releaseMessage = freeJob ? " The engagement is marked complete." : " Payment released to the consultant.";
+let submittingReview = false;
+
+async function submitReview() {
+  if (submittingReview) return;
+  const release = pendingRelease();
+  // A review already saved means an earlier release failed: retry it.
+  if (!reviewState) {
+    const ready = RATING_DIMENSIONS.every(([key]) => isValidRating(reviewRatings[key]));
+    if (!ready) {
+      showError("Rate the consultant on all five dimensions before submitting.");
+      return;
     }
-  } catch (err) {
-    releaseMessage = " Payment release will retry — couldn't reach the payment server.";
   }
 
-  showSuccess(`Thank you for the thoughtful review.${releaseMessage}`, { duration: 5000 });
-  renderOwnerActions();
-  // renderOwnerActions resets reviewStatusEl to the generic post-review
-  // message. Append the release outcome so the in-page status surfaces it
-  // too — toast disappears in 5s, the status row sticks around.
-  if (reviewStatusEl && releaseMessage) {
-    reviewStatusEl.textContent = `Thank you from Grassroots. Your review has been saved.${releaseMessage}`;
-    reviewStatusEl.className = /released to the consultant|marked complete\./.test(releaseMessage)
-      ? "gr-status success"
-      : "gr-status";
+  // Releasing money can't be undone, so ask first. Free jobs move no money.
+  if (release && release.cents > 0) {
+    const name = consultantProfile?.full_name || "the consultant";
+    const ok = await confirmDialog({
+      title: "Release the payment?",
+      body: `This releases ${formatUsd(release.cents)} to ${name}. You can't undo it.`,
+      confirmLabel: reviewState ? "Release payment" : "Submit and release",
+      cancelLabel: "Not yet",
+    });
+    if (!ok) return;
   }
-  setStatusPill(scheduleState.status);
+
+  submittingReview = true;
+  submitReviewBtn.disabled = true;
+  try {
+    if (!reviewState) {
+      const endorsement = endorsementInput.value.trim();
+      await saveReview({
+        listing_id: currentListing.id,
+        bid_id: currentBid.id,
+        owner_id: currentListing.owner_id,
+        consultant_id: currentBid.consultant_id,
+        work_product_quality: reviewRatings.work_product_quality,
+        communication: reviewRatings.communication,
+        timeliness: reviewRatings.timeliness,
+        professionalism: reviewRatings.professionalism,
+        cost_value: reviewRatings.cost_value,
+        endorsement: endorsement || null,
+      });
+      if (reviewStore === "remote") notifyEvent(supabase, "consultant_review", { bid_id: currentBid.id });
+      scheduleState = await saveSchedule({
+        ...(scheduleState || getDefaultSchedule()),
+        status: "completed",
+      });
+    }
+
+    // One toast for the whole step. The review is saved either way; if the
+    // release fails (payouts not set up, etc.) the owner can retry it from
+    // the delivery panel.
+    if (!release) {
+      showSuccess("Your review has been saved.");
+    } else {
+      try {
+        await postRelease(release.endpoint);
+        showSuccess(release.cents > 0 ? "Payment released. Thanks for your review." : "Marked complete. Thanks for your review.", { duration: 5000 });
+      } catch (err) {
+        showError(`Your review is saved, but the payment didn't release: ${err.message}`, { duration: 7000 });
+      }
+    }
+    await refreshEngagement();
+  } catch (err) {
+    showError(err.message || "Could not save your review.");
+  } finally {
+    submittingReview = false;
+    submitReviewBtn.disabled = false;
+    updateReviewSubmitState();
+  }
+}
+
+// Re-read everything a release or refund changes and re-render, so the
+// page never shows a payment as held after it settled.
+async function refreshEngagement() {
+  const bidId = currentBid.id;
+  const [{ data: bid }, { data: listing }] = await Promise.all([
+    loadBid(bidId),
+    loadListing(currentBid.listing_id),
+  ]);
+  if (bid) currentBid = bid;
+  if (listing) currentListing = listing;
+  scheduleState = (await loadSchedule(bidId)) || scheduleState;
+  reviewState = await loadReview(bidId);
+  if (currentListing.contract_type === "phased") {
+    proposalPhase = await loadProposalPhase(bidId);
+    servicePhase = await loadServicePhase(bidId);
+  }
+  retainerSub = await loadRetainerSubscription(bidId);
+  retainerPeriods = await loadRetainerPeriods(bidId);
+  forgetRating(currentBid.consultant_id);
+  renderRatings();
+  renderByState();
   window.dispatchEvent(new Event("eg:payments-changed"));
 }
+
+// "Approve and release" in the delivery panel. A review is required before
+// release, so open the review form and focus its first rating.
+window.addEventListener("eg:approve-release", async () => {
+  if (viewRole !== "owner") return;
+  if (reviewState) {
+    await submitReview();
+    return;
+  }
+  reviewPanel.classList.remove("hidden");
+  reviewForm.classList.remove("hidden");
+  reviewPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+  const first = ratingGrid.querySelector("button, input");
+  first?.focus({ preventScroll: true });
+});
 
 function bindCalendarInteractions() {
   calendarEl.addEventListener("pointerdown", (event) => {
@@ -1800,12 +2146,13 @@ function bindCalendarInteractions() {
   });
 }
 
-function bindReviewInteractions() {
-  ratingGrid.addEventListener("click", (event) => {
+function bindStarGrid(grid, ratings, rerender) {
+  if (!grid) return;
+  grid.addEventListener("click", (event) => {
     const btn = event.target.closest("[data-rating-key]");
-    if (!(btn instanceof HTMLButtonElement)) return;
-    reviewRatings[btn.dataset.ratingKey] = Number(btn.dataset.ratingValue);
-    renderRatings();
+    if (!(btn instanceof HTMLButtonElement) || !grid.contains(btn)) return;
+    ratings[btn.dataset.ratingKey] = Number(btn.dataset.ratingValue);
+    rerender();
   });
 
   // Hover preview — fill snaps to the value under the cursor while hovering,
@@ -1818,18 +2165,26 @@ function bindReviewInteractions() {
     if (!fill) return;
     fill.style.width = `${(Math.max(0, Math.min(5, value)) / 5) * 100}%`;
   }
-  ratingGrid.addEventListener("mouseover", (event) => {
+  grid.addEventListener("mouseover", (event) => {
     const hit = event.target.closest(".eg-stars__hit");
-    if (!hit) return;
+    if (!hit || !grid.contains(hit)) return;
     previewFill(hit, Number(hit.dataset.ratingValue));
   });
-  ratingGrid.addEventListener("mouseout", (event) => {
+  grid.addEventListener("mouseout", (event) => {
     const hit = event.target.closest(".eg-stars__hit");
-    if (!hit) return;
+    if (!hit || !grid.contains(hit)) return;
     const widget = hit.closest(".eg-stars");
     if (event.relatedTarget && widget?.contains(event.relatedTarget)) return;
-    const committed = Number(reviewRatings[hit.dataset.ratingKey]) || 0;
+    const committed = Number(ratings[hit.dataset.ratingKey]) || 0;
     previewFill(hit, committed);
+  });
+}
+
+function bindReviewInteractions() {
+  bindStarGrid(ratingGrid, reviewRatings, renderRatings);
+  bindStarGrid(bizRatingGrid, bizReviewRatings, () => {
+    renderStarGrid(bizRatingGrid, BIZ_REVIEW_DIMENSIONS, bizReviewRatings);
+    updateBizSubmitState();
   });
 
   workCompletedBtn.addEventListener("click", () => {
@@ -2228,7 +2583,10 @@ function bindReviewInteractions() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        if (data.windowExpired) {
+        if (data.delivered) {
+          showError(data.error);
+          await refreshEngagement();
+        } else if (data.windowExpired) {
           showError(data.error || "Refund window expired.");
           currentBid.payment_status = currentBid.payment_status; // no-op; re-render so helper shows
           renderRefundCta();
@@ -2250,6 +2608,11 @@ function bindReviewInteractions() {
   reviewForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     await submitReview();
+  });
+
+  bizReviewForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await submitBusinessReview();
   });
 }
 
@@ -2298,6 +2661,7 @@ async function init() {
 
     scheduleState = (await loadSchedule(bidId)) || getDefaultSchedule();
     reviewState = await loadReview(bidId);
+    bizReviewState = await loadBusinessReview(bidId);
 
     if (currentListing.contract_type === "phased") {
       proposalPhase = await loadProposalPhase(bidId);
@@ -2314,6 +2678,12 @@ async function init() {
         reviewRatings[key] = Number(reviewState[key]) || 0;
       }
       endorsementInput.value = reviewState.endorsement || "";
+    }
+    if (bizReviewState) {
+      for (const [key] of BIZ_REVIEW_DIMENSIONS) {
+        bizReviewRatings[key] = Number(bizReviewState[key]) || 0;
+      }
+      if (bizEndorsementInput) bizEndorsementInput.value = bizReviewState.endorsement || "";
     }
 
     renderRatings();

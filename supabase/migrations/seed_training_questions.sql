@@ -1,0 +1,110 @@
+-- Consultant training question bank (run after add_consultant_training.sql).
+--
+-- This file is the source of truth for quiz questions and answers. It's
+-- safe to re-run: edit a row and run the whole file again.
+--   * answer is the 0-based index into options.
+--   * Don't reuse or renumber IDs; attempts store them. To retire a
+--     question, delete its row here and the last statement deactivates it.
+--   * Each module needs at least 2 active questions.
+--   * The lessons these test are in public/training-content.js.
+
+insert into public.training_questions (id, module, prompt, options, answer, why) values
+  ('q1', 'before', 'What must you finish before you can send a paid offer, besides this training?',
+   '["A quiz on every listing","Stripe payout setup","A kickoff call with the business","Five reviews on your profile"]'::jsonb, 1,
+   'The submit button stays off until your Stripe account is active.'),
+  ('q2', 'before', 'You sent an offer and spotted a typo in the price. What can you do?',
+   '["Edit the offer from the listing page","Send a second offer on the same listing","Nothing in place. Offers can''t be edited after you send them.","Ask the business to edit it for you"]'::jsonb, 2,
+   'Offers are final, and you get one per listing.'),
+  ('q3', 'before', 'A business accepts your offer. Where is the money right away?',
+   '["In your bank account","In your Stripe balance, ready to pay out","Held in Stripe until it''s released","Still on the business''s card, not charged yet"]'::jsonb, 2,
+   'The business pays at acceptance, and the payment is held until it''s released to you.'),
+  ('q4', 'before', 'How does the platform fee work?',
+   '["A flat $10 on every offer","10% added on top of what the business pays","A percentage of the part above $10, taken from your payout","There isn''t one. The business pays all fees."]'::jsonb, 2,
+   'Businesses pay exactly the offer. The fee is 10% of the part above $10 (5% during launch), taken from your payout.'),
+  ('q5', 'before', 'Which pricing approach does the training recommend?',
+   '["Bid the lowest price to win the work","Price honestly, knowing your take-home first","Start high and expect a counter","Always send a $0 offer first"]'::jsonb, 1,
+   'Price honestly. Don''t underbid just to win the work.'),
+  ('q6', 'before', 'What should a good discovery call end with?',
+   '["A signed contract outside Grassroots","A promise of specific sales results","A clear, shared picture of the goal","A discount for paying early"]'::jsonb, 2,
+   'Leave with a shared picture of the goal, then write it back to them.'),
+  ('q7', 'before', 'The owner says they want the website to “pop.” What should you do?',
+   '["Start designing. You''ll know it when you see it.","Stop and ask what they mean and why","Decline the work","Raise your price"]'::jsonb, 1,
+   'A vague goal is a cue to ask clarifying questions.'),
+  ('q8', 'before', 'Which of these is a promise you should make?',
+   '["“You''ll get 1,000 new followers.”","“Sales will rise 20% next month.”","“I''ll deliver three social posts a week for four weeks.”","“You''ll rank first on Google.”"]'::jsonb, 2,
+   'Commit to the work you''ll deliver, not results you can''t control.'),
+  ('q9', 'before', 'A listing asks for work outside your skills on a very tight timeline. What''s the best move?',
+   '["Take it and learn as you go","Ignore it with no reply","Decline it respectfully and leave the door open","Send an offer, then ask for more time after they pay"]'::jsonb, 2,
+   'Saying no kindly protects you, the client and your rating.'),
+  ('q10', 'during', 'When should you agree on how often you''ll send updates?',
+   '["Only if the client complains","At kickoff","After you deliver","Never. Updates aren''t needed."]'::jsonb, 1,
+   'Set the cadence, reply time and point of contact at kickoff.'),
+  ('q11', 'during', 'Mid-project, the client asks for a whole new deliverable. What do you do?',
+   '["Quietly do it for free to keep them happy","Refuse to discuss it","Explain it''s outside the agreed scope and how it changes the offer","Ask them to pay you directly for the extra work"]'::jsonb, 2,
+   'New work goes in a new listing. Explain it calmly.'),
+  ('q12', 'during', 'You''ll miss a deadline because of exams. When should you tell the client?',
+   '["On the deadline day","After the deadline passes","The day you know","Only if they ask"]'::jsonb, 2,
+   'Say so the day you know.'),
+  ('q13', 'during', 'How should you explain your strategy to a business owner?',
+   '["Use industry terms so you sound expert","In plain language they can act on","Only in a written report, with no discussion","Don''t explain it. Just deliver."]'::jsonb, 1,
+   'Most owners aren''t marketers. Skip the jargon.'),
+  ('q14', 'during', 'Halfway through, you''re unsure what the client meant in a message. What should you do?',
+   '["Guess, so you don''t bother them","Ask them in the message thread","Pause the work until they notice","Ask another consultant to decide"]'::jsonb, 1,
+   'Clarifying questions don''t stop after kickoff.'),
+  ('q15', 'during', 'Which use of AI is not okay?',
+   '["Brainstorming headlines, then editing them yourself","Drafting a first version you then fact-check","Pasting the client''s customer list into an AI tool without asking","Telling the client you used AI for early drafts"]'::jsonb, 2,
+   'Never put a client''s private data into an AI tool without their OK.'),
+  ('q16', 'after', 'The client says “looks good, let me think about it.” What should you do?',
+   '["Mark it delivered right away to start the clock","Collect feedback, revise, and mark it delivered once they have everything","Close the engagement yourself","Ask for payment outside Grassroots"]'::jsonb, 1,
+   'Feedback isn''t the same as done. Mark it delivered when they have everything they need.'),
+  ('q17', 'after', 'After you mark the work delivered, what happens if the business does nothing?',
+   '["The payment is refunded to them after 14 days","The payment stays held forever","The payment releases to you after 14 days","You must email support to get paid"]'::jsonb, 2,
+   'With no action in 14 days, the payment releases automatically.'),
+  ('q18', 'after', 'The business requests changes after you mark the work delivered. What''s next?',
+   '["The engagement is cancelled","You update the work and mark it delivered again","The payment releases anyway","You lose the payment"]'::jsonb, 1,
+   'Requesting changes clears the delivered mark. The 14 days restart when you deliver again.'),
+  ('q19', 'after', 'A business reports a problem. Grassroots finds the work falls short but can be fixed. What are your options?',
+   '["None. The business is refunded right away.","Redo it once within 5 days, or give the money back","Keep the payment and move on","Start a new listing"]'::jsonb, 1,
+   'You get one redo within 5 days. No answer counts as giving it back.'),
+  ('q20', 'after', 'Which statement about reviews is true?',
+   '["You can edit a review after it''s posted","Negative reviews are removed on request","Reviews are final, and your rating helps move you up the stage ladder","Reviews are optional and don''t affect anything"]'::jsonb, 2,
+   'Reviews are final and feed your stage progression.'),
+  ('q21', 'after', 'Which statement about taxes is true?',
+   '["Grassroots withholds income tax from your payout","You only owe tax if you receive a 1099","You owe income and self-employment tax, whether or not you get a form","You must upload a W-9 before every engagement"]'::jsonb, 2,
+   'You owe tax on what you earn either way. This isn''t tax advice.'),
+  ('q22', 'trust', 'A client you met on Grassroots offers to pay you directly next month to save fees. What do you do?',
+   '["Accept, since it''s a different project","Accept, but only after 30 days","Decline. Paid work with them stays on Grassroots for 12 months.","Accept, and pay Grassroots the fee yourself"]'::jsonb, 2,
+   'Going around the platform within 12 months breaks the Terms and can close your account.'),
+  ('q23', 'trust', 'The engagement has ended. What should you do with the client''s logins and customer data?',
+   '["Keep them for future projects","Use them as portfolio examples","Return or delete them, and keep them private","Share them with your team for practice"]'::jsonb, 2,
+   'Use client data only for the engagement, then return or delete it.'),
+  ('q24', 'trust', 'How should you describe yourself to a client?',
+   '["As a senior agency consultant","Honestly, as a student, without overstating your experience","Leave out that you''re a student","Use a friend''s portfolio to look more experienced"]'::jsonb, 1,
+   'Represent yourself honestly.'),
+  ('q25', 'trust', 'A client has gone silent for two weeks during the engagement. What''s the best step?',
+   '["Mark the work delivered so you get paid","Stop working and say nothing","Follow up in messages, then contact support early","Message them on personal social media"]'::jsonb, 2,
+   'Follow up on-platform, and escalate to support early.'),
+  ('q26', 'before', 'What should you wear for a video call with a new client?',
+   '["Whatever you''re wearing. It''s only video.","A clean, plain top like a collared shirt or sweater","A hoodie and a cap","Anything, as long as your camera is off"]'::jsonb, 1,
+   'Dress business casual for every client call, on video too, and keep your camera on.'),
+  ('q27', 'during', 'A client messages you a question you can''t fully answer yet. What should you do?',
+   '["Wait until you have the full answer, however long it takes","Reply within a day and say when you''ll have the full answer","Ignore it until the next scheduled update","Mark the work delivered"]'::jsonb, 1,
+   'Reply within one business day, even if only to say when you''ll have a full answer.'),
+  ('q28', 'during', 'You''ll be hard to reach for a week during finals. What''s the best move?',
+   '["Say nothing and catch up afterward","Tell the client ahead of time, with the dates and when they''ll hear from you","Ask the client to stop messaging you","Cancel the engagement"]'::jsonb, 1,
+   'Never go silent. Tell the client before you''re unavailable.')
+on conflict (id) do update set
+  module = excluded.module,
+  prompt = excluded.prompt,
+  options = excluded.options,
+  answer = excluded.answer,
+  why = excluded.why,
+  active = true;
+
+-- Retire anything no longer listed above.
+update public.training_questions
+set active = false
+where id not in (
+  'q1','q2','q3','q4','q5','q6','q7','q8','q9','q10','q11','q12','q13','q14',
+  'q15','q16','q17','q18','q19','q20','q21','q22','q23','q24','q25','q26','q27','q28'
+);

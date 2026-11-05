@@ -563,6 +563,15 @@ form.is-final .reg-consent {
   border-color: var(--fo-plan, #cc6666);
 }
 
+/* Empty until desktop-hint.js fills it on phones. */
+.reg-desktop-hint:empty {
+  display: none;
+}
+
+.reg-desktop-hint {
+  margin-top: var(--space-2);
+}
+
 /* --- Responsive --- */
 @media (max-width: 520px) {
   .reg-role-cards {
@@ -572,10 +581,53 @@ form.is-final .reg-consent {
   .reg-field-grid--2 {
     grid-template-columns: 1fr;
   }
+
+  /* The feedback bubble sits on top of the create account row. */
+  .gr-suggest-btn {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .reg-slide--active {
     animation: none;
   }
+}
+
+
+/* --- Consultant invite signup --- */
+a.reg-role-card {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.reg-invite-boot #registration-form {
+  display: none;
+}
+
+.reg-invite-boot #status:empty::before {
+  content: "Checking your invite…";
+  color: var(--tagline-body);
+  font-size: var(--type-body);
+}
+
+#reg-invite-school {
+  margin-bottom: var(--space-4);
+}
+
+#reg-invite-school .gr-field-hint {
+  margin-bottom: 0;
+}
+
+.reg-join-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+
+#reg-invite-fallback .reg-join-actions {
+  margin-top: var(--space-4);
 }

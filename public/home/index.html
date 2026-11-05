@@ -56,16 +56,35 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
 
-    <link rel="stylesheet" href="/grassroots.css" />
-    <link rel="stylesheet" href="/field-office.css" />
-    <link rel="stylesheet" href="/garden-stem.css" />
-    <link rel="stylesheet" href="/home/nav.css?v=4" />
-    <link rel="stylesheet" href="/home/index.css?v=19" />
+    <link rel="stylesheet" href="/grassroots.css?v=2" />
+    <link rel="stylesheet" href="/field-office.css?v=2" />
+    <link rel="stylesheet" href="/garden-stem.css?v=2" />
+    <link rel="stylesheet" href="/home/nav.css?v=7" />
+    <link rel="stylesheet" href="/home/index.css?v=36" />
     <script src="/theme.js?v=2"></script>
     <script src="/home/theme-default.js"></script>
+    <script>
+      // Lite hero: a still picture instead of the animated garden, clouds
+      // and blurred layers. Decided before first paint so CSS and the hero
+      // script agree. Touch/no-hover or narrow screens, few cores, little
+      // memory, data saver, or reduced motion. Desktops that pass this but
+      // still can't hold ~30fps get switched over by the hero script.
+      (function () {
+        var mq = function (q) { return !!(window.matchMedia && window.matchMedia(q).matches); };
+        var nav = navigator, conn = nav.connection || {};
+        if (
+          mq("(hover: none), (pointer: coarse), (max-width: 720px)") ||
+          mq("(prefers-reduced-motion: reduce)") ||
+          (nav.hardwareConcurrency && nav.hardwareConcurrency <= 4) ||
+          (nav.deviceMemory && nav.deviceMemory <= 4) ||
+          conn.saveData === true
+        ) document.documentElement.classList.add("ld-lite");
+      })();
+    </script>
     <script src="/placeholders.js"></script>
-    <script src="/home/nav.js?v=3" defer></script>
+    <script src="/home/nav.js?v=4" defer></script>
     <script src="/cookie-banner.js" defer></script>
+    <script src="/desktop-hint.js?v=2" defer></script>
   </head>
 
   <body class="gr-body">
@@ -94,8 +113,8 @@
         </a>
         <ul class="ld-nav__links">
           <li class="ld-nav__hide-sm"><a class="ld-nav__link" href="#how-it-works">How it works</a></li>
-          <li class="ld-nav__hide-sm"><a class="ld-nav__link" href="/home/for-students.html">For students</a></li>
-          <li class="ld-nav__hide-sm"><a class="ld-nav__link" href="/home/about.html">About</a></li>
+          <li class="ld-nav__hide-sm"><a class="ld-nav__link" href="/for-students">For students</a></li>
+          <li class="ld-nav__hide-sm"><a class="ld-nav__link" href="/about">About</a></li>
           <li><a class="ld-nav__link" href="/signin.html">Sign in</a></li>
           <li>
             <button class="ld-nav__theme" id="ld-nav-theme" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
@@ -188,15 +207,16 @@
         <div>
           <h1 class="ld-hero__title ld-reveal" id="ld-hero-title">
             <span class="ld-hero__title-line">Local business meets</span>
-            <span class="ld-hero__title-line ld-italic">homegrown&nbsp;talent</span>
+            <span class="ld-hero__title-line ld-italic">campus&nbsp;talent</span>
           </h1>
           <p class="ld-hero__sub ld-reveal">
-            Built for local businesses that need a hand, and the college students who want real, paid experience.
+            The marketplace built for local businesses that need a hand, and the college students who want real, paid experience.
           </p>
           <div class="ld-hero__ctas ld-reveal">
             <a class="gr-btn gr-btn--primary gr-btn--lg" href="/register.html?role=owner">Post a project</a>
             <a class="gr-btn gr-btn--ghost gr-btn--lg" href="/marketplace.html?guest=1">See what's live</a>
           </div>
+          <div class="ld-hero__desktop-hint" data-desktop-hint></div>
 
           <div class="ld-trust-row ld-reveal" aria-label="Recent activity" hidden data-placeholder="Real weekly business count and number of towns">
             <span class="ld-trust-row__avatars" aria-hidden="true">
@@ -214,7 +234,7 @@
             <div class="ld-hero__cards" id="ld-hero-cards" aria-hidden="true"></div>
             <div class="ld-hero__garden" id="ld-hero-garden" aria-hidden="true"></div>
             <p class="ld-hero__visual-caption">
-              Every business above grows a garden like this. Each root is <span class="ld-italic">a paid project</span>. Hover any to peek.
+              Every business above grows a garden like this. Each root is <span class="ld-italic">a paid project</span>. <span class="ld-peek-verb--hover">Hover</span><span class="ld-peek-verb--tap">Tap</span> any to peek.
             </p>
           </div>
         </div>
@@ -240,7 +260,7 @@
     <section class="ld-section ld-grow" id="how-it-works" aria-labelledby="ld-how-title" data-vine-anchor="how">
       <div class="ld-shell">
         <div class="ld-section__head ld-reveal">
-          <h2 class="ld-section__title" id="ld-how-title">How it works.</h2>
+          <h2 class="ld-section__title" id="ld-how-title">How it works</h2>
         </div>
 
         <ol class="ld-grow__row">
@@ -326,7 +346,7 @@
     <section class="ld-section ld-pay" aria-labelledby="ld-pay-title">
       <div class="ld-shell">
         <div class="ld-section__head ld-section__head--center ld-reveal">
-          <h2 class="ld-section__title" id="ld-pay-title">Protected payments for both sides.</h2>
+          <h2 class="ld-section__title" id="ld-pay-title">Protected payments for both sides</h2>
           <p class="ld-section__sub">Grassroots holds the payment, processed by Stripe, so both sides are covered.</p>
         </div>
 
@@ -432,8 +452,9 @@
     <section class="ld-section ld-peek" aria-labelledby="ld-peek-title" data-vine-anchor="field">
       <div class="ld-shell">
         <div class="ld-section__head ld-reveal">
-          <h2 class="ld-section__title" id="ld-peek-title">What's on the field this week.</h2>
+          <h2 class="ld-section__title" id="ld-peek-title">What's on the field this week</h2>
           <p class="ld-section__sub">Example listings to show how projects look. Post yours to get real bids from local students.</p>
+          <p class="ld-peek__note">* Sample listings. These businesses aren't real.</p>
           <p class="ld-section__sub" hidden data-placeholder="Use once these listings are real">A sample of open listings from across the network. Real businesses, real budgets, real students.</p>
         </div>
       </div>
@@ -454,7 +475,7 @@
       <div class="ld-shell">
         <div class="ld-review" id="ld-review">
           <div class="ld-review__head ld-reveal">
-            <h2 class="ld-review__title" id="ld-review-title">Every job is reviewed across six dimensions.</h2>
+            <h2 class="ld-review__title" id="ld-review-title">Every job is reviewed across six dimensions</h2>
           </div>
           <div class="ld-review__chips" role="list">
             <span class="ld-review__chip" role="listitem">Work product</span>
@@ -473,7 +494,7 @@
     <section class="ld-section" aria-labelledby="ld-quotes-title" data-vine-anchor="voices" hidden data-placeholder="Real quotes from businesses and students (with permission)">
       <div class="ld-shell">
         <div class="ld-section__head ld-reveal">
-          <h2 class="ld-section__title" id="ld-quotes-title">What people are saying.</h2>
+          <h2 class="ld-section__title" id="ld-quotes-title">What people are saying</h2>
         </div>
 
         <div class="ld-quotes">
@@ -521,10 +542,10 @@
       <div class="ld-shell">
         <div class="ld-students__inner ld-reveal">
           <div>
-            <h2 class="ld-students__title" id="ld-students-title">Are you a student? Get paid for real projects and build a resume that stands out.</h2>
+            <h2 class="ld-students__title" id="ld-students-title">Are you a student? Get paid for real projects and build a resume that stands out</h2>
             <p class="ld-students__sub">Start bidding on projects from local businesses near your campus.</p>
           </div>
-          <a class="gr-btn gr-btn--ghost gr-btn--lg ld-students__cta" href="/home/for-students.html">For students &rarr;</a>
+          <a class="gr-btn gr-btn--ghost gr-btn--lg ld-students__cta" href="/for-students">For students &rarr;</a>
         </div>
       </div>
     </section>
@@ -534,7 +555,7 @@
       <div class="ld-shell">
         <div class="ld-faq">
           <div class="ld-section__head ld-section__head--center ld-reveal">
-            <h2 class="ld-section__title" id="ld-faq-title" style="text-align:center;">Things people ask before posting.</h2>
+            <h2 class="ld-section__title" id="ld-faq-title" style="text-align:center;">Things people ask before posting</h2>
           </div>
 
           <div class="ld-faq__list ld-reveal">
@@ -583,7 +604,7 @@
         <h2 class="ld-final__title ld-reveal" id="ld-final-title">Ready to get <span class="ld-italic">your project done?</span></h2>
         <div class="ld-final__ctas ld-reveal">
           <a class="gr-btn gr-btn--primary gr-btn--lg" href="/register.html?role=owner">Post a project</a>
-          <a class="gr-btn gr-btn--ghost gr-btn--lg" href="/home/for-students.html#apply">Apply as a student</a>
+          <a class="gr-btn gr-btn--ghost gr-btn--lg" href="/for-students#apply">Apply as a student</a>
         </div>      </div>
     </section>
 
@@ -608,7 +629,7 @@
             <ul class="ld-foot__list">
               <li><a href="#how-it-works">How it works</a></li>
               <li><a href="/marketplace.html?guest=1">Marketplace</a></li>
-              <li><a href="/home/for-students.html">For students</a></li>
+              <li><a href="/for-students">For students</a></li>
               <li><a href="/signin.html">Sign in</a></li>
               <li><a href="/register.html?role=owner">Register</a></li>
               <li><a href="/help">Help</a></li>
@@ -618,7 +639,7 @@
           <div>
             <p class="ld-foot__col-h">Company</p>
             <ul class="ld-foot__list">
-              <li><a href="/home/about.html">About</a></li>
+              <li><a href="/about">About</a></li>
               <li><a href="https://www.linkedin.com" target="_blank" rel="noopener">LinkedIn</a></li>
               <li><a href="https://www.instagram.com" target="_blank" rel="noopener">Instagram</a></li>
               <li><a href="mailto:moiz@grassroots-marketplace.com">Email us</a></li>
@@ -654,7 +675,7 @@
       ]
     </script>
 
-    <script src="/home/landing.js?v=2" defer></script>
+    <script src="/home/landing.js?v=3" defer></script>
     <script>
       // CTA form: fake submit (no backend), show success state in-place.
       (function () {
@@ -677,7 +698,7 @@
          motion. The pool of listings cycles through the floating
          hero cards over the top. -->
     <script type="module">
-      import { mountGardenStem } from "/garden-stem.js";
+      import { mountGardenStem } from "/garden-stem.js?v=7";
 
       const HERO_ROOTS = [
         { bidId: "hero-1", listingId: "hero-listing-1",
@@ -707,10 +728,27 @@
       ];
 
       const garden = document.getElementById("ld-hero-garden");
-      // Hero garden: drag-to-reposition stays on so visitors can
+      // Phones and tablets get a still hero: nobody drags roots or
+      // hovers grass on touch, and the per-frame loops made the page
+      // lag. Tap-to-peek on a root still works.
+      // Set by the inline check in <head>.
+      const liteHero = document.documentElement.classList.contains("ld-lite");
+      // Desktop hero garden: drag-to-reposition stays on so visitors can
       // play with the roots, but clicks don't navigate (no listing
       // page behind these fakes). The hover card still pops on hover.
-      if (garden) mountGardenStem(garden, { roots: HERO_ROOTS, interactive: true, navigateOnClick: false });
+      const gardenStem = garden
+        ? mountGardenStem(garden, { roots: HERO_ROOTS, interactive: !liteHero, navigateOnClick: false, animate: !liteHero })
+        : null;
+      let freezeGrass = () => {};
+      // Hero on screen and tab visible. Loops below idle when it isn't.
+      let heroInView = true;
+      const heroEl = document.querySelector(".ld-hero");
+      if (heroEl && "IntersectionObserver" in window) {
+        new IntersectionObserver(([entry]) => { heroInView = entry.isIntersecting; }).observe(heroEl);
+      }
+      const heroActive = () => heroInView && !document.hidden;
+      let lastScrollAt = -Infinity;
+      window.addEventListener("scroll", () => { lastScrollAt = performance.now(); }, { passive: true });
 
       // ── grass blades along the soil line ─────────────────────────
       // Ported from the previous landing's interactive grass canvas,
@@ -721,7 +759,8 @@
         const SPROUT_GREEN = { r: 109, g: 191, b: 138 };
         const plot = garden.querySelector(".gs__plot");
         const earth = garden.querySelector(".gs__earth");
-        const prefersReducedHero = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+        // Static grass: drawn once, no sway loop, no cursor tracking.
+        const prefersReducedHero = liteHero || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
         if (plot && earth) {
           plot.style.position = "relative";
           const grassCanvas = document.createElement("canvas");
@@ -798,8 +837,9 @@
           function size() {
             const r = container.getBoundingClientRect();
             // Render at up to 3× device pixel ratio so blade edges stay
-            // crisp on hi-DPI displays (was capped at 2).
-            const dpr = Math.min(window.devicePixelRatio || 1, 3);
+            // crisp on hi-DPI displays. Phones cap at 2: a 3× canvas is
+            // 2.25× the pixels for a picture that never moves.
+            const dpr = Math.min(window.devicePixelRatio || 1, liteHero ? 2 : 3);
             // w spans the plot plus the bleed on both sides. Blades are planted only
             // over the soil (BLEED..w-BLEED); the bleed is room for them to bend into.
             w = Math.max(1, Math.floor(r.width)) + BLEED * 2;
@@ -882,8 +922,12 @@
             ctx.fillStyle = `rgb(${r}, ${g}, ${bC})`;
             ctx.fill();
           }
+          let frozen = false;
+          freezeGrass = () => { frozen = true; };
           function frame(nowMs) {
-            if (!document.body.contains(canvas)) return;
+            if (!document.body.contains(canvas) || frozen) return;
+            // Off screen or tab hidden: skip the redraw, keep the loop alive.
+            if (!prefersReducedHero && !heroActive()) { requestAnimationFrame(frame); return; }
             const t = nowMs * 0.001;
             ctx.clearRect(0, 0, w, HEIGHT_PX);
             const rect = canvas.getBoundingClientRect();
@@ -908,17 +952,33 @@
             }
             if (!prefersReducedHero) requestAnimationFrame(frame);
           }
-          window.addEventListener("mousemove",  (e) => { cursor.x = e.clientX; cursor.y = e.clientY; });
-          window.addEventListener("mouseleave", () => { cursor.x = -9999; cursor.y = -9999; });
-          const rebuild = () => { size(); positionAtSoil(); makeBlades(); if (prefersReducedHero) frame(0); };
+          if (!prefersReducedHero) {
+            window.addEventListener("mousemove",  (e) => { cursor.x = e.clientX; cursor.y = e.clientY; });
+            window.addEventListener("mouseleave", () => { cursor.x = -9999; cursor.y = -9999; });
+          }
+          // Mobile browsers fire resize whenever the address bar shows or
+          // hides mid-scroll. Only a width change needs new blades; a soil
+          // line that moved just needs the canvas re-anchored, which is a
+          // style write, not a redraw.
+          let builtWidth = -1;
+          let builtEarthH = -1;
+          const rebuild = () => {
+            const width = Math.floor(container.getBoundingClientRect().width);
+            const earthH = Math.round(earthEl.getBoundingClientRect().height);
+            if (width === builtWidth) {
+              if (earthH !== builtEarthH) { builtEarthH = earthH; positionAtSoil(); }
+              return;
+            }
+            builtWidth = width;
+            builtEarthH = earthH;
+            size(); positionAtSoil(); makeBlades(); if (prefersReducedHero) frame(0);
+          };
           window.addEventListener("resize", rebuild);
           if (typeof ResizeObserver !== "undefined") {
             new ResizeObserver(rebuild).observe(container);
           }
-          size();
-          positionAtSoil();
-          makeBlades();
-          if (prefersReducedHero) { frame(0); return; }
+          rebuild();
+          if (prefersReducedHero) return;
           requestAnimationFrame(frame);
         }
       }
@@ -960,6 +1020,7 @@
       const CARD_STAT = "Example business";
       const cardsRoot = document.getElementById("ld-hero-cards");
       const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      const canHover = window.matchMedia?.("(hover: hover)").matches;
       if (cardsRoot) {
         function fillCard(card, B) {
           card.querySelector(".ld-hero-card__avatar").textContent  = B.avatar;
@@ -997,8 +1058,15 @@
         let poolIdx = 3 % BUSINESS_POOL.length;
 
         function rotate() {
-          // Hold still while someone is hovering a card so it doesn't slide out from under them.
-          if (cardsRoot.querySelector(".ld-hero-card:hover")) return;
+          // Hold still while someone is hovering a card so it doesn't slide out
+          // from under them. Mouse devices only: touch browsers leave :hover
+          // stuck on the last card a finger brushed while scrolling, which
+          // froze the carousel for good.
+          if (canHover && cardsRoot.querySelector(".ld-hero-card:hover")) return;
+          // No point morphing cards nobody can see. And never mid-scroll: a
+          // running card transition makes the browser re-layer the page,
+          // and budget phones painted blank frames during flings.
+          if (!heroActive() || performance.now() - lastScrollAt < 900) return;
           const [leftCard, centerCard, rightCard] = cards;
           // Spawn the new card pre-positioned off-screen right so the
           // first transition step has somewhere to animate FROM.
@@ -1025,6 +1093,29 @@
         }
 
         if (!reduced) setInterval(rotate, 4400);
+      }
+
+      // ── Watchdog: desktops the <head> check let through but that can't
+      // keep the hero near 30fps get the lite version. Samples ~2s of
+      // on-screen frames (at least 20, so slow machines decide fast too),
+      // then decides once.
+      if (!liteHero) {
+        const samples = [];
+        let last = 0;
+        let watched = 0;
+        const watch = (now) => {
+          if (heroActive() && last) { samples.push(now - last); watched += now - last; }
+          last = now;
+          if (samples.length < 20 || watched < 2000) { requestAnimationFrame(watch); return; }
+          samples.sort((a, b) => a - b);
+          const median = samples[samples.length >> 1];
+          if (median > 33) {
+            document.documentElement.classList.add("ld-lite");
+            gardenStem?.freeze();
+            freezeGrass();
+          }
+        };
+        requestAnimationFrame(watch);
       }
 
       // ── How it works: each growth stage row fades up once as it scrolls in ──

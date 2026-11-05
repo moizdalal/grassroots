@@ -54,8 +54,13 @@ const BOUNDS = { minX: 4, maxX: ROOTS_VB.w - 4, minY: 4, maxY: ROOTS_VB.h - 4 };
  *   consultantName: string, amountCents: number, releasedAt: string,
  * }> }} [opts]
  */
-export function mountGardenStem(container, { roots = [], interactive = true, navigateOnClick = true } = {}) {
-  if (!container) return;
+// animate: false renders the resting pose with no physics loops — for
+// decorative mounts (the landing hero on slow devices) that must stay
+// cheap. The returned freeze() stops running loops where they are, for
+// hosts that find out mid-flight that the device can't keep up.
+export function mountGardenStem(container, { roots = [], interactive = true, navigateOnClick = true, animate = true } = {}) {
+  if (!container) return { freeze() {} };
+  const loop = { frozen: false };
   container.innerHTML = `
     <div class="gs" data-roots="${roots.length}">
       <div class="gs__header">
@@ -79,10 +84,11 @@ export function mountGardenStem(container, { roots = [], interactive = true, nav
   `;
 
   if (roots.length) {
-    wireRootPhysics(container, roots, { interactive, navigateOnClick });
+    wireRootPhysics(container, roots, { interactive, navigateOnClick, animate, loop });
     wireHoverCard(container, roots);
   }
-  wireSproutPhysics(container);
+  if (animate) wireSproutPhysics(container, loop);
+  return { freeze() { loop.frozen = true; } };
 }
 
 /* Sprout — canonical grassroots icon. */
@@ -191,12 +197,13 @@ function initialBranchPath(end) {
         points lag behind the node's velocity, so motion creates
         natural curves — fast drags swoop, slow drifts ripple.
    Clamped to BOUNDS so a node can never escape the canvas. */
-function wireRootPhysics(container, roots, { interactive = true, navigateOnClick = true } = {}) {
+function wireRootPhysics(container, roots, { interactive = true, navigateOnClick = true, animate = true, loop = { frozen: false } } = {}) {
   const svg = container.querySelector(".gs__roots-svg");
   if (!svg) return;
   const reducedMotion =
-    typeof window !== "undefined" &&
-    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    !animate ||
+    (typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
 
   const groups = [...container.querySelectorAll(".gs__root")];
   if (!groups.length) return;
@@ -327,6 +334,7 @@ function wireRootPhysics(container, roots, { interactive = true, navigateOnClick
   let prevT = performance.now();
   function frame(now) {
     if (!document.body.contains(svg)) return; // host unmounted
+    if (loop.frozen) return;
     const dtMs = now - prevT;
     prevT = now;
     const t = now * 0.001;
@@ -492,6 +500,9 @@ function wireHoverCard(container, roots) {
     if (left + cardRect.width > plotRect.width - margin) {
       left = nodeRect.left - plotRect.left - cardRect.width - margin;
     }
+    // Narrow plots (phones): neither side fits a center node, so keep the
+    // card inside the plot even if it covers the node.
+    left = Math.max(margin, Math.min(plotRect.width - cardRect.width - margin, left));
     let top = nodeRect.top - plotRect.top + nodeRect.height / 2 - cardRect.height / 2;
     top = Math.max(margin, Math.min(plotRect.height - cardRect.height - margin, top));
     card.style.left = `${left}px`;
@@ -508,6 +519,15 @@ function wireHoverCard(container, roots) {
     rootEl.addEventListener("focus", () => showCard(rootEl), true);
     rootEl.addEventListener("mouseleave", hideCard);
     rootEl.addEventListener("blur", hideCard, true);
+    // Touch has no hover, and Safari's emulated mouseenter misses the
+    // drifting nodes. A tap shows the card instead.
+    rootEl.addEventListener("pointerup", (e) => {
+      if (e.pointerType !== "mouse") showCard(rootEl);
+    });
+  });
+  // ...and a tap anywhere else hides it.
+  document.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "mouse" && !e.target.closest?.(".gs__root")) hideCard();
   });
 }
 
@@ -622,7 +642,7 @@ const PHYS = {
   MAX_LEAF: 8,
 };
 
-function wireSproutPhysics(container) {
+function wireSproutPhysics(container, loop = { frozen: false }) {
   const sproutSvg = container.querySelector(".gs__sprout-svg");
   if (!sproutSvg) return;
   const reducedMotion =
@@ -679,7 +699,7 @@ function wireSproutPhysics(container) {
   panel.addEventListener("pointerleave", onLeave);
 
   function frame(now) {
-    if (!document.body.contains(sproutSvg)) {
+    if (loop.frozen || !document.body.contains(sproutSvg)) {
       panel.removeEventListener("pointermove", onMove);
       panel.removeEventListener("pointerleave", onLeave);
       return;

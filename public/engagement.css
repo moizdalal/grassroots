@@ -351,6 +351,26 @@
 }
 .eg-delivery__form textarea,
 .eg-delivery__form input { width: 100%; }
+/* Give-back refund lines: payment, kept card fee, refunded. */
+.eg-delivery__breakdown {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--type-meta);
+}
+.eg-delivery__breakdown > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.eg-delivery__breakdown dt { color: var(--fo-text-2); }
+.eg-delivery__breakdown dd {
+  margin: 0;
+  color: var(--fo-text);
+  font-variant-numeric: tabular-nums;
+}
+.eg-delivery__breakdown > div:last-child dd { font-weight: 600; }
 
 .eg-retainer-terms__grid {
   display: grid;
@@ -455,10 +475,19 @@
   grid-template-columns: 72px repeat(7, minmax(96px, 1fr));
   gap: 0.35rem;
   min-width: 860px;
+  /* Drag-to-select would otherwise highlight the time labels. */
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .eg-calendar__corner {
   min-height: 54px;
+  display: grid;
+  place-items: end center;
+  padding-bottom: 0.55rem;
+  font-size: var(--type-meta);
+  font-weight: 600;
+  color: var(--fo-text-3, var(--muted));
 }
 
 .eg-calendar__dayhead {
@@ -600,7 +629,9 @@
 
 /* Star rating widget — interactive sibling of .gr-rating. Uses the same
    two-layer ★ technique (line color underneath, accent color clipped on
-   top) so the visual matches the read-only chip. Half-step clicks are
+   top) so the visual matches the read-only chip. The five ★ glyphs live
+   in the markup of each layer — don't add them again via ::before, or
+   each row renders ten stars. Half-step clicks are
    handled by 10 invisible button overlays positioned over the stars. */
 .eg-stars {
   position: relative;
@@ -619,10 +650,6 @@
   user-select: none;
 }
 
-.eg-stars__bg::before {
-  content: "★★★★★";
-}
-
 .eg-stars__fill {
   position: absolute;
   top: 0;
@@ -631,10 +658,6 @@
   white-space: nowrap;
   color: var(--fo-accent);
   transition: width 0.15s ease;
-}
-
-.eg-stars__fill::before {
-  content: "★★★★★";
 }
 
 .eg-stars__hits {
@@ -702,5 +725,27 @@
 
   .eg-rating-row {
     grid-template-columns: 1fr;
+  }
+
+  /* Kickoff grid on phones: narrower day columns, and the time labels
+     stay pinned while the grid scrolls sideways inside its wrapper. */
+  .eg-calendar {
+    grid-template-columns: 58px repeat(7, minmax(64px, 1fr));
+    gap: 0.25rem;
+    min-width: 540px;
+  }
+
+  .eg-calendar__time {
+    font-size: var(--type-eyebrow);
+    white-space: nowrap;
+  }
+
+  .eg-calendar__corner,
+  .eg-calendar__time {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    /* Match the panel behind the grid so scrolled slots slide under. */
+    background: var(--fo-surface);
   }
 }

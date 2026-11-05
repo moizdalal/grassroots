@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
-    <link rel="stylesheet" href="/grassroots.css" />
-    <link rel="stylesheet" href="/field-office.css" />
+    <link rel="stylesheet" href="/grassroots.css?v=2" />
+    <link rel="stylesheet" href="/field-office.css?v=2" />
     <script src="/theme.js"></script>
     <script src="/cookie-banner.js" defer></script>
     <script src="/loading-overlay.js"></script>
@@ -63,6 +63,7 @@
                 <div class="ld-bio__body" id="ld-bio-body">
                   <h2 id="ld-biz-name" class="ld-bio__name"></h2>
                   <p id="ld-biz-owner" class="ld-bio__owner"></p>
+                  <div id="ld-biz-badges" class="ld-bio__badges" hidden></div>
                   <p id="ld-biz-details" class="ld-bio__about" hidden></p>
                   <a id="ld-biz-website" class="ld-bio__link" target="_blank" rel="noopener noreferrer" hidden>Website</a>
                 </div>
@@ -215,9 +216,9 @@
               <p id="ld-owner-action-status" class="gr-status" aria-live="polite"></p>
             </section>
 
-            <!-- Owner: proposals received -->
+            <!-- Owner: offers received -->
             <section id="ld-bids-owner" class="ld-sidebar__panel ld-bids-owner" hidden>
-              <h2 class="ld-section-h">Proposals received</h2>
+              <h2 class="ld-section-h">Offers received</h2>
               <p id="ld-counter-budget" class="ld-counter-budget"></p>
               <div id="ld-bids-list" class="ld-bids-list"></div>
             </section>
@@ -235,7 +236,7 @@
             <section id="ld-offer-panel" class="ld-sidebar__panel ld-offer-panel" hidden>
               <h2 class="ld-offer-panel__heading">Make an offer</h2>
 
-              <p id="ld-bid-existing" class="ld-bid-existing" hidden></p>
+              <div id="ld-bid-existing" class="ld-bid-existing" hidden></div>
               <!-- Counter-response slot — filled by listing.js when
                    the consultant has a pending counter to react to.
                    Hidden by default; the JS pops it open when needed. -->
@@ -318,8 +319,8 @@
                       placeholder="Your approach, what you'll deliver, and why you're a fit."
                     ></textarea>
                     <div class="ld-offer-char-row">
-                      <span class="ld-offer-char-count" id="ld-offer-char-count">1000</span>
-                      <button type="button" class="ld-offer-msg-remove" id="ld-offer-msg-remove" aria-label="Remove message">&times;</button>
+                      <span class="ld-offer-char-count" id="ld-offer-char-count" aria-live="polite">1000 characters left</span>
+                      <button type="button" class="ld-offer-msg-remove" id="ld-offer-msg-remove">Remove pitch</button>
                     </div>
                   </div>
                 </div>

@@ -434,14 +434,31 @@
         position: absolute;
         left: 0; top: 0;
         height: 100%;
-        width: 0%;
+        /* Full width, scaled by nav.js: transform skips layout on every
+           scroll frame, where animating width did not. */
+        width: 100%;
         background: linear-gradient(90deg, var(--fo-accent), color-mix(in srgb, var(--fo-accent) 60%, transparent));
         transform-origin: left;
-        transition: width 0.12s linear;
+        transform: scaleX(0);
+        transition: transform 0.12s linear;
       }
 
       @media (max-width: 720px) {
         .ld-nav__links li.ld-nav__hide-sm { display: none; }
+      }
+      /* Phones: mirrors nav.css. This file restates the nav rules, so the
+         phone overrides have to live here too or they lose the cascade. */
+      @media (max-width: 480px) {
+        .ld-nav { padding-inline: 16px; }
+        .ld-nav__inner { gap: var(--space-2); }
+        .ld-nav__links { gap: 0.25rem; }
+        .ld-nav__links li:has(> .ld-nav__theme) { display: none; }
+        .ld-nav__link { white-space: nowrap; }
+        .ld-nav__cta { padding: 0.5rem 0.9rem; font-size: 0.9rem; }
+      }
+      /* Smallest phones (iPhone SE, 320px): the sprout carries the brand. */
+      @media (max-width: 360px) {
+        .ld-nav__brand-text { display: none; }
       }
       @media (prefers-reduced-motion: reduce) {
         .ld-nav, .ld-nav *,
@@ -635,6 +652,30 @@
       }
       .ld-hero__ctas { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-5); }
       .ld-hero__ctas .gr-btn--lg { padding: 0.95rem 1.7rem; }
+      /* Phones only: center the stacked hero copy. Tablets stay left-aligned. */
+      @media (max-width: 720px) {
+        .ld-hero__title {
+          text-align: center;
+        }
+        .ld-hero__title-line {
+          display: block;
+        }
+        .ld-hero__sub {
+          text-align: center;
+          margin-inline: auto;
+        }
+        .ld-hero__ctas {
+          justify-content: center;
+        }
+      }
+      .ld-hero__desktop-hint:empty { display: none; }
+      /* Garden caption: "Hover" for mice, "Tap" for touch screens. */
+      .ld-peek-verb--tap { display: none; }
+      @media (hover: none) {
+        .ld-peek-verb--hover { display: none; }
+        .ld-peek-verb--tap { display: inline; }
+      }
+      .ld-hero__desktop-hint { max-width: 26rem; margin: 0 auto var(--space-5); }
 
       .ld-trust-row {
         display: inline-flex; align-items: center; gap: 0.65rem;
@@ -1228,7 +1269,26 @@
         overflow: visible;
       }
       @media (max-width: 900px) { .ld-hero__visual { max-width: 500px; aspect-ratio: 1 / 1.2; } }
+      /* The laptop height cap (100vh - 22rem) bites on phones, where 100vh
+         changes as the address bar shows and hides: the garden squashed
+         its roots and changed height mid-scroll. Phones stack the hero
+         and scroll anyway, so the garden sizes from its width alone. */
+      @media (max-width: 720px) { .ld-hero__garden { max-height: none; } }
+      /* Off-stage cards sit past the viewport edge. body's overflow-x: clip
+         doesn't stop mobile browsers widening the layout viewport, so clip here. */
+      @media (max-width: 900px) { .ld-hero { overflow-x: clip; } }
+      /* .ld-hero's padding shorthand zeroes the .ld-shell gutter. Desktop
+         gets its margin from max-width; phones need it back. */
+      @media (max-width: 720px) { .ld-hero { padding-inline: 16px; } }
+      /* Phones: keep "Local business meets" on one line, and stack the two
+         CTAs at one shared width instead of a ragged wrap. */
+      @media (max-width: 420px) {
+        .ld-hero__title { font-size: 2.15rem; }
+        .ld-hero__ctas { flex-direction: column; align-items: stretch; max-width: 20rem; margin-inline: auto; }
+      }
       @media (max-width: 480px) {
+        .ld-hero-card.s-off-left  { transform: translate(calc(-50% - 12rem), -50%) scale(0.82) rotate(-12deg); }
+        .ld-hero-card.s-off-right { transform: translate(calc(-50% + 12rem), -50%) scale(0.82) rotate( 12deg); }
         .ld-hero-card.s-center  { width: 11.5rem; padding: 0.75rem 0.85rem; }
         .ld-hero-card.s-left, .ld-hero-card.s-right { width: 5.4rem; padding: 0.45rem 0.55rem; }
         .ld-hero-card.s-left  { transform: translate(calc(-50% - 8.5rem), -50%) scale(0.94) rotate(-4deg); }
@@ -1368,6 +1428,13 @@
         line-height: 1.55;
         color: var(--fo-text-2);
         margin: 0;
+      }
+      .ld-peek__note {
+        margin: 0.75rem 0 0;
+        font-family: var(--font-body);
+        font-size: var(--type-meta);
+        line-height: 1.45;
+        color: var(--fo-text-3);
       }
 
       /* ── how it works: four growth stages, one row per step ─────
@@ -3068,6 +3135,14 @@
         font-size: var(--type-body); line-height: 1.6;
         color: var(--fo-text-2); max-width: 64ch;
       }
+      /* Unstyled links fell back to UA blue (1.8:1 on dark-forest). Text
+         color carries contrast; the accent underline marks it as a link. */
+      .ld-faq__answer a {
+        color: var(--fo-text);
+        text-decoration: underline;
+        text-decoration-color: var(--fo-accent);
+        text-underline-offset: 0.18em;
+      }
 
       /* ── final CTA — solid green on light ──────────────────── */
       .ld-final {
@@ -3904,4 +3979,79 @@
         color: var(--fo-text-2);
         margin: 0;
         max-width: 32ch;
+      }
+
+      /* ── Lite hero: a still, cheap hero ─────────────────────────
+         html.ld-lite is set by the inline check in index.html's <head>
+         (touch, narrow, few cores, low memory, data saver, reduced
+         motion) or later by the hero's frame-rate watchdog. The garden
+         and grass already render once there; these drop the GPU-heavy
+         layers. Clouds are 26 blurred, screen-blended blobs scrolling
+         forever. The sticky nav's backdrop blur re-blurs on every
+         scroll frame, a known jank source on Android, so it goes solid.
+         The page glows keep their blur: they're fixed layers painted
+         once, and dropping it measured no faster. */
+      .ld-lite .ld-hero .hero-clouds { display: none; }
+      /* The three page glows are fixed 640px boxes blurred 90-100px: at
+         3x pixel density each is a ~1200px texture the GPU keeps around.
+         Budget Android ran out of room mid-fling and painted blank frames.
+         Lite paints the same warm/green wash as plain gradients on the one
+         viewport-sized background layer instead. */
+      /* The fixed layer goes too: content overlapping it made the browser
+         keep a second full-page layer (~70MB). The wash rides on the body. */
+      :root.ld-lite .ld-page-bg { display: none; }
+      :root.ld-lite body.gr-body {
+        background-color: var(--fo-bg);
+        /* Fixed-size glows down the page, alternating warm and green, so
+           every screen gets some wash the way the old fixed layer did. */
+        --ld-w: color-mix(in srgb, var(--fo-accent-warm) var(--ld-lite-warm, 14%), transparent);
+        --ld-g: color-mix(in srgb, var(--fo-accent) var(--ld-lite-green, 12%), transparent);
+        background-image:
+          radial-gradient(circle 420px at 0 0, var(--ld-w), transparent),
+          radial-gradient(circle 380px at 100% 1100px, var(--ld-g), transparent),
+          radial-gradient(circle 400px at 0 2300px, var(--ld-w), transparent),
+          radial-gradient(circle 380px at 100% 3500px, var(--ld-g), transparent),
+          radial-gradient(circle 400px at 0 4700px, var(--ld-w), transparent),
+          radial-gradient(circle 380px at 100% 5900px, var(--ld-g), transparent);
+      }
+      :root.ld-lite[data-theme="light"] { --ld-lite-warm: 28%; --ld-lite-green: 18%; }
+      /* Still roots. An infinite pulse on the halos (and each node's
+         emerge) kept six live animations in the hero, so the browser
+         assumed they could overlap anything and lifted the whole rest of
+         the page into one extra ~70MB layer. */
+      .ld-lite .ld-hero__garden .gs__root-halo,
+      .ld-lite .ld-hero__garden .gs__root-node,
+      .ld-lite .ld-hero__garden .gs__root-branch { animation: none; }
+      .ld-lite .ld-hero__garden .gs__root-branch { stroke-dashoffset: 0; }
+      /* Decorative, not links: a stray touch left :hover stuck on a card. */
+      .ld-lite .ld-hero-card { pointer-events: none; }
+      /* Marketplace strip: a 4000px marquee animating forever held a ~34MB
+         layer. Lite renders one set (landing.js) and lets people swipe. */
+      .ld-lite .ld-peek__track { animation: none; }
+      .ld-lite .ld-peek__viewport {
+        overflow-x: auto;
+        scroll-snap-type: x proximity;
+        overscroll-behavior-x: contain;
+        -webkit-mask-image: none;
+        mask-image: none;
+        scrollbar-width: none;
+      }
+      .ld-lite .ld-peek__viewport::-webkit-scrollbar { display: none; }
+      .ld-lite .ld-peek-card { scroll-snap-align: start; }
+      .ld-lite .ld-hero__visual::before { filter: none; }
+      .ld-lite .ld-hero-card { will-change: auto; }
+      .ld-lite:not([data-theme="light"]) .ld-hero-card {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+      /* Switch to the solid bar the moment the page scrolls. The 0.3s
+         fade left the headline showing through it mid-fling. */
+      .ld-lite .ld-nav { transition: none; }
+      .ld-lite .ld-nav.is-scrolled {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: var(--fo-bg);
+      }
+      .ld-lite[data-theme="light"] .ld-nav.is-scrolled {
+        background: var(--fo-surface);
       }

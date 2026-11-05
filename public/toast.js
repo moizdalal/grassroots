@@ -16,6 +16,16 @@
 
 let stackEl = null;
 
+// Identical toasts (same kind + text) fired within this window collapse
+// into the one already on screen, so a double-fired handler or a retry
+// loop doesn't stack copies.
+const DEDUPE_MS = 2000;
+const recent = new Map(); // `${kind}:${message}` -> { at, handle }
+
+// One-shot toast carried across a navigation (e.g. "Listing posted."
+// shown on the listing page after the create form redirects).
+const FLASH_KEY = "gr-flash-toast";
+
 function ensureStack() {
   if (stackEl && document.body && document.body.contains(stackEl)) return stackEl;
   stackEl = document.createElement("div");
@@ -61,6 +71,11 @@ export function showToast(message, opts = {}) {
   // success so they're easy to read.
   const defaultDuration = kind === "loading" ? 0 : kind === "error" ? 4500 : 3200;
   const duration = opts.duration ?? defaultDuration;
+  const key = `${kind}:${message}`;
+  const prior = recent.get(key);
+  if (prior && Date.now() - prior.at < DEDUPE_MS && !prior.handle.isDismissed()) {
+    return prior.handle;
+  }
   const stack = ensureStack();
 
   const toast = document.createElement("div");
@@ -132,8 +147,38 @@ export function showToast(message, opts = {}) {
     }
   });
 
-  return { dismiss };
+  const handle = { dismiss, isDismissed: () => dismissed };
+  recent.set(key, { at: Date.now(), handle });
+  return handle;
 }
+
+/** Queue a toast to show on the next page load in this tab. */
+export function flashToast(message, kind = "success") {
+  try {
+    window.sessionStorage?.setItem(FLASH_KEY, JSON.stringify({ message, kind }));
+  } catch (_) { /* storage blocked — skip the flash */ }
+}
+
+try {
+  const raw = window.sessionStorage?.getItem(FLASH_KEY);
+  if (raw) {
+    window.sessionStorage.removeItem(FLASH_KEY);
+    const { message, kind } = JSON.parse(raw);
+    // Wait for the page loader (loading-overlay.js) to leave, or the toast
+    // would play out underneath it.
+    const show = () => message && showToast(String(message), { kind: kind || "success" });
+    const overlayUp = () => document.querySelector(".gr-loader-overlay");
+    if (!overlayUp()) {
+      show();
+    } else {
+      const poll = setInterval(() => {
+        if (overlayUp()) return;
+        clearInterval(poll);
+        show();
+      }, 150);
+    }
+  }
+} catch (_) { /* malformed or blocked storage — ignore */ }
 
 export function showSuccess(message, opts = {}) {
   return showToast(message, { ...opts, kind: "success" });

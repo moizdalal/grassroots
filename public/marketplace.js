@@ -8,6 +8,7 @@ import {
   clearGuestModeIfSignedIn,
   withGuestParam,
 } from "/guest-mode.js";
+import { loadBusinessBadges, renderBadgeIcons } from "/business-badges.js";
 
 const sessionSlot = document.getElementById("session-slot");
 const listingGrid = document.getElementById("listing-grid");
@@ -24,8 +25,32 @@ const SORT_KEY = "grassroots_marketplace_sort";
 // constant; everything downstream reads it.
 const LOCAL_RADIUS_MILES = 50;
 
+// How many listings the "Featured" row shows. Featured = the open
+// listings with the fewest offers, so overlooked work surfaces before
+// the category rows.
+const FEATURED_COUNT = 5;
+
+// Fictitious "Sample" owners whose listings are examples of a
+// well-scoped post, not real work. Their accounts have no password and
+// a .invalid email. Cards from these owners get a "Sample" pill and
+// sort after real listings in Featured.
+const SAMPLE_OWNER_IDS = new Set([
+  "5a3b1e00-0000-4000-8000-00000000aa01", // Wilhelmina Sample · Copperline Hardware
+  "5a3b1e00-0000-4000-8000-00000000aa02", // Barnaby Sample · Muddy Paws Grooming Co.
+  "5a3b1e00-0000-4000-8000-00000000aa03", // Rosalind Sample · Spoke & Sprocket Bike Works
+  "5a3b1e00-0000-4000-8000-00000000aa04", // Teodoro Sample · La Esquina Taqueria
+]);
+
+function isSample(row) {
+  return SAMPLE_OWNER_IDS.has(row.owner_id);
+}
+
 let allRows = [];
 let bizMap = {};
+// owner_id → badge summary (null = new business). null map = RPC unavailable.
+let badgeMap = null;
+// listing id → offer count. null map = RPC unavailable; Featured is skipped.
+let offerCounts = null;
 let consultantCity = null; // { lat, lng } once the session is resolved.
 let _client = null;
 
@@ -81,7 +106,7 @@ function renderGuestBanner() {
         <p class="gr-guest-banner__sub">
           This is real, live work small businesses are paying students to do. Start by
           <a href="/register.html?role=owner">posting your own project</a>, or
-          <a href="/home/for-students.html">apply to join as a student consultant</a>.
+          <a href="/for-students">apply to join as a student consultant</a>.
         </p>
       </div>
       <div class="gr-guest-banner__actions">
@@ -150,6 +175,28 @@ async function fetchOpenListings(client) {
 
   if (data) data.sort((a, b) => (a.status === "locked") - (b.status === "locked"));
   return { data, error };
+}
+
+async function loadOfferCounts(client, listingIds) {
+  if (!listingIds.length) return new Map();
+  const { data, error } = await client.rpc("get_listing_offer_counts", { target_listing_ids: listingIds });
+  if (error) {
+    console.warn("offer counts:", error.message || error);
+    return null;
+  }
+  return new Map((data || []).map((r) => [r.listing_id, r.offer_count]));
+}
+
+// Real listings before samples, then fewest offers first. Ties go to
+// the older listing, since it has waited longer for attention.
+function pickFeatured(rows) {
+  if (!offerCounts) return [];
+  return [...rows]
+    .sort((a, b) =>
+      isSample(a) - isSample(b)
+      || (offerCounts.get(a.id) ?? 0) - (offerCounts.get(b.id) ?? 0)
+      || new Date(a.created_at) - new Date(b.created_at))
+    .slice(0, FEATURED_COUNT);
 }
 
 function renderResultCount(filteredCount, totalCount) {
@@ -251,8 +298,13 @@ function renderCard(row, client) {
     ? `<p class="gr-listing-contract">${escapeHtml(capFirst(contractType))}</p>`
     : "";
 
-  const recency = formatRecency(row.created_at);
-  const recencyHtml = row.status === "locked"
+  // Samples swap the recency label for a "Sample" pill, and drop the
+  // business badges, which would describe a business that isn't real.
+  const sample = isSample(row);
+  const recency = sample ? null : formatRecency(row.created_at);
+  const recencyHtml = sample
+    ? `<span class="gr-pill gr-pill--live gr-pill--no-dot gr-listing-sample">Sample</span>`
+    : row.status === "locked"
     ? `<span class="gr-listing-recency gr-listing-recency--locked">Locked · not taking offers</span>`
     : recency
     ? `<span class="gr-listing-recency${recency.stale ? " gr-listing-recency--stale" : ""}">${escapeHtml(recency.label)}</span>`
@@ -272,7 +324,7 @@ function renderCard(row, client) {
   // tile with a meta stack (biz / budget / contract) on its right,
   // foot carries tags on the left and the view CTA on the right.
   const card = document.createElement("a");
-  card.className = "gr-listing-card";
+  card.className = sample ? "gr-listing-card gr-listing-card--sample" : "gr-listing-card";
   // withGuestParam appends ?guest=1 when the viewer is in guest mode
   // so the listing detail recognises them even if the link is opened
   // in a new tab (which would otherwise lose the sessionStorage flag).
@@ -284,7 +336,10 @@ function renderCard(row, client) {
     <div class="gr-listing-card-head">
       <div class="gr-listing-logo-wrap">${avatarHtml}</div>
       <div class="gr-listing-card-meta">
-        <p class="gr-listing-biz-name">${escapeHtml(businessName)}</p>
+        <div class="gr-listing-biz-row">
+          <p class="gr-listing-biz-name">${escapeHtml(businessName)}</p>
+          ${badgeMap && !sample ? renderBadgeIcons(badgeMap.get(row.owner_id)) : ""}
+        </div>
         ${budgetHtml}
         ${contractHtml}
       </div>
@@ -389,6 +444,18 @@ function renderListings(rows, client) {
     listingGrid.innerHTML =
       '<p class="gr-empty-state">No open opportunities yet. Once business owners post needs, they\'ll show up here.</p>';
     return;
+  }
+
+  const featuredRows = pickFeatured(rows);
+  if (featuredRows.length) {
+    listingGrid.appendChild(
+      renderSection({
+        title: "Featured",
+        subtitle: "Projects with the fewest offers so far",
+        rows: featuredRows,
+        client,
+      })
+    );
   }
 
   // "Local" bucket — listings within LOCAL_RADIUS_MILES of the
@@ -605,9 +672,15 @@ async function refreshListings(client) {
   // Fetch business profiles
   const ownerIds = [...new Set(allRows.map(r => r.owner_id))];
   if (ownerIds.length) {
-    const { data: bizProfiles } = await client.from("business_profiles").select("user_id, business_name").in("user_id", ownerIds);
+    const [{ data: bizProfiles }, badges, counts] = await Promise.all([
+      client.from("business_profiles").select("user_id, business_name").in("user_id", ownerIds),
+      loadBusinessBadges(client, ownerIds),
+      loadOfferCounts(client, allRows.map(r => r.id)),
+    ]);
     bizMap = {};
     (bizProfiles || []).forEach(b => { bizMap[b.user_id] = b; });
+    badgeMap = badges;
+    offerCounts = counts;
   }
 
   listingsStatus.textContent = "";
