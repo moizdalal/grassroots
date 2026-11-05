@@ -21,26 +21,33 @@ Once posted, your listing is **open** and visible to all consultants.
 
 | State | Meaning | Who can see it |
 |---|---|---|
-| `open` | Accepting bids | Everyone signed in |
-| `paused` | Temporarily hidden | Only the owner |
-| `closed` | Done — either work completed or withdrawn | Only the owner + accepted consultant |
+| `open` | Accepting bids | Everyone |
+| `locked` | Public, but not taking new bids | Everyone |
+| `completed` | Work paid out — shown as a past project | Everyone |
+| `unlisted` | Removed from the marketplace | Only the owner + consultants who bid |
 
-## Pausing
+A listing's state never ends an engagement. Accepted work keeps going until it's delivered and paid out, whatever you do with the listing.
 
-Owners can pause a listing at any time. Paused listings:
-- Disappear from the marketplace
-- Don't accept new bids
-- Keep existing bids in place — you can resume any time
+## Locking
 
-Useful if you're swamped reviewing offers and don't want more piling up.
+Lock a listing at any time to stop new bids. Locked listings:
+- Stay public, tagged "locked" on the marketplace
+- Keep existing bids in place — you can still accept a pending one
+- Don't affect any engagement already underway
 
-## Closing
+Unlock it any time to start taking bids again.
 
-A listing is closed when:
-- You accept a bid (the listing auto-closes; remaining bids resolve to `declined`)
-- You manually close it before accepting any bid — you'll be asked why (`work completed`, `found a solution elsewhere`, `didn't find a good offer`, `other`)
+## Completing
 
-Once closed, the listing is read-only.
+A listing is marked completed automatically when payment for the accepted work is released (standard contracts) or a retainer ends. For phased work, use "Mark as completed" in the listing controls once the payouts you expect have been released.
+
+Completed listings stay public as past projects. They can't be reopened — post a new listing for follow-up work.
+
+## Removing from the marketplace
+
+Remove a listing to hide it from everyone except consultants who already bid. You'll be asked why (`work completed`, `found a solution elsewhere`, `didn't find a good offer`, `other`) and whether to decline any pending offers.
+
+You can't remove a listing while accepted work is active — lock it instead. You can put a removed listing back on the marketplace any time.
 
 ## Attachments
 
@@ -54,7 +61,7 @@ Basic fields (description, qualifications, attachments) can be edited any time b
 
 ## FAQ
 
-- **How long do listings stay open?** Indefinitely — you close them manually when you're done.
-- **Can I delete a listing?** You can close it. Deletion isn't supported because we keep listings for audit + 1099 history.
+- **How long do listings stay open?** Indefinitely — lock or remove them when you're done.
+- **Can I delete a listing?** Only drafts. Published listings can be removed from the marketplace instead, because we keep them for audit + 1099 history.
 - **Do consultants see my bids from other consultants?** No — every consultant sees only their own bid and the listing content.
 - **Can I edit a listing after accepting a bid?** No, the listing is locked. Open a new listing for follow-up work.

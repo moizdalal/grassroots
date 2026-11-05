@@ -106,7 +106,6 @@ async function loadEngagements(client, userId) {
 // the consultant can take from this page directly.
 function engagementState(eng) {
   const { bid, listing, schedule } = eng;
-  const listingClosed = listing?.status === "closed";
   const scheduleStatus = schedule?.status || null;
   // Paid out (or the listing auto-completed on release) means the work
   // is done, whatever the kickoff schedule row still says. Checked
@@ -114,10 +113,9 @@ function engagementState(eng) {
   const finished =
     bid.payment_status === "released" || listing?.status === "completed";
 
-  // Past: paid out, review submitted (schedule completed) OR listing
-  // closed. The listing-closed case keeps closed-but-unreviewed work in
-  // "past" so it doesn't clutter the current list with stalled
-  // engagements.
+  // Past: review submitted (schedule completed), payment settled, or the
+  // listing completed. Locking or removing a listing never ends an
+  // engagement on its own — accepted work stays current until it's done.
   if (finished) {
     return {
       bucket: "past",
@@ -140,11 +138,20 @@ function engagementState(eng) {
         : `Accepted ${fmtDate(bid.accepted_at)}`,
     };
   }
-  if (listingClosed) {
+  if (bid.payment_status === "refunded") {
     return {
       bucket: "past",
-      label: "Closed",
+      label: "Refunded",
       pill: "muted",
+      action: null,
+      summary: `Accepted ${fmtDate(bid.accepted_at)}`,
+    };
+  }
+  if (bid.payment_status === "released" || listing?.status === "completed") {
+    return {
+      bucket: "past",
+      label: "Completed",
+      pill: "completed",
       action: null,
       summary: `Accepted ${fmtDate(bid.accepted_at)}`,
     };

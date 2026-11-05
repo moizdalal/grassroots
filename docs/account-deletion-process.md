@@ -85,16 +85,16 @@ update public.suggestions
        user_agent = null
  where user_id = '<user_id>';
 
--- For business-owner listings: mark "open" or "paused" listings as closed
--- so they stop appearing in the marketplace. Listings with completed
--- engagements stay (anonymized).
-update public.marketplace_listings
-   set status = 'closed',
+-- For business-owner listings: mark "open" or "locked" listings as
+-- unlisted so they stop appearing in the marketplace. Completed listings
+-- stay (anonymized). The listings_guard_status_change trigger rejects
+-- this while accepted work is active; settle or refund that work first.
+update public.listings
+   set status = 'unlisted',
        title = '[deleted listing]',
        problem_summary = null,
-       details = null,
-       attachments = null
- where owner_id = '<user_id>' and status in ('open','paused');
+       details = null
+ where owner_id = '<user_id>' and status in ('open','locked');
 
 -- Clear PII on the profile row but keep the row (used by FK references in
 -- anonymized messages/reviews above).

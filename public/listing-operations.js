@@ -6,7 +6,7 @@
 //   convertListingToDraft(client, listingId) — unpublish + reopen as draft
 //
 // Both refuse when the listing has an accepted bid; once an engagement
-// is locked in, owners must close (not delete / re-draft) the listing
+// is locked in, owners must lock (not delete / re-draft) the listing
 // so the audit trail and the consultant-side state stay coherent.
 //
 // FK cascade (declared at schema level) handles bids, listing_views,
@@ -83,7 +83,7 @@ async function removeAttachmentsBestEffort(client, listingId) {
 // Drafts are the only listings the owner can permanently delete. A
 // published listing carries a paper trail (consultant views, offers,
 // messages, possibly an accepted engagement) that we don't want
-// disappearing under anyone's feet — owners pause or close those
+// disappearing under anyone's feet — owners lock or remove those
 // instead. Restricting delete to drafts also makes the action
 // reasoning easy to explain in the UI: "drafts are the only thing
 // you can delete."
@@ -92,7 +92,7 @@ export async function deleteListing(client, listingId) {
 
   if (listing.status !== "draft") {
     throw new ListingOperationError(
-      "Only drafts can be deleted. Close this listing from the listing controls if you're done with it.",
+      "Only drafts can be deleted. Lock or remove this listing from the listing controls if you're done with it.",
       { code: "not_a_draft" }
     );
   }
