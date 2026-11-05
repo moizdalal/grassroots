@@ -94,19 +94,40 @@ function parseDetails(row) {
    to be small-business owners — that's the side we're actively
    trying to grow) and a quieter consultant-application link for the
    minority of visitors who would join the supply side. Reading the
-   user's intent is impossible client-side, so we surface both. */
-function renderGuestBanner() {
+   user's intent is impossible client-side, so we surface both.
+
+   The sub line depends on what's on the page: "real" when at least one
+   real open listing exists, "sample" when every listing is a Sample
+   example (or there are none), and "pending" while listings load. */
+function guestBannerSub(mode) {
+  if (mode === "real") {
+    return `This is real, live work small businesses are paying students to do. Start by
+          <a href="/register.html?role=owner">posting your own project</a>, or
+          <a href="/for-students">apply to join as a student consultant</a>.`;
+  }
+  if (mode === "sample") {
+    return `These are example projects that show what a good post looks like.
+          <a href="/register.html?role=owner">Post the first real project</a> in your town, or
+          <a href="/for-students">apply to join as a student</a>.`;
+  }
+  return `Start by <a href="/register.html?role=owner">posting your own project</a>, or
+          <a href="/for-students">apply to join as a student consultant</a>.`;
+}
+
+let guestBannerMode = null; // null until the banner is rendered.
+let rowsBannerMode = null; // "real" | "sample" once listings load.
+
+function renderGuestBanner(mode = rowsBannerMode || "pending") {
   const host = document.getElementById("guest-banner-slot");
   if (!host) return;
+  guestBannerMode = mode;
   host.hidden = false;
   host.innerHTML = `
     <div class="gr-guest-banner" role="region" aria-label="Guest welcome">
       <div class="gr-guest-banner__copy">
         <p class="gr-guest-banner__title">Browsing as a guest</p>
-        <p class="gr-guest-banner__sub">
-          This is real, live work small businesses are paying students to do. Start by
-          <a href="/register.html?role=owner">posting your own project</a>, or
-          <a href="/for-students">apply to join as a student consultant</a>.
+        <p class="gr-guest-banner__sub" id="guest-banner-sub">
+          ${guestBannerSub(mode)}
         </p>
       </div>
       <div class="gr-guest-banner__actions">
@@ -185,6 +206,18 @@ async function loadOfferCounts(client, listingIds) {
     return null;
   }
   return new Map((data || []).map((r) => [r.listing_id, r.offer_count]));
+}
+
+// Swap the guest banner's sub line once listings are known. No-op when
+// the banner isn't on the page (signed-in members).
+function updateGuestBannerForRows(rows) {
+  const hasReal = rows.some((r) => !isSample(r) && r.status === "open");
+  const mode = hasReal ? "real" : "sample";
+  rowsBannerMode = mode;
+  if (guestBannerMode === null || mode === guestBannerMode) return;
+  guestBannerMode = mode;
+  const sub = document.getElementById("guest-banner-sub");
+  if (sub) sub.innerHTML = guestBannerSub(mode);
 }
 
 // Real listings before samples, then fewest offers first. Ties go to
@@ -325,6 +358,7 @@ function renderCard(row, client) {
   // foot carries tags on the left and the view CTA on the right.
   const card = document.createElement("a");
   card.className = sample ? "gr-listing-card gr-listing-card--sample" : "gr-listing-card";
+  card.dataset.ownerId = row.owner_id;
   // withGuestParam appends ?guest=1 when the viewer is in guest mode
   // so the listing detail recognises them even if the link is opened
   // in a new tab (which would otherwise lose the sessionStorage flag).
@@ -436,7 +470,19 @@ function wireHoverPopover(scope) {
   });
 }
 
-function renderListings(rows, client) {
+// Badges load after the cards paint. Drop their icons into the cards
+// already on the page; later renders read badgeMap directly.
+function patchBadgesIntoCards() {
+  if (!badgeMap) return;
+  listingGrid.querySelectorAll(".gr-listing-card:not(.gr-listing-card--sample)").forEach((card) => {
+    const bizRow = card.querySelector(".gr-listing-biz-row");
+    if (!bizRow || bizRow.querySelector(".gr-listing-biz-name ~ *")) return;
+    const html = renderBadgeIcons(badgeMap.get(card.dataset.ownerId));
+    if (html) bizRow.insertAdjacentHTML("beforeend", html);
+  });
+}
+
+function renderListings(rows, client, { preferCategory = "" } = {}) {
   listingGrid.innerHTML = "";
   hideHoverPop();
 
@@ -446,7 +492,11 @@ function renderListings(rows, client) {
     return;
   }
 
+  // Each listing shows once: the first row that claims it (Featured,
+  // then Local) keeps it, and the rest go under a single category row.
+  const placed = new Set();
   const featuredRows = pickFeatured(rows);
+  featuredRows.forEach((row) => placed.add(row.id));
   if (featuredRows.length) {
     listingGrid.appendChild(
       renderSection({
@@ -465,12 +515,14 @@ function renderListings(rows, client) {
   // pending for old listings) are silently skipped.
   if (consultantCity) {
     const localRows = rows.filter((row) => {
+      if (placed.has(row.id)) return false;
       const lat = Number(row.lat);
       const lng = Number(row.lng);
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
       return haversineMiles(consultantCity.lat, consultantCity.lng, lat, lng)
         <= LOCAL_RADIUS_MILES;
     });
+    localRows.forEach((row) => placed.add(row.id));
     if (localRows.length) {
       listingGrid.appendChild(
         renderSection({
@@ -483,11 +535,13 @@ function renderListings(rows, client) {
     }
   }
 
-  // By tag — bucket every row by each of its categories. A row can
-  // appear in multiple tag rows (one per category). Order by bucket size desc.
+  // By tag: each remaining row goes under its first category, or under
+  // the filtered category when a category filter is on. Rows still show
+  // every tag on the card. Order by bucket size desc.
   const byTag = new Map();
   const untagged = [];
   for (const row of rows) {
+    if (placed.has(row.id)) continue;
     const cats = row.category
       ? row.category.split(",").map((c) => c.trim()).filter(Boolean)
       : [];
@@ -495,10 +549,9 @@ function renderListings(rows, client) {
       untagged.push(row);
       continue;
     }
-    for (const c of cats) {
-      if (!byTag.has(c)) byTag.set(c, []);
-      byTag.get(c).push(row);
-    }
+    const c = preferCategory && cats.includes(preferCategory) ? preferCategory : cats[0];
+    if (!byTag.has(c)) byTag.set(c, []);
+    byTag.get(c).push(row);
   }
   const sorted = [...byTag.entries()].sort((a, b) => b[1].length - a[1].length);
   for (const [tag, list] of sorted) {
@@ -620,7 +673,7 @@ function applyFilters() {
   });
 
   renderResultCount(sorted.length, allRows.length);
-  renderListings(sorted, _client);
+  renderListings(sorted, _client, { preferCategory: catFilter });
 }
 
 function setupFilterListeners() {
@@ -668,18 +721,21 @@ async function refreshListings(client) {
   }
 
   allRows = rows || [];
+  updateGuestBannerForRows(allRows);
 
-  // Fetch business profiles
+  // The three follow-up queries run in parallel. Cards paint once names
+  // (shown on every card) and offer counts (they pick the Featured row)
+  // are in; badges are small icons, so they fill in after first paint.
   const ownerIds = [...new Set(allRows.map(r => r.owner_id))];
+  let badgesPromise = null;
   if (ownerIds.length) {
-    const [{ data: bizProfiles }, badges, counts] = await Promise.all([
+    badgesPromise = loadBusinessBadges(client, ownerIds).catch(() => null);
+    const [{ data: bizProfiles }, counts] = await Promise.all([
       client.from("business_profiles").select("user_id, business_name").in("user_id", ownerIds),
-      loadBusinessBadges(client, ownerIds),
       loadOfferCounts(client, allRows.map(r => r.id)),
     ]);
     bizMap = {};
     (bizProfiles || []).forEach(b => { bizMap[b.user_id] = b; });
-    badgeMap = badges;
     offerCounts = counts;
   }
 
@@ -688,6 +744,11 @@ async function refreshListings(client) {
   renderResultCount(allRows.length, allRows.length);
   renderListings(allRows, client);
   setupFilterListeners();
+
+  if (badgesPromise) {
+    badgeMap = await badgesPromise;
+    patchBadgesIntoCards();
+  }
 }
 
 async function init() {
