@@ -1210,6 +1210,78 @@ app.get("/api/public-config", (_req, res) => {
   });
 });
 
+// Student applications from /for-students. Consultant signup is invite-only,
+// so this emails the application to the admin, who replies with an invite.
+// It sits above the /api Supabase gate because it needs no database. Nothing
+// is stored, so the student only sees success if the email really went out.
+const APPLICATION_LIMIT = 5;
+const APPLICATION_WINDOW_MS = 10 * 60 * 1000;
+const applicationHits = new Map();
+
+// Best-effort per-instance cap, so a bot can't burn the daily Resend quota
+// that transactional emails depend on.
+function applicationRateLimited(ip) {
+  const now = Date.now();
+  for (const [key, hit] of applicationHits) {
+    if (now > hit.resetAt) applicationHits.delete(key);
+  }
+  const hit = applicationHits.get(ip) || { count: 0, resetAt: now + APPLICATION_WINDOW_MS };
+  hit.count += 1;
+  applicationHits.set(ip, hit);
+  return hit.count > APPLICATION_LIMIT;
+}
+
+app.post("/api/student-application", async (req, res) => {
+  const body = req.body || {};
+  const line = (value, max) => String(value ?? "").replace(/\s+/g, " ").trim().slice(0, max);
+
+  // Honeypot: people never see this field, so pretend it worked.
+  if (line(body.website, 200)) return res.json({ ok: true });
+
+  const ip = String(req.get("x-forwarded-for") || req.ip || "").split(",")[0].trim();
+  if (applicationRateLimited(ip)) {
+    return res.status(429).json({ error: "Too many attempts. Please try again in a few minutes." });
+  }
+
+  const name = line(body.name, 120);
+  const school = line(body.school, 160);
+  const email = line(body.email, 200).toLowerCase();
+  const city = line(body.city, 120);
+  const link = line(body.link, 500);
+  const why = String(body.why ?? "").trim().slice(0, 2000);
+  if (!name || !school || !email || !city || !why) {
+    return res.status(400).json({ error: "Please fill in every field." });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.edu$/.test(email)) {
+    return res.status(400).json({ error: "Please use your .edu email." });
+  }
+
+  const result = await sendEmail({
+    to: PRIVACY_ADMIN_EMAIL,
+    subject: `[grassroots] student application — ${name}, ${school}`,
+    replyTo: email,
+    text:
+      `A student applied to join Grassroots.\n\n` +
+      `Name:   ${name}\n` +
+      `School: ${school}\n` +
+      `Email:  ${email}\n` +
+      `City:   ${city}\n` +
+      `Work:   ${link || "none given"}\n\n` +
+      `Why Grassroots:\n${why}\n\n` +
+      `Reply to this email to reach them. Applicants join through a consultant invite link.`,
+    idempotencyKey: `student-application:${crypto.createHash("sha256").update(`${email}\n${why}`).digest("hex")}`,
+    tags: [{ name: "event", value: "student_application" }],
+  });
+
+  if (!result.sent && result.reason !== "duplicate") {
+    console.warn("[student-application] not sent", result.reason || result.status);
+    return res.status(503).json({
+      error: `We couldn't send your application. Please email ${PRIVACY_ADMIN_EMAIL} instead.`,
+    });
+  }
+  res.json({ ok: true });
+});
+
 app.use("/api", (req, res, next) => {
   if (req.path === "/public-config") {
     return next();

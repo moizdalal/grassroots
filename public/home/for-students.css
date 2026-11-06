@@ -158,16 +158,29 @@
       .fs-hero {
         padding: clamp(40px, 6vw, 80px) 0 clamp(60px, 8vw, 110px);
       }
-      /* hero: copy on the left, the town map on the right */
+      /* hero: title, button and sentence on the left, laptop on the right.
+         The laptop column runs past the page shell on the right so the screen
+         stays big enough to read. Narrower screens stack them. */
       .fs-hero__grid {
         display: grid;
-        grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-        gap: clamp(32px, 4vw, 64px);
-        align-items: center;
+        gap: clamp(44px, 5vw, 64px);
       }
-      @media (max-width: 960px) {
-        .fs-hero__grid { grid-template-columns: 1fr; }
-        .fs-laptop { display: none; }
+      @media (min-width: 1101px) {
+        .fs-hero__grid {
+          grid-template-columns: minmax(0, 9fr) minmax(0, 15fr);
+          column-gap: clamp(60px, 6vw, 88px);
+          /* the sentence's last line and the laptop's base share a bottom edge */
+          align-items: end;
+          margin-right: max(-160px, min(0px, calc((1240px - 100vw) / 2 + 30px)));
+        }
+        .fs-hero__grid .fs-laptop { max-width: none; }
+        .fs-hero__h1 { font-size: clamp(2.7rem, 4.1vw, 4rem); line-height: 1; }
+        /* sits level with the laptop's base, so keep it well clear of it */
+        .fs-hero__sub { max-width: 20em; }
+      }
+      /* no spare margin to run into here, so keep the base on screen */
+      @media (min-width: 1101px) and (max-width: 1260px) {
+        .fs-hero__grid .fs-laptop { width: 96%; margin-inline: 0 auto; }
       }
 
       /* ── laptop: the student marketplace ──
@@ -177,8 +190,11 @@
       .fs-laptop {
         position: relative;
         width: 100%;
-        max-width: 560px;
-        margin-left: auto;
+        /* the base sticks out 7% each side, so leave it room on smaller screens */
+        max-width: min(1020px, 86vw);
+        margin-inline: auto;
+        perspective: 5000px;
+        perspective-origin: 50% -20%;
         animation: fs-laptop-float 7s ease-in-out infinite;
       }
       @keyframes fs-laptop-float {
@@ -187,14 +203,64 @@
       }
       .fs-laptop__screen {
         position: relative;
-        aspect-ratio: 900 / 580;
+        aspect-ratio: 900 / 500;
         overflow: hidden;
         border: 10px solid #0e1411;
         border-bottom-width: 14px;
         border-radius: 16px 16px 6px 6px;
         background: var(--fo-bg);
         box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--fo-text) 14%, transparent);
+        /* The lid starts shut on the base and swings open once the hero shows. */
+        transform: rotateX(-88deg);
+        transform-origin: 50% 100%;
+        transition: transform 2.2s cubic-bezier(0.45, 0, 0.2, 1) 0.3s;
       }
+      .fs-laptop.is-visible .fs-laptop__screen { transform: none; }
+      /* After the first open, a click shuts or reopens the lid, a bit quicker
+         and with no wait. */
+      .fs-laptop.is-toggled .fs-laptop__screen { transition: transform 1.2s cubic-bezier(0.45, 0, 0.2, 1); }
+      .fs-laptop.is-closed .fs-laptop__screen { transform: rotateX(-88deg); }
+      /* The back of the lid. Seen nearly flat, the screen would show mirrored,
+         so this covers it for the last moments of closing. */
+      .fs-laptop__lid {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(#2b342f, #1a211d);
+        opacity: 1;
+        transition: opacity 0.3s ease 0.55s;
+      }
+      .fs-laptop.is-visible .fs-laptop__lid { opacity: 0; }
+      .fs-laptop.is-toggled .fs-laptop__lid { transition: opacity 0.2s ease 0.1s; }
+      .fs-laptop.is-closed .fs-laptop__lid { opacity: 1; transition: opacity 0.2s ease 0.75s; }
+      .fs-laptop__toggle {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        display: block;
+        width: 100%;
+        padding: 0;
+        border: 0;
+        border-radius: 16px;
+        background: transparent;
+        cursor: pointer;
+      }
+      .fs-laptop__toggle:focus-visible { outline: 2px solid var(--fo-accent); outline-offset: 4px; }
+      .fs-laptop__hint {
+        position: absolute;
+        left: 50%;
+        bottom: 56px;
+        transform: translateX(-50%);
+        padding: 0.55em 1.1em;
+        border: 1px solid var(--fo-line-strong);
+        border-radius: 999px;
+        font-family: var(--font-body);
+        font-size: 0.95rem;
+        color: var(--fo-text-2);
+        white-space: nowrap;
+        opacity: 0;
+        transition: opacity 0.15s ease;
+      }
+      .fs-laptop.is-closed .fs-laptop__hint { opacity: 1; transition: opacity 0.3s ease 0.9s; }
       .fs-laptop__base {
         position: relative;
         height: 14px;
@@ -202,6 +268,15 @@
         border-radius: 3px 3px 14px 14px;
         background: linear-gradient(#232b27, #121815);
         box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
+        /* Shut, the lid covers the keyboard, so the base's front edge has to
+           sit at the near edge of the lid rather than at the hinge. */
+        transform: translateY(calc(var(--k, 1) * var(--k, 1) * (31px + var(--k, 1) * 16px)));
+        transition: transform 0.35s ease;
+      }
+      .fs-laptop.is-visible .fs-laptop__base { transform: none; }
+      .fs-laptop.is-closed .fs-laptop__base {
+        transform: translateY(calc(var(--k, 1) * var(--k, 1) * (31px + var(--k, 1) * 16px)));
+        transition: transform 0.45s ease-in 0.7s;
       }
       .fs-laptop__base::before {
         content: "";
@@ -214,12 +289,15 @@
       }
       [data-theme="light"] .fs-laptop__base { box-shadow: 0 30px 50px rgba(20, 32, 26, 0.2); }
 
+      /* The screen always shows the light marketplace in every theme
+         (data-theme="light" on .fs-laptop__screen). The black frame stays. */
+
       .fs-laptop__ui {
         position: absolute;
         left: 0; top: 0;
         width: 900px;
-        height: 580px;
-        transform: scale(var(--k, 0.5));
+        height: 500px;
+        transform: scale(var(--k, 1));
         transform-origin: top left;
         font-family: var(--font-body);
         color: var(--fo-text);
@@ -275,12 +353,11 @@
         opacity: 0;
         transform: translateY(14px);
       }
-      :root:not([data-theme="light"]) .fs-mk__card { background: var(--fo-surface-2); }
       .fs-laptop.is-visible .fs-mk__card {
         opacity: 1;
         transform: none;
         transition: opacity 0.6s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.3s ease, box-shadow 0.3s ease;
-        transition-delay: calc(0.3s + var(--i) * 0.08s), calc(0.3s + var(--i) * 0.08s), 0s, 0s;
+        transition-delay: calc(1.7s + var(--i) * 0.08s), calc(1.7s + var(--i) * 0.08s), 0s, 0s;
       }
       .fs-laptop.is-visible .fs-mk__card.is-hover {
         transform: translateY(-4px);
@@ -328,7 +405,6 @@
         transform: translateX(105%);
         transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
       }
-      :root:not([data-theme="light"]) .fs-mk__panel { background: var(--fo-surface-2); }
       .fs-mk__panel.is-open { transform: none; }
       .fs-mk__panel-biz { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fo-text-2); }
       .fs-mk__panel-title { font-family: var(--font-display); font-weight: 500; font-size: 22px; line-height: 1.2;
@@ -374,17 +450,17 @@
         position: absolute;
         left: 0; top: 0;
         width: 26px; height: 26px;
-        transform: translate(760px, 500px);
+        transform: translate(760px, 440px);
         transition: transform 0.8s cubic-bezier(0.45, 0, 0.25, 1);
         z-index: 5;
       }
       .fs-mk__cursor path { fill: #fff; stroke: #0e1411; stroke-width: 1.4; stroke-linejoin: round; }
       .fs-mk__cursor.is-click path { fill: var(--fo-accent); }
 
-      /* notifications pop up over the laptop's bottom-left corner */
+      /* notifications pop up in the top-right corner of the laptop's screen */
       .fs-laptop__toast {
-        position: absolute; z-index: 6;
-        left: -26px; bottom: 34px;
+        position: absolute; z-index: 4;
+        right: 16px; top: 68px;
         display: flex; align-items: center; gap: 0.65rem;
         padding: 0.7rem 1rem 0.7rem 0.7rem;
         border-radius: 18px;
@@ -395,7 +471,6 @@
         transform: translateY(12px) scale(0.95);
         transition: opacity 0.3s ease, transform 0.5s cubic-bezier(0.34, 1.4, 0.64, 1);
       }
-      :root:not([data-theme="light"]) .fs-laptop__toast { background: var(--fo-surface-2); }
       .fs-laptop__toast.is-on { opacity: 1; transform: none; }
       .fs-laptop__toast-icon {
         display: inline-grid; place-items: center;
@@ -408,26 +483,34 @@
       .fs-laptop__toast-body b { font-size: 0.78rem; font-weight: 700; color: var(--fo-text); }
       .fs-laptop__toast-text { font-size: 0.9rem; color: var(--fo-text-2); white-space: nowrap; }
 
+      /* on a phone the frame and label shrink with the screen */
+      @media (max-width: 760px) {
+        .fs-laptop__screen { border-width: 5px 5px 7px; border-radius: 9px 9px 3px 3px; }
+        .fs-laptop__base { height: 9px; border-radius: 2px 2px 8px 8px; }
+        .fs-laptop__base::before { height: 3px; }
+        .fs-laptop__hint { bottom: 20px; font-size: 0.85rem; }
+      }
+
       @media (prefers-reduced-motion: reduce) {
         .fs-laptop { animation: none; }
+        .fs-laptop__screen { transform: none; transition: none; }
         .fs-mk__card { opacity: 1; transform: none; }
       }
 
       .fs-hero__h1 {
         font-family: var(--font-display);
         font-weight: 500;
-        font-size: clamp(2.6rem, 6.6vw, 5.4rem);
+        font-size: clamp(2.4rem, 5.4vw, 4.9rem);
         line-height: 0.95;
         letter-spacing: -0.035em;
         color: var(--fo-text);
         margin: 0 0 1.1rem;
         text-wrap: balance;
-        /* keeps "for the work you / actually want to do." on two even lines */
         max-width: 760px;
         font-weight: 600;
         font-style: normal;
       }
-      /* The green words ("paid" and "actually") are upright and use Fraunces'
+      /* The green words ("Get paid") are upright and use Fraunces'
          heading-size cut (opsz 40, like the "how it works." title): sturdier,
          with less thick/thin contrast than the display cut the browser picks
          at this size. */
@@ -442,11 +525,12 @@
         font-size: clamp(1rem, 1.3vw, 1.15rem);
         line-height: 1.5;
         color: var(--fo-text-2);
-        margin: 0 0 1.5rem;
+        margin: 0;
         max-width: 42ch;
+        text-wrap: pretty;
       }
 
-      .fs-hero__ctas { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+      .fs-hero__ctas { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin: 1.9rem 0 1.6rem; }
 
       .fs-btn {
         position: relative;
@@ -485,6 +569,26 @@
       }
       .fs-btn:hover .fs-btn__arrow { transform: translateX(3px); }
       .fs-btn--lg { padding: 1.15rem 1.85rem; font-size: 1.05rem; }
+      /* The hero's apply button is the page's main action, so it's the largest
+         thing after the headline, with a soft ring that keeps drawing the eye. */
+      .fs-hero__ctas .fs-btn--primary {
+        padding: 1.4rem 2.7rem;
+        gap: 0.7rem;
+        font-size: 1.3rem;
+        animation: fs-apply-ring 2.8s ease-out infinite;
+      }
+      .fs-hero__ctas .fs-btn--primary:hover { animation: none; }
+      .fs-hero__ctas .fs-btn__arrow svg { width: 22px; height: 22px; }
+      @keyframes fs-apply-ring {
+        0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--fo-accent) 55%, transparent), 0 14px 40px rgba(0,0,0,0.28); }
+        70%, 100% { box-shadow: 0 0 0 16px color-mix(in srgb, var(--fo-accent) 0%, transparent), 0 14px 40px rgba(0,0,0,0.28); }
+      }
+      @media (max-width: 560px) {
+        .fs-hero__ctas .fs-btn--primary { width: 100%; justify-content: center; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .fs-hero__ctas .fs-btn--primary { animation: none; }
+      }
 
       /* ───────────────── section base ───────────────── */
       .fs-section { padding: clamp(80px, 10vw, 140px) 0; }
@@ -529,61 +633,119 @@
       }
       .fs-split__title { font-size: clamp(2.2rem, 3.8vw, 3.4rem); }
 
-      /* numbered benefit rows */
-      .fs-rows {
-        list-style: none;
+      /* why join: the top reasons, side by side, with nothing to scroll */
+      .fs-why .fs-split__head {
+        position: static;
+        margin-bottom: clamp(28px, 3.5vw, 44px);
+      }
+      .fs-why .fs-section__sub { margin-bottom: 0; }
+      .fs-why__grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
         margin: 0;
         padding: 0;
-        border-top: 1px solid var(--fo-line-strong);
+        list-style: none;
       }
-      .fs-row {
-        display: grid;
-        grid-template-columns: 3.4rem minmax(0, 1fr);
-        gap: 0.5rem;
-        padding: clamp(22px, 2.6vw, 32px) 0;
-        position: relative;
+      @media (max-width: 760px) { .fs-why__grid { grid-template-columns: 1fr; } }
+      .fs-why__card {
+        display: flex;
+        flex-direction: column;
+        gap: 0.7rem;
+        padding: 26px;
+        background: var(--fo-surface);
+        border: 1px solid var(--fo-line);
+        border-radius: 20px;
       }
-      .fs-row__num,
-      .fs-row__title {
+      :root:not([data-theme="light"]) .fs-why__card { background: transparent; }
+      .fs-why__icon {
+        display: inline-grid; place-items: center;
+        width: 46px; height: 46px;
+        margin-bottom: 0.4rem;
+        border-radius: 13px;
+        background: color-mix(in srgb, var(--fo-accent) 14%, transparent);
+        color: var(--fo-accent);
+      }
+      .fs-why__icon svg { width: 25px; height: 25px; }
+      .fs-why__title {
         font-family: var(--font-display);
-        font-weight: 500;
-        font-size: clamp(1.4rem, 2vw, 1.75rem);
+        font-size: clamp(1.45rem, 1.9vw, 1.7rem);
         line-height: 1.15;
         letter-spacing: -0.02em;
         font-weight: 600;
         font-style: normal;
+        color: var(--fo-text);
+        margin: 0;
       }
-      .fs-row__num {
-        color: var(--fo-accent);
-        font-variation-settings: "opsz" 40;
-      }
-      .fs-row__title { color: var(--fo-text); margin: 0 0 0.5rem; }
-      .fs-row__body,
-      .fs-row__tags {
+      .fs-why__body {
         font-family: var(--font-body);
         font-size: 1rem;
         line-height: 1.55;
         color: var(--fo-text-2);
         margin: 0;
-        max-width: 56ch;
       }
-      .fs-row__tags { margin-top: 0.6rem; font-size: 0.88rem; color: var(--fo-accent); }
 
-      /* check lists: the trust guarantees and the requirements */
+      /* how you get paid: bars step down from the first fee to the lowest one,
+         and each bar gets greener as the fee drops */
+      .fs-fee {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: clamp(6px, 1.2vw, 14px);
+        align-items: end;
+        height: clamp(230px, 24vw, 300px);
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .fs-fee__step {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        gap: 10px;
+        height: 100%;
+      }
+      .fs-fee__pct {
+        font-family: var(--font-display);
+        font-size: clamp(1.25rem, 2vw, 1.7rem);
+        font-weight: 600;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        text-align: center;
+        color: var(--fo-text);
+      }
+      .fs-fee__bar {
+        display: block;
+        height: calc(var(--fee) / 30 * 76%);
+        border-radius: 12px 12px 4px 4px;
+        background: color-mix(in srgb, var(--fo-accent) calc((35 - var(--fee)) * 3.3%), transparent);
+        transform: scaleY(0);
+        transform-origin: bottom;
+        transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+        transition-delay: calc(0.3s + var(--i, 0) * 0.12s);
+      }
+      .fs-stagger.is-visible .fs-fee__bar { transform: none; }
+      .fs-fee__axis {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px solid var(--fo-line-strong);
+        font-family: var(--font-body);
+        font-size: 0.95rem;
+        color: var(--fo-text-2);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .fs-fee__bar { transform: none; transition: none; }
+      }
+
+      /* check list: the requirements */
       .fs-checks {
         list-style: none;
         margin: 0;
         padding: 0;
         border-top: 1px solid var(--fo-line-strong);
       }
-      /* sits right under the benefit rows, whose last line is its top edge */
-      .fs-checks--two {
-        border-top: 0;
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        column-gap: clamp(24px, 3vw, 40px);
-      }
-      @media (max-width: 560px) { .fs-checks--two { grid-template-columns: 1fr; } }
       .fs-check {
         display: grid;
         grid-template-columns: auto minmax(0, 1fr);
@@ -680,7 +842,7 @@
       }
 
       /* ───────────────── split section motion ─────────────────
-         Headline words rise in one by one; rows, checks and steps arrive
+         Headline words rise in one by one; cards, checks and steps arrive
          in a stagger (--i, set by the page script) with their hairlines
          drawing left to right and the checks popping in; the how-it-works
          line fills as you scroll (--fill, set by the page script). */
@@ -709,7 +871,6 @@
       }
       .fs-stagger.is-visible > li { opacity: 1; transform: none; }
 
-      .fs-row::after,
       .fs-check::after {
         content: "";
         position: absolute;
@@ -721,7 +882,6 @@
         transition: transform 1s cubic-bezier(0.22, 1, 0.36, 1);
         transition-delay: calc(0.3s + var(--i, 0) * 0.12s);
       }
-      .fs-stagger.is-visible > .fs-row::after,
       .fs-stagger.is-visible > .fs-check::after { transform: none; }
 
       .fs-check::before {
@@ -745,7 +905,7 @@
 
       @media (prefers-reduced-motion: reduce) {
         .fs-word, .fs-split__head .fs-section__sub, .fs-stagger > li,
-        .fs-row::after, .fs-check::after, .fs-check::before {
+        .fs-check::after, .fs-check::before {
           opacity: 1; transform: none; transition: none;
         }
         .fs-steps::after { transform: none; }
@@ -773,6 +933,14 @@
         margin-top: clamp(20px, 2.5vw, 28px);
       }
       @media (max-width: 960px) { .fs-paths { grid-template-columns: 1fr; } }
+      /* Only the apply panel for now: the refer panel is hidden until referrals
+         are real. Components set their own display, so [hidden] needs help. */
+      .fs-path[hidden], .fs-btn[hidden], .fs-paths__title[hidden], .fs-foot__col li[hidden] { display: none; }
+      .fs-paths:has(> .fs-path[hidden]) {
+        grid-template-columns: minmax(0, 760px);
+        justify-content: center;
+        margin-top: clamp(56px, 7vw, 90px);
+      }
       .fs-path {
         background: var(--fo-surface);
         border: 1px solid var(--fo-line-strong);
@@ -801,6 +969,7 @@
         color: var(--fo-text);
         font-weight: 600;
         font-style: normal;
+        text-wrap: balance;
       }
       .fs-path--refer .fs-path__head { color: var(--fo-accent-on); }
       .fs-path--refer .fs-italic { color: color-mix(in srgb, var(--fo-accent-on) 80%, transparent); }
@@ -823,17 +992,27 @@
         display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
       }
       @media (max-width: 480px) { .fs-apply-form__row { grid-template-columns: 1fr; } }
+      /* Honeypot: off-screen for people, still filled in by bots. */
+      .fs-apply-form__trap {
+        position: absolute;
+        left: -9999px;
+        width: 1px; height: 1px;
+        overflow: hidden;
+      }
+      .fs-apply-form__status {
+        margin: 4px 0 0;
+        font-size: 0.92rem;
+        line-height: 1.5;
+        color: var(--fo-accent-warm);
+      }
       .fs-field {
         display: grid; gap: 6px;
       }
       .fs-field__label {
         font-family: var(--font-body);
-        font-size: 0.7rem;
-        color: var(--fo-text-3);
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
+        font-size: 0.9rem;
+        color: var(--fo-text-2);
       }
-      body.gr-body .fs-field__label { text-transform: uppercase; }
       .fs-field input, .fs-field select, .fs-field textarea {
         width: 100%;
         padding: 0.85rem 1rem;

@@ -399,7 +399,7 @@ export const MODULES = [
           "Client data, logins, numbers and customer lists are private. Treat them that way.",
           "Use them only for the engagement. Return or delete them when it ends, or when asked (Terms section 13).",
           "This lasts 2 years after the engagement, and forever for trade secrets and customer data.",
-          "Ask before you put their work in your portfolio.",
+          "Ask before you put their work on your resume.",
         ],
       },
       {
