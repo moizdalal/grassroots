@@ -95,9 +95,9 @@ const BUSINESS_STEPS = [
     label: "Photo",
     path: "/settings.html",
     hash: "#personal",
-    // First selector covers the no-avatar state (upload label visible).
+    // First selector covers the no-avatar state (empty photo square is the picker).
     // Second covers the has-avatar state (change/remove buttons visible).
-    targetSelector: ["#pf-avatar-upload-label:not(.hidden)", "#pf-avatar-change-btn"],
+    targetSelector: ["#pf-avatar-pick.is-empty", "#pf-avatar-change-btn"],
     // Anything tied to the photo section needs to pass the guardrail:
     //   • .settings-section__body--avatar — users instinctively click the
     //     avatar image / ring itself; whitelisting the whole photo body
@@ -697,7 +697,7 @@ const CONSULTANT_STEPS = [
     label: "Photo",
     path: "/settings.html",
     hash: "#personal",
-    targetSelector: ["#pf-avatar-upload-label:not(.hidden)", "#pf-avatar-change-btn"],
+    targetSelector: ["#pf-avatar-pick.is-empty", "#pf-avatar-change-btn"],
     placement: "right",
     advanceOn: "next",
     title: "Show your face.",

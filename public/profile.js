@@ -499,6 +499,7 @@ function setAvatarPreview(src) {
 function renderAvatarState() {
   const uploadLabel = document.getElementById("pf-avatar-upload-label");
   const actions = document.getElementById("pf-avatar-actions");
+  document.getElementById("pf-avatar-pick")?.classList.toggle("is-empty", !currentAvatarPath);
   if (!uploadLabel || !actions) return;
   if (currentAvatarPath) {
     uploadLabel.classList.add("hidden");
@@ -1171,7 +1172,7 @@ avatarInput.addEventListener("change", async () => {
 });
 
 document.addEventListener("click", (event) => {
-  const changeBtn = event.target.closest("#pf-avatar-change-btn");
+  const changeBtn = event.target.closest("#pf-avatar-change-btn, #pf-avatar-pick");
   if (changeBtn instanceof HTMLElement) {
     event.preventDefault();
     avatarInput?.click();
