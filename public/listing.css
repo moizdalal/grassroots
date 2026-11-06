@@ -260,6 +260,19 @@
   color: var(--fo-text, var(--muted));
 }
 
+.ld-bio__add-name {
+  display: inline-block;
+  margin-top: var(--space-1);
+  font-size: var(--type-meta);
+  font-weight: 600;
+  color: var(--fo-accent);
+  text-decoration: none;
+}
+
+.ld-bio__add-name:hover {
+  text-decoration: underline;
+}
+
 .ld-bio__badges {
   margin: 0.35rem 0 0.25rem;
 }
@@ -620,6 +633,98 @@ body.ld-modal-open { overflow: hidden; }
 /* Draft banner — pinned above the listing layout when the owner is
    previewing their own unpublished listing. Purple hairline + soft
    tint so the page reads as "in progress" without screaming. */
+/* Owner "you just posted" confirmation. Calm accent outline, no
+   motion. Light theme gets a soft fill; dark themes stay border-only
+   per the brandkit card rule. */
+.ld-posted {
+  margin-bottom: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid color-mix(in srgb, var(--fo-accent) 45%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--fo-accent) 8%, var(--fo-surface));
+  outline: none;
+}
+:root:not([data-theme="light"]) .ld-posted {
+  background: transparent;
+}
+
+.ld-posted:focus-visible {
+  box-shadow: 0 0 0 2px var(--fo-accent);
+}
+
+.ld-posted__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.ld-posted__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-style: normal;
+  font-size: var(--type-h2);
+  color: var(--fo-text);
+}
+
+.ld-posted__close {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin: calc(var(--space-1) * -1) calc(var(--space-2) * -1) 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fo-text-2);
+  cursor: pointer;
+}
+
+.ld-posted__close:hover {
+  color: var(--fo-text);
+  background: var(--fo-accent-soft);
+}
+
+.ld-posted__close svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.ld-posted__lead {
+  margin: var(--space-2) 0 0;
+  font-size: var(--type-body);
+  color: var(--fo-text-2);
+  line-height: 1.45;
+}
+
+.ld-posted__steps {
+  margin: var(--space-3) 0 0;
+  padding-left: var(--space-5);
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--type-body);
+  color: var(--fo-text);
+  line-height: 1.45;
+}
+
+.ld-posted__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.ld-posted__status {
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+  overflow-wrap: anywhere;
+}
+
 .ld-draft-banner {
   display: flex;
   align-items: center;

@@ -16,7 +16,8 @@
 //                               conversion target — most guests are
 //                               assumed to be businesses)
 
-import { isGuest, setGuestMode } from "/guest-mode.js";
+import { isGuest, setGuestMode, clearGuestMode } from "/guest-mode.js";
+import { getSupabaseClient } from "/supabase-loader.js";
 
 const NAV_CSS_HREF = "/home/nav.css";
 const GUEST_NAV_CSS_HREF = "/guest-nav.css";
@@ -105,13 +106,60 @@ function wireScrollChrome(nav) {
   window.addEventListener("resize", update);
 }
 
-function init() {
-  if (!isGuest()) return;
+// Synchronous hint: does localStorage hold a Supabase session token?
+// Same probe as the inline pre-paint scripts. It can't tell a live
+// token from a dead one, so it only decides whether we wait for
+// getSession() before painting.
+function hasStoredSessionToken() {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith("sb-") && k.includes("-auth-token")) {
+        const v = localStorage.getItem(k);
+        if (v && v !== "null" && v !== "{}") return true;
+      }
+    }
+  } catch (_) {}
+  return false;
+}
 
-  // Persist the flag now so internal links carry it without each page
-  // having to re-read ?guest=1 from its own URL.
-  setGuestMode();
+async function confirmSession() {
+  try {
+    const client = await getSupabaseClient();
+    const { data } = await client.auth.getSession();
+    return data?.session?.user ? data.session : null;
+  } catch (_) {
+    return null;
+  }
+}
 
+// A real session wins over a leftover guest flag. Clear the flag, drop
+// ?guest=1 from the URL, remove any guest bar we painted, and give the
+// side nav a second chance: side-nav.js bails when it sees guest mode,
+// and by the time getSession() resolves its first run has finished, so
+// the body class tells us whether it rendered.
+function leaveGuestMode() {
+  clearGuestMode();
+  try {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("guest")) {
+      url.searchParams.delete("guest");
+      history.replaceState(history.state, "", url.pathname + url.search + url.hash);
+    }
+  } catch (_) {}
+  document.querySelectorAll(".gr-guest-nav").forEach((el) => el.remove());
+  document.body.classList.remove("gr-guest-body");
+  if (
+    !document.body.classList.contains("gr-has-side-nav") &&
+    !document.querySelector("aside.bza__side")
+  ) {
+    // Query string forces a fresh module instance; the first one has
+    // already returned early.
+    import("/side-nav.js?after-guest=1").catch(() => {});
+  }
+}
+
+function paintGuestNav() {
   // Skip if a guest nav has already been injected (defensive — both
   // marketplace.html and listing.html load this module via <script>,
   // and a stray duplicate include shouldn't double-render the bar).
@@ -127,8 +175,29 @@ function init() {
   wireScrollChrome(nav);
 }
 
+async function init() {
+  if (!isGuest()) return;
+
+  // A stored token means this is probably a signed-in user with a stale
+  // guest flag (they browsed as a guest, then signed up in the same
+  // tab). Wait for the session check before painting so they never see
+  // "Browsing as guest" on their own pages.
+  if (hasStoredSessionToken()) {
+    const session = await confirmSession();
+    if (session) {
+      leaveGuestMode();
+      return;
+    }
+  }
+
+  // Persist the flag now so internal links carry it without each page
+  // having to re-read ?guest=1 from its own URL.
+  setGuestMode();
+  paintGuestNav();
+}
+
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", init);
+  document.addEventListener("DOMContentLoaded", () => { init(); });
 } else {
   init();
 }
