@@ -42,21 +42,62 @@
   margin-top: 0.4rem;
 }
 
+/* Rules stay at the meta size in --fo-text-2 so they read at a glance
+   (they used to be 0.72rem in --fo-text-3, too faint on dark themes). */
 .gr-auth-card #reg-pw-rules li {
-  padding-left: 1.05rem;
-  font-size: 0.72rem;
+  padding-left: 1.25rem;
+  font-size: var(--type-meta);
+  font-weight: 500;
+  color: var(--fo-text-2, var(--tagline-body));
+}
+
+.gr-auth-card #reg-pw-rules li.is-met {
+  color: var(--fo-accent, var(--green-mid));
 }
 
 .gr-auth-card #reg-pw-rules li::before {
-  width: 0.7rem;
-  height: 0.7rem;
-  border-width: 1.3px;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-width: 1.5px;
+  opacity: 0.8;
 }
 
 .gr-auth-card #reg-pw-rules li::after {
-  left: 0.2rem;
-  width: 0.3rem;
-  height: 0.16rem;
+  left: 0.25rem;
+  width: 0.36rem;
+  height: 0.2rem;
+}
+
+/* --- Inline field errors --- */
+.reg-field-error {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--type-meta);
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--fo-plan);
+}
+
+.gr-label input[aria-invalid="true"],
+.gr-label select[aria-invalid="true"] {
+  border-color: var(--fo-plan);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--fo-plan) 22%, transparent);
+}
+
+#reg-consent-error {
+  margin-top: 0.4rem;
+}
+
+/* Status line under the form (server errors, "signing you in"): body
+   font, not the serif display face field-office.css gives .gr-status. */
+.gr-auth-card .gr-status {
+  font-family: var(--font-body);
+  font-size: var(--type-meta);
+  font-weight: 600;
+}
+
+.reg-field-hint {
+  margin: 0;
 }
 
 /* --- Progress Bar --- */
@@ -491,33 +532,6 @@ a.reg-role-card--apply:visited {
   border-top: 1px solid var(--card-border);
 }
 
-/* Disclosure line under the create-account button, linking to privacy/ToS.
-   Only visible on the final step (the JS toggles .is-final on the form). */
-.reg-disclosure {
-  margin: 0.85rem 0 0;
-  font-size: var(--type-meta);
-  color: var(--fo-text-3, var(--tagline-body));
-  line-height: 1.45;
-  text-align: center;
-  display: none;
-}
-
-.reg-flow.is-final .reg-disclosure,
-form.is-final .reg-disclosure {
-  display: block;
-}
-
-.reg-disclosure a {
-  color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 0.18em;
-}
-
-.reg-disclosure a:hover,
-.reg-disclosure a:focus-visible {
-  color: var(--fo-accent);
-}
-
 /* Required consent checkbox — only visible on the final step alongside the
    create-account button. Aligned the checkbox + label as a row so the
    target stays comfortable on mobile. */
@@ -559,8 +573,12 @@ form.is-final .reg-consent {
   text-decoration: none;
 }
 
+.reg-consent__text {
+  cursor: pointer;
+}
+
 .reg-consent.is-invalid {
-  border-color: var(--fo-plan, #cc6666);
+  border-color: var(--fo-accent-warm);
 }
 
 /* Empty until desktop-hint.js fills it on phones. */
@@ -630,4 +648,13 @@ a.reg-role-card {
 
 #reg-invite-fallback .reg-join-actions {
   margin-top: var(--space-4);
+}
+
+/* --- Business basics (/business-basics.html, owner step 2 of 2) --- */
+.bb-form .gr-field-stack {
+  gap: 1rem;
+}
+
+.bb-form .reg-nav {
+  margin-top: 1.25rem;
 }

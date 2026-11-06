@@ -1,5 +1,6 @@
 import { getSupabaseClient } from "/supabase-loader.js";
 import { showSuccess, showError } from "/toast.js";
+import { clearGuestMode } from "/guest-mode.js";
 // OAuth is paused until providers are configured in supabase. To re-enable,
 // uncomment the import + the renderOAuthButtons() call below.
 // import { renderOAuthButtons } from "/oauth.js";
@@ -16,7 +17,10 @@ form.addEventListener("submit", async (event) => {
     const supabase = await getSupabaseClient();
     const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    showSuccess("Signed in — redirecting…");
+    // Drop any guest-browse flag left from /marketplace.html?guest=1 so
+    // signed-in pages don't paint the guest header.
+    clearGuestMode();
+    showSuccess("Signed in. Redirecting…");
 
     const params = new URLSearchParams(window.location.search);
     const nextParam = params.get("next");
@@ -46,7 +50,7 @@ form.addEventListener("submit", async (event) => {
     }
     window.location.href = dest;
   } catch (error) {
-    showError(error.message || "sign-in failed.");
+    showError(error.message || "Sign-in failed.");
   }
 });
 
