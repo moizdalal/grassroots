@@ -73,14 +73,15 @@
   margin: 0;
   font-family: var(--font-body);
   font-size: var(--type-meta);
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.4;
-  color: var(--fo-accent-warm);
+  color: var(--fo-plan);
 }
 
 .gr-label input[aria-invalid="true"],
 .gr-label select[aria-invalid="true"] {
-  border-color: var(--fo-accent-warm);
+  border-color: var(--fo-plan);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--fo-plan) 22%, transparent);
 }
 
 #reg-consent-error {
