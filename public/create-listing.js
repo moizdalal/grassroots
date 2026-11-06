@@ -1455,12 +1455,10 @@ form.addEventListener("submit", async (event) => {
       } catch (_) { /* non-fatal */ }
     })();
 
-    // Shown on the listing page after the redirect below; a toast fired
-    // here would vanish with the navigation.
+    // Shown on the listing page after the redirect below. Success needs no
+    // toast: listing.html's ?posted=1 panel already says the project is live.
     if (attachmentsFailed) {
       flashToast("Your project is live, but the files didn't upload. Try adding them again.", "error");
-    } else {
-      flashToast(editingDraftId ? "Project published." : "Project posted. Students can see it now.");
     }
 
     // Let the tutorial (if active) jump to the "you're all set" step
