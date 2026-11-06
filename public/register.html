@@ -57,7 +57,7 @@
           >
         </div>
 
-        <form id="registration-form" enctype="multipart/form-data">
+        <form id="registration-form" enctype="multipart/form-data" novalidate>
           <input type="hidden" name="role" id="field-role" value="" />
 
           <div class="reg-slides">
@@ -149,25 +149,25 @@
               </div>
               <input type="hidden" name="inviteToken" id="field-invite-token" value="" />
               <div class="gr-field-grid reg-field-grid--2">
-                <label class="gr-label" data-oauth-hide="true">
-                  <span>First name</span>
-                  <input type="text" name="firstName" autocomplete="given-name" required />
-                </label>
-                <label class="gr-label" data-oauth-hide="true">
-                  <span>Last name</span>
-                  <input type="text" name="lastName" autocomplete="family-name" required />
-                </label>
-                <label class="gr-label full-width" data-oauth-hide="true">
-                  <span>Email</span>
-                  <input type="email" name="email" id="reg-email" autocomplete="email" required />
-                </label>
-                <label class="gr-label full-width">
-                  <span>Phone number</span>
-                  <input type="tel" name="phoneNumber" autocomplete="tel" inputmode="tel" required />
-                  <span class="gr-field-hint">We text you when an offer changes status. No spam.</span>
-                </label>
-                <label class="gr-label" data-oauth-hide="true">
-                  <span>Password</span>
+                <div class="gr-label" data-oauth-hide="true">
+                  <span><label for="reg-first-name">First name</label></span>
+                  <input type="text" name="firstName" id="reg-first-name" autocomplete="given-name" data-error-label="your first name" required />
+                </div>
+                <div class="gr-label" data-oauth-hide="true">
+                  <span><label for="reg-last-name">Last name</label></span>
+                  <input type="text" name="lastName" id="reg-last-name" autocomplete="family-name" data-error-label="your last name" required />
+                </div>
+                <div class="gr-label full-width" data-oauth-hide="true">
+                  <span><label for="reg-email">Email</label></span>
+                  <input type="email" name="email" id="reg-email" autocomplete="email" data-error-label="your email" required />
+                </div>
+                <div class="gr-label full-width">
+                  <span><label for="reg-phone">Phone number</label></span>
+                  <input type="tel" name="phoneNumber" id="reg-phone" autocomplete="tel" inputmode="tel" data-error-label="your phone number" aria-describedby="reg-phone-hint" required />
+                  <span class="gr-field-hint reg-field-hint" id="reg-phone-hint">So the student you hire can reach you.</span>
+                </div>
+                <div class="gr-label" data-oauth-hide="true">
+                  <span><label for="reg-password">Password</label></span>
                   <div class="gr-pw-field">
                     <input
                       type="password"
@@ -175,6 +175,8 @@
                       id="reg-password"
                       minlength="8"
                       autocomplete="new-password"
+                      data-error-label="a password"
+                      aria-describedby="reg-pw-rules"
                       required
                     />
                     <button
@@ -188,16 +190,16 @@
                       <svg class="gr-pw-toggle__eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.06 10.06 0 0 1 12 19c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></svg>
                     </button>
                   </div>
-                  <ul class="reg-pw-rules" id="reg-pw-rules" aria-live="polite">
-                    <li data-rule="length">8+ chars</li>
-                    <li data-rule="uppercase">Uppercase</li>
-                    <li data-rule="lowercase">Lowercase</li>
+                  <ul class="reg-pw-rules" id="reg-pw-rules" aria-label="Password needs">
+                    <li data-rule="length">8+ characters</li>
+                    <li data-rule="uppercase">Uppercase letter</li>
+                    <li data-rule="lowercase">Lowercase letter</li>
                     <li data-rule="number">Number</li>
                     <li data-rule="special">Symbol</li>
                   </ul>
-                </label>
-                <label class="gr-label" data-oauth-hide="true">
-                  <span>Confirm password</span>
+                </div>
+                <div class="gr-label" data-oauth-hide="true">
+                  <span><label for="reg-password-confirm">Confirm password</label></span>
                   <div class="gr-pw-field">
                     <input
                       type="password"
@@ -205,6 +207,7 @@
                       id="reg-password-confirm"
                       minlength="8"
                       autocomplete="new-password"
+                      data-error-label="your password again"
                       required
                     />
                     <button
@@ -218,7 +221,7 @@
                       <svg class="gr-pw-toggle__eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.06 10.06 0 0 1 12 19c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></svg>
                     </button>
                   </div>
-                </label>
+                </div>
               </div>
             </div>
 
@@ -268,20 +271,22 @@
             </div>
           </div>
 
-          <label class="reg-consent" id="reg-consent">
+          <div class="reg-consent" id="reg-consent">
             <input
               type="checkbox"
               name="accepted_terms"
               id="reg-accepted-terms"
               value="1"
+              aria-labelledby="reg-consent-text"
             />
-            <span class="reg-consent__text">
+            <label class="reg-consent__text" id="reg-consent-text" for="reg-accepted-terms">
               I agree to the
               <a href="/privacy.html" target="_blank" rel="noopener">privacy policy</a>
               and
               <a href="/terms.html" target="_blank" rel="noopener">terms of service</a>.
-            </span>
-          </label>
+            </label>
+          </div>
+          <p class="reg-field-error" id="reg-consent-error" hidden></p>
 
           <div class="reg-nav">
             <button type="button" class="gr-btn gr-btn--ghost hidden" id="reg-back">
@@ -299,13 +304,6 @@
               Create account
             </button>
           </div>
-
-          <p class="reg-disclosure" id="reg-disclosure">
-            By creating an account, you agree to our
-            <a href="/privacy.html" target="_blank" rel="noopener">privacy policy</a>
-            and
-            <a href="/terms.html" target="_blank" rel="noopener">terms of service</a>.
-          </p>
         </form>
 
         <div id="reg-invite-fallback" hidden>
