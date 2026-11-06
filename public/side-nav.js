@@ -154,7 +154,7 @@ function renderSidebar({ role, activeNavId }) {
   const navItems = buildNavItems(role);
   const primary = navItems.map((it) => renderNavItem(it, activeNavId)).join("");
   const secondary = SECONDARY_NAV_ITEMS.map((it) => renderNavItem(it, activeNavId)).join("");
-  // Owners get a "post a listing" CTA pinned to the bottom of the
+  // Owners get a "post a project" CTA pinned to the bottom of the
   // sidebar, sitting just above the dark-mode toggle. `margin-top: auto`
   // on `.bza__post` (set in CSS) anchors it + everything below to the
   // bottom of the flex column.
@@ -162,9 +162,9 @@ function renderSidebar({ role, activeNavId }) {
     role === "consultant"
       ? ""
       : `
-      <a href="/create-listing.html" class="bza__post" id="gr-side-post" title="Post a listing">
+      <a href="/create-listing.html" class="bza__post" id="gr-side-post" title="Post a project">
         <span class="bza__nav-icon" aria-hidden="true">${ICONS.plus}</span>
-        <span class="bza__nav-label">Post a listing</span>
+        <span class="bza__nav-label">Post a project</span>
       </a>`;
   return `
     <aside class="bza__side" id="gr-side">
@@ -206,20 +206,36 @@ function renderSidebar({ role, activeNavId }) {
   `;
 }
 
-async function loadProfile() {
+async function loadSession() {
   try {
     const { getSupabaseClient } = await import("/supabase-loader.js");
     const client = await getSupabaseClient();
     const { data: { session } } = await client.auth.getSession();
-    if (!session?.user) return { client, profile: null };
+    return { client, session: session || null };
+  } catch {
+    return { client: null, session: null };
+  }
+}
+
+async function loadProfile(client, session) {
+  if (!client || !session?.user) return null;
+  try {
+    // Reuse a profile row another script on this page already has in
+    // flight (settings.html shares one via my-profile-cache.js) instead
+    // of issuing a second `profiles` request.
+    const shared = window.__grMyProfileCache?.profile;
+    if (shared) {
+      const { row } = await shared;
+      if (row) return row;
+    }
     const { data: profile } = await client
       .from("profiles")
       .select("id, full_name, role, avatar_path")
       .eq("id", session.user.id)
       .single();
-    return { client, profile: profile || null };
+    return profile || null;
   } catch {
-    return { client: null, profile: null };
+    return null;
   }
 }
 
@@ -248,13 +264,23 @@ async function init() {
   // notifications, payouts) all lead to pages a guest can't access.
   // guest-nav.js renders a slim top bar instead; we just bail out
   // here so no side nav is injected at all.
+  //
+  // The guest flag lives in sessionStorage and was only cleared on the
+  // marketplace and listing pages. Someone who browsed as a guest and
+  // then signed up in the same tab kept the flag, so every page that
+  // relies on this injected nav (profile, settings, create-listing)
+  // rendered without one. A real session always wins: clear the stale
+  // flag and render the nav.
+  const { client, session } = await loadSession();
   try {
-    const { isGuest } = await import("/guest-mode.js");
-    if (isGuest()) return;
+    const { isGuest, clearGuestModeIfSignedIn } = await import("/guest-mode.js");
+    if (session?.user) clearGuestModeIfSignedIn(session);
+    else if (isGuest()) return;
   } catch (_) {
     // If the import fails for any reason fall through to the normal
     // render — a missing guest module shouldn't break the side nav.
   }
+  if (document.querySelector("aside.bza__side")) return;
 
   const main = document.querySelector("body > main");
   if (!main) return;
@@ -270,7 +296,7 @@ async function init() {
   // on first paint. Previously we rendered the owner layout synchronously
   // and mutated it for consultants, which caused both "marketplace" and
   // "my listings" to flash active for consultants on the marketplace page.
-  const { client, profile } = await loadProfile();
+  const profile = await loadProfile(client, session);
   const role = profile?.role || null;
   const activeNavId = inferActiveNavId(role);
   wrap.insertAdjacentHTML("afterbegin", renderSidebar({ role, activeNavId }));
