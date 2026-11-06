@@ -232,9 +232,28 @@ function renderReviews(rating, recentReviews) {
     .join("");
 }
 
-function renderOwnerSection() {
+// Owners with no projects get a direct "Post a project" action instead
+// of only a pointer back to the dashboard.
+async function renderOwnerSection(supabase, userId) {
   const section = $("pp-owner-section");
   if (section) section.classList.remove("hidden");
+  try {
+    const { count, error } = await supabase
+      .from("listings")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", userId);
+    if (error || count !== 0) return;
+    const copy = $("pp-owner-copy");
+    const empty = $("pp-owner-empty");
+    if (copy) copy.hidden = true;
+    if (empty) {
+      empty.hidden = false;
+      empty.style.display = "flex";
+      empty.style.flexDirection = "column";
+    }
+  } catch (_) {
+    // Count is a nicety; keep the dashboard pointer on failure.
+  }
 }
 
 async function fetchProfileRow(supabase, userId) {
@@ -404,7 +423,7 @@ async function init() {
       // consultant progression: parked — see parked/consultant-progression/.
       renderReviews(rating, recent);
     } else {
-      renderOwnerSection();
+      await renderOwnerSection(supabase, session.user.id);
     }
 
     gate.hidden = true;

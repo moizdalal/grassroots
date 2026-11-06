@@ -1,4 +1,6 @@
 import { getSupabaseClient } from "/supabase-loader.js";
+import { getMyProfile, getMyPrivateProfile } from "/my-profile-cache.js";
+import { getInitials } from "/initials.js";
 import { formatBudgetRange, parseBudgetRange } from "/sim-budget.js";
 import { renderRatingMarkup } from "/rating.js";
 import { showSuccess, showError, showLoading } from "/toast.js";
@@ -487,12 +489,25 @@ async function renderOwnerListingSidebar() {
 }
 
 function setAvatarPreview(src) {
-  if (src) {
+  const initialsEl = document.getElementById("avatar-initials");
+  // The bundled placeholder image is a light tile that clashes with dark
+  // themes; with no real photo, show the token-coloured initials tile.
+  const hasPhoto = !!src && src !== PLACEHOLDER;
+  if (hasPhoto) {
     avatarPreview.src = src;
     avatarPreview.alt = "Profile photo";
+    avatarPreview.hidden = false;
+    if (initialsEl) initialsEl.hidden = true;
+  } else if (initialsEl) {
+    avatarPreview.removeAttribute("src");
+    avatarPreview.alt = "";
+    avatarPreview.hidden = true;
+    initialsEl.textContent = getInitials(profileRow?.full_name || document.getElementById("field-full-name")?.value);
+    initialsEl.hidden = false;
   } else {
     avatarPreview.src = PLACEHOLDER;
     avatarPreview.alt = "";
+    avatarPreview.hidden = false;
   }
 }
 
@@ -1193,9 +1208,11 @@ let profileRow = null;
 async function loadProfile() {
   gateEl.textContent = "Loading…";
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  // Shared with the other settings scripts (read receipts, payout tab,
+  // side nav) so `profiles` and the private RPC load once per page.
+  const profileLoad = getMyProfile();
+  const privLoad = getMyPrivateProfile();
+  const { session } = await profileLoad;
 
   if (!session?.user) {
     const next = encodeURIComponent("/profile.html");
@@ -1209,37 +1226,12 @@ async function loadProfile() {
   emailField.value = session.user.email || "";
   if (phoneField) phoneField.value = "";
 
-  let row = null;
-  let error = null;
+  const loaded = await profileLoad;
+  const row = loaded.row;
+  const error = loaded.error;
+  businessAddressSupported = loaded.businessAddressSupported;
 
-  ({
-    data: row,
-    error,
-  } = await supabase
-    .from("profiles")
-    .select(
-      "id, role, full_name, avatar_path, linkedin_url, resume_public, read_receipts_enabled, stripe_account_status, onboarded_at, created_at, consultant_profiles ( * ), business_profiles ( business_name, business_address, website_url, business_details, social_links, instagram_url, facebook_url, company_linkedin_url )"
-    )
-    .eq("id", userId)
-    .single());
-
-  if (error && isMissingBusinessAddress(error)) {
-    businessAddressSupported = false;
-    ({
-      data: row,
-      error,
-    } = await supabase
-      .from("profiles")
-      .select(
-        "id, role, full_name, avatar_path, linkedin_url, resume_public, read_receipts_enabled, stripe_account_status, onboarded_at, created_at, consultant_profiles ( * ), business_profiles ( business_name, website_url, business_details, social_links, instagram_url, facebook_url, company_linkedin_url )"
-      )
-      .eq("id", userId)
-      .single());
-  } else {
-    businessAddressSupported = true;
-  }
-
-  if (error) {
+  if (error || !row) {
     gateEl.textContent =
       error.message ||
       "Could not load your profile. Run Supabase migrations if this is a new column.";
@@ -1249,7 +1241,7 @@ async function loadProfile() {
 
   // Phone, resume path and stripe ids aren't selectable from the table
   // (column grants), so the owner's own copy comes from an RPC.
-  const { data: priv } = await supabase.rpc("get_my_private_profile").maybeSingle();
+  const priv = await privLoad;
   if (priv) Object.assign(row, priv);
 
   profileRow = row;

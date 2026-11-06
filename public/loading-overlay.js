@@ -1,6 +1,9 @@
 // Frosted loading overlay with a swaying grassroots sprout.
 // Loaded synchronously in <head> so the overlay appears before first paint.
-// Auto-removes when the page's "loading…" gate is cleared, or after a safety timeout.
+// Auto-removes when the page's "loading…" gate is cleared, or (pages with
+// no gate) once the DOM is parsed and web fonts are ready, capped short.
+// It stays invisible for its first REVEAL_DELAY_MS, so pages that are
+// ready almost at once never flash it. A 20s safety net always clears it.
 (function () {
   if (document.getElementById("gr-loader-overlay")) return;
 
@@ -32,6 +35,19 @@
         '</g>' +
       '</g>' +
     '</svg>';
+
+  // Hold the overlay invisible briefly. If the page is ready inside this
+  // window the overlay is removed without ever being seen.
+  var REVEAL_DELAY_MS = 150;
+  // Pages without a gate wait for fonts so text doesn't swap under the
+  // fade, but never longer than this after DOMContentLoaded.
+  var FONT_WAIT_CAP_MS = 400;
+  var revealed = false;
+  overlay.style.visibility = "hidden";
+  var revealTimer = setTimeout(function () {
+    revealed = true;
+    overlay.style.visibility = "";
+  }, REVEAL_DELAY_MS);
 
   function attach() {
     if (document.body) {
@@ -65,6 +81,7 @@
   function findGate() {
     var selectors = [
       "#profile-gate",
+      "#pp-gate",
       "#dash-gate",
       "#cdash-gate",
       "#cw-gate",
@@ -82,6 +99,12 @@
 
   function hide() {
     if (!overlay.parentNode) return;
+    clearTimeout(revealTimer);
+    if (!revealed) {
+      // Never shown: drop it without a fade.
+      overlay.parentNode.removeChild(overlay);
+      return;
+    }
     overlay.classList.add("gr-loader-overlay--hidden");
     setTimeout(function () {
       if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
@@ -107,17 +130,24 @@
 
     var gate = findGate();
     if (!gate) {
-      // No gate on this page — hide on window load.
-      var fallback = function () {
-        clearTimeout(safety);
-        hide();
+      // No gate on this page: the DOM is parsed and module scripts have
+      // run, so the page's own content is in place. Wait for web fonts
+      // (capped) rather than window load, which also waits on every
+      // image and third-party asset.
+      var done = false;
+      var finish = function () {
+        if (done) return;
+        done = true;
+        requestAnimationFrame(function () {
+          clearTimeout(safety);
+          hide();
+        });
       };
-      if (document.readyState === "complete") {
-        setTimeout(fallback, 200);
+      setTimeout(finish, FONT_WAIT_CAP_MS);
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(finish, finish);
       } else {
-        window.addEventListener("load", function () {
-          setTimeout(fallback, 200);
-        }, { once: true });
+        finish();
       }
       return;
     }

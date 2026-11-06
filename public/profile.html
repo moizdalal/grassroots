@@ -151,10 +151,16 @@
             <h2>Your business</h2>
             <a class="gr-btn gr-btn--ghost gr-btn--sm" href="/dashboard.html">Open dashboard →</a>
           </header>
-          <p class="pp-owner-copy">
-            Your listings, bids, and engagements live on the owner dashboard.
-            This page collects everything tied to your account profile.
+          <p class="pp-owner-copy" id="pp-owner-copy">
+            Your projects, offers, and active work live on your dashboard.
           </p>
+          <!-- Shown when the owner has no projects yet (profile-page.js). -->
+          <div class="pp-owner-empty" id="pp-owner-empty" hidden>
+            <p class="pp-owner-copy">
+              You have no projects yet. Post one and students can send you offers.
+            </p>
+            <a class="gr-btn gr-btn--primary" href="/create-listing.html" style="align-self: flex-start; margin-top: var(--space-3);">Post a project</a>
+          </div>
         </section>
       </section>
     </main>
