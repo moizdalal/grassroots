@@ -173,7 +173,8 @@
                   <h3>Profile photo</h3>
                 </div>
                 <div class="settings-section__body settings-section__body--avatar">
-                  <div class="gr-profile-avatar-ring">
+                  <!-- The photo square is the picker: click it to choose a file. -->
+                  <button type="button" class="gr-profile-avatar-ring pf-avatar-pick is-empty" id="pf-avatar-pick" aria-label="Upload profile photo">
                     <img
                       id="avatar-preview"
                       class="gr-profile-avatar-img"
@@ -182,17 +183,18 @@
                       width="120"
                       height="120"
                     />
-                  </div>
+                    <span class="pf-avatar-pick__plus" aria-hidden="true">+</span>
+                  </button>
                   <div class="pf-avatar-controls">
-                    <!-- Empty state: file picker (no avatar yet) -->
-                    <label class="gr-label pf-file-label" id="pf-avatar-upload-label">
-                      <span class="gr-label__hidden-text">Upload profile photo</span>
-                      <input
-                        id="avatar-input"
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,image/gif"
-                      />
-                    </label>
+                    <!-- Empty state: hint only. The input stays hidden; the
+                         photo square opens it. -->
+                    <input
+                      id="avatar-input"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      hidden
+                    />
+                    <p class="pf-avatar-hint" id="pf-avatar-upload-label">Click the square to add a photo. JPEG, PNG, WebP, or GIF.</p>
                     <!-- Has-avatar state: change / remove -->
                     <div class="pf-avatar-actions hidden" id="pf-avatar-actions">
                       <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="pf-avatar-change-btn">Change photo</button>
