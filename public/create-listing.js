@@ -24,7 +24,8 @@ window.addEventListener("beforeunload", (event) => {
 const slides = [...document.querySelectorAll(".cl-slide")];
 const stepDots = [...document.querySelectorAll(".cl-progress__seg")];
 const progressLabel = document.getElementById("cl-progress-label");
-const STEP_LABELS = ["Title", "Description", "Details"];
+const STEP_LABELS = ["Title", "Describe the work", "Category and budget"];
+const progressHint = document.getElementById("cl-progress-hint");
 const attachmentInput = document.getElementById("listing-attachments");
 const attachmentList = document.getElementById("cl-file-list");
 
@@ -82,22 +83,30 @@ const MAX_ATTACHMENT_COUNT = 3;
 const MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024;
 const MAX_ATTACHMENT_TOTAL = 12 * 1024 * 1024;
 
+// `value` is the stored key (lowercase, comma-free: listings.category
+// is a comma-joined free-text column, and the marketplace builds its
+// filter from whatever values exist). `keywords` are search synonyms
+// so an owner typing "logo" or "menu" finds the right category.
 const CATEGORY_OPTIONS = [
-  { value: "social media", label: "Social media", icon: socialIcon() },
-  { value: "finance", label: "Finance", icon: financeIcon() },
-  { value: "marketing", label: "Marketing", icon: megaphoneIcon() },
-  { value: "operations", label: "Operations", icon: operationsIcon() },
-  { value: "website", label: "Website", icon: websiteIcon() },
-  { value: "branding", label: "Branding", icon: sparkIcon() },
-  { value: "sales", label: "Sales", icon: salesIcon() },
-  { value: "customer service", label: "Customer service", icon: supportIcon() },
-  { value: "human resources", label: "Human resources", icon: peopleIcon() },
-  { value: "legal", label: "Legal", icon: legalIcon() },
-  { value: "supply chain", label: "Supply chain", icon: supplyIcon() },
-  { value: "data analytics", label: "Data analytics", icon: analyticsIcon() },
-  { value: "product development", label: "Product development", icon: productIcon() },
-  { value: "public relations", label: "Public relations", icon: prIcon() },
-  { value: "strategy", label: "Strategy", icon: compassIcon() },
+  { value: "social media", label: "Social media", icon: socialIcon(), keywords: ["instagram", "tiktok", "facebook", "posts", "reels", "content", "influencer"] },
+  { value: "graphic design", label: "Graphic design", icon: designIcon(), keywords: ["design", "logo", "menu", "flyer", "poster", "canva", "illustration", "graphics", "visual"] },
+  { value: "photo & video", label: "Photo & video", icon: cameraIcon(), keywords: ["photo", "photography", "picture", "video", "film", "reels", "editing", "product shots"] },
+  { value: "writing & copy", label: "Writing & copy", icon: penIcon(), keywords: ["writing", "copy", "copywriting", "blog", "newsletter", "email", "captions", "menu text", "description"] },
+  { value: "print", label: "Print", icon: printIcon(), keywords: ["flyer", "poster", "menu", "business card", "brochure", "signage", "sticker", "packaging", "label"] },
+  { value: "finance", label: "Finance", icon: financeIcon(), keywords: ["bookkeeping", "accounting", "budget", "pricing", "taxes", "money", "cash flow"] },
+  { value: "marketing", label: "Marketing", icon: megaphoneIcon(), keywords: ["ads", "advertising", "promotion", "campaign", "email", "seo", "google", "flyer", "customers"] },
+  { value: "operations", label: "Operations", icon: operationsIcon(), keywords: ["process", "scheduling", "inventory", "workflow", "efficiency"] },
+  { value: "website", label: "Website", icon: websiteIcon(), keywords: ["web", "site", "online", "squarespace", "wix", "shopify", "online store", "seo", "google"] },
+  { value: "branding", label: "Branding", icon: sparkIcon(), keywords: ["brand", "logo", "design", "identity", "colors", "name", "style"] },
+  { value: "sales", label: "Sales", icon: salesIcon(), keywords: ["selling", "customers", "leads", "wholesale", "catering", "orders"] },
+  { value: "customer service", label: "Customer service", icon: supportIcon(), keywords: ["customers", "reviews", "support", "feedback", "experience"] },
+  { value: "human resources", label: "Human resources", icon: peopleIcon(), keywords: ["hiring", "staff", "employees", "hr", "training", "team"] },
+  { value: "legal", label: "Legal", icon: legalIcon(), keywords: ["contract", "permit", "license", "compliance", "terms"] },
+  { value: "supply chain", label: "Supply chain", icon: supplyIcon(), keywords: ["suppliers", "inventory", "shipping", "ordering", "vendors", "delivery"] },
+  { value: "data analytics", label: "Data analytics", icon: analyticsIcon(), keywords: ["data", "analytics", "spreadsheet", "excel", "reports", "numbers", "dashboard"] },
+  { value: "product development", label: "Product development", icon: productIcon(), keywords: ["product", "recipe", "new item", "packaging", "prototype"] },
+  { value: "public relations", label: "Public relations", icon: prIcon(), keywords: ["pr", "press", "news", "media", "events", "community"] },
+  { value: "strategy", label: "Strategy", icon: compassIcon(), keywords: ["plan", "planning", "growth", "business plan", "research", "competitors"] },
 ];
 
 function escapeHtml(s) {
@@ -337,14 +346,42 @@ function getCategory(value) {
   return CATEGORY_OPTIONS.find((option) => option.value === value) || null;
 }
 
+// A category matches when its label, stored value, or any synonym
+// contains the query, or the query contains a synonym ("logo design"
+// still finds Graphic design). Exact label hits sort first.
+function categoryMatchScore(option, query) {
+  if (!query) return 1;
+  const label = option.label.toLowerCase();
+  if (label.startsWith(query)) return 3;
+  if (label.includes(query) || option.value.includes(query)) return 2;
+  const words = query.split(/\s+/).filter(Boolean);
+  const hit = (option.keywords || []).some((kw) =>
+    kw.includes(query) || query.includes(kw) || words.some((w) => w.length > 2 && kw.startsWith(w))
+  );
+  return hit ? 1 : 0;
+}
+
+function openCategoryDropdown() {
+  renderCategoryDropdown();
+}
+
+function closeCategoryDropdown() {
+  dropdownEl.classList.add("hidden");
+  searchEl.setAttribute("aria-expanded", "false");
+}
+
 function renderCategoryDropdown() {
   const query = searchEl.value.trim().toLowerCase();
-  const filtered = CATEGORY_OPTIONS.filter((option) =>
-    option.label.toLowerCase().includes(query) || String(option.value).toLowerCase().includes(query)
-  );
+  const filtered = CATEGORY_OPTIONS
+    .map((option, index) => ({ option, index, score: categoryMatchScore(option, query) }))
+    .filter((row) => row.score > 0)
+    .sort((a, b) => (b.score - a.score) || (a.index - b.index))
+    .map((row) => row.option);
+
+  searchEl.setAttribute("aria-expanded", "true");
 
   if (!filtered.length) {
-    dropdownEl.innerHTML = '<div class="ms-empty">No matches</div>';
+    dropdownEl.innerHTML = '<div class="ms-empty">No matches. Try a simpler word, like design or website.</div>';
     dropdownEl.classList.remove("hidden");
     return;
   }
@@ -354,13 +391,13 @@ function renderCategoryDropdown() {
   // pick multiple before they've started typing.
   const headerHtml = query
     ? ""
-    : '<div class="ms-eyebrow">Pick one or more — you can search above</div>';
+    : '<div class="ms-eyebrow">Pick one or more</div>';
 
   dropdownEl.innerHTML = headerHtml + filtered
     .map((option) => {
       const selectedClass = selectedCategories.has(option.value) ? " is-selected" : "";
       return `
-        <button type="button" class="ms-option${selectedClass}" data-category="${escapeHtml(option.value)}">
+        <button type="button" class="ms-option${selectedClass}" data-category="${escapeHtml(option.value)}" aria-pressed="${selectedCategories.has(option.value) ? "true" : "false"}">
           <span class="ms-option__icon" aria-hidden="true">${option.icon}</span>
           <span class="ms-option__label">${escapeHtml(option.label)}</span>
         </button>
@@ -369,8 +406,16 @@ function renderCategoryDropdown() {
     .join("");
 
   dropdownEl.querySelectorAll("[data-category]").forEach((button) => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", (event) => {
+      // Picking closes the list so it never sits over Budget; the
+      // chip row above shows what's chosen. Stop the click here: the
+      // re-render detaches this button, which would otherwise read as
+      // an outside click.
+      event.stopPropagation();
       toggleCategory(button.dataset.category);
+      searchEl.value = "";
+      closeCategoryDropdown();
+      searchEl.focus();
     });
   });
 
@@ -384,7 +429,8 @@ function toggleCategory(value) {
     selectedCategories.add(value);
   }
   renderCategoryTags();
-  renderCategoryDropdown();
+  if (selectedCategories.size) clearFieldError(searchEl);
+  if (!dropdownEl.classList.contains("hidden")) renderCategoryDropdown();
   updatePreview();
 }
 
@@ -404,26 +450,80 @@ function renderCategoryTags() {
     .join("");
 
   catTags.querySelectorAll("[data-remove-cat]").forEach((btn) => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", (event) => {
+      event.stopPropagation();
       toggleCategory(btn.dataset.removeCat);
     });
   });
 }
 
 
-// The latest validation toast. It's dismissed as soon as the user moves
-// steps or an action succeeds, so a fixed error doesn't linger on screen.
-let validationToast = null;
+// Inline field errors. validateSlide throws a FieldError that names the
+// control at fault; we mark it aria-invalid, print the message under
+// it, and move focus there. Errors clear as soon as the field changes.
+class FieldError extends Error {
+  constructor(message, field) {
+    super(message);
+    this.field = field || null;
+  }
+}
 
-function showValidationError(message) {
-  validationToast?.dismiss();
-  validationToast = showError(message);
+function fieldErrorHost(field) {
+  return field.closest(".gr-label") || field.parentElement;
+}
+
+function clearFieldError(field) {
+  if (!field) return;
+  field.removeAttribute("aria-invalid");
+  const host = fieldErrorHost(field);
+  const msg = host?.querySelector(":scope > .cl-field-error");
+  if (msg) {
+    const ids = (field.getAttribute("aria-describedby") || "").split(/\s+/).filter((id) => id && id !== msg.id);
+    if (ids.length) field.setAttribute("aria-describedby", ids.join(" "));
+    else field.removeAttribute("aria-describedby");
+    msg.remove();
+  }
+  host?.classList.remove("cl-has-error");
+}
+
+function showFieldError(field, message) {
+  if (!field) {
+    showError(message);
+    return;
+  }
+  const host = fieldErrorHost(field);
+  clearFieldError(field);
+  const msg = document.createElement("span");
+  msg.className = "cl-field-error";
+  msg.id = `cl-err-${field.name || field.id || "field"}`.replace(/[^a-zA-Z0-9_-]/g, "");
+  msg.textContent = message;
+  host.appendChild(msg);
+  host.classList.add("cl-has-error");
+  field.setAttribute("aria-invalid", "true");
+  const ids = (field.getAttribute("aria-describedby") || "").split(/\s+/).filter(Boolean);
+  if (!ids.includes(msg.id)) ids.push(msg.id);
+  field.setAttribute("aria-describedby", ids.join(" "));
+  field.focus({ preventScroll: true });
+  field.scrollIntoView({ block: "center", behavior: "smooth" });
+}
+
+function showValidationError(err) {
+  showFieldError(err?.field || null, err?.message || "Fill in the required fields first.");
 }
 
 function clearValidationError() {
-  validationToast?.dismiss();
-  validationToast = null;
+  form.querySelectorAll('[aria-invalid="true"]').forEach((el) => clearFieldError(el));
 }
+
+// Typing in (or changing) a flagged field clears its message.
+form.addEventListener("input", (event) => {
+  const el = event.target;
+  if (el?.getAttribute?.("aria-invalid") === "true") clearFieldError(el);
+});
+form.addEventListener("change", (event) => {
+  const el = event.target;
+  if (el?.getAttribute?.("aria-invalid") === "true") clearFieldError(el);
+});
 
 function updateWizardUI() {
   clearValidationError();
@@ -445,6 +545,8 @@ function updateWizardUI() {
   });
 
   progressLabel.textContent = STEP_LABELS[currentSlide] || "";
+  // The time estimate only helps before you start.
+  if (progressHint) progressHint.hidden = currentSlide !== 0;
 
   backBtn.classList.toggle("hidden", currentSlide === 0);
   nextBtn.classList.toggle("hidden", currentSlide === slides.length - 1);
@@ -459,56 +561,65 @@ function updateWizardUI() {
 function validateSlide(index) {
   statusEl.textContent = "";
   statusEl.className = "gr-status";
+  const el = form.elements;
 
   if (index === 0) {
-    const title = form.elements.title.value.trim();
-    if (!title) throw new Error("Please add a title for this opportunity.");
+    const title = el.title.value.trim();
+    if (!title) throw new FieldError("Add a title for your project.", el.title);
     return;
   }
 
   if (index === 1) {
-    // Only business_problem is required — context + standards-of-work are
-    // optional so the owner can post a listing without writing three essays.
-    // The HTML labels reflect this via gr-optional.
-    const businessProblem = form.elements.business_problem.value.trim();
-    const proposalBudget = String(form.elements.proposal_budget?.value || "").trim();
-    const maintenanceTerms = String(form.elements.maintenance_terms?.value || "").trim();
-    if (!businessProblem) throw new Error("Please describe the business problem you want to solve.");
+    // Only business_problem is required. Background and "what you get
+    // at the end" are optional so an owner can post without writing
+    // three essays.
+    const businessProblem = el.business_problem.value.trim();
+    const proposalBudget = String(el.proposal_budget?.value || "").trim();
+    const maintenanceTerms = String(el.maintenance_terms?.value || "").trim();
+    if (!businessProblem) throw new FieldError("Tell students what you need done.", el.business_problem);
     if (isPhasedContractSelected() && !proposalBudget) {
-      throw new Error("Please enter the budget per proposal for this advanced contract.");
+      throw new FieldError("Add a budget for the plan phase.", el.proposal_budget);
     }
     if (isPhasedContractSelected() && Number(proposalBudget) < 0) {
-      throw new Error("Please enter a valid proposal budget.");
+      throw new FieldError("Enter a budget of $0 or more.", el.proposal_budget);
     }
     if (isPhasedContractSelected() && hasMaintenancePhase()) {
       if (!maintenanceTerms) {
-        throw new Error('Please outline the maintenance terms or write "per business discretion."');
+        throw new FieldError('Add maintenance terms, or write "per business discretion".', el.maintenance_terms);
       }
       if (!isValidMaintenanceTerms(maintenanceTerms)) {
-        throw new Error('Maintenance terms should look like "$X per hour/day/week/month for X [amount of time]" or "per business discretion."');
+        throw new FieldError('Write it like "$150 per week for 8 weeks", or "per business discretion".', el.maintenance_terms);
       }
     }
     if (isRetainerContractSelected() && retainerTermsValue() === "fixed") {
-      const cadence = String(form.elements.retainer_cadence?.value || "").trim();
-      const periods = Number(form.elements.retainer_period_count?.value || 0);
-      const fee = Number(form.elements.retainer_fee?.value || 0);
-      if (!cadence) throw new Error("Please pick a retainer cadence.");
-      if (!periods || periods < 1) throw new Error("Please enter how many periods the retainer runs.");
-      if (!fee || fee < 1) throw new Error("Please enter the fee per period.");
+      const cadence = String(el.retainer_cadence?.value || "").trim();
+      const periods = Number(el.retainer_period_count?.value || 0);
+      const fee = Number(el.retainer_fee?.value || 0);
+      // Retainer fields live on step 1, inside "Other ways to pay".
+      if (!cadence) throw new FieldError("Pick how often you'll pay.", el.retainer_cadence);
+      if (!periods || periods < 1) throw new FieldError("Add how many periods it runs.", el.retainer_period_count);
+      if (!fee || fee < 1) throw new FieldError("Add the fee for each period.", el.retainer_fee);
     }
     return;
   }
 
   if (index === 2) {
-    const budgetMin = Number(form.elements.budget_min.value);
-    const budgetMax = Number(form.elements.budget_max.value);
-    const turnaround = Number(form.elements.turnaround_days.value);
+    const budgetMin = Number(el.budget_min.value);
+    const budgetMax = Number(el.budget_max.value);
+    const turnaround = Number(el.turnaround_days.value);
 
-    if (!selectedCategories.size) throw new Error("Please choose at least one category.");
-    if (!budgetMin || !budgetMax) throw new Error("Please enter the full budget range.");
-    if (budgetMin > budgetMax) throw new Error("Please make sure the budget range goes from low to high.");
-    if (!turnaround) throw new Error("Please enter the turnaround time.");
+    if (!selectedCategories.size) throw new FieldError("Pick at least one category.", searchEl);
+    if (!budgetMin) throw new FieldError("Add the low end of your budget.", el.budget_min);
+    if (!budgetMax) throw new FieldError("Add the high end of your budget.", el.budget_max);
+    if (budgetMin > budgetMax) throw new FieldError("The first amount should be the lower one.", el.budget_min);
+    if (!turnaround) throw new FieldError("Add how many days the student has.", el.turnaround_days);
   }
+}
+
+// The slide a field lives on, so a submit-time error can jump there.
+function slideIndexOf(field) {
+  const slide = field?.closest?.(".cl-slide");
+  return slide ? Number(slide.dataset.slide) : -1;
 }
 
 async function boot() {
@@ -656,7 +767,7 @@ function buildStructuredListingDetails({
 function updatePreview() {
   // title
   const title = form.elements.title?.value.trim();
-  pvTitle.textContent = title || "Your opportunity title";
+  pvTitle.textContent = title || "Your project title";
   pvTitle.classList.toggle("cl-preview__placeholder", !title);
 
   // tags: categories — match listing.html's .ld-tag chips.
@@ -770,9 +881,21 @@ nextBtn.addEventListener("click", () => {
     currentSlide = Math.min(currentSlide + 1, slides.length - 1);
     updateWizardUI();
   } catch (err) {
-    showValidationError(err.message || "Fill in the required fields before continuing.");
+    goToErrorSlide(err);
+    showValidationError(err);
   }
 });
+
+// Retainer fields sit on step 1 but are checked with step 2; show the
+// error where the field actually is.
+function goToErrorSlide(err) {
+  const target = slideIndexOf(err?.field);
+  if (target >= 0 && target !== currentSlide) {
+    currentSlide = target;
+    updateWizardUI();
+    if (err.field.closest("#ct-advanced")) document.getElementById("ct-advanced").open = true;
+  }
+}
 
 backBtn.addEventListener("click", () => {
   statusEl.textContent = "";
@@ -800,7 +923,11 @@ window.addEventListener("cl:request-slide", (event) => {
   if (!Number.isFinite(target)) return;
   const clamped = Math.max(0, Math.min(slides.length - 1, target));
   while (clamped > currentSlide) {
-    try { validateSlide(currentSlide); } catch (_) { return; }
+    try { validateSlide(currentSlide); } catch (err) {
+      goToErrorSlide(err);
+      showValidationError(err);
+      return;
+    }
     currentSlide += 1;
     updateWizardUI();
   }
@@ -853,15 +980,30 @@ window.addEventListener("cl:request-slide", (event) => {
       maintConnector.removeAttribute("hidden");
       if (labelEl) labelEl.textContent = "Maintenance added";
       if (hintEl) hintEl.textContent = "Remove";
-      builderHint.innerHTML = "Maintenance extends your chain with ongoing support. Click again to remove.";
+      builderHint.textContent = "Maintenance added. Click it again to remove.";
     } else {
       maintConnector.setAttribute("hidden", "");
       if (labelEl) labelEl.textContent = "Add maintenance";
       if (hintEl) hintEl.textContent = "Optional";
-      builderHint.innerHTML = "Maintenance is an optional follow-on phase for ongoing support.";
+      builderHint.textContent = "Maintenance is ongoing support after the work is done.";
     }
     syncPhases(present);
   }
+
+  // Toggle the disclosure ourselves. The row used to carry a radio dot
+  // that suggested clicking it picks a contract; now it only expands,
+  // and aria-expanded stays in sync for screen readers.
+  const advSummary = advancedDetails.querySelector("summary");
+  function syncAdvancedExpanded() {
+    advSummary?.setAttribute("aria-expanded", advancedDetails.open ? "true" : "false");
+  }
+  advSummary?.addEventListener("click", (event) => {
+    event.preventDefault();
+    advancedDetails.open = !advancedDetails.open;
+    syncAdvancedExpanded();
+  });
+  advancedDetails.addEventListener("toggle", syncAdvancedExpanded);
+  syncAdvancedExpanded();
 
   toggleBtn.addEventListener("click", () => {
     const currentlyOn = toggleBtn.getAttribute("aria-pressed") === "true";
@@ -870,10 +1012,7 @@ window.addEventListener("cl:request-slide", (event) => {
   });
 
   standardRadio.addEventListener("change", () => {
-    if (standardRadio.checked) {
-      advancedDetails.open = false;
-      syncContractDetailFields();
-    }
+    if (standardRadio.checked) syncContractDetailFields();
   });
 
   standardRadio.closest("label").addEventListener("click", () => {
@@ -917,12 +1056,39 @@ addQualBtn.addEventListener("click", () => {
   row.querySelector("input").focus();
 });
 
-searchEl.addEventListener("focus", renderCategoryDropdown);
-searchEl.addEventListener("input", renderCategoryDropdown);
-
+searchEl.addEventListener("focus", openCategoryDropdown);
+searchEl.addEventListener("click", openCategoryDropdown);
+searchEl.addEventListener("input", openCategoryDropdown);
+searchEl.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !dropdownEl.classList.contains("hidden")) {
+    event.preventDefault();
+    event.stopPropagation();
+    closeCategoryDropdown();
+  } else if (event.key === "Enter") {
+    // Enter picks the top match instead of submitting the form.
+    event.preventDefault();
+    const first = dropdownEl.querySelector("[data-category]");
+    if (first && searchEl.value.trim()) first.click();
+  } else if (event.key === "ArrowDown") {
+    const first = dropdownEl.querySelector("[data-category]");
+    if (first) { event.preventDefault(); first.focus(); }
+  }
+});
+dropdownEl.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    event.preventDefault();
+    event.stopPropagation();
+    closeCategoryDropdown();
+    searchEl.focus();
+  }
+});
+// Close when focus or a click leaves the picker.
 document.addEventListener("click", (event) => {
-  if (!event.target.closest("#cat-multiselect")) {
-    dropdownEl.classList.add("hidden");
+  if (!event.target.closest("#cat-multiselect")) closeCategoryDropdown();
+});
+document.getElementById("cat-multiselect").addEventListener("focusout", (event) => {
+  if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) {
+    closeCategoryDropdown();
   }
 });
 
@@ -1041,7 +1207,7 @@ async function hydrateDraft(draftId) {
   applyFormSnapshot(data.draft_form || {});
   // Swap the primary CTA copy so the wizard reads as "edit & publish"
   // rather than "create a new listing".
-  if (submitBtn) submitBtn.textContent = "Publish listing";
+  if (submitBtn) submitBtn.textContent = "Publish project";
 }
 
 // "Save as draft" — no validation, just snapshot and persist. Stores
@@ -1115,22 +1281,39 @@ form.addEventListener("submit", async (event) => {
     validateSlide(0);
     validateSlide(1);
     validateSlide(2);
-    validateAttachmentSelection(selectedAttachments);
+    try {
+      validateAttachmentSelection(selectedAttachments);
+    } catch (fileErr) {
+      throw new FieldError(fileErr.message, attachmentInput);
+    }
   } catch (err) {
-    showValidationError(err.message || "Fix the highlighted fields first.");
+    goToErrorSlide(err);
+    showValidationError(err);
     return;
   }
   clearValidationError();
 
-  // Last chance to back out. Publishing flips status to 'open' and the
-  // listing becomes visible to every consultant immediately, so we
-  // explicitly say so. Same modal for fresh listings and draft
-  // publishes — the verbs differ but the consequence is the same.
+  // Backstop for owners who skipped the business name: without it the
+  // public project shows their personal name in its place. Ask for it
+  // inline and stop; saving it re-runs this submit.
+  if (!String(bizProfile?.business_name || "").trim()) {
+    showBizNamePrompt();
+    return;
+  }
+
+  // Last chance to back out. Posting flips status to 'open' and the
+  // project is visible to students right away. The recap names what
+  // is going live and what happens next.
   const isEdit = !!editingDraftId;
+  const recapTitle = form.elements.title.value.trim();
+  const recapBudget = formatBudgetRange({
+    min: Number(form.elements.budget_min.value),
+    max: Number(form.elements.budget_max.value),
+  });
   const ok = await confirmDialog({
-    title: isEdit ? "Publish this listing?" : "Post this listing?",
-    body: "Once you confirm, this listing goes live in the marketplace. Consultants can view it and start submitting offers right away.",
-    confirmLabel: isEdit ? "Publish listing" : "Post listing",
+    title: isEdit ? "Publish this project?" : "Post this project?",
+    body: `"${recapTitle}", budget ${recapBudget}. Students can see it and send you offers. You'll get a notification for each one. Then you compare them and pick one.`,
+    confirmLabel: isEdit ? "Publish project" : "Post project",
     cancelLabel: "Not yet",
     kind: "primary",
   });
@@ -1272,12 +1455,10 @@ form.addEventListener("submit", async (event) => {
       } catch (_) { /* non-fatal */ }
     })();
 
-    // Shown on the listing page after the redirect below; a toast fired
-    // here would vanish with the navigation.
+    // Shown on the listing page after the redirect below. Success needs no
+    // toast: listing.html's ?posted=1 panel already says the project is live.
     if (attachmentsFailed) {
-      flashToast("Your listing is live, but the files didn't upload. Try adding them again.", "error");
-    } else {
-      flashToast(editingDraftId ? "Listing published." : "Listing posted. Consultants can see it now.");
+      flashToast("Your project is live, but the files didn't upload. Try adding them again.", "error");
     }
 
     // Let the tutorial (if active) jump to the "you're all set" step
@@ -1287,12 +1468,66 @@ form.addEventListener("submit", async (event) => {
 
     form.dataset.dirty = "false";
     setTimeout(() => {
-      window.location.href = `/listing.html?id=${listingId}`;
+      // `posted=1` tells listing.html to show its just-posted state.
+      window.location.href = `/listing.html?id=${encodeURIComponent(listingId)}&posted=1`;
     }, 800);
   } catch (err) {
-    showError(err.message || "Could not post listing.");
+    showError(err.message || "Could not post your project.");
     submitBtn.disabled = false;
-    submitBtn.textContent = editingDraftId ? "Publish listing" : "Post listing";
+    submitBtn.textContent = editingDraftId ? "Publish project" : "Post project";
+  }
+});
+
+/* ── Business name backstop ──────────────────────────────── */
+const bizNameBox = document.getElementById("cl-bizname");
+const bizNameInput = document.getElementById("cl-bizname-input");
+const bizNameSave = document.getElementById("cl-bizname-save");
+
+function showBizNamePrompt() {
+  if (!bizNameBox) return;
+  bizNameBox.classList.remove("hidden");
+  bizNameBox.scrollIntoView({ block: "center", behavior: "smooth" });
+  bizNameInput?.focus({ preventScroll: true });
+}
+
+async function saveBizName() {
+  const name = bizNameInput.value.trim();
+  if (!name) {
+    showFieldError(bizNameInput, "Add your business name.");
+    return;
+  }
+  clearFieldError(bizNameInput);
+  bizNameSave.disabled = true;
+  bizNameSave.classList.add("is-loading");
+  try {
+    // Same column Settings writes: business_profiles.business_name.
+    const { data, error } = await supabase
+      .from("business_profiles")
+      .update({ business_name: name })
+      .eq("user_id", userId)
+      .select("user_id");
+    if (error) throw error;
+    if (!data?.length) {
+      throw new Error("We couldn't save it here. Add it in Settings, then post.");
+    }
+    bizProfile = { ...(bizProfile || {}), business_name: name };
+    populatePreviewBiz();
+    bizNameBox.classList.add("hidden");
+    showSuccess("Business name saved.");
+    form.requestSubmit(submitBtn);
+  } catch (err) {
+    showFieldError(bizNameInput, err?.message || "Could not save your business name.");
+  } finally {
+    bizNameSave.disabled = false;
+    bizNameSave.classList.remove("is-loading");
+  }
+}
+
+bizNameSave?.addEventListener("click", saveBizName);
+bizNameInput?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    saveBizName();
   }
 });
 
@@ -1371,6 +1606,22 @@ function svgIcon(paths) {
 
 function socialIcon() {
   return svgIcon('<path d="M6 18V8.5A2.5 2.5 0 0 1 8.5 6H18"/><path d="M14 4h6v6"/><path d="M8 14c1.2-1.8 3.2-3 5.5-3 1.6 0 3 .5 4.5 1.8"/><circle cx="8" cy="16.5" r="1.4"/><circle cx="16.5" cy="13.5" r="1.4"/>');
+}
+
+function designIcon() {
+  return svgIcon('<path d="M12 20c4.4 0 8-3.1 8-7s-3.6-9-8-9-8 3.6-8 8c0 2.2 1.8 4 4 4h1.5a1.5 1.5 0 0 1 1 2.6A1.5 1.5 0 0 0 12 20Z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="11" cy="7.5" r="1"/><circle cx="15.5" cy="8.5" r="1"/>');
+}
+
+function cameraIcon() {
+  return svgIcon('<path d="M4 8h3l1.5-2h7L17 8h3v11H4Z"/><circle cx="12" cy="13" r="3.5"/>');
+}
+
+function penIcon() {
+  return svgIcon('<path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/>');
+}
+
+function printIcon() {
+  return svgIcon('<path d="M7 9V4h10v5"/><rect x="4" y="9" width="16" height="7" rx="1.5"/><path d="M7 14h10v6H7Z"/>');
 }
 
 function financeIcon() {
