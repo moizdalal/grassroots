@@ -240,7 +240,7 @@ function renderResultCount(filteredCount, totalCount) {
     return;
   }
   if (filteredCount === totalCount) {
-    host.textContent = `${totalCount} ${totalCount === 1 ? "opportunity" : "opportunities"}`;
+    host.textContent = `${totalCount} ${totalCount === 1 ? "project" : "projects"}`;
   } else {
     host.textContent = `Showing ${filteredCount} of ${totalCount}`;
   }
@@ -488,7 +488,7 @@ function renderListings(rows, client, { preferCategory = "" } = {}) {
 
   if (!rows.length) {
     listingGrid.innerHTML =
-      '<p class="gr-empty-state">No open opportunities yet. Once business owners post needs, they\'ll show up here.</p>';
+      '<p class="gr-empty-state">No open projects yet. When businesses post one, it shows up here.</p>';
     return;
   }
 
