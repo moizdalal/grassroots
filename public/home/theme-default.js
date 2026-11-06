@@ -1,6 +1,8 @@
 // theme-default.js — marketing pages (home, about, for students) open in the
 // forest green theme instead of charcoal when the visitor's system is in dark
 // mode. A theme the visitor picked themselves still wins.
+// /theme.js now defaults every page to dark-forest, so this is a no-op kept
+// as a backstop for pages cached with an older theme.js.
 // Load synchronously right after /theme.js so it applies before first paint.
 (function () {
   var t = window.GrassrootsTheme;

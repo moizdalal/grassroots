@@ -20,6 +20,9 @@
   }
 
   if (safeRead() === "1") return;
+  // Never on the public landing pages; the hint is for the app itself.
+  var path = window.location.pathname.replace(/\/+$/, "") || "/";
+  if (/^(\/|\/home(\/index\.html)?|\/(home\/)?(about|for-students)(\.html)?)$/.test(path)) return;
   if (!window.matchMedia("(max-width: 720px) and (pointer: coarse)").matches) return;
 
   function ready(fn) {
