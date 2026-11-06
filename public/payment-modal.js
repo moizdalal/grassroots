@@ -6,7 +6,7 @@
    Sandbox/test-mode only.
    ================================================================ */
 
-import { computeFees, formatUsd } from "/fees.js";
+import { businessTotalCents, formatUsd } from "/fees.js";
 import { confirmDialog } from "/confirm-modal.js";
 import { showError } from "/toast.js";
 
@@ -187,7 +187,7 @@ export async function payAndAcceptBid({ client, bid, listing }) {
       confirmLabel: "Accept offer",
     });
   }
-  const feeBreakdown = computeFees(amount);
+  const feeBreakdown = { businessTotalCents: businessTotalCents(amount) };
   const overlay = buildModal({ amount, title: listing?.title, feeBreakdown });
   const submitBtn = overlay.querySelector("#pay-submit");
   const statusEl = overlay.querySelector("#pay-status");
@@ -382,7 +382,7 @@ export async function payAndAcceptProposals({ client, bids, listing }) {
     : `${bids.length} proposal fees · ${listing?.title || "engagement"}`;
   // Show the aggregate breakdown (sum of all proposal offers + their
   // platform fees) so the business sees the total markup as one row.
-  const feeBreakdown = computeFees(totalAmount);
+  const feeBreakdown = { businessTotalCents: businessTotalCents(totalAmount) };
   const overlay = buildModal({ amount: totalAmount, title: titleLabel, feeBreakdown });
   const submitBtn = overlay.querySelector("#pay-submit");
   const statusEl = overlay.querySelector("#pay-status");
@@ -511,7 +511,7 @@ export async function payAndAcceptProposals({ client, bids, listing }) {
  */
 export async function payAndStartService({ client, bid, listing }) {
   const amount = Number(bid.service_fee_cents);
-  const feeBreakdown = computeFees(amount);
+  const feeBreakdown = { businessTotalCents: businessTotalCents(amount) };
   const overlay = buildModal({
     amount,
     title: `Service fee · ${listing?.title || "engagement"}`,

@@ -88,7 +88,7 @@ export const MODULES = [
         points: [
           "The business pays exactly your offer. Nothing gets added on their side.",
           "Fees come out of your payout: card processing (2.9% + $0.30) and the platform fee.",
-          "The platform fee is 10% of the part above $10. During launch it's 5%.",
+          "The platform fee is charged on the part above $10. It starts at 30% and drops by 5% for every 2 good reviews, down to 5%.",
           "You'll see your take-home on the offer screen before you send.",
           "Paid offers start at $10. You can also send a $0 offer for free work.",
           "You can price one-time, phased (a proposal fee, then a service fee) or as a retainer.",

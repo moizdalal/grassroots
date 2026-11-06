@@ -16,7 +16,7 @@ async function payAndAcceptProposals(...args) {
   const m = await loadPaymentModal();
   return m.payAndAcceptProposals(...args);
 }
-import { computeFees, formatUsd, isValidOfferCents, MIN_PAID_OFFER_CENTS, LAUNCH_PLATFORM_FEE_BPS, PLATFORM_FEE_BPS } from "/fees.js";
+import { computeFees, formatUsd, isValidOfferCents, MIN_PAID_OFFER_CENTS, FEE_LADDER_BPS } from "/fees.js";
 import { getInitials } from "/initials.js";
 import {
   trackListingView,
@@ -1465,9 +1465,32 @@ function renderMsgThread(container, messages, myId) {
    Consultant view: offer panel (sidebar) + chat drawer
    ================================================================ */
 
+// The signed-in consultant's platform fee, used for the take-home estimates.
+// It starts at the top of the ladder, so if the lookup fails the estimate
+// errs low on take-home rather than promising too much.
+let consultantFeeBps = FEE_LADDER_BPS[0];
+let consultantFeeIsFixed = false;
+
+async function loadConsultantFeeRate(session) {
+  if (!session?.access_token) return;
+  try {
+    const res = await fetch("/api/consultant/fee-rate", {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    if (!res.ok) return;
+    const rate = await res.json();
+    if (FEE_LADDER_BPS.includes(rate.platform_fee_bps)) {
+      consultantFeeBps = rate.platform_fee_bps;
+      consultantFeeIsFixed = Boolean(rate.is_fixed_rate);
+    }
+  } catch (_) {
+    // Keep the starting rate: the estimate is still safe to show.
+  }
+}
+
 // Consultant-side take-home breakdown. Pricing is all-in: the offer is
-// what the business pays, and the platform fee (10% struck through to the
-// launch rate) plus Stripe processing come out of it.
+// what the business pays, and the platform fee plus Stripe processing come
+// out of it.
 function offerBreakdownHtml(f, opts = {}) {
   // Consultant-only copy. Businesses never see the free option mentioned.
   if (f.amountCents === 0) {
@@ -1480,18 +1503,12 @@ function offerBreakdownHtml(f, opts = {}) {
   }
   const bizLabel = opts.bizLabel || "Business pays";
   const takeHomeLabel = opts.takeHomeLabel || "You take home";
-  const launchPct = LAUNCH_PLATFORM_FEE_BPS / 100;
-  // Show what a flat 10% of the whole offer would cost, struck through,
-  // next to what they actually pay after the launch rate and free first $10.
-  const undiscountedCents = Math.round((f.amountCents * PLATFORM_FEE_BPS) / 10000);
-  const platformValue = undiscountedCents > f.platformFeeCents
-    ? `<span class="ld-offer-breakdown__strike">−${formatUsd(undiscountedCents)}</span> −${formatUsd(f.platformFeeCents)}`
-    : `−${formatUsd(f.platformFeeCents)}`;
-  const platformLabel = f.platformFeeDiscounted
-    ? `Platform fee <span class="ld-offer-breakdown__strike">10%</span> ${launchPct}%
-       <span class="ld-offer-breakdown__hint">Launch rate · none on the first $10</span>`
-    : `Platform fee (10%)
-       <span class="ld-offer-breakdown__hint">None on the first $10</span>`;
+  const platformValue = `−${formatUsd(f.platformFeeCents)}`;
+  const feeHint = consultantFeeIsFixed || f.platformFeeBps === FEE_LADDER_BPS[FEE_LADDER_BPS.length - 1]
+    ? "None on the first $10"
+    : "None on the first $10 · drops as you earn good reviews";
+  const platformLabel = `Platform fee (${f.platformFeeBps / 100}%)
+       <span class="ld-offer-breakdown__hint">${feeHint}</span>`;
   return `
     <div class="ld-offer-breakdown__line ld-offer-breakdown__line--biz">
       <span>${bizLabel}</span>
@@ -1561,7 +1578,7 @@ function offerSummaryHtml(bid, listing) {
   // form only.
   const takeHomeHtml = !isPhased && Number(bid.amount_cents) > 0
     ? `<div class="ld-offer-breakdown ld-bid-existing__breakdown">${offerBreakdownHtml(
-        computeFees(Number(bid.amount_cents)),
+        computeFees(Number(bid.amount_cents), consultantFeeBps),
         isRetainer
           ? { bizLabel: "Business pays per period", takeHomeLabel: "You take home per period" }
           : {}
@@ -1578,6 +1595,7 @@ function offerSummaryHtml(bid, listing) {
 }
 
 async function showConsultantView(client, session, listing, existingBid) {
+  await loadConsultantFeeRate(session);
   const panel = document.getElementById("ld-offer-panel");
   setOfferRailVisible(true);
   panel.hidden = false;
@@ -1597,7 +1615,7 @@ async function showConsultantView(client, session, listing, existingBid) {
       container.innerHTML = "";
       return;
     }
-    const f = computeFees(Math.round(dollars * 100));
+    const f = computeFees(Math.round(dollars * 100), consultantFeeBps);
     container.innerHTML = offerBreakdownHtml(f, opts);
     container.hidden = false;
   }
@@ -3232,7 +3250,7 @@ function runTutorialListing() {
       breakdownEl.innerHTML = "";
       return;
     }
-    const f = computeFees(Math.round(dollars * 100));
+    const f = computeFees(Math.round(dollars * 100), consultantFeeBps);
     breakdownEl.innerHTML = offerBreakdownHtml(f);
     breakdownEl.hidden = false;
   };
