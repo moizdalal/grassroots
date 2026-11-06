@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Grassroots — for students. Real work. Real money. Real reviews.</title>
-    <meta name="description" content="Invite-only. Local students, paid for scoped work for small businesses. You own everything you ship. Apply, or refer 3 businesses to skip the line." />
+    <meta name="description" content="Get paid by local businesses near campus. Apply to join Grassroots with your .edu email." />
     <link rel="canonical" href="https://www.grassroots-marketplace.com/for-students" />
     <meta name="theme-color" content="#6DBF8A" />
     <meta name="robots" content="index,follow" />
@@ -12,7 +12,7 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Grassroots" />
     <meta property="og:title" content="Grassroots for students — real work, real money, real reviews" />
-    <meta property="og:description" content="Invite-only. Local students paid for scoped work for small businesses. Apply, or refer 3 businesses to skip the line." />
+    <meta property="og:description" content="Get paid by local businesses near campus. Apply to join Grassroots with your .edu email." />
     <meta property="og:url" content="https://www.grassroots-marketplace.com/for-students" />
     <meta property="og:image" content="https://www.grassroots-marketplace.com/og-image.png" />
     <meta property="og:image:type" content="image/png" />
@@ -21,7 +21,7 @@
     <meta property="og:image:alt" content="Grassroots — the local consulting marketplace" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Grassroots for students — real work, real money, real reviews" />
-    <meta name="twitter:description" content="Invite-only consultancy work for local students. Get paid. Own your work. Build a portfolio." />
+    <meta name="twitter:description" content="Get paid by local businesses near campus. Apply to join Grassroots with your .edu email." />
     <meta name="twitter:image" content="https://www.grassroots-marketplace.com/og-image.png" />
     <meta name="twitter:image:alt" content="Grassroots — the local consulting marketplace" />
 
@@ -38,7 +38,7 @@
           "@id": "https://www.grassroots-marketplace.com/for-students#webpage",
           "url": "https://www.grassroots-marketplace.com/for-students",
           "name": "grassroots for students — real work, real money, real reviews",
-          "description": "invite-only. local students, paid for scoped work for small businesses. you own everything you ship.",
+          "description": "Get paid by local businesses near campus. Apply to join Grassroots with your .edu email.",
           "isPartOf": { "@id": "https://www.grassroots-marketplace.com/#website" },
           "about": { "@id": "https://www.grassroots-marketplace.com/#organization" },
           "audience": { "@type": "EducationalAudience", "educationalRole": "student" },
@@ -61,7 +61,7 @@
     <link rel="stylesheet" href="/grassroots.css?v=2" />
     <link rel="stylesheet" href="/field-office.css?v=2" />
     <link rel="stylesheet" href="/home/nav.css?v=7" />
-    <link rel="stylesheet" href="/home/for-students.css?v=23" />
+    <link rel="stylesheet" href="/home/for-students.css?v=53" />
     <script src="/theme.js?v=2"></script>
     <script src="/cookie-banner.js" defer></script>
     <script src="/home/theme-default.js"></script>
@@ -126,35 +126,38 @@
     <header class="fs-hero">
       <div class="fs-shell">
         <div class="fs-hero__grid">
-          <div>
+          <div class="fs-hero__copy">
             <h1 class="fs-hero__h1 fs-reveal">
-              Get <span class="fs-italic">paid</span><br/>
-              for the work you <span class="fs-italic">actually</span> want to do
+              <span class="fs-italic">Get paid</span> by local businesses near campus
             </h1>
-
-            <p class="fs-hero__sub fs-reveal">
-              Real briefs from small businesses down the street. You bid, you scope, you ship, you get paid same-day. And yes — no subscription, no bid fees.
-            </p>
 
             <div class="fs-hero__ctas fs-reveal">
               <a class="fs-btn fs-btn--primary fs-btn--lg" href="#get-in">
-                <span>Apply to the network</span>
+                <span>Apply now</span>
                 <span class="fs-btn__arrow" aria-hidden="true">
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 9h10M10 5l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </span>
               </a>
-              <a class="fs-btn fs-btn--ghost fs-btn--lg" href="#refer">
+              <a class="fs-btn fs-btn--ghost fs-btn--lg" href="#refer" hidden data-placeholder="referral program: needs a real tracking system before it comes back">
                 <span>Or — refer 3 to skip the line</span>
               </a>
             </div>
+
+            <p class="fs-hero__sub fs-reveal">
+              Set your own price on projects like logos, menus, websites, and social posts, then do the work and get paid once the business approves it.
+            </p>
           </div>
 
           <!-- a laptop showing the student marketplace (same layout as
                /marketplace.html, with sample listings). A cursor opens a listing,
                types an offer and submits it; then "accepted" and "paid"
-               notifications pop up, and it loops (script below) -->
-          <div class="fs-laptop fs-reveal" aria-hidden="true">
-            <div class="fs-laptop__screen">
+               notifications pop up, and it loops (script below). It opens by
+               itself, then clicking anywhere on it closes and reopens the lid. -->
+          <div class="fs-laptop fs-reveal">
+            <button type="button" class="fs-laptop__toggle" aria-label="Close the laptop">
+              <span class="fs-laptop__hint" aria-hidden="true">Click to open</span>
+            </button>
+            <div class="fs-laptop__screen" data-theme="light" aria-hidden="true">
               <div class="fs-laptop__ui">
                 <div class="fs-mk__nav">
                   <span class="fs-mk__brand">grassroots</span>
@@ -164,7 +167,7 @@
                 <div class="fs-mk__page">
                   <div class="fs-mk__head">
                     <b>Opportunities <em>live now</em></b>
-                    <span>Small businesses post real work. Students bid, deliver, and build their portfolios.</span>
+                    <span>Small businesses post real work. Students bid, deliver, and build their resumes.</span>
                   </div>
                   <div class="fs-mk__filters">
                     <span class="fs-mk__search">Search by title, business, or keyword…</span>
@@ -227,88 +230,46 @@
                   <span class="fs-mk__input fs-mk__input--tall fs-mk__pitch"></span>
                   <span class="fs-mk__submit">Submit offer</span>
                 </div>
+                <div class="fs-laptop__toast">
+                  <span class="fs-laptop__toast-icon">
+                    <svg viewBox="0 0 24 24" fill="none"><path d="M12 21V11M12 11C12 7 9 4.5 5 4.5C5 8.5 7.5 11 12 11ZM12 13C12 9.5 14.5 7 19 7C19 10.5 16.5 13 12 13Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>
+                  </span>
+                  <span class="fs-laptop__toast-body"><b>Grassroots</b><span class="fs-laptop__toast-text"></span></span>
+                </div>
                 <svg class="fs-mk__cursor" viewBox="0 0 24 24"><path d="M5 3l14 8-6 1.6L10 19z" /></svg>
               </div>
+              <span class="fs-laptop__lid"></span>
             </div>
-            <div class="fs-laptop__base"></div>
-            <div class="fs-laptop__toast">
-              <span class="fs-laptop__toast-icon">
-                <svg viewBox="0 0 24 24" fill="none"><path d="M12 21V11M12 11C12 7 9 4.5 5 4.5C5 8.5 7.5 11 12 11ZM12 13C12 9.5 14.5 7 19 7C19 10.5 16.5 13 12 13Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>
-              </span>
-              <span class="fs-laptop__toast-body"><b>Grassroots</b><span class="fs-laptop__toast-text"></span></span>
-            </div>
+            <div class="fs-laptop__base" aria-hidden="true"></div>
           </div>
         </div>
       </div>
     </header>
 
-    <!-- ── why grassroots: heading on the left, what you walk away with on the right ── -->
-    <section class="fs-section" id="why" aria-labelledby="fs-why-title">
-      <div class="fs-shell fs-split">
+    <!-- ── why join: the top four reasons, all on show ── -->
+    <section class="fs-section fs-why" id="why" aria-labelledby="fs-why-title">
+      <div class="fs-shell">
         <div class="fs-split__head fs-reveal">
-          <h2 class="fs-section__title fs-split__title" id="fs-why-title">
-            Money in your account. <span class="fs-italic">Work in your portfolio.</span> A name on the door
-          </h2>
-          <p class="fs-section__sub">
-            Not an internship. Not a gig app. Paid work for businesses in your town.
-          </p>
+          <h2 class="fs-section__title fs-split__title" id="fs-why-title">Why join</h2>
         </div>
 
-        <div class="fs-split__body">
-          <ol class="fs-rows fs-stagger fs-reveal">
-            <li class="fs-row">
-              <span class="fs-row__num" aria-hidden="true">01</span>
-              <div>
-                <h3 class="fs-row__title">A paycheck, not a pat on the back</h3>
-                <p class="fs-row__body">You set the price. Approved work pays out.</p>
-              </div>
-            </li>
-            <li class="fs-row">
-              <span class="fs-row__num" aria-hidden="true">02</span>
-              <div>
-                <h3 class="fs-row__title">The kind recruiters actually ask about</h3>
-                <p class="fs-row__body">You run the project, talk to the owner, and ship it.</p>
-              </div>
-            </li>
-            <li class="fs-row">
-              <span class="fs-row__num" aria-hidden="true">03</span>
-              <div>
-                <h3 class="fs-row__title">You own everything you ship</h3>
-                <p class="fs-row__body">Full IP and portfolio rights, in the contract.</p>
-              </div>
-            </li>
-            <li class="fs-row">
-              <span class="fs-row__num" aria-hidden="true">04</span>
-              <div>
-                <h3 class="fs-row__title">A real reference, not a LinkedIn endorsement</h3>
-                <p class="fs-row__body">A local owner who'll vouch for you for years.</p>
-              </div>
-            </li>
-            <li class="fs-row">
-              <span class="fs-row__num" aria-hidden="true">05</span>
-              <div>
-                <h3 class="fs-row__title">Three clients by graduation</h3>
-                <p class="fs-row__body">Paid projects, written references, verified earnings.</p>
-              </div>
-            </li>
-          </ol>
-
-          <!-- why you can trust it: the money and review guarantees -->
-          <ul class="fs-checks fs-checks--two fs-stagger fs-reveal" aria-label="Why you can trust Grassroots">
-            <li class="fs-check">
-              <b class="fs-check__head">Payment held before you start</b>
-            </li>
-            <li class="fs-check">
-              <b class="fs-check__head">Paid same day</b>
-            </li>
-            <li class="fs-check">
-              <b class="fs-check__head">A small fee, only on paid work</b>
-            </li>
-            <li class="fs-check">
-              <b class="fs-check__head">Reviews that stay with you</b>
-            </li>
-          </ul>
-        </div>
+        <ul class="fs-why__grid fs-stagger fs-reveal">
+          <li class="fs-why__card">
+            <span class="fs-why__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M14.6 9.4c-.5-1-1.5-1.5-2.6-1.5-1.5 0-2.7.8-2.7 2 0 2.9 5.6 1.4 5.6 4.2 0 1.2-1.2 2-2.9 2-1.2 0-2.3-.6-2.8-1.6M12 6.2v11.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+            <h3 class="fs-why__title">Get paid for real work</h3>
+            <p class="fs-why__body">You set the price on every project, and real businesses pay you for the work you do for them.</p>
+          </li>
+          <li class="fs-why__card">
+            <span class="fs-why__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M7 3.5h7l4.5 4.5v12a.5.5 0 0 1-.5.5H7a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3.8V8h4.2M9.5 12.5h5M9.5 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <h3 class="fs-why__title">Build a real resume</h3>
+            <p class="fs-why__body">You run the project yourself, work directly with the owner, and finish with real experience you can put on your resume.</p>
+          </li>
+          <li class="fs-why__card">
+            <span class="fs-why__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.8"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+            <h3 class="fs-why__title">Earn real references</h3>
+            <p class="fs-why__body">A local owner who has seen your work can vouch for you for years.</p>
+          </li>
+        </ul>
       </div>
     </section>
 
@@ -317,32 +278,79 @@
       <div class="fs-shell fs-split">
         <div class="fs-split__head fs-reveal">
           <h2 class="fs-section__title fs-split__title" id="fs-how-title">How it works</h2>
-          <p class="fs-section__sub">Five steps to your first paycheck.</p>
+          <p class="fs-section__sub">It only takes a few steps to go from applying to your first project.</p>
         </div>
 
         <div class="fs-split__body">
           <ol class="fs-steps fs-stagger fs-reveal">
             <li class="fs-step">
               <h3 class="fs-step__title">Get in</h3>
-              <p class="fs-step__body">Apply, or refer 3 businesses to skip the line.</p>
+              <p class="fs-step__body">You apply with your .edu email and a few lines on why you want to help small businesses.</p>
             </li>
             <li class="fs-step">
               <h3 class="fs-step__title">Build your bio</h3>
-              <p class="fs-step__body">School, skills, and what you want to work on.</p>
+              <p class="fs-step__body">You add your school, your skills, and what you want to work on so owners can get to know you.</p>
             </li>
             <li class="fs-step">
               <h3 class="fs-step__title">Bid your price</h3>
-              <p class="fs-step__body">Pick a local listing, pitch, and name your number.</p>
+              <p class="fs-step__body">You pick a local listing, send a short pitch, and name your price.</p>
             </li>
             <li class="fs-step">
               <h3 class="fs-step__title">Ship the work</h3>
-              <p class="fs-step__body">The business has already paid before you start.</p>
+              <p class="fs-step__body">You do the work for the business and stay in touch with the owner until it is finished.</p>
             </li>
             <li class="fs-step">
-              <h3 class="fs-step__title">Get paid &amp; reviewed</h3>
-              <p class="fs-step__body">Paid same day, reviewed on six dimensions.</p>
+              <h3 class="fs-step__title">Get paid and reviewed</h3>
+              <p class="fs-step__body">You get paid once the work is approved, and the business reviews you on six dimensions.</p>
             </li>
           </ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── how you get paid: the fee starts high and steps down as reviews build.
+         PROPOSED ONLY: the live fee is 10% (5% during launch) in /terms and
+         lib/fees.js, so this can't ship until the owner approves it and those change. ── -->
+    <section class="fs-section" id="getting-paid" aria-labelledby="fs-paid-title" style="padding-top: 0;" data-placeholder="proposed fee ladder: does not match the live fee in the Terms or lib/fees.js">
+      <div class="fs-shell fs-split">
+        <div class="fs-split__head fs-reveal">
+          <h2 class="fs-section__title fs-split__title" id="fs-paid-title">How you get paid</h2>
+          <p class="fs-section__sub">
+            You set your price and get paid once the business approves the work. We start with a 30% fee on your first project, then take 5% off as you earn more good reviews, all the way down to just 5%. The better you do, the more you keep.
+          </p>
+        </div>
+
+        <div class="fs-split__body">
+          <ol class="fs-fee fs-stagger fs-reveal" aria-label="The fee starts at 30% and drops by 5% at each step, down to 5%">
+            <li class="fs-fee__step" style="--fee: 30">
+              <b class="fs-fee__pct">30%</b>
+              <span class="fs-fee__bar"></span>
+            </li>
+            <li class="fs-fee__step" style="--fee: 25">
+              <b class="fs-fee__pct">25%</b>
+              <span class="fs-fee__bar"></span>
+            </li>
+            <li class="fs-fee__step" style="--fee: 20">
+              <b class="fs-fee__pct">20%</b>
+              <span class="fs-fee__bar"></span>
+            </li>
+            <li class="fs-fee__step" style="--fee: 15">
+              <b class="fs-fee__pct">15%</b>
+              <span class="fs-fee__bar"></span>
+            </li>
+            <li class="fs-fee__step" style="--fee: 10">
+              <b class="fs-fee__pct">10%</b>
+              <span class="fs-fee__bar"></span>
+            </li>
+            <li class="fs-fee__step" style="--fee: 5">
+              <b class="fs-fee__pct">5%</b>
+              <span class="fs-fee__bar"></span>
+            </li>
+          </ol>
+          <div class="fs-fee__axis" aria-hidden="true">
+            <span>First project</span>
+            <span>More good reviews</span>
+          </div>
         </div>
       </div>
     </section>
@@ -352,45 +360,34 @@
       <div class="fs-shell">
         <div class="fs-split">
           <div class="fs-split__head fs-reveal">
-            <h2 class="fs-section__title fs-split__title" id="fs-reqs-title">What it takes to get in</h2>
-            <p class="fs-section__sub">
-              We keep it small so the badge means something.
-            </p>
+            <h2 class="fs-section__title fs-split__title" id="fs-reqs-title">Requirements</h2>
           </div>
 
           <div class="fs-split__body">
             <ul class="fs-checks fs-stagger fs-reveal">
               <li class="fs-check">
                 <b class="fs-check__head">A current college student</b>
-                <span class="fs-check__body">With a .edu email.</span>
+                <span class="fs-check__body">Apply with your .edu email.</span>
               </li>
               <li class="fs-check">
-                <b class="fs-check__head">In or near a Grassroots town</b>
-                <span class="fs-check__body">No town yet? Apply anyway.</span>
-              </li>
-              <li class="fs-check">
-                <b class="fs-check__head">One thing you've made</b>
-                <span class="fs-check__body">No big portfolio needed.</span>
-              </li>
-              <li class="fs-check">
-                <b class="fs-check__head">A few lines on why</b>
-                <span class="fs-check__body">60 words is plenty.</span>
+                <b class="fs-check__head">A passion for helping small businesses</b>
+                <span class="fs-check__body">You care about the local businesses around you and want to help them do well.</span>
               </li>
             </ul>
           </div>
         </div>
 
-        <h3 class="fs-paths__title fs-reveal" id="fs-paths-title">
-          Two ways in. <span class="fs-italic">Both end the same</span>
+        <h3 class="fs-paths__title fs-reveal" id="fs-paths-title" hidden data-placeholder="referral program: needs a real tracking system before it comes back">
+          Two ways in that <span class="fs-italic">both end the same</span>
         </h3>
 
         <div class="fs-paths">
           <!-- LEFT: apply -->
           <div class="fs-path fs-path--apply fs-reveal" id="apply">
             <h3 class="fs-path__head">
-              Tell us who you are. <span class="fs-italic">2–3 weeks to hear back</span>
+              Apply to <span class="fs-italic">join</span>
             </h3>
-            <p class="fs-path__sub">We read every application. No algorithmic filtering, no portfolio AI scan.</p>
+            <p class="fs-path__sub">Send us a few details about yourself, and we'll be in touch.</p>
 
             <form class="fs-apply-form" id="fs-apply-form" onsubmit="return false;">
               <div class="fs-apply-form__row">
@@ -406,7 +403,7 @@
               <div class="fs-apply-form__row">
                 <label class="fs-field">
                   <span class="fs-field__label">.edu email</span>
-                  <input type="email" name="email" placeholder="you@school.edu" required/>
+                  <input type="email" name="email" placeholder="you@school.edu" pattern="[^@\s]+@[^@\s]+\.[eE][dD][uU]" title="Please use your .edu email" required/>
                 </label>
                 <label class="fs-field">
                   <span class="fs-field__label">City / town</span>
@@ -414,12 +411,17 @@
                 </label>
               </div>
               <label class="fs-field">
-                <span class="fs-field__label">Strongest thing you've made</span>
-                <input type="text" name="link" placeholder="Link to writing, design, code, anything"/>
+                <span class="fs-field__label">Something you've made (optional)</span>
+                <input type="text" name="link" placeholder="Link to writing, design, code, anything" maxlength="500"/>
               </label>
               <label class="fs-field">
-                <span class="fs-field__label">Why Grassroots? (60 words is plenty)</span>
-                <textarea name="why" rows="3" placeholder="Tell us about a small business in your town and what you'd want to build for them."></textarea>
+                <span class="fs-field__label">Why do you want to help small businesses? (60 words min)</span>
+                <textarea name="why" rows="3" placeholder="Tell us about a small business in your town and how you'd want to help them." maxlength="2000" required></textarea>
+              </label>
+              <!-- Honeypot: hidden from people, bots fill it in. -->
+              <label class="fs-apply-form__trap" aria-hidden="true">
+                Website
+                <input type="text" name="website" tabindex="-1" autocomplete="off"/>
               </label>
               <button type="submit" class="fs-btn fs-btn--primary" id="fs-apply-submit" style="margin-top: 8px; justify-content: center;">
                 <span>Send application</span>
@@ -427,15 +429,16 @@
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 9h10M10 5l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </span>
               </button>
+              <p class="fs-apply-form__status" id="fs-apply-status" role="status" hidden></p>
             </form>
           </div>
 
           <!-- RIGHT: refer (the shortcut) -->
-          <div class="fs-path fs-path--refer fs-reveal" id="refer">
+          <div class="fs-path fs-path--refer fs-reveal" id="refer" hidden data-placeholder="referral program: needs a real tracking system before it comes back">
             <h3 class="fs-path__head">
-              Bring 3 businesses. <span class="fs-italic">You're in</span>
+              Bring 3 businesses <span class="fs-italic">and you're in</span>
             </h3>
-            <p class="fs-path__sub">Generate your referral link. When 3 businesses sign up, post a listing, and complete an engagement using your link — you auto-join the network.</p>
+            <p class="fs-path__sub">Generate your referral link, and you'll join the network automatically once 3 businesses use it to sign up, post a listing, and complete an engagement.</p>
 
             <div class="fs-refer__counter">
               <span class="fs-refer__counter-num" id="fs-refer-count">0</span>
@@ -486,7 +489,7 @@
             </div>
 
             <p class="fs-refer__fine">
-              Tip: try the café next door, the gym you go to, your cousin's cousin's tax shop. Main Street runs on people-you-actually-know.
+              Try the café next door, the gym you go to, or your cousin's tax shop, because Main Street runs on people you actually know.
             </p>
             <span class="fs-sr" role="status" aria-live="polite" id="fs-copy-live"></span>
           </div>
@@ -505,31 +508,27 @@
         <div class="fs-faq">
           <details>
             <summary>What kind of work is actually on here?</summary>
-            <p class="fs-faq__answer">Short, scoped projects from local businesses: logo refreshes, menu redesigns, Shopify cleanups, market research, social retainers, copy passes, product photos. You'll see them all in the marketplace once you're in. Nothing weird, nothing exploitative.</p>
+            <p class="fs-faq__answer">You'll find short, scoped projects from local businesses, like logo refreshes, menu redesigns, Shopify cleanups, market research, social retainers, copy passes, and product photos. You can see them all in the marketplace once you're in, and none of it is weird or exploitative.</p>
           </details>
           <details>
-            <summary>Do I need an "impressive" portfolio to get in?</summary>
-            <p class="fs-faq__answer">No. We want students with taste, hustle, and care — not students with a 200-page Behance. One thing you made and a paragraph about why you'd be great for Grassroots is enough. People on the referral path get in with zero portfolio.</p>
+            <summary>Do I need an "impressive" resume to get in?</summary>
+            <p class="fs-faq__answer">No, you don't need one, because we're looking for college students who care about helping small businesses. A few lines on why that matters to you is enough.</p>
           </details>
           <details>
             <summary>How much can I realistically earn?</summary>
-            <p class="fs-faq__answer">You set your own price on every bid, and the platform fee is 10% of funded work above the first $10 (5% during launch). How many projects you take on each semester is up to you. Retainer clients can run all year. The ceiling is yours.</p>
+            <p class="fs-faq__answer">You set your own price on every bid, and the platform fee starts at 30% on your first project, then drops by 5% as you earn more good reviews, all the way down to 5%. How many projects you take on each semester is up to you, and retainer clients can run all year, so the ceiling is yours.</p>
           </details>
           <details>
             <summary>Who owns the work after?</summary>
-            <p class="fs-faq__answer">You do. The business gets a license to use it; you keep full IP and full portfolio rights. Show it everywhere. It's in the contract.</p>
-          </details>
-          <details>
-            <summary>What if I don't have a city listed?</summary>
-            <p class="fs-faq__answer">Apply anyway. We open new towns when there's a critical mass of students + businesses. You and three other applications can literally open your town.</p>
+            <p class="fs-faq__answer">The business does, once the payment is released. You can still list it on your resume and show it on your profile, unless the business opts out in writing first.</p>
           </details>
           <details>
             <summary>Does Grassroots take a cut?</summary>
-            <p class="fs-faq__answer">10% platform fee on the part above $10, 5% during launch, only on funded work. Card processing comes out too. No monthly subscription, no per-bid fee, no payout fee. The rest is yours.</p>
+            <p class="fs-faq__answer">Yes, Grassroots takes a platform fee that starts at 30% on your first project and drops by 5% as you earn more good reviews, all the way down to 5%. Card processing comes out too, but there's no monthly subscription, per-bid fee, or payout fee, and the rest is yours.</p>
           </details>
           <details>
             <summary>Can I quit anytime?</summary>
-            <p class="fs-faq__answer">Yes. Take a semester off, finish a project and disappear for a year, whatever. Your profile and reviews stay where they are.</p>
+            <p class="fs-faq__answer">Yes, you can take a semester off or finish a project and disappear for a year, and your profile and reviews will stay where they are.</p>
           </details>
         </div>
       </div>
@@ -539,7 +538,7 @@
     <section class="fs-final" aria-labelledby="fs-final-title">
       <div class="fs-shell">
         <h2 class="fs-final__title fs-reveal" id="fs-final-title">
-          Your first paycheck is <span class="fs-italic">five steps</span> from here
+          Your first project is <span class="fs-italic">a few steps</span> away
         </h2>
         <div class="fs-final__ctas fs-reveal">
           <a class="fs-btn fs-btn--primary fs-btn--lg" href="#apply">
@@ -548,10 +547,10 @@
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 9h10M10 5l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </span>
           </a>
-          <a class="fs-btn fs-btn--ghost fs-btn--lg" href="#refer">Refer 3 instead</a>
-          <a class="fs-btn fs-btn--ghost fs-btn--lg" href="mailto:moiz@grassroots-marketplace.com">Or just email us</a>
+          <a class="fs-btn fs-btn--ghost fs-btn--lg" href="#refer" hidden data-placeholder="referral program: needs a real tracking system before it comes back">Refer 3 instead</a>
+          <a class="fs-btn fs-btn--ghost fs-btn--lg" href="mailto:moiz@grassroots-marketplace.com">Contact us</a>
         </div>
-        <p class="fs-final__fine fs-reveal">We read every application. No auto-rejects. Promise.</p>
+        <p class="fs-final__fine fs-reveal">We read every application, and nobody gets an automatic rejection.</p>
       </div>
     </section>
 
@@ -575,7 +574,7 @@
             <ul>
               <li><a href="#how">How it works</a></li>
               <li><a href="#get-in">Apply</a></li>
-              <li><a href="#refer">Refer 3</a></li>
+              <li hidden data-placeholder="referral program: needs a real tracking system before it comes back"><a href="#refer">Refer 3</a></li>
               <li><a href="#faq">FAQ</a></li>
             </ul>
           </div>
@@ -635,9 +634,16 @@
         var toast = root.querySelector('.fs-laptop__toast');
         var toastText = root.querySelector('.fs-laptop__toast-text');
 
-        function fit() { ui.style.setProperty('--k', (screen.clientWidth / 900).toFixed(4)); }
+        function fit() { root.style.setProperty('--k', (screen.clientWidth / 900).toFixed(4)); }
         fit();
         if (window.ResizeObserver) new ResizeObserver(fit).observe(screen);
+
+        var toggle = root.querySelector('.fs-laptop__toggle');
+        toggle.addEventListener('click', function () {
+          var closed = root.classList.toggle('is-closed');
+          root.classList.add('is-toggled');
+          toggle.setAttribute('aria-label', closed ? 'Open the laptop' : 'Close the laptop');
+        });
 
         if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
@@ -669,7 +675,7 @@
             pitch.textContent = '';
             submit.classList.remove('is-sent');
             submit.textContent = 'Submit offer';
-            cursor.style.transform = 'translate(760px, 500px)';
+            cursor.style.transform = 'translate(760px, 440px)';
             await wait(1400);
             moveTo(card, 150, 70);
             await wait(900);
@@ -697,17 +703,18 @@
             submit.textContent = 'Offer sent ✓';
             await wait(1100);
             panel.classList.remove('is-open');
-            cursor.style.transform = 'translate(760px, 500px)';
+            cursor.style.transform = 'translate(760px, 440px)';
             await wait(500);
             say('Offer accepted · Side Street Coffee');
             await wait(2400);
-            say('Payment released · paid same day');
+            say('Payment released');
             await wait(2600);
             toast.classList.remove('is-on');
             await wait(800);
           }
         }
-        setTimeout(loop, 600);
+        // first run once the lid has opened and the listings have appeared
+        setTimeout(loop, 3200);
       })();
 
       // ── reveal on scroll ─────────────────────────────────
@@ -871,18 +878,45 @@
         });
       })();
 
-      // ── apply form (fake submit) ─────────────────────────
+      // ── apply form ───────────────────────────────────────
+      // Sends the application to /api/student-application, which emails it
+      // to the admin. The button only says "sent" once the server confirms.
       (function () {
         var f = document.getElementById('fs-apply-form');
         var btn = document.getElementById('fs-apply-submit');
-        if (!f || !btn) return;
+        var status = document.getElementById('fs-apply-status');
+        if (!f || !btn || !status) return;
+        var label = btn.innerHTML;
+        var FALLBACK = "We couldn't send your application. Please email moiz@grassroots-marketplace.com instead.";
+
+        function showError(message) {
+          status.textContent = message;
+          status.hidden = false;
+          btn.innerHTML = label;
+          btn.disabled = false;
+        }
+
         btn.addEventListener('click', function (e) {
           e.preventDefault();
+          if (btn.disabled) return;
           if (!f.checkValidity()) { f.reportValidity(); return; }
-          btn.innerHTML = '<span>✓ Sent — we\'ll be in touch</span>';
-          btn.style.background = 'var(--fo-accent)';
-          btn.style.color = 'var(--fo-accent-on)';
+          status.hidden = true;
           btn.disabled = true;
+          btn.innerHTML = '<span>Sending…</span>';
+          var data = {};
+          new FormData(f).forEach(function (value, key) { data[key] = value; });
+          fetch('/api/student-application', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          }).then(function (res) {
+            return res.json().catch(function () { return {}; }).then(function (body) {
+              if (!res.ok) { showError(body.error || FALLBACK); return; }
+              btn.innerHTML = '<span>✓ Application sent</span>';
+              btn.style.background = 'var(--fo-accent)';
+              btn.style.color = 'var(--fo-accent-on)';
+            });
+          }).catch(function () { showError(FALLBACK); });
         });
       })();
     </script>

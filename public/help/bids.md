@@ -28,7 +28,7 @@ Every bid on their listing appears in a side rail, with the consultant's:
 - Rating (if any reviews exist)
 - LinkedIn link (if shared)
 - Bid amount + message
-- Portfolio / proposal samples (if attached)
+- Work or proposal samples (if attached)
 
 The owner can:
 - **Accept** — opens a Stripe payment modal; on confirmation, the bid moves to `accepted` and the engagement begins
