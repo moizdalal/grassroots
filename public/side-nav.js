@@ -67,7 +67,7 @@ function buildNavItems(role) {
   // see, but the sidebar's user card / logout will be hidden in that case.
   return [
     { href: "/dashboard.html", label: "Home", icon: ICONS.home, navId: "home" },
-    { href: "/dashboard.html#listings", label: "My listings", icon: ICONS.listings, navId: "listings" },
+    { href: "/dashboard.html#listings", label: "My projects", icon: ICONS.listings, navId: "listings" },
     { href: "/inbox.html", label: "Inbox", icon: ICONS.inbox, navId: "inbox" },
     { href: "/notifications.html", label: "Notifications", icon: ICONS.notifications, navId: "notifications" },
   ];
