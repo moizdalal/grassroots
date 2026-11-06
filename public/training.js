@@ -14,7 +14,7 @@
 
 import { MODULES, PASS_SCORE, QUIZ_LENGTH } from "/training-content.js";
 import { confirmDialog } from "/confirm-modal.js";
-import { computeFees, formatUsd, LAUNCH_PLATFORM_FEE_BPS, PLATFORM_FEE_BPS } from "/fees.js";
+import { computeFees, formatUsd, FEE_LADDER_BPS } from "/fees.js";
 
 const QUIZ_STEP = "quiz";
 const reduceMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -52,7 +52,6 @@ function renderFlow({ label, steps }) {
 }
 
 function renderFeeCalculator() {
-  const launch = LAUNCH_PLATFORM_FEE_BPS != null && LAUNCH_PLATFORM_FEE_BPS < PLATFORM_FEE_BPS;
   return `
     <figure class="tr-visual tr-fees">
       <figcaption class="tr-fees__head">
@@ -68,9 +67,9 @@ function renderFeeCalculator() {
       <dl class="tr-fees__legend">
         <div><dt><span class="tr-fees__swatch tr-fees__seg--keep"></span>You take home</dt><dd data-val="keep"></dd></div>
         <div><dt><span class="tr-fees__swatch tr-fees__seg--card"></span>Card processing</dt><dd data-val="card"></dd></div>
-        <div><dt><span class="tr-fees__swatch tr-fees__seg--platform"></span>Platform fee${launch ? " (launch rate)" : ""}</dt><dd data-val="platform"></dd></div>
+        <div><dt><span class="tr-fees__swatch tr-fees__seg--platform"></span>Platform fee (30%)</dt><dd data-val="platform"></dd></div>
       </dl>
-      <p class="tr-fees__note">The business pays exactly the offer. Fees come out of your payout.</p>
+      <p class="tr-fees__note">The business pays exactly the offer, and fees come out of your payout. This shows the 30% starting rate, which drops as you earn good reviews.</p>
     </figure>`;
 }
 
@@ -78,7 +77,7 @@ function wireFeeCalculator(scope) {
   const range = scope.querySelector("#tr-fee-range");
   if (!range) return;
   const update = () => {
-    const f = computeFees(Number(range.value) * 100);
+    const f = computeFees(Number(range.value) * 100, FEE_LADDER_BPS[0]);
     const total = f.amountCents || 1;
     const parts = { keep: f.consultantPayoutCents, card: f.stripeFeeCents, platform: f.platformFeeCents };
     scope.querySelector("#tr-fee-amount").textContent = formatUsd(f.amountCents);

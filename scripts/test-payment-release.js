@@ -9,7 +9,7 @@ const Module = require("module");
 const assert = require("assert");
 
 // ---------- fake supabase ----------
-const db = { profiles: [], listings: [], bids: [], bid_phase_payments: [], retainer_subscriptions: [], consultant_reviews: [], notifications: [], payment_audit: [] };
+const db = { profiles: [], listings: [], bids: [], bid_phase_payments: [], retainer_subscriptions: [], consultant_reviews: [], consultant_fee_rates: [], notifications: [], payment_audit: [] };
 // Columns the add_delivery_release / add_support_outcomes migrations default.
 const PAY_DEFAULTS = { refunded_cents: 0, problem_report_count: 0, redo_used: false };
 const DEFAULTS = { bids: PAY_DEFAULTS, bid_phase_payments: PAY_DEFAULTS };
@@ -165,6 +165,8 @@ function seed() {
   db.listings.push({ id: "L1", owner_id: OWNER, title: "t", contract_type: "standard" }, { id: "L2", owner_id: OWNER, title: "p", contract_type: "phased" });
   db.bids.push({ id: "B1", listing_id: "L1", consultant_id: CONS, amount_cents: 10000, status: "pending", payment_status: "unpaid", refunded_cents: 0 });
   db.consultant_reviews.push({ id: "R1", bid_id: "B1" });
+  // These tests check release math at the existing students' 5% rate.
+  db.consultant_fee_rates.push({ consultant_id: CONS, platform_fee_bps: 500 });
 }
 const bid = (id) => db.bids.find((b) => b.id === id);
 let pass = 0;
@@ -178,7 +180,7 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     let r1 = await api("/api/stripe/payment-intent", { bid_id: "B1" }, OWNER);
     ok(r1.status === 200, "payment-intent created");
     const piId = bid("B1").payment_intent_id;
-    ok(calls.filter((c) => c.kind === "pi")[0].key.startsWith("pi:bid:B1:none:10000"), "PI create carries idempotency key");
+    ok(calls.filter((c) => c.kind === "pi")[0].key.startsWith("pi-card:bid:B1:none:10000"), "PI create carries idempotency key");
 
     // --- webhook accepts the bid before the browser confirms ---
     pis.get(piId).status = "succeeded"; pis.get(piId).latest_charge = "ch_1"; pis.get(piId).payment_method = "pm_1"; pis.get(piId).customer = "cus_1";
@@ -925,6 +927,33 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     // --- bad signature / legacy path ---
     const bad = await fetch(base + "/webhooks/stripe", { method: "POST", headers: { "content-type": "application/json", "stripe-signature": "t=1,v1=bad" }, body: "{}" });
     ok(bad.status === 400, "legacy /webhooks/stripe path routed; bad signature → 400");
+
+    // --- fee ladder: a new student pays 30% on the part above $10 ---
+    seed();
+    db.consultant_fee_rates.length = 0;
+    const ladder = await api("/api/stripe/payment-intent", { bid_id: "B1" }, OWNER);
+    ok(ladder.status === 200 && ladder.body.amount === 10000, "new student: the business still pays exactly the offer");
+    ok(bid("B1").platform_fee_cents === 2700, "new student: a $100 offer stores a $27 platform fee");
+
+    let feeRate = await apiGet("/api/consultant/fee-rate", CONS);
+    ok(feeRate.status === 200 && feeRate.body.platform_fee_bps === 3000 && feeRate.body.reviews_to_next_drop === 2, "new student: sees the same 30% rate the charge used");
+    feeRate = await apiGet("/api/consultant/fee-rate");
+    ok(feeRate.status === 401, "fee rate requires sign in");
+
+    // --- fee ladder: students from before it stay at 5% ---
+    seed();
+    await api("/api/stripe/payment-intent", { bid_id: "B1" }, OWNER);
+    ok(bid("B1").platform_fee_cents === 450, "existing student: a $100 offer stores a $4.50 platform fee");
+
+    // --- fee ladder: no rate table means no charge ---
+    seed();
+    const savedRates = db.consultant_fee_rates;
+    delete db.consultant_fee_rates;
+    const piBefore = calls.filter((c) => c.kind === "pi").length;
+    const failed = await api("/api/stripe/payment-intent", { bid_id: "B1" }, OWNER);
+    db.consultant_fee_rates = savedRates;
+    ok(failed.status >= 500 && !bid("B1").payment_intent_id, "missing fee table: the charge is refused");
+    ok(calls.filter((c) => c.kind === "pi").length === piBefore, "missing fee table: Stripe is never called");
 
     origErr(`\n${pass} checks passed`);
   } catch (e) {

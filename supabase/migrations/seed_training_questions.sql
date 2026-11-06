@@ -20,7 +20,7 @@ insert into public.training_questions (id, module, prompt, options, answer, why)
    'The business pays at acceptance, and the payment is held until it''s released to you.'),
   ('q4', 'before', 'How does the platform fee work?',
    '["A flat $10 on every offer","10% added on top of what the business pays","A percentage of the part above $10, taken from your payout","There isn''t one. The business pays all fees."]'::jsonb, 2,
-   'Businesses pay exactly the offer. The fee is 10% of the part above $10 (5% during launch), taken from your payout.'),
+   'Businesses pay exactly the offer. The fee is a percentage of the part above $10, from 30% down to 5% as you earn good reviews, taken from your payout.'),
   ('q5', 'before', 'Which pricing approach does the training recommend?',
    '["Bid the lowest price to win the work","Price honestly, knowing your take-home first","Start high and expect a counter","Always send a $0 offer first"]'::jsonb, 1,
    'Price honestly. Don''t underbid just to win the work.'),

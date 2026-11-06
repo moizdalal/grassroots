@@ -55,16 +55,27 @@ Retainers stop billing after the number of periods in the offer. You can change 
 4. When it's released, Grassroots transfers your payout to your connected account.
 5. Stripe pays out to your bank on your payout schedule, usually about 2 business days.
 
-Your payout is the offer minus card processing (**2.9% + $0.30** per payment) and the platform fee: **10% of the part above $10**, **5% during launch**. There's no platform fee on the first $10. The offer screen shows your take-home before you send it. If Stripe charges more on a card (international, amex), Grassroots absorbs the difference.
+Your payout is the offer minus card processing (**2.9% + $0.30** per payment) and the platform fee on the part above $10. Your rate **starts at 30%** and **drops by 5% for every 2 good reviews**, down to **5%**. There's no platform fee on the first $10. Consultants who joined before this schedule keep a 5% rate. The offer screen shows your take-home before you send it. If Stripe charges more on a card (international, amex), Grassroots absorbs the difference.
 
 ## Fees
 
 | Who | Fee |
 |---|---|
 | Business | None. You pay the offer price, all-in. |
-| Consultant | Card processing (2.9% + $0.30) and a 10% platform fee on the part above $10 (5% during launch), both deducted from the payout |
+| Consultant | Card processing (2.9% + $0.30) and a platform fee of 30% down to 5% on the part above $10, both deducted from the payout |
 
-We'll give at least 30 days' notice before raising a fee or ending the launch rate.
+A good review is a review of paid, released work that averages 4.0 or higher. A lower review never raises your rate.
+
+| Good reviews | Platform fee |
+|---|---|
+| 0 to 1 | 30% |
+| 2 to 3 | 25% |
+| 4 to 5 | 20% |
+| 6 to 7 | 15% |
+| 8 to 9 | 10% |
+| 10 or more | 5% |
+
+We'll give at least 30 days' notice before raising a fee.
 
 ## Payment states
 
@@ -106,6 +117,6 @@ Grassroots, through Stripe, issues tax forms to consultants when the law require
 
 - **Can I pay in installments?** Use a phased listing or a retainer. A one-time job is charged in full at acceptance.
 - **What cards work?** Anything Stripe accepts: visa, mastercard, amex, discover, plus apple pay and Google pay on supported devices.
-- **Does Grassroots take a cut?** Yes, 10% of the part of each payment above $10, 5% during launch. It comes out of the consultant's payout, so businesses pay only the offer price.
+- **Does Grassroots take a cut?** Yes, 30% of the part of each payment above $10 to start, dropping to 5% as you earn good reviews. It comes out of the consultant's payout, so businesses pay only the offer price.
 - **Is there a minimum?** Yes. Payments through Grassroots are at least $10.
 - **Is this escrow?** No. Grassroots holds the payment in its own Stripe balance and releases it under the terms. No licensed escrow agent is involved.

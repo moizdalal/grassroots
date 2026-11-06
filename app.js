@@ -7,6 +7,7 @@ const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const fees = require("./lib/fees");
+const { feesForConsultant, getConsultantFeeRate } = require("./lib/consultant-fee");
 const {
   periodEndUnix,
   idOf,
@@ -591,7 +592,17 @@ async function onRetainerInvoicePaid(invoice) {
   // the business pays (all-in). Stripe processing and the platform fee
   // both come out of the consultant's payout.
   const offerCents = Number(subRow.fee_cents) || invoice.amount_paid;
-  const breakdown = fees.computeFees(offerCents);
+  // Each period uses the consultant's rate at the time it's billed, so a
+  // retainer gets cheaper for them as their good reviews build.
+  const { data: periodBid, error: periodBidErr } = await supabase
+    .from("bids")
+    .select("consultant_id")
+    .eq("id", subRow.bid_id)
+    .maybeSingle();
+  if (periodBidErr || !periodBid) {
+    throw new Error(`invoice.paid bid lookup failed: ${periodBidErr?.message || subRow.bid_id}`);
+  }
+  const breakdown = await feesForConsultant(supabase, periodBid.consultant_id, offerCents);
 
   const { error: insertErr } = await supabase.from("bid_phase_payments").insert({
     bid_id: subRow.bid_id,
@@ -2404,7 +2415,7 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
 
     // All-in pricing: the business is charged the offer. The platform
     // and Stripe fees come out of the consultant payout.
-    const feeBreakdown = fees.computeFees(offerAmount);
+    const feeBreakdown = await feesForConsultant(supabase, bid.consultant_id, offerAmount);
     const amount = feeBreakdown.businessTotalCents;
 
     // Gate acceptance on the consultant being fully onboarded at Stripe.
@@ -3008,7 +3019,7 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
       if (!fees.isValidOfferCents(fee)) {
         return res.status(400).json({ error: "One of the bids has an invalid proposal fee." });
       }
-      const breakdown = fees.computeFees(fee);
+      const breakdown = await feesForConsultant(supabase, b.consultant_id, fee);
       bidBreakdowns.set(b.id, breakdown);
       totalCents += breakdown.businessTotalCents;
     }
@@ -3131,13 +3142,11 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
     // a single combined breakdown (sum of offers, sum of platform fees).
     let aggOffer = 0;
     let aggPlatform = 0;
-    let aggPlatformFull = 0;
     let aggStripe = 0;
     let aggPayout = 0;
     for (const f of bidBreakdowns.values()) {
       aggOffer += f.amountCents;
       aggPlatform += f.platformFeeCents;
-      aggPlatformFull += f.platformFeeFullCents;
       aggStripe += f.stripeFeeCents;
       aggPayout += f.consultantPayoutCents;
     }
@@ -3153,8 +3162,6 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
         businessTotalCents: totalCents,
         stripeFeeCents: aggStripe,
         platformFeeCents: aggPlatform,
-        platformFeeFullCents: aggPlatformFull,
-        platformFeeDiscounted: aggPlatform < aggPlatformFull,
         consultantPayoutCents: aggPayout,
       },
     });
@@ -3295,7 +3302,6 @@ app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
     // Create a Product + recurring Price tagged to this engagement so the
     // subscription has a clear lineage in the Stripe dashboard. Each
     // period bills the offer (all-in; fees come out of the payout).
-    const perPeriodBreakdown = fees.computeFees(feeCents);
     // One key per (bid, prior retainer row state, terms) so a double-click
     // replays the same Product/Price/Subscription instead of billing twice.
     const startKey = idemKey(
@@ -3309,7 +3315,7 @@ app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
     const price = await stripe.prices.create({
       product: product.id,
       currency: "usd",
-      unit_amount: perPeriodBreakdown.businessTotalCents,
+      unit_amount: fees.businessTotalCents(feeCents),
       recurring: CADENCE_INTERVAL[cadence],
       metadata: { bid_id: bidId, offer_cents: String(feeCents) },
     }, { idempotencyKey: `${startKey}:price` });
@@ -3551,7 +3557,6 @@ app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
     const cancelAtUnix = retainerCancelAt(Date.parse(acceptedAt) / 1000, offerRow.cadence, offerRow.period_count);
 
     // Each invoice bills the offer (all-in; fees come out of the payout).
-    const perPeriodBreakdown = fees.computeFees(offerRow.fee_cents);
     // accepted_at is fresh per claim, so a retry after a rollback gets new keys.
     const offerKey = idemKey("retainer-offer", offerRow.id, acceptedAt);
     let subscription;
@@ -3563,7 +3568,7 @@ app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
       const price = await stripe.prices.create({
         product: product.id,
         currency: "usd",
-        unit_amount: perPeriodBreakdown.businessTotalCents,
+        unit_amount: fees.businessTotalCents(offerRow.fee_cents),
         recurring: CADENCE_INTERVAL[offerRow.cadence],
         metadata: { bid_id: bidId, offer_cents: String(offerRow.fee_cents) },
       }, { idempotencyKey: `${offerKey}:price` });
@@ -3614,6 +3619,25 @@ app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
     return res.json({ ok: true, subscription_id: subscription.id, status: newStatus });
   } catch (err) {
     return res.status(500).json({ error: err.message || "Could not accept offer." });
+  }
+});
+
+// Consultant: their current platform fee, for the take-home estimates. It
+// uses the same lookup as charges, so what they see is what they're charged.
+app.get("/api/consultant/fee-rate", async (req, res) => {
+  const viewer = await getViewerFromRequest(req);
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
+  try {
+    const rate = await getConsultantFeeRate(supabase, viewer.id);
+    return res.json({
+      platform_fee_bps: rate.platformFeeBps,
+      good_reviews: rate.goodReviews,
+      reviews_to_next_drop: rate.reviewsToNextDrop,
+      is_fixed_rate: rate.isFixedRate,
+    });
+  } catch (err) {
+    console.error("[fee-rate]", err.message);
+    return res.status(500).json({ error: "Could not load your fee rate." });
   }
 });
 
@@ -4034,7 +4058,7 @@ app.post("/api/stripe/phased/start-service", async (req, res) => {
     if (!Number.isFinite(fee) || fee < fees.MIN_PAID_OFFER_CENTS) {
       return res.status(400).json({ error: "Service fee is missing or too small." });
     }
-    const feeBreakdown = fees.computeFees(fee);
+    const feeBreakdown = await feesForConsultant(supabase, bid.consultant_id, fee);
 
     const { data: existing } = await supabase
       .from("bid_phase_payments")
@@ -5112,7 +5136,7 @@ function paymentMoney(item) {
   const cardFee = row.stripe_fee_cents != null ? Number(row.stripe_fee_cents) : fees.estimateStripeFeeCents(gross);
   const refunded = Number(row.refunded_cents || 0);
   const remaining = Math.max(0, gross - refunded);
-  const payout = Number(row.consultant_payout_cents ?? fees.computeFees(gross).consultantPayoutCents);
+  const payout = Number(row.consultant_payout_cents ?? fees.computeFees(gross, fees.EXISTING_STUDENT_FEE_BPS).consultantPayoutCents);
   return {
     gross_cents: gross,
     platform_fee_cents: platformFee,

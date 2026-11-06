@@ -43,6 +43,7 @@ without stripe, grassroots would have to:
 instead, we hand all of that to stripe, and in exchange:
 - stripe takes a per-transaction fee (currently ~2.9% + $0.30 for cards in the us)
 - stripe takes a smaller fee on transfers between our platform and consultants
+- grassroots keeps a platform fee on the part of each payment above $10: 30% down to 5%, one 5-point drop per 2 good reviews of paid, released work. `lib/consultant-fee.js` works out the rate, and each charge stores the result in `platform_fee_cents` and `consultant_payout_cents`, so later rate changes never touch a held payment
 - we accept that all financial state is "shadowed" — stripe is the source of truth, our database mirrors it
 
 **the rule of thumb:** if money is involved, stripe is authoritative. our database is for ux and bookkeeping. when they disagree, stripe wins.
