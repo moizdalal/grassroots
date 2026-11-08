@@ -1249,7 +1249,8 @@ app.post("/api/student-application", async (req, res) => {
   const city = line(body.city, 120);
   const link = line(body.link, 500);
   const why = String(body.why ?? "").trim().slice(0, 2000);
-  if (!name || !school || !email || !city || !why) {
+  const project = String(body.project ?? "").trim().slice(0, 2000);
+  if (!name || !school || !email || !city || !why || !project) {
     return res.status(400).json({ error: "Please fill in every field." });
   }
   if (!/^[^\s@]+@[^\s@]+\.edu$/.test(email)) {
@@ -1266,7 +1267,8 @@ app.post("/api/student-application", async (req, res) => {
       `School: ${school}\n` +
       `Email:  ${email}\n` +
       `City:   ${city}\n` +
-      `Work:   ${link || "none given"}\n\n` +
+      `Link:   ${link || "none given"}\n\n` +
+      `A past project they're proud of:\n${project}\n\n` +
       `Why Grassroots:\n${why}\n\n` +
       `Reply to this email to reach them. Applicants join through a consultant invite link.`,
     idempotencyKey: `student-application:${crypto.createHash("sha256").update(`${email}\n${why}`).digest("hex")}`,
