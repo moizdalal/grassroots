@@ -7160,28 +7160,6 @@ body.gr-has-side-nav .bza__side {
   border-color: var(--fo-accent);
   box-shadow: 0 0 0 3px var(--fo-accent-soft);
 }
-.pf-avatar-pick__plus {
-  position: absolute;
-  inset: 0;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-body);
-  font-size: 2rem;
-  font-weight: 400;
-  line-height: 1;
-  color: var(--fo-accent);
-  pointer-events: none;
-}
-.pf-avatar-pick.is-empty .pf-avatar-pick__plus {
-  display: flex;
-}
-.pf-avatar-hint {
-  margin: 0;
-  font-size: var(--type-meta);
-  color: var(--fo-text-2);
-}
-
 /* Profile-completion header sits inside the flex-gapped health panel,
    so the gap already spaces it from the bucket. */
 .bza__health > .bza__health-h {

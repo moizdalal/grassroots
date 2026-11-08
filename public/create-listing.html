@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,follow" />
-    <title>Grassroots — post a listing</title>
+    <title>Post a project | Grassroots</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -24,23 +24,23 @@
   <body class="gr-body"><main class="gr-shell gr-shell--wide cl-layout-shell">
       <a href="/dashboard.html#listings" class="ld-back" id="cl-back">&larr; Back</a>
       <div class="gr-page-intro">
-        <h1 class="gr-title">Post a new listing</h1>
-        <p class="gr-subtitle">Describe the opportunity your business is trying to pursue — consultants will see this and submit offers.</p>
+        <h1 class="gr-title">Post a project</h1>
+        <p class="gr-subtitle">Tell students what you need. They'll send you offers.</p>
       </div>
 
       <p id="gate" class="gr-status" aria-live="polite"></p>
 
       <div class="cl-split hidden" id="cl-split">
-      <form id="listing-form" class="cl-split__form">
+      <form id="listing-form" class="cl-split__form" novalidate>
         <div class="gr-card">
           <div class="cl-progress" aria-live="polite">
             <div class="cl-progress__track" id="cl-progress-track">
-              <button type="button" class="cl-progress__seg" data-step-dot="0" aria-label="Step 1 — title and type"></button>
-              <button type="button" class="cl-progress__seg" data-step-dot="1" aria-label="Step 2 — describe the project"></button>
-              <button type="button" class="cl-progress__seg" data-step-dot="2" aria-label="Step 3 — categories and budget"></button>
+              <button type="button" class="cl-progress__seg" data-step-dot="0" aria-label="Step 1: title and contract"></button>
+              <button type="button" class="cl-progress__seg" data-step-dot="1" aria-label="Step 2: describe the work"></button>
+              <button type="button" class="cl-progress__seg" data-step-dot="2" aria-label="Step 3: category and budget"></button>
             </div>
-            <span class="cl-progress__label" id="cl-progress-label">Title &amp; type</span>
-            <span class="cl-progress__hint">Takes about 5 minutes.</span>
+            <span class="cl-progress__label" id="cl-progress-label">Title</span>
+            <span class="cl-progress__hint" id="cl-progress-hint">Takes about 5 minutes.</span>
           </div>
 
           <div class="cl-slides">
@@ -48,11 +48,11 @@
               <div class="gr-field-grid">
                 <label class="gr-label full-width">
                   <span>Title</span>
-                  <input type="text" name="title" required maxlength="120" placeholder="E.g. weekend market sales push for local bakery" />
+                  <input type="text" name="title" required maxlength="120" placeholder="E.g. Logo and menu design for a new bakery" />
                 </label>
 
                 <div class="gr-label full-width">
-                  <span>Contract type</span>
+                  <span>How you'll pay</span>
 
                   <div class="ct-options">
 
@@ -60,20 +60,21 @@
                     <label class="ct-option ct-option--standard">
                       <input type="radio" name="contract_type" value="standard" checked />
                       <span class="ct-option__radio" aria-hidden="true"></span>
-                      <span class="ct-option__text">Standard one-time transaction</span>
+                      <span class="ct-option__text">
+                        <span class="cl-ct-title">One project, one payment</span>
+                        <span class="cl-ct-desc">Best for most work. One price for the whole project.</span>
+                      </span>
                       <span class="ct-option__badge">Default</span>
                     </label>
 
                     <!-- Advanced contracts (collapsible) -->
                     <details class="ct-advanced" id="ct-advanced">
-                      <summary class="ct-advanced__summary">
-                        <span class="ct-option__radio" aria-hidden="true"></span>
-                        <span class="ct-advanced__title">Advanced contracts</span>
-                        <span class="ct-advanced__active-pill" aria-hidden="true">Active</span>
+                      <summary class="ct-advanced__summary" aria-controls="ct-advanced-body">
+                        <span class="ct-advanced__title">Other ways to pay</span>
                         <svg class="ct-advanced__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                       </summary>
-                      <div class="ct-advanced__body">
-                        <p class="ct-advanced__desc">Pick a contract model that matches the shape of the engagement.</p>
+                      <div class="ct-advanced__body" id="ct-advanced-body">
+                        <p class="ct-advanced__desc">Only for bigger or ongoing work. Most projects don't need these.</p>
 
                         <!-- Sub-option 1: phase-based contract -->
                         <div class="ct-suboption-group" data-mode="phased">
@@ -81,13 +82,13 @@
                             <input type="radio" name="contract_type" value="phased" id="ct-phased-radio" class="ct-suboption__radio" />
                             <span class="ct-option__radio" aria-hidden="true"></span>
                             <span class="ct-suboption__header">
-                              <span class="ct-suboption__title">Phase-based contract</span>
-                              <span class="ct-suboption__desc">Structure the engagement around clear milestones — proposal and solution, with optional maintenance.</span>
+                              <span class="ct-suboption__title">Pay in phases</span>
+                              <span class="ct-suboption__desc">Pay for a plan first, then the work. Add upkeep if you want it.</span>
                             </span>
                           </label>
                           <div class="ct-suboption__body">
                             <div class="ct-builder">
-                              <p class="ct-builder__heading">Your contract chain</p>
+                              <p class="ct-builder__heading">Your phases</p>
 
                               <div class="ct-chain" id="ct-chain">
                                 <div class="ct-chain__node ct-chain__node--required" data-phase="proposal">
@@ -124,7 +125,7 @@
                                 </button>
                               </div>
 
-                              <p class="ct-builder__hint" id="ct-builder-hint">Maintenance is an optional follow-on phase for ongoing support.</p>
+                              <p class="ct-builder__hint" id="ct-builder-hint">Maintenance is ongoing support after the work is done.</p>
                             </div>
                           </div>
                         </div>
@@ -135,15 +136,15 @@
                             <input type="radio" name="contract_type" value="retainer" id="ct-retainer-radio" class="ct-suboption__radio" />
                             <span class="ct-option__radio" aria-hidden="true"></span>
                             <span class="ct-suboption__header">
-                              <span class="ct-suboption__title">Retainer contract</span>
-                              <span class="ct-suboption__desc">For recurring workflows — an ongoing engagement billed on a repeating cadence.</span>
+                              <span class="ct-suboption__title">Pay on a schedule</span>
+                              <span class="ct-suboption__desc">For ongoing work, like weekly social posts. You pay each period.</span>
                             </span>
                           </label>
                           <div class="ct-suboption__body">
-                            <p class="ct-retainer-note">Retainers work well for ongoing marketing, weekly operations, content production, and other workflows where a consistent cadence matters more than fixed deliverables.</p>
+                            <p class="ct-retainer-note">Good for repeat work where a steady rhythm matters more than one finished item.</p>
 
                             <div class="ct-retainer-terms">
-                              <p class="ct-builder__heading">Retainer terms</p>
+                              <p class="ct-builder__heading">Schedule</p>
 
                               <div class="ct-retainer-terms__toggle">
                                 <label class="ct-retainer-terms__option">
@@ -152,7 +153,7 @@
                                 </label>
                                 <label class="ct-retainer-terms__option">
                                   <input type="radio" name="retainer_terms" value="tentative" />
-                                  <span>Tentative — discuss with consultant</span>
+                                  <span>Decide with the student later</span>
                                 </label>
                               </div>
 
@@ -168,7 +169,7 @@
                                 </label>
 
                                 <label class="gr-label">
-                                  <span>Periods</span>
+                                  <span>Number of periods</span>
                                   <input type="number" name="retainer_period_count" id="ct-retainer-periods" min="1" max="52" step="1" placeholder="E.g. 6" />
                                 </label>
 
@@ -190,7 +191,7 @@
 
                   </div>
                   <p class="gr-field-hint ct-help-hint">
-                    Not sure which to choose?
+                    Not sure?
                     <a href="/contract-help.html" target="_blank" rel="noopener noreferrer">Read the contract type guide</a>.
                   </p>
                 </div>
@@ -202,48 +203,48 @@
               <div class="gr-field-grid">
                 <label class="gr-label full-width">
                   <span class="cl-field-label">
-                    <span class="cl-field-label__title">Context <span class="gr-optional">Optional</span></span>
-                    <span class="cl-field-label__subtext">What led to this need? Helps consultants tailor proposals.</span>
+                    <span class="cl-field-label__title">Background <span class="gr-optional">Optional</span></span>
+                    <span class="cl-field-label__subtext">What's going on at your business right now?</span>
                   </span>
                   <textarea
                     name="issue_context"
-                    rows="4"
+                    rows="3"
                     maxlength="2000"
-                    placeholder="Optional — what led to this need?"
+                    placeholder="E.g. We open a second shop in March and want people to know."
                   ></textarea>
                 </label>
 
                 <label class="gr-label full-width">
                   <span class="cl-field-label">
-                    <span class="cl-field-label__title">Business problem</span>
-                    <span class="cl-field-label__subtext">What is the actual business problem you want to solve?</span>
+                    <span class="cl-field-label__title">What do you need done?</span>
+                    <span class="cl-field-label__subtext">A few plain sentences is enough.</span>
                   </span>
                   <textarea
                     name="business_problem"
                     rows="4"
                     required
                     maxlength="2000"
-                    placeholder="Describe the core business problem as clearly as possible"
+                    placeholder="E.g. Design a logo and a one-page menu we can print and post online."
                   ></textarea>
                 </label>
 
                 <label class="gr-label full-width">
                   <span class="cl-field-label">
-                    <span class="cl-field-label__title">Standards of work <span class="gr-optional">Optional</span></span>
-                    <span class="cl-field-label__subtext">What do you want when this is done? Deliverables, format, ownership.</span>
+                    <span class="cl-field-label__title">What should you have at the end? <span class="gr-optional">Optional</span></span>
+                    <span class="cl-field-label__subtext">Files, formats, or anything you want to own.</span>
                   </span>
                   <textarea
                     name="expected_output"
-                    rows="4"
+                    rows="3"
                     maxlength="2000"
-                    placeholder="Optional — what do you want when this is done?"
+                    placeholder="E.g. Logo files in PNG and SVG, plus a print-ready menu PDF."
                   ></textarea>
                 </label>
 
                 <label class="gr-label full-width hidden" id="advanced-proposal-budget-wrap">
                   <span class="cl-field-label">
-                    <span class="cl-field-label__title">Budget per proposal</span>
-                    <span class="cl-field-label__subtext">If you use an advanced contract, what should the student charge for the proposal or discovery phase?</span>
+                    <span class="cl-field-label__title">Budget for the plan</span>
+                    <span class="cl-field-label__subtext">What you'll pay for the first phase, before the main work starts.</span>
                   </span>
                   <div class="cl-inline-money">
                     <span class="cl-inline-money__prefix">$</span>
@@ -262,7 +263,7 @@
                 <label class="gr-label full-width hidden" id="maintenance-terms-wrap">
                   <span class="cl-field-label">
                     <span class="cl-field-label__title">Maintenance terms</span>
-                    <span class="cl-field-label__subtext">Outline maintenance as "$X per hour/day/week/month for X [amount of time]" or write "per business discretion."</span>
+                    <span class="cl-field-label__subtext">Write it as "$X per week for X weeks" (hour, day, or month work too), or "per business discretion".</span>
                   </span>
                   <textarea
                     name="maintenance_terms"
@@ -274,16 +275,16 @@
                 </label>
 
                 <label class="gr-label full-width">
-                  <span>Additional details <span class="gr-optional">Optional</span></span>
+                  <span>Anything else? <span class="gr-optional">Optional</span></span>
                   <textarea
                     name="additional_details"
-                    rows="4"
+                    rows="3"
                     maxlength="3000"
-                    placeholder="Context, constraints, previous attempts, or anything consultants should know"
+                    placeholder="E.g. Our colors are cream and dark green. We like simple, hand-drawn styles."
                   ></textarea>
                 </label>
-                <label class="gr-label full-width">
-                  <span>Supporting files <span class="gr-optional">Optional</span></span>
+                <label class="gr-label full-width cl-files">
+                  <span>Files <span class="gr-optional">Optional</span></span>
                   <input
                     type="file"
                     id="listing-attachments"
@@ -292,7 +293,7 @@
                     multiple
                   />
                   <span class="gr-profile-hint">
-                    Up to 3 files, 5 MB each, 12 MB total. If larger, please use PDFs or include links in the details.
+                    Photos, old menus, or examples you like. Up to 3 files, 5 MB each, 12 MB total.
                   </span>
                 </label>
                 <div class="cl-file-list hidden" id="cl-file-list" aria-live="polite"></div>
@@ -302,39 +303,40 @@
             <section class="cl-slide" data-slide="2">
               <div class="gr-field-grid">
                 <div class="gr-label gr-label--required full-width">
-                  <span>Categories</span>
+                  <span id="cat-label">Categories</span>
                   <div class="cl-cat-tags" id="cat-tags" aria-live="polite"></div>
                   <div class="ms-wrap" id="cat-multiselect">
-                    <input type="text" class="ms-search" id="cat-search" aria-label="Search categories" placeholder="Search categories…" autocomplete="off" />
+                    <input type="text" class="ms-search" id="cat-search" aria-labelledby="cat-label" aria-controls="cat-dropdown" aria-expanded="false" placeholder="Search, e.g. logo, menu, Instagram" autocomplete="off" />
                     <div class="ms-dropdown hidden" id="cat-dropdown"></div>
                   </div>
                 </div>
 
                 <div class="gr-label full-width">
-                  <span>Budget range</span>
+                  <span id="budget-label">Budget range</span>
+                  <span class="cl-field-label__subtext cl-budget-hint" id="budget-hint">You pay the offer you accept, with no fees added on top.</span>
                   <div class="gr-money-range">
                     <label class="gr-money-input">
                       <span>$</span>
-                      <input type="number" name="budget_min" min="1" step="1" required placeholder="250" />
+                      <input type="number" name="budget_min" min="1" step="1" required placeholder="Min" aria-label="Lowest budget" aria-describedby="budget-hint" />
                     </label>
                     <span class="gr-money-range__divider">to</span>
                     <label class="gr-money-input">
                       <span>$</span>
-                      <input type="number" name="budget_max" min="1" step="1" required placeholder="600" />
+                      <input type="number" name="budget_max" min="1" step="1" required placeholder="Max" aria-label="Highest budget" aria-describedby="budget-hint" />
                     </label>
                   </div>
                 </div>
 
                 <label class="gr-label">
-                  <span>Turnaround time (days)</span>
+                  <span>Days to finish</span>
                   <input type="number" name="turnaround_days" min="1" max="365" required placeholder="E.g. 14" />
                 </label>
 
                 <div class="gr-label full-width">
-                  <span>Qualifications needed</span>
+                  <span>Skills you're looking for <span class="gr-optional">Optional</span></span>
                   <div class="cl-qual-list" id="qual-list">
                     <div class="cl-qual-row">
-                      <input type="text" name="qual[]" maxlength="120" placeholder="E.g. familiar with social media marketing" class="cl-qual-input" />
+                      <input type="text" name="qual[]" maxlength="120" placeholder="E.g. Experience with Canva or Illustrator" class="cl-qual-input" aria-label="Skill" />
                     </div>
                   </div>
                   <button type="button" class="cl-add-btn" id="add-qual-btn">+ Add another</button>
@@ -343,14 +345,23 @@
             </section>
           </div>
 
+          <div class="cl-bizname hidden" id="cl-bizname" role="group" aria-labelledby="cl-bizname-title">
+            <p class="cl-bizname__title" id="cl-bizname-title">Add your business name to post</p>
+            <p class="cl-bizname__hint" id="cl-bizname-hint">Students see it on your project. You can change it later in Settings.</p>
+            <div class="cl-bizname__row">
+              <input type="text" id="cl-bizname-input" maxlength="120" autocomplete="organization" aria-labelledby="cl-bizname-title" aria-describedby="cl-bizname-hint" placeholder="E.g. Sunrise Bakery" />
+              <button type="button" class="gr-btn gr-btn--primary" id="cl-bizname-save">Save and post</button>
+            </div>
+          </div>
+
           <div class="cl-nav">
             <button type="button" class="gr-btn gr-btn--ghost hidden" id="back-btn">Back</button>
             <div class="gr-action-spacer" aria-hidden="true"></div>
             <button type="button" class="gr-btn gr-btn--secondary" id="save-draft-btn">Save as draft</button>
             <button type="button" class="gr-btn gr-btn--primary" id="next-btn">Continue</button>
-            <button type="submit" class="gr-btn gr-btn--primary hidden" id="submit-btn">Post listing</button>
+            <button type="submit" class="gr-btn gr-btn--primary hidden" id="submit-btn">Post project</button>
           </div>
-          <p id="publish-note" class="cl-publish-note hidden">Publishing makes this listing visible to consultants.</p>
+          <p id="publish-note" class="cl-publish-note hidden">Posting makes this project visible to students.</p>
         </div>
 
         <p id="status" class="gr-status" aria-live="polite"></p>
@@ -358,7 +369,7 @@
 
       <aside class="cl-split__preview">
         <div class="cl-preview" id="cl-preview">
-          <p class="cl-preview__label">Listing preview</p>
+          <p class="cl-preview__label">Preview</p>
 
           <!-- Mirrors listing.html's main content column so the preview
                stays current with what consultants will actually see. -->
@@ -390,7 +401,7 @@
           </section>
 
           <div class="ld-header">
-            <h1 id="pv-title" class="ld-title">Your opportunity title</h1>
+            <h1 id="pv-title" class="ld-title">Your project title</h1>
             <p id="pv-budget" class="ld-budget" hidden></p>
             <div id="pv-chips" class="ld-header__tags"></div>
             <div class="ld-header__meta">

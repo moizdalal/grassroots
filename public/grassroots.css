@@ -5931,6 +5931,14 @@ button.gr-bid-link {
   opacity: 0;
   pointer-events: none;
 }
+/* First SPROUT_DELAY_MS: the cover is up but the sprout isn't drawn,
+   so pages that settle fast never flash it. */
+.gr-loader-overlay--quiet .gr-loader-overlay__svg {
+  visibility: hidden;
+}
+.gr-loader-overlay--fast {
+  transition-duration: 0.15s;
+}
 .gr-loader-overlay__svg {
   position: relative;
   /* Scaled up 203/163 to offset the padded viewBox — sprout renders the same size. */

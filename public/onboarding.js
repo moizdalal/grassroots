@@ -19,13 +19,12 @@
 
 import { getSupabaseClient } from "/supabase-loader.js";
 import { showToast } from "/toast.js";
-import { convertListingToDraft, ListingOperationError } from "/listing-operations.js";
+import { ListingOperationError } from "/listing-operations.js";
 
 const STORAGE_KEY = "grassroots_onboarding";
 const TOOLTIP_ID = "gr-onboarding-tooltip";
 const OVERLAY_ID = "gr-onboarding-overlay";
 const VINE_ID = "gr-onboarding-vine";
-const CONFIRM_ID = "gr-onboarding-confirm";
 
 /* ============================================================== */
 /*                        STEP DEFINITIONS                         */
@@ -61,17 +60,14 @@ const CONFIRM_ID = "gr-onboarding-confirm";
 //     tutorial along.
 //
 // `targetSelector` can be a string or an array tried in order.
-// `allowedInteractive` lists extra selectors the user is allowed to
-// click without tripping the off-scope guardrail — used when the
-// user must click something outside the spotlight to complete the
-// step (e.g. the save button below the business form).
+// `allowedInteractive` on older consultant steps is now unused (the
+// off-scope click guardrail is gone); it is harmless data.
 //
 // `kind: "choice"` renders decision buttons inside the bubble itself
 // instead of pointing at a page element.
 //
 // Two flows live in this file:
-//   • BUSINESS_STEPS — the original owner walkthrough (profile setup →
-//     create listing → review bids).
+//   • BUSINESS_STEPS — the owner walkthrough of the project form.
 //   • CONSULTANT_STEPS — the consultant walkthrough (profile setup
 //     incl. preview-as-business → stripe payouts → dashboard journey
 //     → mock listing + offer → simulated garden).
@@ -79,129 +75,15 @@ const CONFIRM_ID = "gr-onboarding-confirm";
 // matches the current user's role before the tutorial mounts. Storing
 // `role` in localStorage state lets resume() restore the right flow
 // without a network round-trip.
+// Owner tour: the project form only. New owners arrive here from
+// /business-basics.html (/create-listing.html?welcome=1). Profile
+// photo, theme, and socials are no longer part of onboarding, and the
+// dashboard "manage" chapter is gone. Each step names one field on the
+// form. Copy matches the visible field labels ("Other ways to pay"
+// stays collapsed, so the tour only names the default row).
+// The form's primary buttons. The bubble never sits on top of these.
+const FORM_PRIMARY_BUTTONS = ["#next-btn", "#back-btn", "#save-draft-btn", "#submit-btn"];
 const BUSINESS_STEPS = [
-  {
-    id: "edit-profile",
-    label: "Profile",
-    path: "/profile.html",
-    targetSelector: '.pp-header__actions a[href*="settings"]',
-    placement: "left",
-    advanceOn: "target",
-    title: "Let's set you up.",
-    body: "First thing — tap edit profile. We'll fill in the rest from there.",
-  },
-  {
-    id: "upload-photo",
-    label: "Photo",
-    path: "/settings.html",
-    hash: "#personal",
-    // First selector covers the no-avatar state (empty photo square is the picker).
-    // Second covers the has-avatar state (change/remove buttons visible).
-    targetSelector: ["#pf-avatar-pick.is-empty", "#pf-avatar-change-btn"],
-    // Anything tied to the photo section needs to pass the guardrail:
-    //   • .settings-section__body--avatar — users instinctively click the
-    //     avatar image / ring itself; whitelisting the whole photo body
-    //     keeps stray clicks from popping the heading-off modal.
-    //   • .pf-avatar-controls — wrapper around the file picker label,
-    //     hidden file input, and change/remove buttons. The has-avatar
-    //     "change photo" button programmatically clicks the hidden input
-    //     (a sibling of the spotlighted button), so without this the
-    //     synthetic click trips the off-scope modal.
-    //   • #avatar-input / #pf-avatar-remove-btn — explicit IDs in case
-    //     the wrapper class changes; cheap redundancy.
-    //   • .gr-photo-crop — the cropper modal mounts at body level after
-    //     a file is picked; it sits outside the spotlight entirely.
-    allowedInteractive: [
-      ".settings-section__body--avatar",
-      ".pf-avatar-controls",
-      "#avatar-input",
-      "#pf-avatar-remove-btn",
-      ".gr-photo-crop",
-    ],
-    placement: "right",
-    advanceOn: "next",
-    title: "Show your face.",
-    body: "Drop in a profile photo, then tap next when you're ready.",
-  },
-  {
-    id: "nav-general",
-    label: "General",
-    path: "/settings.html",
-    targetSelector: '.settings-tab[data-tab="general"]',
-    placement: "bottom",
-    advanceOn: "target",
-    title: "Next stop — themes.",
-    body: "Head over to the general tab to pick how Grassroots looks for you.",
-  },
-  {
-    id: "themes",
-    label: "Themes",
-    path: "/settings.html",
-    hash: "#general",
-    targetSelector: "#theme-grid",
-    // Any theme card click is allowed — it applies the theme but
-    // doesn't advance the tutorial; the user moves on via the next
-    // button when they're done.
-    allowedInteractive: "#theme-grid .theme-card",
-    placement: "bottom",
-    advanceOn: "next",
-    title: "Pick a vibe.",
-    body: "Try the themes — tap one to apply it. Hit next when you've settled.",
-  },
-  {
-    id: "nav-professional",
-    label: "Professional",
-    path: "/settings.html",
-    targetSelector: '.settings-tab[data-tab="professional"]',
-    placement: "bottom",
-    advanceOn: "target",
-    title: "Now the important one.",
-    body: "Click the professional tab — this is where your business identity lives.",
-  },
-  {
-    id: "business-info",
-    label: "Business",
-    path: "/settings.html",
-    hash: "#professional",
-    targetSelector: "#business-section",
-    // Save sits outside the highlighted section but is the natural
-    // close to the step — list it as an allowed interaction so the
-    // guardrail doesn't pop while the user saves their form. The
-    // social-profiles section is a sibling of the highlighted business
-    // section; whitelisting it lets owners link instagram/facebook/etc
-    // in the same pass without tripping the guardrail.
-    allowedInteractive: ["#save-btn", "#business-social-section"],
-    placement: "right",
-    advanceOn: "next",
-    title: "The big one.",
-    body: "Tell consultants about your business, add your socials, then save.",
-  },
-  {
-    id: "listing-choice",
-    label: "Listing",
-    path: "/settings.html",
-    targetSelector: null,
-    placement: "center",
-    kind: "choice",
-    advanceOn: "next",
-    // Sets expectations up front: bringing your own idea posts a real
-    // listing (with a final confirm); following the example parks a
-    // draft you'll delete at the end. Either way the user can stop at
-    // a draft mid-flow. Encourages the "own" path by leading with it.
-    title: "Have something in mind?",
-    body: "Bring your own idea and we'll walk you through posting it (save as draft any time you want). Or follow our example to see how it works — you'll park it as a draft and delete it from your dashboard at the end.",
-    choices: [
-      { id: "own", label: "I've got an idea", primary: true, href: "/create-listing.html" },
-      { id: "example", label: "Show me an example", href: "/create-listing.html?example=1" },
-    ],
-  },
-  // Listing walkthrough — one tooltip per field so the user learns what
-  // each box is for. Each step carries a `slide` index (for the
-  // cl:slide-changed sync) and `body` is split into `own` (write your
-  // own copy) vs `example` (we pre-fill this field as the tooltip
-  // arrives) variants. Steps with an `example` payload trigger
-  // `cl:fill-example-field` on render — the create-listing page
-  // listens and fills the matching field idempotently.
   {
     id: "lw-title",
     label: "Title",
@@ -210,26 +92,10 @@ const BUSINESS_STEPS = [
     targetSelector: 'input[name="title"]',
     placement: "bottom",
     advanceOn: "next",
-    allowedInteractive: [
-      "#next-btn", "#back-btn", "#save-draft-btn",
-      'input[name="title"]',
-    ],
-    title: "Title — name the work.",
-    body: {
-      own: "Name the work in plain language. Short and concrete reads best — consultants scan this list quickly.",
-      example: "We filled in a sample title. Notice it names the work and the audience in eight words. Short and concrete is best.",
-    },
-    example: {
-      type: "value",
-      field: "title",
-      value: "weekend farmers market sales push",
-    },
+    title: "Name the project",
+    body: "Use plain words. Students scan titles fast, so short and concrete works best.",
   },
   {
-    // Sits between the title field and the rest of the walkthrough so
-    // the user has just typed something the preview can echo back —
-    // makes the "this is live, it updates as you type" point land
-    // with a concrete change they just caused.
     id: "lw-preview",
     label: "Preview",
     path: "/create-listing.html",
@@ -237,14 +103,8 @@ const BUSINESS_STEPS = [
     targetSelector: "#cl-preview",
     placement: "left",
     advanceOn: "next",
-    allowedInteractive: [
-      "#next-btn", "#back-btn", "#save-draft-btn",
-    ],
-    title: "Your live preview.",
-    body: {
-      own: "The right rail mirrors what consultants see in the marketplace. It updates as you type, so use it as a sanity check.",
-      example: "The right rail mirrors what consultants see — your title already showed up. It updates as you fill in the rest.",
-    },
+    title: "Your live preview",
+    body: "This shows what students see in the marketplace. It updates as you type.",
   },
   {
     id: "lw-contract",
@@ -254,20 +114,8 @@ const BUSINESS_STEPS = [
     targetSelector: ".ct-options",
     placement: "right",
     advanceOn: "next",
-    allowedInteractive: [
-      "#next-btn", "#back-btn", "#save-draft-btn",
-      ".ct-options",
-      "#ct-advanced", "#ct-advanced summary",
-      "#ct-phased-radio", "#ct-retainer-radio", "#ct-add-maintenance",
-      'input[name="contract_type"]', 'input[name="retainer_terms"]',
-      "#ct-retainer-cadence", "#ct-retainer-periods", "#ct-retainer-fee",
-    ],
-    title: "Contract type — how you'll work together.",
-    body: {
-      own: "Standard is one delivery for one fee. Phased adds proposal → solution → optional maintenance. Retainer is a recurring engagement.",
-      example: "We'll stick with standard — one well-scoped delivery. Open 'advanced contracts' later when an engagement needs phases or a recurring cadence.",
-    },
-    // No fill — contract_type defaults to "standard" already.
+    title: "Pick how you'll pay",
+    body: "One project, one payment fits most first projects. Other ways to pay are there if you need them.",
   },
   {
     id: "lw-context",
@@ -277,20 +125,8 @@ const BUSINESS_STEPS = [
     targetSelector: 'textarea[name="issue_context"]',
     placement: "right",
     advanceOn: "next",
-    allowedInteractive: [
-      "#next-btn", "#back-btn", "#save-draft-btn",
-      'textarea[name="issue_context"]',
-    ],
-    title: "Context — the back-story.",
-    body: {
-      own: "What is happening in the business right now? Give a consultant enough background to read in.",
-      example: "Context anchors the work. Without it, a consultant has to guess what's already been tried or why the work matters.",
-    },
-    example: {
-      type: "value",
-      field: "issue_context",
-      value: "we run a small bakery near campus. our weekend booth at the farmers market has the highest foot traffic of the week, but sales have plateaued for three months. menu, pricing, and signage have not changed in that window.",
-    },
+    title: "Add some context",
+    body: "It's optional. A little background on the business helps students write a better offer.",
   },
   {
     id: "lw-problem",
@@ -300,20 +136,8 @@ const BUSINESS_STEPS = [
     targetSelector: 'textarea[name="business_problem"]',
     placement: "right",
     advanceOn: "next",
-    allowedInteractive: [
-      "#next-btn", "#back-btn", "#save-draft-btn",
-      'textarea[name="business_problem"]',
-    ],
-    title: "Business problem — the goal.",
-    body: {
-      own: "Name the specific thing you want to fix or move. One concrete outcome beats a vague description.",
-      example: "This is the goal in one sentence. Notice the example pins a specific number — 'twenty percent' — and a window — 'four weeks'.",
-    },
-    example: {
-      type: "value",
-      field: "business_problem",
-      value: "we want to lift saturday booth sales by at least twenty percent over four weeks. budget exists for new menu prints, but staffing is fixed.",
-    },
+    title: "Say what you need done",
+    body: "Name the one thing you want fixed or moved. A concrete goal beats a vague one.",
   },
   {
     id: "lw-output",
@@ -323,20 +147,8 @@ const BUSINESS_STEPS = [
     targetSelector: 'textarea[name="expected_output"]',
     placement: "right",
     advanceOn: "next",
-    allowedInteractive: [
-      "#next-btn", "#back-btn", "#save-draft-btn",
-      'textarea[name="expected_output"]',
-    ],
-    title: "Standards of work — what good looks like.",
-    body: {
-      own: "What does good output look like? Say the format, the rigor, and how you plan to use it.",
-      example: "This sets the bar. Naming a format — Google doc, PDF — and a quality threshold saves a back-and-forth later.",
-    },
-    example: {
-      type: "value",
-      field: "expected_output",
-      value: "a written plan with two or three testable tactics, suggested menu and signage tweaks, and a short script the booth staff can use to upsell. we want it as a google doc or pdf, ready to apply the following saturday.",
-    },
+    title: "Say what you should have at the end",
+    body: "Name the deliverable, its format, and how you plan to use it. That saves questions later.",
   },
   {
     id: "lw-details",
@@ -346,20 +158,8 @@ const BUSINESS_STEPS = [
     targetSelector: 'textarea[name="additional_details"]',
     placement: "right",
     advanceOn: "next",
-    allowedInteractive: [
-      "#next-btn", "#back-btn", "#save-draft-btn",
-      'textarea[name="additional_details"]',
-    ],
-    title: "Additional details — anything else.",
-    body: {
-      own: "Constraints, previous attempts, audience notes, brand voice. Optional, but it helps a consultant scope better.",
-      example: "This is for context that didn't fit above — past attempts, audience details, brand voice.",
-    },
-    example: {
-      type: "value",
-      field: "additional_details",
-      value: "we mostly sell bread, cookies, and coffee. our regulars are college students and parents with young kids. our instagram has 1,200 followers but engagement is low.",
-    },
+    title: "Anything else?",
+    body: "Constraints, past attempts, audience, brand voice. It's optional, but it helps students scope.",
   },
   {
     id: "lw-attachments",
@@ -367,22 +167,12 @@ const BUSINESS_STEPS = [
     path: "/create-listing.html",
     slide: 1,
     // `:has()` picks the whole <label> wrapping the file input so the
-    // spotlight covers the heading, button, and hint as one block —
-    // not just the small "choose files" control.
+    // target covers the heading, button, and hint as one block.
     targetSelector: 'label:has(#listing-attachments)',
     placement: "right",
     advanceOn: "next",
-    allowedInteractive: [
-      "#next-btn", "#back-btn", "#save-draft-btn",
-      "#listing-attachments",
-    ],
-    title: "Supporting files — optional context.",
-    body: {
-      own: "Attach files that help a consultant scope — briefs, designs, brand guides, CSV data. Up to 3 files, 5mb each.",
-      example: "File uploads are optional. We're skipping them in this sample — add them later when you have something to share.",
-    },
-    // No `example` payload — file inputs can't be programmatically
-    // populated, and the sample doesn't ship with real attachments.
+    title: "Attach files if you have them",
+    body: "Briefs, brand guides, or data help students scope. Up to 3 files, 5 MB each.",
   },
   {
     id: "lw-categories",
@@ -392,19 +182,8 @@ const BUSINESS_STEPS = [
     targetSelector: "#cat-multiselect",
     placement: "right",
     advanceOn: "next",
-    allowedInteractive: [
-      "#submit-btn", "#back-btn", "#save-draft-btn",
-      "#cat-multiselect", "#cat-search", ".ms-option", "[data-remove-cat]",
-    ],
-    title: "Categories — tag the work.",
-    body: {
-      own: "Tag the work so the right consultants find it. One or two focused tags beat a long list of broad ones.",
-      example: "We tagged sales and marketing. Specific tags help students filter the marketplace and self-select.",
-    },
-    example: {
-      type: "categories",
-      values: ["sales", "marketing"],
-    },
+    title: "Tag the project",
+    body: "One or two focused tags help the right students find it.",
   },
   {
     id: "lw-budget",
@@ -414,19 +193,8 @@ const BUSINESS_STEPS = [
     targetSelector: ".gr-money-range",
     placement: "right",
     advanceOn: "next",
-    allowedInteractive: [
-      "#submit-btn", "#back-btn", "#save-draft-btn",
-      'input[name="budget_min"]', 'input[name="budget_max"]',
-    ],
-    title: "Budget range — the scope you can fund.",
-    body: {
-      own: "Set the floor and ceiling. Consultants size their proposals against this — too tight and you'll get few bids.",
-      example: "$200–$450 reads as 'small project, room to negotiate'. The range gives consultants space to scope honestly.",
-    },
-    example: {
-      type: "value-multi",
-      fields: { budget_min: "200", budget_max: "450" },
-    },
+    title: "Set your budget range",
+    body: "Students size their offers to this range. Set it too tight and you get fewer offers.",
   },
   {
     id: "lw-turnaround",
@@ -436,20 +204,8 @@ const BUSINESS_STEPS = [
     targetSelector: 'input[name="turnaround_days"]',
     placement: "right",
     advanceOn: "next",
-    allowedInteractive: [
-      "#submit-btn", "#back-btn", "#save-draft-btn",
-      'input[name="turnaround_days"]',
-    ],
-    title: "Turnaround — days from accept to delivery.",
-    body: {
-      own: "How many days do you actually need? Include some buffer for revisions.",
-      example: "ten days is realistic for this scope. too short kills good bids; too long invites scope creep.",
-    },
-    example: {
-      type: "value",
-      field: "turnaround_days",
-      value: "10",
-    },
+    title: "Set the days to finish",
+    body: "Count from accepting an offer to delivery. Leave room for revisions.",
   },
   {
     id: "lw-quals",
@@ -459,213 +215,23 @@ const BUSINESS_STEPS = [
     targetSelector: "#qual-list",
     placement: "right",
     advanceOn: "next",
-    allowedInteractive: [
-      "#submit-btn", "#back-btn", "#save-draft-btn",
-      "#qual-list", ".cl-qual-input", "#add-qual-btn",
-    ],
-    title: "Qualifications — skills you'd want.",
-    body: {
-      own: "Two or three concrete skills, not generic 'experience in marketing'. Specific helps students decide if they're a fit.",
-      example: "Two qualifications is enough. Notice both name a concrete skill — that's what students can actually evaluate.",
-    },
-    example: {
-      type: "quals",
-      values: [
-        "Familiarity with local food businesses",
-        "Experience writing short-form sales scripts",
-      ],
-    },
+    title: "List the skills you're looking for",
+    body: "Two or three concrete skills help students decide if they fit.",
   },
   {
     id: "lw-publish",
-    label: "Publish",
+    label: "Post",
     path: "/create-listing.html",
     slide: 2,
-    // Per-variant target: the vine points at the button the user is
-    // actually supposed to click. Own users post for real; example
-    // users park a draft so they can delete it later.
-    targetSelector: {
-      own: "#submit-btn",
-      example: "#save-draft-btn",
-    },
-    placement: "left",
-    advanceOn: "next",
-    allowedInteractive: ["#submit-btn", "#back-btn", "#save-draft-btn"],
-    title: {
-      own: "Publish — go live.",
-      example: "Park it as a draft.",
-    },
-    body: {
-      own: "review the right-rail preview. ready? tap post listing — we'll ask for a final confirmation. not ready? tap save as a draft below; you can finish it later.",
-      example: "Give the right-rail preview a final read, then tap save as a draft. Live listings stay on the record, so we'll park this sample as a draft and you'll delete it from your dashboard next.",
-    },
-  },
-  // Example-only coda — appears on /listing.html after the example
-  // listing publishes. The user just walked through posting a sample
-  // listing they don't actually want sitting live in the marketplace.
-  // Live listings can't be deleted (paper trail), but drafts can — so
-  // we send the example back to draft state, redirect to the
-  // dashboard, and tell the user where to delete it from there.
-  // Skipped on the "own" path; the listing-published handler routes
-  // owners who brought their own idea straight to `complete`.
-  {
-    id: "example-cleanup",
-    label: "Wrap up",
-    path: null,
-    targetSelector: null,
-    placement: "center",
-    kind: "choice",
-    advanceOn: "next",
-    title: "Tidy up the example.",
-    body: "Live listings stay on the record once posted — only drafts can be deleted. Tap below to send this back to draft state, then delete it from your dashboard.",
-    choices: [
-      { id: "save-draft", label: "Save as a draft", primary: true, action: "exampleSaveDraft" },
-    ],
-  },
-  // Example coda — appears on the dashboard once the example listing
-  // has been parked as a draft (either directly via the save-draft
-  // button at lw-publish, or via the example-cleanup conversion
-  // action above when the user posted instead). Points the user at
-  // the dashboard delete affordance so they finish the clean-up.
-  {
-    id: "example-saved-draft",
-    label: "Delete",
-    path: null,
-    targetSelector: null,
-    placement: "center",
-    // Skip the full-viewport dim — the user needs to see and click
-    // a draft delete affordance on the page underneath this bubble.
-    noDim: true,
-    advanceOn: "next",
-    // Both paths (deleting the draft via the dashboard, or just
-    // clicking "next" past this bubble) lead into the dashboard
-    // walkthrough — useful regardless of whether the user actually
-    // performs the delete.
-    nextStepId: "dash-home-intro",
-    // The bubble has no spotlight target (placement: center), so by
-    // default any click outside trips the off-scope guardrail. Allow
-    // the dashboard's draft-delete affordances + the shared confirm
-    // modal so the user can actually act on the "delete the draft"
-    // instruction without being asked if they want to exit.
-    allowedInteractive: [
-      ".bza__row-draft-delete",
-      ".ml-card__delete",
-      ".gr-confirm-modal",
-      ".bza__row",
-      ".ml-card-wrap",
-    ],
-    title: "Now delete the draft.",
-    body: "Your example listing is parked as a draft below. Tap delete on it to clean up — drafts are the only thing you can remove from the record.",
-  },
-  // Dashboard walkthrough — the "manage" chapter. Lands the user on
-  // /dashboard.html after the example coda and walks them through
-  // each home panel + the my-listings management surface. Targets
-  // real DOM ids so the spotlight follows the panels exactly.
-  {
-    id: "dash-home-intro",
-    label: "Home",
-    path: "/dashboard.html",
-    hash: "#dashboard",
-    targetSelector: null,
-    placement: "center",
-    advanceOn: "next",
-    title: "Welcome to your dashboard.",
-    body: "This is the first thing you'll see every time you log in. Let's walk through the panels so you know where everything lives.",
-  },
-  {
-    id: "dash-listings-panel",
-    label: "Listings",
-    path: "/dashboard.html",
-    hash: "#dashboard",
-    targetSelector: ".dash-listings-panel",
-    placement: "right",
-    advanceOn: "next",
-    title: "Your listings at a glance.",
-    body: "Every listing you've posted shows up here, grouped by state — drafts, live, in progress, paused, closed. The tabs above filter the rows.",
-  },
-  {
-    // Vine points directly at the pulsing state dot so the visual
-    // signal lines up with the body copy. Falls back to the whole
-    // panel when nothing is pulsing (e.g. fresh account with no
-    // pending actions) so the bubble still has somewhere to anchor.
-    id: "dash-listings-cta",
-    label: "Action",
-    path: "/dashboard.html",
-    hash: "#dashboard",
-    targetSelector: [".bza__row-state--pulse", ".dash-listings-panel"],
-    placement: "right",
-    advanceOn: "next",
-    title: "Pulsing means you're up.",
-    body: "A row with a pulsing dot is waiting on you — an offer to review, a kickoff to confirm, work to mark complete. The action button on the row's right edge takes you straight to the next step, so most of the time you never have to dig.",
-  },
-  {
-    id: "dash-analytics",
-    label: "Stats",
-    path: "/dashboard.html",
-    hash: "#dashboard",
-    targetSelector: "#dash-analytics",
+    targetSelector: "#submit-btn",
     placement: "top",
     advanceOn: "next",
-    title: "Performance summary.",
-    body: "Unique viewers and offer rate across every listing. The bar chart shows daily views — handy for spotting which days bring traffic.",
+    title: "Post it when it's ready",
+    body: "Read the preview one more time. We ask you to confirm before it goes live. Not ready yet? Save it as a draft.",
   },
-  {
-    id: "dash-profile-health",
-    label: "Health",
-    path: "/dashboard.html",
-    hash: "#dashboard",
-    targetSelector: "#dash-profile-health",
-    placement: "top",
-    advanceOn: "next",
-    title: "Profile health.",
-    body: "A quick checklist of what's missing on your profile. A complete profile reads more credible to consultants — chip away as you have time.",
-  },
-  {
-    id: "dash-garden",
-    label: "Garden",
-    path: "/dashboard.html",
-    hash: "#dashboard",
-    targetSelector: "#dash-garden",
-    placement: "left",
-    advanceOn: "next",
-    title: "Your garden.",
-    body: "every time an engagement fully completes, a new root stems from the seedling — a small metaphor for your business getting stronger with each one. tap and tug the seedling or its roots if you feel like it; they're meant to be played with.",
-  },
-  {
-    // Clicking this nav item flips the view to my-listings (handled
-    // by dashboard.js view-switcher). advanceOn:"target" so the user's
-    // click both switches the view and advances the tutorial.
-    id: "dash-open-listings",
-    label: "Open",
-    path: "/dashboard.html",
-    hash: "#dashboard",
-    targetSelector: '.bza__nav-item[data-view="listings"]',
-    placement: "right",
-    advanceOn: "target",
-    title: "Open my listings.",
-    body: "The side nav jumps between sections. Tap here to open the full management view — every listing as a card with search, sort, and state filters.",
-  },
-  {
-    id: "dash-my-listings-view",
-    label: "Manage",
-    path: "/dashboard.html",
-    hash: "#listings",
-    targetSelector: "#dash-listings-cards",
-    placement: "top",
-    advanceOn: "next",
-    title: "Manage your listings.",
-    body: "every listing as a card. search by title, sort, or filter by state. drafts get a delete button on hover; live listings have pause and close controls on the listing page itself.",
-  },
-  {
-    id: "complete",
-    label: "Done",
-    path: null,
-    targetSelector: null,
-    placement: "center",
-    advanceOn: "next",
-    title: "You're set.",
-    body: "Find this tutorial any time in Settings → General if you want a refresh.",
-  },
+  // No closing "you're set" bubble: after posting, listing.html shows
+  // its own "Your project is live" panel, and the publish handler below
+  // ends the tour. Clicking "Got it" here ends it too.
 ];
 
 /* ============================================================== */
@@ -697,7 +263,7 @@ const CONSULTANT_STEPS = [
     label: "Photo",
     path: "/settings.html",
     hash: "#personal",
-    targetSelector: ["#pf-avatar-pick.is-empty", "#pf-avatar-change-btn"],
+    targetSelector: ["#pf-avatar-upload-label:not(.hidden)", "#pf-avatar-change-btn"],
     placement: "right",
     advanceOn: "next",
     title: "Show your face.",
@@ -722,8 +288,8 @@ const CONSULTANT_STEPS = [
     allowedInteractive: "#theme-grid .theme-card",
     placement: "bottom",
     advanceOn: "next",
-    title: "Pick a vibe.",
-    body: "Try the themes — tap one to apply it. Hit next when you've settled.",
+    title: "Choose a theme",
+    body: "Click a theme to apply it. Then click next.",
   },
   {
     id: "c-nav-professional",
@@ -732,8 +298,8 @@ const CONSULTANT_STEPS = [
     targetSelector: '.settings-tab[data-tab="professional"]',
     placement: "bottom",
     advanceOn: "target",
-    title: "Now the important one.",
-    body: "Click the professional tab — this is where your consultant story lives.",
+    title: "Open the professional tab",
+    body: "This is where businesses read about you.",
   },
   {
     id: "c-education",
@@ -988,42 +554,13 @@ const CONSULTANT_STEPS = [
 // part of any teaching arc, so the nav doesn't show a dot for it.
 const BUSINESS_CHAPTERS = [
   {
-    id: "profile-setup",
-    label: "Profile setup",
-    stepIds: [
-      "edit-profile",
-      "upload-photo",
-      "nav-general",
-      "themes",
-      "nav-professional",
-      "business-info",
-    ],
-  },
-  {
     id: "create-listing",
-    label: "Create listing",
+    label: "Post a project",
     stepIds: [
-      "listing-choice",
       "lw-title", "lw-preview", "lw-contract",
       "lw-context", "lw-problem", "lw-output", "lw-details", "lw-attachments",
       "lw-categories", "lw-budget", "lw-turnaround", "lw-quals",
       "lw-publish",
-    ],
-  },
-  {
-    id: "listing-management",
-    // Short label so the chip fits next to "profile setup" and
-    // "create listing" without overflowing the bubble.
-    label: "Manage",
-    stepIds: [
-      "dash-home-intro",
-      "dash-listings-panel",
-      "dash-listings-cta",
-      "dash-analytics",
-      "dash-profile-health",
-      "dash-garden",
-      "dash-open-listings",
-      "dash-my-listings-view",
     ],
   },
 ];
@@ -1148,7 +685,11 @@ function buildChapterNav(currentStepId, currentIdx) {
     </button>`;
   }).filter(Boolean);
 
-  const chipsRow = `<div class='gr-onb-chapnav__chips'>${chips.join('<span class="gr-onb-chap-line" aria-hidden="true"></span>')}</div>`;
+  // A single-chapter flow (the owner tour) skips the chips row; the
+  // dots alone show progress.
+  const chipsRow = CHAPTERS.length > 1
+    ? `<div class='gr-onb-chapnav__chips'>${chips.join('<span class="gr-onb-chap-line" aria-hidden="true"></span>')}</div>`
+    : "";
 
   // ── active chapter's dots row ──
   let dotsRow = "";
@@ -1322,12 +863,11 @@ function ensureNode(id, tag = "div", parent = document.body) {
 }
 
 function clearTutorialDom() {
-  [TOOLTIP_ID, OVERLAY_ID, VINE_ID, CONFIRM_ID].forEach((id) => {
+  [TOOLTIP_ID, OVERLAY_ID, VINE_ID].forEach((id) => {
     const n = document.getElementById(id);
     if (n) n.remove();
   });
   document.body.classList.remove("gr-onboarding-active");
-  teardownGuardrail();
   stopVineSim();
 }
 
@@ -1350,7 +890,10 @@ function clearTutorialDom() {
 const VINE_SEGMENTS = 18;
 const VINE_GRAVITY = 900; // px/s² in screen space
 const VINE_DAMPING = 0.97;
-const VINE_SLACK = 1.45; // segment length multiplier — looser = deeper sag
+const VINE_SLACK = 1.12; // segment length multiplier; kept low so the sag stays out of nearby text
+// The vine only spans a short, empty gap. When the bubble had to dock
+// far from its target, a long rope would cross form copy, so skip it.
+const VINE_MAX_SPAN = 200;
 // Per-leaf pendulum constants. Gravity stronger than the rope's so
 // leaves swing more decisively + settle straight down. Damping is
 // the air-resistance proxy — higher = leaves stop sooner.
@@ -1516,7 +1059,31 @@ function getVineAnchors() {
     bottom: targetR.bottom + pad,
   };
   const endpoint = rayRectEntry(bubbleCenter, targetCenter, expanded);
-  return { start: bubbleCenter, end: endpoint };
+  // Start at the bubble's edge rather than its center so the measured
+  // span is the visible gap.
+  const bubbleBox = { left: tr.left, top: tr.top, right: tr.right, bottom: tr.bottom };
+  const start = rayRectEntry(targetCenter, bubbleCenter, bubbleBox);
+  if (targetR.width === 0 && targetR.height === 0) return null;
+  if (Math.hypot(endpoint.x - start.x, endpoint.y - start.y) > VINE_MAX_SPAN) return null;
+  // Never draw across the bubble's own target or the gap's far side.
+  if (overlapArea(bubbleBox, expanded) > 0) return null;
+  return { start, end: endpoint, avoid: expanded };
+}
+
+// Push a rope point that sagged into the target's box back out to the
+// nearest edge, so the vine and its leaves stay off the target's text.
+function pushOutOfRect(p, rect) {
+  if (!rect) return;
+  if (p.x <= rect.left || p.x >= rect.right || p.y <= rect.top || p.y >= rect.bottom) return;
+  const dl = p.x - rect.left;
+  const dr = rect.right - p.x;
+  const dt = p.y - rect.top;
+  const db = rect.bottom - p.y;
+  const m = Math.min(dl, dr, dt, db);
+  if (m === dl) p.x = rect.left;
+  else if (m === dr) p.x = rect.right;
+  else if (m === dt) p.y = rect.top;
+  else p.y = rect.bottom;
 }
 
 function vineTick() {
@@ -1598,6 +1165,7 @@ function vineTick() {
         b.y -= ay;
       }
     }
+    for (let i = 1; i < last; i++) pushOutOfRect(pts[i], anchors.avoid);
   }
 
   // Build a smooth path through the points (Catmull-Rom → cubic
@@ -1865,7 +1433,6 @@ function renderStep(stepId) {
   // mode. Diffing the rect signature each tick keeps the work cheap
   // — position() only runs when the target actually moves.
   startTrackLoop();
-  installGuardrail();
   // Re-seed the vine each step so it starts from the line between
   // the new bubble + new target rather than swinging across the page.
   restartVineForStep();
@@ -1875,104 +1442,9 @@ function renderStep(stepId) {
   window.dispatchEvent(new CustomEvent("grassroots:onboarding-step", { detail: { step } }));
 }
 
-/* ============================================================== */
-/*                  OFF-SCOPE CLICK GUARDRAIL                      */
-/* ============================================================== */
-
-// Captures every click on the document while the tutorial is active.
-// Clicks on the bubble itself, on the current step's spotlight target
-// (or its descendants), or on any of the step's `allowedInteractive`
-// selectors pass through. Clicks anywhere else get intercepted: the
-// underlying action is blocked and a confirm modal asks the user
-// whether to exit the tutorial or resume where they left off.
-let guardrailInstalled = false;
-
-function installGuardrail() {
-  if (guardrailInstalled) return;
-  document.addEventListener("click", guardrailClickHandler, true);
-  document.addEventListener("mousedown", guardrailMousedownHandler, true);
-  guardrailInstalled = true;
-}
-
-function teardownGuardrail() {
-  if (!guardrailInstalled) return;
-  document.removeEventListener("click", guardrailClickHandler, true);
-  document.removeEventListener("mousedown", guardrailMousedownHandler, true);
-  guardrailInstalled = false;
-}
-
-function isClickWithinScope(eventTarget) {
-  if (!renderedStepId) return true;
-  const step = STEPS[stepIndexById(renderedStepId)];
-  if (!step) return true;
-  // Tutorial UI is always in scope.
-  if (eventTarget.closest && (
-    eventTarget.closest(`#${TOOLTIP_ID}`) ||
-    eventTarget.closest(`#${CONFIRM_ID}`) ||
-    eventTarget.closest("[data-onb-action]")
-  )) return true;
-  // The spotlight target itself + its descendants are in scope.
-  const target = resolveTarget(step);
-  if (target && (target === eventTarget || target.contains(eventTarget))) return true;
-  // Per-step extras (e.g. save button for the business-info step).
-  const allowed = step.allowedInteractive
-    ? (Array.isArray(step.allowedInteractive) ? step.allowedInteractive : [step.allowedInteractive])
-    : [];
-  for (const sel of allowed) {
-    if (eventTarget.closest && eventTarget.closest(sel)) return true;
-  }
-  return false;
-}
-
-function guardrailClickHandler(e) {
-  if (!renderedStepId) return;
-  // The confirm modal is already open — let its own clicks through.
-  if (document.getElementById(CONFIRM_ID)) return;
-  if (isClickWithinScope(e.target)) return;
-  e.preventDefault();
-  e.stopPropagation();
-  openConfirmModal();
-}
-
-// Also block mousedown so the page doesn't visually respond (focus
-// rings, button press states) before the click gets cancelled. Same
-// scope check as the click handler.
-function guardrailMousedownHandler(e) {
-  if (!renderedStepId) return;
-  if (document.getElementById(CONFIRM_ID)) return;
-  if (isClickWithinScope(e.target)) return;
-  e.preventDefault();
-  e.stopPropagation();
-}
-
-function openConfirmModal() {
-  if (document.getElementById(CONFIRM_ID)) return;
-  const modal = document.createElement("div");
-  modal.id = CONFIRM_ID;
-  modal.className = "gr-onb-confirm";
-  modal.innerHTML = `
-    <div class="gr-onb-confirm__backdrop" data-onb-confirm-action="resume"></div>
-    <div class="gr-onb-confirm__card" role="dialog" aria-modal="true" aria-labelledby="gr-onb-confirm-title">
-      <h3 id="gr-onb-confirm-title" class="gr-onb-confirm__title">Heading off?</h3>
-      <p class="gr-onb-confirm__body">Looks like you're wandering. Want to wrap the tutorial here, or pick it back up?</p>
-      <div class="gr-onb-confirm__actions">
-        <button type="button" class="gr-onb-skip" data-onb-confirm-action="exit">Exit tutorial</button>
-        <button type="button" class="gr-onb-btn gr-onb-btn--primary" data-onb-confirm-action="resume">Resume</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
-  modal.addEventListener("click", (e) => {
-    const action = e.target.closest("[data-onb-confirm-action]")?.dataset.onbConfirmAction;
-    if (!action) return;
-    if (action === "exit") {
-      modal.remove();
-      skip();
-    } else if (action === "resume") {
-      modal.remove();
-    }
-  });
-}
+// No off-scope click guardrail: clicking empty page space (to close a
+// dropdown, say) used to pop an "are you leaving?" modal. Only the
+// bubble's close and skip controls end the tour now.
 
 function onScrollReposition() {
   if (!renderedStepId) return;
@@ -2023,6 +1495,79 @@ function startTrackLoop() {
   setTimeout(tick, 100);
 }
 
+// Margin the bubble keeps from every viewport edge, at all widths.
+const VIEW_MARGIN = 16;
+const BUBBLE_GAP = 40;
+
+function overlapArea(a, b) {
+  const w = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+  const h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+  return w > 0 && h > 0 ? w * h : 0;
+}
+
+function visibleRects(selectors) {
+  const out = [];
+  selectors.forEach((sel) => {
+    document.querySelectorAll(sel).forEach((el) => {
+      if (el.offsetParent === null) return;
+      const r = el.getBoundingClientRect();
+      if (r.width && r.height) out.push(r);
+    });
+  });
+  return out;
+}
+
+function clampBubble(x, y, w, h, vw, vh) {
+  return {
+    x: Math.max(VIEW_MARGIN, Math.min(vw - w - VIEW_MARGIN, x)),
+    y: Math.max(VIEW_MARGIN, Math.min(vh - h - VIEW_MARGIN, y)),
+  };
+}
+
+// Pick a bubble position that (1) stays inside the viewport with a
+// margin, (2) never covers its own target, and (3) never covers the
+// form's primary buttons. Tries the step's preferred side first, then
+// the other sides, then the four viewport corners, and keeps the first
+// candidate with no overlap. If every candidate overlaps something
+// (tiny screens), the one covering the least wins, weighted so the
+// target counts most.
+function chooseBubblePosition(step, r, w, h, vw, vh) {
+  const pad = 8;
+  const targetBox = {
+    left: Math.max(0, r.left) - pad,
+    top: Math.max(0, r.top) - pad,
+    right: Math.min(vw, r.right) + pad,
+    bottom: Math.min(vh, r.bottom) + pad,
+  };
+  const avoid = visibleRects(FORM_PRIMARY_BUTTONS);
+  const sides = {
+    left: () => ({ x: r.left - w - BUBBLE_GAP, y: r.top + r.height / 2 - h / 2 }),
+    right: () => ({ x: r.right + BUBBLE_GAP, y: r.top + r.height / 2 - h / 2 }),
+    top: () => ({ x: r.left + r.width / 2 - w / 2, y: r.top - h - BUBBLE_GAP }),
+    bottom: () => ({ x: r.left + r.width / 2 - w / 2, y: r.bottom + BUBBLE_GAP }),
+  };
+  const preferred = sides[step.placement] ? step.placement : "bottom";
+  const order = [preferred, ...["right", "left", "bottom", "top"].filter((k) => k !== preferred)];
+  const candidates = order.map((k) => sides[k]());
+  candidates.push(
+    { x: vw - w - VIEW_MARGIN, y: VIEW_MARGIN },
+    { x: VIEW_MARGIN, y: VIEW_MARGIN },
+    { x: vw - w - VIEW_MARGIN, y: vh - h - VIEW_MARGIN },
+    { x: VIEW_MARGIN, y: vh - h - VIEW_MARGIN },
+  );
+  let best = null;
+  for (const c of candidates) {
+    const p = clampBubble(c.x, c.y, w, h, vw, vh);
+    const box = { left: p.x, top: p.y, right: p.x + w, bottom: p.y + h };
+    const score =
+      overlapArea(box, targetBox) * 4 +
+      avoid.reduce((sum, a) => sum + overlapArea(box, a) * 2, 0);
+    if (score === 0) return p;
+    if (!best || score < best.score) best = { ...p, score };
+  }
+  return best;
+}
+
 function position(step, target /*, options */) {
   const overlay = document.getElementById(OVERLAY_ID);
   const tooltip = document.getElementById(TOOLTIP_ID);
@@ -2031,13 +1576,17 @@ function position(step, target /*, options */) {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
-  if (!target || step.placement === "center") {
+  // A target that exists but isn't rendered (e.g. the preview rail on
+  // a narrow screen) has a zero rect. Center the bubble without dim so
+  // the step still reads instead of pinning to the top-left corner.
+  const r = target ? target.getBoundingClientRect() : null;
+  const targetHidden = !!r && r.width === 0 && r.height === 0;
+
+  if (!target || step.placement === "center" || targetHidden) {
     // No-target step (choice / complete) — by default the overlay
     // goes solid so the centered bubble has focus. Steps that need
-    // the page to stay interactive (e.g. example-saved-draft, where
-    // the user has to click a delete affordance on the dashboard)
-    // can opt out via step.noDim.
-    if (step.noDim) {
+    // the page to stay interactive can opt out via step.noDim.
+    if (step.noDim || targetHidden) {
       overlay.classList.remove("gr-onb-overlay--solid");
     } else {
       overlay.classList.add("gr-onb-overlay--solid");
@@ -2056,43 +1605,18 @@ function position(step, target /*, options */) {
   // nothing positioned against the viewport that can desync.
   overlay.classList.remove("gr-onb-overlay--solid");
 
-  const r = target.getBoundingClientRect();
-
   // Once the user has dragged the bubble for this step, leave it
-  // wherever they parked it — the cutout still tracks the target.
+  // wherever they parked it.
   if (userDraggedBubble) return;
 
-  // Place the bubble. Prefer the requested placement but flip if it
-  // would clip off the viewport edge. Bubble has a fixed natural width
-  // (~320px) — we use that to bound the position math.
-  const bubbleW = 320;
-  const bubbleH = tooltip.offsetHeight || 200;
-  const gap = 56;
-  let bx, by;
-  switch (step.placement) {
-    case "left":
-      bx = r.left - bubbleW - gap;
-      by = r.top + r.height / 2 - bubbleH / 2;
-      break;
-    case "right":
-      bx = r.right + gap;
-      by = r.top + r.height / 2 - bubbleH / 2;
-      break;
-    case "top":
-      bx = r.left + r.width / 2 - bubbleW / 2;
-      by = r.top - bubbleH - gap;
-      break;
-    case "bottom":
-    default:
-      bx = r.left + r.width / 2 - bubbleW / 2;
-      by = r.bottom + gap;
-      break;
-  }
-  // Clamp to viewport with 16px margins.
-  bx = Math.max(16, Math.min(vw - bubbleW - 16, bx));
-  by = Math.max(16, Math.min(vh - bubbleH - 16, by));
-  tooltip.style.left = `${bx}px`;
-  tooltip.style.top = `${by}px`;
+  // Measure the real rendered size. The old code assumed 320px while
+  // the CSS draws 440px, so the clamp let the bubble run past the right
+  // edge and clip the next button.
+  const w = tooltip.offsetWidth || 320;
+  const h = tooltip.offsetHeight || 200;
+  const p = chooseBubblePosition(step, r, w, h, vw, vh);
+  tooltip.style.left = `${p.x}px`;
+  tooltip.style.top = `${p.y}px`;
   tooltip.style.transform = "";
 }
 
@@ -2187,8 +1711,8 @@ function attachDragHandlers(tooltip) {
     let ny = bubbleStart.y + dy;
     // Keep at least a 12px margin so the bubble doesn't get parked
     // entirely off-screen and become unreachable.
-    nx = Math.max(12, Math.min(window.innerWidth - w - 12, nx));
-    ny = Math.max(12, Math.min(window.innerHeight - h - 12, ny));
+    nx = Math.max(VIEW_MARGIN, Math.min(window.innerWidth - w - VIEW_MARGIN, nx));
+    ny = Math.max(VIEW_MARGIN, Math.min(window.innerHeight - h - VIEW_MARGIN, ny));
     tooltip.style.left = `${nx}px`;
     tooltip.style.top = `${ny}px`;
     tooltip.style.transform = "";
@@ -2312,28 +1836,9 @@ function resolveCodaListingId(state) {
 }
 
 // Registry of async actions a choice button can invoke. Each returns
-// either undefined (normal transition) or { redirectTo, nextStepId }
-// so the caller knows where to send the user after the action runs.
-// The cleanup action lands the user on the dashboard pinned to
-// `example-saved-draft` so the next bubble explicitly points at the
-// dashboard delete affordance.
-const CHOICE_ACTIONS = {
-  async exampleSaveDraft(state) {
-    const listingId = resolveCodaListingId(state);
-    if (!listingId) throw new ListingOperationError("We couldn't find that listing to save.");
-    const client = await getSupabaseClient();
-    await convertListingToDraft(client, listingId);
-    showToast("Saved as a draft. Now delete it from your dashboard.", {
-      kind: "success",
-      duration: 5000,
-    });
-    // Land on the my-listings view so the "now delete the draft" bubble
-    // points at the same surface the wizard's own save-draft path
-    // redirects to (/dashboard.html#listings). The draft will be visible
-    // as a card with the hover-revealed delete affordance.
-    return { redirectTo: "/dashboard.html#listings", nextStepId: "example-saved-draft" };
-  },
-};
+// either undefined (normal transition) or { redirectTo, nextStepId }.
+// Empty since the owner example coda was retired with the shorter tour.
+const CHOICE_ACTIONS = {};
 
 function escapeHtml(s) {
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -2494,7 +1999,7 @@ function skip() {
   writeState(null);
   markOnboardedInDb();
   showToast(
-    "No sweat — replay this any time from Settings → General.",
+    "Tour closed. Replay it any time from Settings → General.",
     { kind: "info", duration: 4500 }
   );
 }
@@ -2504,7 +2009,7 @@ function complete() {
   writeState(null);
   markOnboardedInDb();
   showToast(
-    "You're all set. Find this tutorial in Settings → General if you want a refresh.",
+    "You're set. Replay the tour any time from Settings → General.",
     { kind: "success", duration: 4500 }
   );
 }
@@ -2581,7 +2086,12 @@ function resume() {
   // consultant arc rather than defaulting to the business arc.
   if (state.role) setFlowByRole(state.role);
   const step = STEPS[stepIndexById(state.stepId)];
-  if (!step) return false;
+  if (!step) {
+    // Stale state from an older tour (e.g. the removed owner profile
+    // chapter). Drop it so it doesn't linger.
+    writeState(null);
+    return false;
+  }
   if (step.path && step.path !== window.location.pathname) {
     // The user is on a different page than the persisted step — don't
     // auto-redirect, just leave the state in place so the next visit
@@ -2682,61 +2192,26 @@ window.addEventListener("cl:slide-changed", (e) => {
   transitionTo(next);
 });
 
-// Successful publish — where we route depends on which path the user
-// picked at listing-choice:
-//   • "example" → the example-cleanup coda. The bubble lands on
-//     /listing.html and offers save-as-draft / delete actions on the
-//     just-published example so it doesn't sit in the marketplace.
-//   • "own" (or unset) → straight to "complete" since the listing
-//     was the user's actual intent.
-// The listingId rides along on state so the cleanup choice handlers
-// can act on it without re-querying.
-window.addEventListener("cl:listing-published", (event) => {
+// Successful publish ends the owner tour. The next page
+// (/listing.html?posted=1) shows its own "Your project is live" panel,
+// so a closing bubble there would repeat it.
+window.addEventListener("cl:listing-published", () => {
   const state = readState();
   if (!state?.active) return;
-  const listingId = event?.detail?.listingId || null;
-  const isExample = state.choice === "example";
-  const nextStepId = isExample ? "example-cleanup" : "complete";
-  const nextStep = STEPS.find((s) => s.id === nextStepId);
-  if (!nextStep) return;
-  writeState({ ...state, stepId: nextStep.id, lastListingId: listingId });
+  clearTutorialDom();
+  writeState(null);
+  markOnboardedInDb();
 });
 
-// Save-as-draft always rolls the tutorial into the manage section so
-// the user lands on a useful bubble after the redirect to the
-// dashboard — without this the persisted state still points at a
-// /create-listing.html step and resume() bails on /dashboard.html,
-// which looks like "the tutorial ended" from the user's seat.
-//   • example path → example-saved-draft, which says "now delete the
-//     draft" before flowing into dash-home-intro
-//   • own / unset → straight to dash-home-intro; the draft is the
-//     user's actual in-progress work so we don't tell them to delete it
-window.addEventListener("cl:listing-saved-as-draft", (event) => {
+// Save-as-draft ends the owner tour. The draft is real work in
+// progress, and the dashboard has no tour steps anymore, so leaving
+// state active would only resurrect the bubble on a later visit.
+window.addEventListener("cl:listing-saved-as-draft", () => {
   const state = readState();
   if (!state?.active) return;
-  const nextStepId = state.choice === "example" ? "example-saved-draft" : "dash-home-intro";
-  const nextStep = STEPS.find((s) => s.id === nextStepId);
-  if (!nextStep) return;
-  writeState({
-    ...state,
-    stepId: nextStep.id,
-    lastListingId: event?.detail?.listingId || state.lastListingId || null,
-  });
-});
-
-// Dashboard fires this after a draft is deleted. If the tutorial is
-// pinned to the "now delete the draft" coda, advance into the
-// dashboard walkthrough (the "manage" chapter) so the user keeps
-// rolling instead of being told to delete the same draft again. The
-// state write happens BEFORE the dashboard's full-page reload reads
-// it back.
-window.addEventListener("gr:draft-deleted", () => {
-  const state = readState();
-  if (!state?.active) return;
-  if (state.stepId !== "example-saved-draft") return;
-  const nextStep = STEPS.find((s) => s.id === "dash-home-intro");
-  if (!nextStep) return;
-  writeState({ ...state, stepId: nextStep.id });
+  clearTutorialDom();
+  writeState(null);
+  markOnboardedInDb();
 });
 
 document.addEventListener("DOMContentLoaded", () => {
