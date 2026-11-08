@@ -685,60 +685,6 @@
         margin: 0;
       }
 
-      /* how you get paid: bars step down from the first fee to the lowest one,
-         and each bar gets greener as the fee drops */
-      .fs-fee {
-        display: grid;
-        grid-template-columns: repeat(6, minmax(0, 1fr));
-        gap: clamp(6px, 1.2vw, 14px);
-        align-items: end;
-        height: clamp(230px, 24vw, 300px);
-        margin: 0;
-        padding: 0;
-        list-style: none;
-      }
-      .fs-fee__step {
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-end;
-        gap: 10px;
-        height: 100%;
-      }
-      .fs-fee__pct {
-        font-family: var(--font-display);
-        font-size: clamp(1.25rem, 2vw, 1.7rem);
-        font-weight: 600;
-        line-height: 1;
-        letter-spacing: -0.02em;
-        text-align: center;
-        color: var(--fo-text);
-      }
-      .fs-fee__bar {
-        display: block;
-        height: calc(var(--fee) / 30 * 76%);
-        border-radius: 12px 12px 4px 4px;
-        background: color-mix(in srgb, var(--fo-accent) calc((35 - var(--fee)) * 3.3%), transparent);
-        transform: scaleY(0);
-        transform-origin: bottom;
-        transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
-        transition-delay: calc(0.3s + var(--i, 0) * 0.12s);
-      }
-      .fs-stagger.is-visible .fs-fee__bar { transform: none; }
-      .fs-fee__axis {
-        display: flex;
-        justify-content: space-between;
-        gap: 16px;
-        margin-top: 14px;
-        padding-top: 12px;
-        border-top: 1px solid var(--fo-line-strong);
-        font-family: var(--font-body);
-        font-size: 0.95rem;
-        color: var(--fo-text-2);
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .fs-fee__bar { transform: none; transition: none; }
-      }
-
       /* check list: the requirements */
       .fs-checks {
         list-style: none;
