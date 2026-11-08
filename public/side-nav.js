@@ -402,8 +402,16 @@ function wireToggle() {
   edge?.addEventListener("dblclick", toggleCollapsed);
 }
 
+// Keep the loading cover up until the nav has wrapped <main> and drawn
+// itself (or decided not to), so the page never shows the re-layout.
+window.grLoader?.hold("side-nav");
+const runInit = () => {
+  init()
+    .catch(() => {})
+    .finally(() => window.grLoader?.release("side-nav"));
+};
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", init);
+  document.addEventListener("DOMContentLoaded", runInit);
 } else {
-  init();
+  runInit();
 }

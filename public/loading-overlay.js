@@ -1,9 +1,15 @@
 // Frosted loading overlay with a swaying grassroots sprout.
 // Loaded synchronously in <head> so the overlay appears before first paint.
-// Auto-removes when the page's "loading…" gate is cleared, or (pages with
-// no gate) once the DOM is parsed and web fonts are ready, capped short.
-// It stays invisible for its first REVEAL_DELAY_MS, so pages that are
-// ready almost at once never flash it. A 20s safety net always clears it.
+// It covers the page from first paint so half-built layouts are never
+// seen, and only shows the sprout if loading takes longer than
+// SPROUT_DELAY_MS. It lifts once every one of these is true:
+//   - the page's "loading…" gate (if any) is cleared,
+//   - the DOM is parsed and web fonts are ready (fonts capped short),
+//   - every hold is released: scripts that reshape the page after load
+//     (side nav, settings role checks…) call window.grLoader.hold(name)
+//     synchronously and .release(name) when done. Each hold auto-releases
+//     after HOLD_CAP_MS so a failed script can't trap the page.
+// A 20s safety net always clears it.
 (function () {
   if (document.getElementById("gr-loader-overlay")) return;
 
@@ -36,18 +42,53 @@
       '</g>' +
     '</svg>';
 
-  // Hold the overlay invisible briefly. If the page is ready inside this
-  // window the overlay is removed without ever being seen.
-  var REVEAL_DELAY_MS = 150;
+  // The cover is up from first paint; only the sprout waits, so fast
+  // pages show at most a blink of the plain background, never a sprout.
+  var SPROUT_DELAY_MS = 150;
   // Pages without a gate wait for fonts so text doesn't swap under the
   // fade, but never longer than this after DOMContentLoaded.
   var FONT_WAIT_CAP_MS = 400;
+  // Longest any single hold can keep the page covered.
+  var HOLD_CAP_MS = 4000;
   var revealed = false;
-  overlay.style.visibility = "hidden";
+  overlay.classList.add("gr-loader-overlay--quiet");
   var revealTimer = setTimeout(function () {
     revealed = true;
-    overlay.style.visibility = "";
-  }, REVEAL_DELAY_MS);
+    overlay.classList.remove("gr-loader-overlay--quiet");
+  }, SPROUT_DELAY_MS);
+
+  // Holds: named reasons to keep the cover up.
+  var holds = {};
+  var baseReady = false;
+  function holdCount() {
+    var n = 0;
+    for (var k in holds) if (holds[k]) n++;
+    return n;
+  }
+  function maybeHide() {
+    if (baseReady && holdCount() === 0) {
+      requestAnimationFrame(function () {
+        if (holdCount() === 0) {
+          clearTimeout(safety);
+          hide();
+        }
+      });
+    }
+  }
+  window.grLoader = {
+    hold: function (name) {
+      if (!overlay.parentNode) return;
+      holds[name] = setTimeout(function () {
+        holds[name] = null;
+        maybeHide();
+      }, HOLD_CAP_MS);
+    },
+    release: function (name) {
+      if (holds[name]) clearTimeout(holds[name]);
+      holds[name] = null;
+      maybeHide();
+    },
+  };
 
   function attach() {
     if (document.body) {
@@ -88,6 +129,8 @@
       "#cr-gate",
       "#eg-gate",
       "#listing-gate",
+      "#help-gate",
+      "#inbox-gate",
       "#gate",
     ];
     for (var i = 0; i < selectors.length; i++) {
@@ -101,9 +144,8 @@
     if (!overlay.parentNode) return;
     clearTimeout(revealTimer);
     if (!revealed) {
-      // Never shown: drop it without a fade.
-      overlay.parentNode.removeChild(overlay);
-      return;
+      // Sprout never showed: a short fade of the plain cover.
+      overlay.classList.add("gr-loader-overlay--fast");
     }
     overlay.classList.add("gr-loader-overlay--hidden");
     setTimeout(function () {
@@ -138,10 +180,8 @@
       var finish = function () {
         if (done) return;
         done = true;
-        requestAnimationFrame(function () {
-          clearTimeout(safety);
-          hide();
-        });
+        baseReady = true;
+        maybeHide();
       };
       setTimeout(finish, FONT_WAIT_CAP_MS);
       if (document.fonts && document.fonts.ready) {
@@ -154,18 +194,16 @@
 
     // If the gate isn't currently in a "loading" state, dismiss after first paint.
     if (!isGateActive(gate)) {
-      requestAnimationFrame(function () {
-        clearTimeout(safety);
-        hide();
-      });
+      baseReady = true;
+      maybeHide();
       return;
     }
 
     var observer = new MutationObserver(function () {
       if (!isGateActive(gate)) {
         observer.disconnect();
-        clearTimeout(safety);
-        hide();
+        baseReady = true;
+        maybeHide();
       }
     });
     observer.observe(gate, {

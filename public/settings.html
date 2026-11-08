@@ -1031,7 +1031,10 @@
         window.location.href = "/payouts.html";
       });
 
-      init();
+      // Owners lose the Payout tab once their role loads; hold the cover
+      // until then so the tab never flashes in and out.
+      window.grLoader?.hold("settings-role");
+      init().finally(() => window.grLoader?.release("settings-role"));
     </script>
 
     <script defer src="/suggestion-box.js"></script>

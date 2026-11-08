@@ -1785,7 +1785,12 @@ async function boot() {
   } catch (err) {
     gateEl.textContent = err.message || "Could not connect.";
     gateEl.className = "gr-status error";
+  } finally {
+    window.grLoader?.release("profile-form");
   }
 }
 
+// The form starts hidden and its gate empty; hold the loading cover
+// until the profile is in (or has failed) so the page doesn't reflow.
+window.grLoader?.hold("profile-form");
 boot();
