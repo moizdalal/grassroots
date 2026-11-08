@@ -678,6 +678,8 @@ async function boot() {
   } catch (err) {
     gate.textContent = err.message || "Could not connect.";
     gate.className = "gr-status error";
+  } finally {
+    window.grLoader?.release("create-listing");
   }
 }
 
@@ -1531,6 +1533,9 @@ bizNameInput?.addEventListener("keydown", (event) => {
   }
 });
 
+// The form starts hidden behind an empty gate; keep the loading cover
+// up until the owner check and any draft are in, so it never reflows.
+window.grLoader?.hold("create-listing");
 boot();
 
 // Per-field example filler. The "show me an example" tutorial path
