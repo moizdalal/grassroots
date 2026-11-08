@@ -61,7 +61,7 @@
     <link rel="stylesheet" href="/grassroots.css?v=2" />
     <link rel="stylesheet" href="/field-office.css?v=2" />
     <link rel="stylesheet" href="/home/nav.css?v=7" />
-    <link rel="stylesheet" href="/home/for-students.css?v=57" />
+    <link rel="stylesheet" href="/home/for-students.css?v=58" />
     <script src="/theme.js?v=2"></script>
     <script src="/cookie-banner.js" defer></script>
     <script src="/home/theme-default.js"></script>
@@ -312,7 +312,7 @@
         <div class="fs-split__head fs-reveal">
           <h2 class="fs-section__title fs-split__title" id="fs-paid-title">How you get paid</h2>
           <p class="fs-section__sub">
-            You set your price and get paid once the business approves the work. Grassroots keeps a flat 10% of your offer. The rest is yours.
+            You set your price and get paid once the business approves the work. Grassroots keeps a flat 10% of your offer, and card processing comes out of that, not your payout. The rest is yours.
           </p>
         </div>
 
@@ -330,13 +330,15 @@
 
             <div class="fs-earn__bar" aria-hidden="true">
               <span class="fs-earn__you"><span>90% yours</span></span>
-              <span class="fs-earn__fee"><span>10%</span></span>
+              <span class="fs-earn__fee fs-earn__fee--card" data-bar="card"></span>
+              <span class="fs-earn__fee" data-bar="gr"></span>
             </div>
 
             <dl class="fs-earn__ledger">
               <div><dt>Your offer</dt><dd data-out="offer">$240</dd></div>
               <div><dt>Platform fee, 10%</dt><dd data-out="fee">−$24</dd></div>
-              <div><dt>Card processing</dt><dd class="fs-earn__free">$0, on us</dd></div>
+              <div class="fs-earn__sub"><dt><i class="fs-earn__dot fs-earn__dot--card"></i>Card processing, about <span data-out="cardPct">3.3%</span></dt><dd data-out="card">$7.96</dd></div>
+              <div class="fs-earn__sub"><dt><i class="fs-earn__dot"></i>Grassroots, about <span data-out="grPct">6.7%</span></dt><dd data-out="gr">$16.04</dd></div>
               <div><dt>Subscription, bid or payout fees</dt><dd class="fs-earn__free">None</dd></div>
             </dl>
 
@@ -724,12 +726,26 @@
           var d = cents / 100;
           return '$' + (cents % 100 ? d.toFixed(2) : d.toLocaleString('en-US'));
         }
+        // Card processing is Stripe's 2.9% + 30¢ on what the business pays
+        // (offer + its 10% fee). Grassroots pays it out of the platform fee,
+        // so the split below is an estimate of where your 10% goes.
+        var cardBar = box.querySelector('[data-bar="card"]');
+        var grBar = box.querySelector('[data-bar="gr"]');
+        function pct(part, whole) { return (Math.round(part / whole * 1000) / 10).toFixed(1).replace(/\.0$/, '') + '%'; }
         function render() {
           var offer = Math.round(Number(input.value) * 100);
           var fee = Math.round(offer * 0.10);
+          var card = Math.min(fee, Math.round(Math.round(offer * 1.10) * 0.029) + 30);
+          var gr = fee - card;
           out.offer.textContent = money(offer);
           out.fee.textContent = '−' + money(fee);
           out.take.textContent = money(offer - fee);
+          out.card.textContent = money(card);
+          out.gr.textContent = money(gr);
+          out.cardPct.textContent = pct(card, offer);
+          out.grPct.textContent = pct(gr, offer);
+          cardBar.style.flexGrow = card / offer * 100;
+          grBar.style.flexGrow = gr / offer * 100;
           input.style.setProperty('--p', ((input.value - input.min) / (input.max - input.min) * 100) + '%');
         }
         // once you pick your own price, the example job label steps aside

@@ -778,20 +778,33 @@
         white-space: nowrap; overflow: hidden;
       }
       .fs-earn__you {
-        flex: 9 1 0;
         padding-left: 14px;
         background: var(--fo-accent);
         color: var(--fo-accent-on);
         clip-path: inset(0 100% 0 0 round 12px);
         transition: clip-path 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.35s;
       }
+      /* the 10% splits into card processing and what grassroots keeps */
+      .fs-earn__you { flex: 90 1 0; }
       .fs-earn__fee {
-        flex: 1 1 0;
-        min-width: 52px;
-        justify-content: center;
+        flex: 6.7 1 0;
+        min-width: 10px;
         border: 1px dashed var(--fo-line-strong);
-        color: var(--fo-text-2);
+        transition: flex-grow 0.2s ease;
       }
+      .fs-earn__fee--card {
+        flex-grow: 3.3;
+        border: 0;
+        background: color-mix(in srgb, var(--fo-accent) 35%, transparent);
+      }
+      .fs-earn__sub > dt { padding-left: 14px; }
+      .fs-earn__ledger > .fs-earn__sub { border-top-style: dashed; font-size: 0.9rem; padding: 8px 0; }
+      .fs-earn__dot {
+        display: inline-block; vertical-align: 0;
+        width: 9px; height: 9px; border-radius: 3px; margin-right: 8px;
+        border: 1px dashed var(--fo-line-strong);
+      }
+      .fs-earn__dot--card { border: 0; background: color-mix(in srgb, var(--fo-accent) 35%, transparent); }
       .fs-earn.is-visible .fs-earn__you { clip-path: inset(0 0 0 0 round 12px); }
 
       .fs-earn__ledger { margin: 0 0 24px; }
