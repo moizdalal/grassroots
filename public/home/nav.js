@@ -1,7 +1,7 @@
 // nav.js — wires the shared .ld-nav across all marketing pages.
 // Handles:
-//   • theme button (sun ↔ moon) that cycles through all four themes,
-//     backed by window.GrassrootsTheme
+//   • theme button (sun ↔ moon) that flips between light and dark,
+//     backed by window.GrassrootsTheme (marketing pages show only these two)
 //   • .is-scrolled class on the nav once the page scrolls past 8px
 //   • scroll-progress hairline that fills as the page is read
 //
@@ -15,10 +15,8 @@
   const navProgress = document.getElementById("ld-nav-progress");
   const navTheme = document.getElementById("ld-nav-theme");
 
-  // Theme button — each click moves to the next of the four themes.
+  // Theme button — each click flips between light and dark.
   const THEMES = [
-    { id: "dark-forest", label: "forest" },
-    { id: "forest-soft", label: "soft" },
     { id: "dark", label: "dark" },
     { id: "light", label: "light" },
   ];
