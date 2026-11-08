@@ -20,7 +20,7 @@ import { isGuest, setGuestMode, clearGuestMode } from "/guest-mode.js";
 import { getSupabaseClient } from "/supabase-loader.js";
 
 const NAV_CSS_HREF = "/home/nav.css";
-const GUEST_NAV_CSS_HREF = "/guest-nav.css";
+const GUEST_NAV_CSS_HREF = "/guest-nav.css?v=2";
 
 function ensureStylesheet(href) {
   if (document.querySelector(`link[rel="stylesheet"][href="${href}"]`)) return;
