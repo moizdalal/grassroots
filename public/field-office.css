@@ -7143,6 +7143,29 @@ body.gr-has-side-nav .bza__side {
   min-width: 0;
 }
 
+/* The photo square doubles as the file picker. Reset button chrome,
+   keep the ring's border, and lift the border to accent on hover. */
+.pf-avatar-pick {
+  position: relative;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.pf-avatar-pick:hover {
+  border-color: var(--fo-accent);
+}
+.pf-avatar-pick:focus-visible {
+  outline: none;
+  border-color: var(--fo-accent);
+  box-shadow: 0 0 0 3px var(--fo-accent-soft);
+}
+/* Profile-completion header sits inside the flex-gapped health panel,
+   so the gap already spaces it from the bucket. */
+.bza__health > .bza__health-h {
+  margin-bottom: 0;
+}
+
 /* Avatar controls — file picker (empty state) or change/remove (has-avatar). */
 .pf-avatar-controls {
   flex: 1;

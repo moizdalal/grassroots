@@ -510,6 +510,9 @@ function renderHealth(panel, health, consultantId) {
   const tierColor = health.pct >= 67 ? "var(--fo-accent)" : health.pct >= 34 ? "var(--fo-do)" : "var(--fo-plan)";
 
   panel.innerHTML = `
+    <div class="bza__panel-h bza__health-h">
+      <span class="bza__panel-h-title"><strong>Profile completion</strong></span>
+    </div>
     <div class="bza__health-top">
       ${renderHealthBucket(health)}
       <div class="bza__health-summary">

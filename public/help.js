@@ -43,20 +43,27 @@ function configureMarked() {
   // navigation to a raw .md file.
   const renderer = new window.marked.Renderer();
   const origLink = renderer.link.bind(renderer);
-  renderer.link = ({ href, title, tokens, text }) => {
-    if (!href) return origLink({ href, title, tokens, text });
+  // marked v12 (loaded in help.html) calls link(href, title, text) with
+  // positional args; v13+ passes one token object. Accept both, so a
+  // version mismatch can't turn every link into href="undefined" again.
+  renderer.link = function (hrefOrToken, title, text) {
+    const isToken = hrefOrToken && typeof hrefOrToken === "object";
+    const href = isToken ? hrefOrToken.href : hrefOrToken;
+    const call = (h) =>
+      isToken ? origLink({ ...hrefOrToken, href: h }) : origLink(h, title, text);
+    if (!href) return call(href);
     // Bare anchor (#section) → keep as-is, scrolls inside article
-    if (href.startsWith("#")) return origLink({ href, title, tokens, text });
+    if (href.startsWith("#")) return call(href);
     // Mailto / external / absolute → keep as-is
-    if (/^(mailto:|https?:|\/\/)/i.test(href)) return origLink({ href, title, tokens, text });
+    if (/^(mailto:|https?:|\/\/)/i.test(href)) return call(href);
     // Internal markdown link like ./foo.md or foo.md#anchor → rewrite to slug
     const match = href.match(/^\.?\/?([\w-]+)(?:\.md)?(#[\w-]+)?$/);
     if (match) {
       const slug = match[1];
       const anchor = match[2] || "";
-      return origLink({ href: `#${slug}${anchor}`, title, tokens, text });
+      return call(`#${slug}${anchor}`);
     }
-    return origLink({ href, title, tokens, text });
+    return call(href);
   };
   window.marked.use({ renderer, gfm: true, breaks: false });
 }

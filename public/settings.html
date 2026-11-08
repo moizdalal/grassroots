@@ -203,7 +203,8 @@
                   <h3>Profile photo</h3>
                 </div>
                 <div class="settings-section__body settings-section__body--avatar">
-                  <div class="gr-profile-avatar-ring">
+                  <!-- The photo square is the picker: click it to choose a file. -->
+                  <button type="button" class="gr-profile-avatar-ring pf-avatar-pick" id="pf-avatar-pick" aria-label="Upload profile photo">
                     <img
                       id="avatar-preview"
                       class="gr-profile-avatar-img"
@@ -213,9 +214,9 @@
                       hidden
                     />
                     <span id="avatar-initials" class="gr-avatar pf-avatar-initials" aria-hidden="true"></span>
-                  </div>
+                  </button>
                   <div class="pf-avatar-controls">
-                    <!-- Empty state: file picker (no avatar yet) -->
+                    <!-- Empty state: upload button. The photo square opens the same picker. -->
                     <label class="gr-btn gr-btn--ghost gr-btn--sm pf-avatar-upload-btn" id="pf-avatar-upload-label">
                       <input
                         id="avatar-input"

@@ -1186,7 +1186,7 @@ avatarInput.addEventListener("change", async () => {
 });
 
 document.addEventListener("click", (event) => {
-  const changeBtn = event.target.closest("#pf-avatar-change-btn");
+  const changeBtn = event.target.closest("#pf-avatar-change-btn, #pf-avatar-pick");
   if (changeBtn instanceof HTMLElement) {
     event.preventDefault();
     avatarInput?.click();
