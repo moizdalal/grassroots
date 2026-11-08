@@ -9,10 +9,12 @@
   var KEY = "grassroots_theme";
   var THEMES = ["dark-forest", "forest-soft", "dark", "light"];
 
+  // Visitors with no saved choice get the brand forest theme when their OS
+  // is in dark mode, light otherwise. Charcoal "dark" is opt-in only.
   function systemDefault() {
     try {
       if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
-        return "dark";
+        return "dark-forest";
       }
     } catch (e) {}
     return "light";
