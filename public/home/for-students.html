@@ -61,7 +61,7 @@
     <link rel="stylesheet" href="/grassroots.css?v=2" />
     <link rel="stylesheet" href="/field-office.css?v=2" />
     <link rel="stylesheet" href="/home/nav.css?v=7" />
-    <link rel="stylesheet" href="/home/for-students.css?v=55" />
+    <link rel="stylesheet" href="/home/for-students.css?v=57" />
     <script src="/theme.js?v=2"></script>
     <script src="/cookie-banner.js" defer></script>
     <script src="/home/theme-default.js"></script>
@@ -317,20 +317,34 @@
         </div>
 
         <div class="fs-split__body">
-          <ul class="fs-checks fs-stagger fs-reveal">
-            <li class="fs-check">
-              <b class="fs-check__head">A flat 10% platform fee</b>
-              <span class="fs-check__body">On a $100 offer, you take home $90. It's the same rate on every project.</span>
-            </li>
-            <li class="fs-check">
-              <b class="fs-check__head">Card processing is on us</b>
-              <span class="fs-check__body">It never comes out of your payout.</span>
-            </li>
-            <li class="fs-check">
-              <b class="fs-check__head">No other fees</b>
-              <span class="fs-check__body">No subscription, no per-bid fee and no payout fee.</span>
-            </li>
-          </ul>
+          <!-- payout breakdown: drag the price and the split updates.
+               The 10% matches lib/fees.js (consultant fee, Terms 6.5). -->
+          <div class="fs-earn fs-reveal" id="fs-earn">
+            <div class="fs-earn__top">
+              <div>
+                <span class="fs-earn__eyebrow">You take home</span>
+                <b class="fs-earn__take" data-out="take">$216</b>
+              </div>
+              <span class="fs-earn__job">Menu redesign<br/><span>Side Street Coffee</span></span>
+            </div>
+
+            <div class="fs-earn__bar" aria-hidden="true">
+              <span class="fs-earn__you"><span>90% yours</span></span>
+              <span class="fs-earn__fee"><span>10%</span></span>
+            </div>
+
+            <dl class="fs-earn__ledger">
+              <div><dt>Your offer</dt><dd data-out="offer">$240</dd></div>
+              <div><dt>Platform fee, 10%</dt><dd data-out="fee">−$24</dd></div>
+              <div><dt>Card processing</dt><dd class="fs-earn__free">$0, on us</dd></div>
+              <div><dt>Subscription, bid or payout fees</dt><dd class="fs-earn__free">None</dd></div>
+            </dl>
+
+            <label class="fs-earn__try">
+              <span>Try your own price</span>
+              <input type="range" min="25" max="1000" step="5" value="240" data-in="offer" aria-label="Offer amount in dollars"/>
+            </label>
+          </div>
         </div>
       </div>
     </section>
@@ -489,10 +503,6 @@
           <details>
             <summary>What kind of work is actually on here?</summary>
             <p class="fs-faq__answer">You'll find short, scoped projects from local businesses, like logo refreshes, menu redesigns, Shopify cleanups, market research, social retainers, copy passes, and product photos. You can see them all in the marketplace once you're in, and none of it is weird or exploitative.</p>
-          </details>
-          <details>
-            <summary>Do I need an "impressive" resume to get in?</summary>
-            <p class="fs-faq__answer">No. You need two things: you're a current college student with a .edu email, and you care about helping small businesses. The application asks why in a few sentences. A link to something you've made is optional.</p>
           </details>
           <details>
             <summary>How much can I realistically earn?</summary>
@@ -699,6 +709,36 @@
         }
         // first run once the lid has opened and the listings have appeared
         setTimeout(loop, 3200);
+      })();
+
+      // ── how you get paid: payout breakdown ──
+      // 10% platform fee from the offer, rounded half up to the cent,
+      // the same math as lib/fees.js.
+      (function () {
+        var box = document.getElementById('fs-earn');
+        if (!box) return;
+        var input = box.querySelector('[data-in="offer"]');
+        var out = {};
+        box.querySelectorAll('[data-out]').forEach(function (el) { out[el.dataset.out] = el; });
+        function money(cents) {
+          var d = cents / 100;
+          return '$' + (cents % 100 ? d.toFixed(2) : d.toLocaleString('en-US'));
+        }
+        function render() {
+          var offer = Math.round(Number(input.value) * 100);
+          var fee = Math.round(offer * 0.10);
+          out.offer.textContent = money(offer);
+          out.fee.textContent = '−' + money(fee);
+          out.take.textContent = money(offer - fee);
+          input.style.setProperty('--p', ((input.value - input.min) / (input.max - input.min) * 100) + '%');
+        }
+        // once you pick your own price, the example job label steps aside
+        var job = box.querySelector('.fs-earn__job');
+        input.addEventListener('input', function () {
+          render();
+          if (job) { job.innerHTML = 'Your project<br/><span>Your price</span>'; job = null; }
+        });
+        render();
       })();
 
       // ── reveal on scroll ─────────────────────────────────
