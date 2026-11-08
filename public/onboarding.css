@@ -71,7 +71,12 @@ body.gr-onboarding-active {
   position: fixed;
   z-index: 9200;
   width: 440px;
-  max-width: calc(100vw - 24px);
+  /* 16px margin on each side at every width; position() in
+     onboarding.js measures this rendered size and clamps to the same
+     margin. Tall bubbles scroll inside instead of running off-screen. */
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
   padding: 1.35rem 1.4rem 1.15rem;
   background: var(--fo-surface, #15201b);
   color: var(--fo-text, #f1e8d3);
@@ -463,84 +468,11 @@ body.gr-onboarding-active {
   color: var(--fo-accent-on, #0e1d14);
 }
 
-/* Confirm modal — shown when the user clicks somewhere outside the
-   tutorial's current scope. Sits above everything else (z above the
-   bubble) and pulls focus with its own backdrop. */
-.gr-onb-confirm {
-  position: fixed;
-  inset: 0;
-  z-index: 9400;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: gr-onb-confirm-in 0.22s ease-out both;
-}
-
-.gr-onb-confirm__backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(8, 14, 11, 0.55);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  cursor: pointer;
-}
-
-.gr-onb-confirm__card {
-  position: relative;
-  width: min(360px, calc(100vw - 32px));
-  padding: 1.4rem 1.5rem 1.2rem;
-  background: var(--fo-surface, #15201b);
-  color: var(--fo-text, #f1e8d3);
-  border: 1px solid var(--fo-line-strong, rgba(241, 232, 211, 0.18));
-  border-radius: 18px;
-  box-shadow:
-    0 20px 50px rgba(0, 0, 0, 0.5),
-    0 6px 14px rgba(0, 0, 0, 0.32);
-  font-family: var(--font-body);
-  animation: gr-onb-confirm-card-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.gr-onb-confirm__title {
-  margin: 0 0 0.4rem;
-  font-family: var(--font-display);
-  font-size: 1.3rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
-  font-weight: 600;
-  font-style: normal;
-}
-
-.gr-onb-confirm__body {
-  margin: 0 0 1.1rem;
-  font-size: 0.92rem;
-  line-height: 1.45;
-  color: var(--fo-text-2, rgba(241, 232, 211, 0.78));
-}
-
-.gr-onb-confirm__actions {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem 1rem;
-  flex-wrap: wrap;
-}
-
-@keyframes gr-onb-confirm-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-@keyframes gr-onb-confirm-card-in {
-  from { opacity: 0; transform: scale(0.94) translateY(8px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); }
-}
-
 /* Optional: when the user prefers reduced motion, drop the
    animations on the bubble + overlay. */
 @media (prefers-reduced-motion: reduce) {
   .gr-onb-overlay,
-  .gr-onb-tooltip,
-  .gr-onb-confirm,
-  .gr-onb-confirm__card {
+  .gr-onb-tooltip {
     animation: none;
   }
 }

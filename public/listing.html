@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="index,follow" />
     <title>Grassroots — listing</title>
-    <meta name="description" content="Real consulting work from a local small business — bid, deliver, and build your portfolio." />
+    <meta name="description" content="Real consulting work from a local small business — bid, deliver, and build your resume." />
     <!-- Canonical + JSON-LD JobPosting block are injected by listing.js
          once the listing data is fetched so the URL + content match. -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -14,6 +14,33 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
     <link rel="stylesheet" href="/grassroots.css?v=2" />
     <link rel="stylesheet" href="/field-office.css?v=2" />
+    <script>
+      // Signed-in chrome before first paint. A tab that browsed
+      // /marketplace.html?guest=1 before signing up still carries the
+      // sessionStorage guest flag, which would make guest-nav.js paint
+      // the guest bar and side-nav.js bail on this load. If a stored
+      // Supabase session exists and the URL doesn't ask for guest mode,
+      // drop the stale flag now, before any module reads it. listing.js
+      // and guest-nav.js still confirm with getSession() afterwards.
+      (function () {
+        try {
+          if (new URLSearchParams(window.location.search).get("guest") === "1") return;
+          if (sessionStorage.getItem("grassroots_guest_mode") !== "1") return;
+          for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (k && k.indexOf("sb-") === 0 && k.indexOf("-auth-token") !== -1) {
+              var v = localStorage.getItem(k);
+              if (v && v !== "null" && v !== "{}") {
+                sessionStorage.removeItem("grassroots_guest_mode");
+                return;
+              }
+            }
+          }
+        } catch (_) {
+          /* storage unavailable — guest-nav.js handles it after getSession. */
+        }
+      })();
+    </script>
     <script src="/theme.js"></script>
     <script src="/cookie-banner.js" defer></script>
     <script src="/loading-overlay.js"></script>
@@ -27,6 +54,29 @@
       <div id="listing-gate" class="gr-status" data-loading="true" aria-live="polite">Loading…</div>
 
       <div id="listing-detail" class="ld-detail" hidden>
+
+        <!-- Owner-only "you just posted" panel. listing.js shows it once
+             when create-listing redirects here with ?posted=1 and the
+             viewer owns the listing, then strips the param so a refresh
+             doesn't repeat it. -->
+        <section id="ld-posted" class="ld-posted" aria-labelledby="ld-posted-title" tabindex="-1" hidden>
+          <div class="ld-posted__head">
+            <h2 id="ld-posted-title" class="ld-posted__title">Your project is live</h2>
+            <button type="button" id="ld-posted-close" class="ld-posted__close" aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+          <p class="ld-posted__lead">Students can find it on the marketplace now. Here's what happens next.</p>
+          <ol class="ld-posted__steps">
+            <li>Students send offers with a price and a short pitch.</li>
+            <li>We notify you each time a new offer comes in.</li>
+            <li>Compare offers on this page and pick the student you want.</li>
+          </ol>
+          <div class="ld-posted__actions">
+            <button type="button" id="ld-posted-share" class="gr-btn gr-btn--secondary gr-btn--sm">Share link</button>
+            <span id="ld-posted-share-status" class="ld-posted__status" role="status" aria-live="polite"></span>
+          </div>
+        </section>
 
         <!-- Owner-only draft banner. Shown when the listing's status
              is 'draft' AND the viewer owns it. Hidden otherwise. -->
@@ -53,7 +103,7 @@
                 <div id="ld-biz-socials" class="ld-bio__socials" hidden></div>
               </div>
               <div class="ld-bio__column">
-                <button type="button" class="ld-bio__toggle" id="ld-bio-toggle" aria-expanded="true" aria-controls="ld-bio-body">
+                <button type="button" class="ld-bio__toggle" id="ld-bio-toggle" aria-label="About the business" aria-expanded="true" aria-controls="ld-bio-body">
                   <span class="ld-bio__meta">
                     <span class="ld-bio__eyebrow">About the business</span>
                     <span class="ld-bio__name-inline" id="ld-biz-name-inline"></span>
@@ -63,6 +113,7 @@
                 <div class="ld-bio__body" id="ld-bio-body">
                   <h2 id="ld-biz-name" class="ld-bio__name"></h2>
                   <p id="ld-biz-owner" class="ld-bio__owner"></p>
+                  <a id="ld-biz-add-name" class="ld-bio__add-name" href="/settings.html#professional" hidden>Add your business name</a>
                   <div id="ld-biz-badges" class="ld-bio__badges" hidden></div>
                   <p id="ld-biz-details" class="ld-bio__about" hidden></p>
                   <a id="ld-biz-website" class="ld-bio__link" target="_blank" rel="noopener noreferrer" hidden>Website</a>
@@ -131,10 +182,10 @@
           <aside class="ld-sidebar" id="ld-sidebar" hidden>
             <section id="ld-owner-actions" class="ld-sidebar__panel ld-owner-actions" hidden>
               <h2 class="ld-owner-actions__heading">
-                Listing controls
+                Project controls
                 <span class="ld-info-tip" tabindex="0" role="button" aria-label="About listing controls">
                   ?
-                  <span class="ld-info-tip__bubble" role="tooltip">Lock this listing to stop new offers. It stays public, and current work isn't affected. Remove it from the marketplace to hide it from everyone except consultants who sent offers.</span>
+                  <span class="ld-info-tip__bubble" role="tooltip">Lock this listing to stop new offers. It stays public, and current work isn't affected. Remove it from the marketplace to hide it from everyone except students who sent offers.</span>
                 </span>
               </h2>
               <p id="ld-owner-actions-copy" class="ld-owner-actions__copy" hidden></p>
@@ -219,7 +270,7 @@
             <!-- Owner: offers received -->
             <section id="ld-bids-owner" class="ld-sidebar__panel ld-bids-owner" hidden>
               <h2 class="ld-section-h">Offers received</h2>
-              <p id="ld-counter-budget" class="ld-counter-budget"></p>
+              <p id="ld-counter-budget" class="ld-counter-budget" hidden></p>
               <div id="ld-bids-list" class="ld-bids-list"></div>
             </section>
 
@@ -450,7 +501,7 @@
       </div>
     </div>
 
-    <script type="module" src="/guest-nav.js"></script>
+    <script type="module" src="/guest-nav.js?v=2"></script>
     <script type="module" src="/nav-session.js"></script>
     <script type="module" src="/back-link.js"></script>
     <script type="module" src="/listing.js"></script>

@@ -218,16 +218,18 @@ function formatLabel(dateKey) {
 }
 
 // Daily-views chart layout rules:
-//   * Always render at least 3 day slots. If the listing is younger
-//     than that, pad with "ghost" future days that render lighter
-//     and don't accept hover. Up to 7 fit on one page.
+//   * Only real days are plotted: listing day through today. Never
+//     pad with future days, since a label like "Nov 7" on Nov 5 reads
+//     as a forecast.
 //   * Beyond 7 days, paginate into 7-day pages (oldest → newest,
-//     ordered left-to-right within a page). The most-recent page
-//     is active by default; dot pagination jumps between pages.
+//     ordered left-to-right within a page). Pages are cut from the
+//     newest end, so the default (most recent) page is always full
+//     and only the oldest page can be short.
+//   * A listing with no views yet skips the chart and shows a short
+//     "No views yet" line instead (see renderAnalyticsPanel).
 //   * Each visible bar has a y-axis scale on its left (0 / mid /
 //     max) and a hover tooltip showing the date, view count, and
 //     whether an offer was submitted that day.
-const MIN_DAYS = 3;
 const PAGE_SIZE = 7;
 const TOOLTIP_FORMAT = { weekday: "short", month: "short", day: "numeric" };
 
@@ -238,34 +240,19 @@ function sinceListedLabel(buckets) {
   return `${days} day${days === 1 ? "" : "s"} since listed`;
 }
 
-function padToMinDays(daily, min = MIN_DAYS) {
-  if (!daily.length) return [];
-  if (daily.length >= min) return daily;
-  const out = daily.slice();
-  const last = new Date(out[out.length - 1].date + "T00:00:00");
-  while (out.length < min) {
-    last.setDate(last.getDate() + 1);
-    out.push({
-      date: toLocalDayKey(last.toISOString()),
-      count: 0,
-      offers: 0,
-      ghost: true,
-    });
-  }
-  return out;
+// Drop any bucket after today. daysBetween() already stops at today,
+// but a clock-skewed created_at (server ahead of the browser) could
+// otherwise start the range tomorrow.
+function clampToToday(daily) {
+  const todayKey = toLocalDayKey(new Date().toISOString());
+  return (daily || []).filter((d) => d.date <= todayKey);
 }
 
 function chunkPages(daily, pageSize = PAGE_SIZE) {
   if (daily.length <= pageSize) return [daily];
   const pages = [];
-  for (let i = 0; i < daily.length; i += pageSize) {
-    pages.push(daily.slice(i, i + pageSize));
-  }
-  // If the final page has fewer than pageSize slots, pad with ghost
-  // future days so every page renders with the same column count.
-  const last = pages[pages.length - 1];
-  if (last.length < pageSize) {
-    pages[pages.length - 1] = padToMinDays(last, pageSize);
+  for (let end = daily.length; end > 0; end -= pageSize) {
+    pages.unshift(daily.slice(Math.max(0, end - pageSize), end));
   }
   return pages;
 }
@@ -476,11 +463,11 @@ function drawCurves(container) {
 }
 
 function renderHistogram(daily) {
-  if (!daily?.length) return "";
-  const padded = padToMinDays(daily, MIN_DAYS);
-  const max = Math.max(1, ...padded.map((d) => d.count));
+  const days = clampToToday(daily);
+  if (!days.length) return "";
+  const max = Math.max(1, ...days.map((d) => d.count));
   const niceMax = niceCeil(max);
-  const pages = chunkPages(padded, PAGE_SIZE);
+  const pages = chunkPages(days, PAGE_SIZE);
   const lastIdx = pages.length - 1;
 
   const yAxis = buildYAxis(niceMax);
@@ -545,7 +532,12 @@ export function renderAnalyticsPanel(container, analytics, opts = {}) {
   // `compact: true` drops the daily-views histogram + the subtitle and
   // stacks the metrics vertically. Used on the no-scroll owner home
   // where the panel sits in a narrow right rail.
-  const { title = "performance", subtitle = "", compact = false } = opts;
+  const {
+    title = "performance",
+    subtitle = "",
+    compact = false,
+    emptyViewsCopy = "No views yet.",
+  } = opts;
 
   if (!analytics) {
     container.innerHTML = `
@@ -577,7 +569,9 @@ export function renderAnalyticsPanel(container, analytics, opts = {}) {
       ? "No views yet"
       : `${analytics.totalUniqueBidders} of ${analytics.totalUniqueViewers} viewer${analytics.totalUniqueViewers === 1 ? "" : "s"} submitted an offer`;
 
-  const histogram = compact ? "" : renderHistogram(analytics.daily);
+  // No views yet: an empty chart says nothing, so show one line.
+  const hasViews = (analytics.totalUniqueViewers || 0) > 0;
+  const histogram = compact || !hasViews ? "" : renderHistogram(analytics.daily);
 
   container.innerHTML = `
     <div class="lv-panel${compact ? " lv-panel--compact" : ""}">
@@ -605,9 +599,9 @@ export function renderAnalyticsPanel(container, analytics, opts = {}) {
       <div class="lv-section">
         <div class="lv-section__head">
           <p class="lv-section__eyebrow">Daily views</p>
-          <p class="lv-section__hint">${sinceListedLabel(analytics.daily.length)}</p>
+          <p class="lv-section__hint">${sinceListedLabel(clampToToday(analytics.daily).length)}</p>
         </div>
-        ${histogram || '<p class="lv-panel__empty">No views yet.</p>'}
+        ${histogram || `<p class="lv-panel__empty">${escapeText(emptyViewsCopy)}</p>`}
       </div>
       `}
     </div>

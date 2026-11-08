@@ -4,7 +4,7 @@
 
 ## Creating a listing
 
-From your dashboard, click **Post a listing**. You'll fill in:
+From your dashboard, click **Post a project**. You'll fill in:
 
 - **Title** — short and specific ("brand identity for a coffee shop", not "design help")
 - **Category** — pick from the predefined list (marketing, operations, etc.)

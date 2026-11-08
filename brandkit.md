@@ -360,6 +360,15 @@ For custom controls (multi-select, file picker, anything that isn't a native `[r
 
 Inside a label, mark optional fields with `<span class="gr-optional">optional</span>` — renders as `(optional)` in italic muted text after the label.
 
+### Inline field errors
+
+Validation errors sit directly under the field they're about, never in a toast or a status line at the bottom of the form.
+
+- Text in Figtree, `--type-meta`, weight 500, color `--fo-plan` (the same coral as the required asterisk).
+- The input gets `aria-invalid="true"`, a `--fo-plan` border and a 3px `--fo-plan` ring at 22%, and `aria-describedby` pointing at the error.
+- On submit, focus moves to the first invalid field. Name the field in the message ("Enter your phone number."), not "Please fill out this field."
+- Canonical classes: `.reg-field-error` (register, business basics) and `.cl-field-error` (post a project).
+
 ---
 
 ## Layout idioms
