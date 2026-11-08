@@ -16,7 +16,7 @@ async function payAndAcceptProposals(...args) {
   const m = await loadPaymentModal();
   return m.payAndAcceptProposals(...args);
 }
-import { computeFees, formatUsd, isValidOfferCents, MIN_PAID_OFFER_CENTS, FEE_LADDER_BPS } from "/fees.js";
+import { computeFees, businessTotalCents, formatUsd, formatBps, isValidOfferCents, MIN_PAID_OFFER_CENTS, CONSULTANT_FEE_BPS } from "/fees.js";
 import { getInitials } from "/initials.js";
 import {
   trackListingView,
@@ -1499,32 +1499,9 @@ function renderMsgThread(container, messages, myId) {
    Consultant view: offer panel (sidebar) + chat drawer
    ================================================================ */
 
-// The signed-in consultant's platform fee, used for the take-home estimates.
-// It starts at the top of the ladder, so if the lookup fails the estimate
-// errs low on take-home rather than promising too much.
-let consultantFeeBps = FEE_LADDER_BPS[0];
-let consultantFeeIsFixed = false;
-
-async function loadConsultantFeeRate(session) {
-  if (!session?.access_token) return;
-  try {
-    const res = await fetch("/api/consultant/fee-rate", {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
-    if (!res.ok) return;
-    const rate = await res.json();
-    if (FEE_LADDER_BPS.includes(rate.platform_fee_bps)) {
-      consultantFeeBps = rate.platform_fee_bps;
-      consultantFeeIsFixed = Boolean(rate.is_fixed_rate);
-    }
-  } catch (_) {
-    // Keep the starting rate: the estimate is still safe to show.
-  }
-}
-
-// Consultant-side take-home breakdown. Pricing is all-in: the offer is
-// what the business pays, and the platform fee plus Stripe processing come
-// out of it.
+// Consultant-side take-home breakdown. The consultant's platform fee is a
+// flat 10% of the offer. The business fee is added on the business's side,
+// so it never changes what the consultant takes home.
 function offerBreakdownHtml(f, opts = {}) {
   // Consultant-only copy. Businesses never see the free option mentioned.
   if (f.amountCents === 0) {
@@ -1535,26 +1512,17 @@ function offerBreakdownHtml(f, opts = {}) {
   if (f.amountCents < MIN_PAID_OFFER_CENTS) {
     return `<p class="ld-offer-breakdown__note">${opts.allowFree ? "Offers are free or at least $10." : "This amount must be at least $10."}</p>`;
   }
-  const bizLabel = opts.bizLabel || "Business pays";
+  const bizLabel = opts.bizLabel || "Your offer";
   const takeHomeLabel = opts.takeHomeLabel || "You take home";
-  const platformValue = `−${formatUsd(f.platformFeeCents)}`;
-  const feeHint = consultantFeeIsFixed || f.platformFeeBps === FEE_LADDER_BPS[FEE_LADDER_BPS.length - 1]
-    ? "None on the first $10"
-    : "None on the first $10 · drops as you earn good reviews";
-  const platformLabel = `Platform fee (${f.platformFeeBps / 100}%)
-       <span class="ld-offer-breakdown__hint">${feeHint}</span>`;
+  const platformLabel = `Platform fee (${formatBps(CONSULTANT_FEE_BPS)})`;
   return `
     <div class="ld-offer-breakdown__line ld-offer-breakdown__line--biz">
       <span>${bizLabel}</span>
-      <span class="ld-offer-breakdown__value">${formatUsd(f.businessTotalCents)}</span>
+      <span class="ld-offer-breakdown__value">${formatUsd(f.amountCents)}</span>
     </div>
     <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
       <span>${platformLabel}</span>
-      <span class="ld-offer-breakdown__value">${platformValue}</span>
-    </div>
-    <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
-      <span>Card processing</span>
-      <span class="ld-offer-breakdown__value">−${formatUsd(f.stripeFeeCents)}</span>
+      <span class="ld-offer-breakdown__value">−${formatUsd(f.platformFeeCents)}</span>
     </div>
     <div class="ld-offer-breakdown__line ld-offer-breakdown__line--total">
       <span>${takeHomeLabel}</span>
@@ -1612,9 +1580,9 @@ function offerSummaryHtml(bid, listing) {
   // form only.
   const takeHomeHtml = !isPhased && Number(bid.amount_cents) > 0
     ? `<div class="ld-offer-breakdown ld-bid-existing__breakdown">${offerBreakdownHtml(
-        computeFees(Number(bid.amount_cents), consultantFeeBps),
+        computeFees(Number(bid.amount_cents)),
         isRetainer
-          ? { bizLabel: "Business pays per period", takeHomeLabel: "You take home per period" }
+          ? { bizLabel: "Your offer per period", takeHomeLabel: "You take home per period" }
           : {}
       )}</div>`
     : "";
@@ -1629,7 +1597,6 @@ function offerSummaryHtml(bid, listing) {
 }
 
 async function showConsultantView(client, session, listing, existingBid) {
-  await loadConsultantFeeRate(session);
   const panel = document.getElementById("ld-offer-panel");
   setOfferRailVisible(true);
   panel.hidden = false;
@@ -1649,7 +1616,7 @@ async function showConsultantView(client, session, listing, existingBid) {
       container.innerHTML = "";
       return;
     }
-    const f = computeFees(Math.round(dollars * 100), consultantFeeBps);
+    const f = computeFees(Math.round(dollars * 100));
     container.innerHTML = offerBreakdownHtml(f, opts);
     container.hidden = false;
   }
@@ -1664,18 +1631,18 @@ async function showConsultantView(client, session, listing, existingBid) {
 
   const isRetainerListing = listing?.contract_type === "retainer";
   wireBreakdown(amountInput, "ld-offer-breakdown", isRetainerListing
-    ? { offerLabel: "Fee per period", bizLabel: "Business pays per period", takeHomeLabel: "You take home per period" }
+    ? { offerLabel: "Fee per period", bizLabel: "Your offer per period", takeHomeLabel: "You take home per period" }
     : { allowFree: true });
   wireBreakdown(proposalFeeInput, "ld-offer-proposal-breakdown", {
     allowFree: true,
     freeNote: "No proposal fee.",
     offerLabel: "Proposal fee",
-    bizLabel: "Business pays for proposal",
+    bizLabel: "Your proposal fee",
     takeHomeLabel: "You take home (proposal)",
   });
   wireBreakdown(serviceFeeInput, "ld-offer-service-breakdown", {
     offerLabel: "Service fee",
-    bizLabel: "Business pays for service",
+    bizLabel: "Your service fee",
     takeHomeLabel: "You take home (service)",
   });
 
@@ -2701,7 +2668,8 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
   function renderProposalCta() {
     if (!proposalCtaEl) return;
     const selected = bids.filter((b) => selectedBidIds.has(b.id));
-    const total = selected.reduce((sum, b) => sum + Number(b.proposal_fee_cents || 0), 0);
+    // What the card is charged: each offer plus its platform fee.
+    const total = selected.reduce((sum, b) => sum + businessTotalCents(Number(b.proposal_fee_cents || 0)), 0);
     if (!selected.length) {
       proposalCtaEl.classList.add("hidden");
       return;
@@ -2883,7 +2851,7 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
               title: "Accept the original offer?",
               body: [
                 `${rawName} hasn't decided on your counter yet.`,
-                `Accepting now charges their original price of ${formatUsd(b.amount_cents)}, not your counter of ${formatUsd(b.counter_offer_cents)}.`,
+                `Accepting now charges their original price of ${formatUsd(b.amount_cents)} plus the platform fee, not your counter of ${formatUsd(b.counter_offer_cents)}.`,
               ],
               actions: [
                 { label: "Cancel", kind: "ghost", value: "cancel" },
@@ -3299,7 +3267,7 @@ function runTutorialListing() {
       breakdownEl.innerHTML = "";
       return;
     }
-    const f = computeFees(Math.round(dollars * 100), consultantFeeBps);
+    const f = computeFees(Math.round(dollars * 100));
     breakdownEl.innerHTML = offerBreakdownHtml(f);
     breakdownEl.hidden = false;
   };

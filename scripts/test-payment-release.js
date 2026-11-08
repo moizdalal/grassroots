@@ -2,14 +2,17 @@
 // Stripe (real webhook signing), then drives it over HTTP.
 //   node scripts/test-payment-release.js
 // No network, no real keys. Covers idempotency, compare-and-set releases,
-// disputes, retainer terms, the delivery-anchored release job, and
-// reported problems with support outcomes A / B / C.
+// disputes, retainer terms, the delivery-anchored release job,
+// reported problems with support outcomes A / B / C, and the fee model
+// (business pays offer + 10%, 5% before 2027-03-01 ET; consultant gets
+// offer − 10%). Some outcome tests use stored rows from the older all-in
+// model on purpose: held payments from then must keep settling correctly.
 const WT = require("path").resolve(__dirname, "..");
 const Module = require("module");
 const assert = require("assert");
 
 // ---------- fake supabase ----------
-const db = { profiles: [], listings: [], bids: [], bid_phase_payments: [], retainer_subscriptions: [], consultant_reviews: [], consultant_fee_rates: [], notifications: [], payment_audit: [] };
+const db = { profiles: [], listings: [], bids: [], bid_phase_payments: [], retainer_subscriptions: [], consultant_reviews: [], notifications: [], payment_audit: [] };
 // Columns the add_delivery_release / add_support_outcomes migrations default.
 const PAY_DEFAULTS = { refunded_cents: 0, problem_report_count: 0, redo_used: false };
 const DEFAULTS = { bids: PAY_DEFAULTS, bid_phase_payments: PAY_DEFAULTS };
@@ -141,6 +144,7 @@ const origErr = console.error, origWarn = console.warn;
 console.error = (...a) => logs.push(a.join(" "));
 console.warn = (...a) => logs.push(a.join(" "));
 const app = require(WT + "/app.js");
+const fees = require(WT + "/lib/fees");
 
 // ---------- helpers ----------
 let base;
@@ -165,8 +169,6 @@ function seed() {
   db.listings.push({ id: "L1", owner_id: OWNER, title: "t", contract_type: "standard" }, { id: "L2", owner_id: OWNER, title: "p", contract_type: "phased" });
   db.bids.push({ id: "B1", listing_id: "L1", consultant_id: CONS, amount_cents: 10000, status: "pending", payment_status: "unpaid", refunded_cents: 0 });
   db.consultant_reviews.push({ id: "R1", bid_id: "B1" });
-  // These tests check release math at the existing students' 5% rate.
-  db.consultant_fee_rates.push({ consultant_id: CONS, platform_fee_bps: 500 });
 }
 const bid = (id) => db.bids.find((b) => b.id === id);
 let pass = 0;
@@ -180,7 +182,7 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     let r1 = await api("/api/stripe/payment-intent", { bid_id: "B1" }, OWNER);
     ok(r1.status === 200, "payment-intent created");
     const piId = bid("B1").payment_intent_id;
-    ok(calls.filter((c) => c.kind === "pi")[0].key.startsWith("pi-card:bid:B1:none:10000"), "PI create carries idempotency key");
+    ok(calls.filter((c) => c.kind === "pi")[0].key.startsWith(`pi-card:bid:B1:none:${fees.businessTotalCents(10000)}`), "PI create carries idempotency key");
 
     // --- webhook accepts the bid before the browser confirms ---
     pis.get(piId).status = "succeeded"; pis.get(piId).latest_charge = "ch_1"; pis.get(piId).payment_method = "pm_1"; pis.get(piId).customer = "cus_1";
@@ -511,7 +513,8 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     const report = (who = OWNER, extra = {}) => api("/api/engagement/report-problem", { bid_id: "B1", note: "the deck is missing the pricing section", link: "https://docs.example.com/notes", ...extra }, who);
     const outcome = (o, who = "admin1", extra = {}) => api("/api/admin/payments/outcome", { bid_id: "B1", outcome: o, ...extra }, who);
     const choose = (choice, who = CONS) => api("/api/engagement/redo-choice", { bid_id: "B1", choice }, who);
-    // All-in: $110 offer = $110 charged. Card fee $3.49 (2.9% + 30¢),
+    // Stored all-in row (pre-v3 model, kept on purpose): $110 offer = $110
+    // charged, no business fee. Card fee $3.49 (2.9% + 30¢),
     // platform fee $5.00 (5% of the $100 above the first $10), so the
     // consultant's payout is $101.51.
     const FEES = { payment_amount_cents: 11000, platform_fee_cents: 500, stripe_fee_cents: 349, consultant_payout_cents: 10151 };
@@ -920,7 +923,7 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     db.bids.push({ id: "B4", listing_id: "L2", consultant_id: CONS, amount_cents: 3000, proposal_fee_cents: 1500, service_fee_cents: 3000, status: "pending", payment_status: "unpaid", refunded_cents: 0 });
     fo = await api("/api/stripe/phased/accept-proposals", { bid_ids: ["B3", "B4"] }, OWNER);
     const batchRows = db.bid_phase_payments.filter((r) => ["B3", "B4"].includes(r.bid_id));
-    ok(fo.status === 200 && fo.body.amount === 1500 && batchRows.length === 2 && batchRows.every((r) => r.status === "authorizing"), "mixed batch charges only the paid proposal; $0 row rides along");
+    ok(fo.status === 200 && fo.body.amount === fees.businessTotalCents(1500) && batchRows.length === 2 && batchRows.every((r) => r.status === "authorizing"), "mixed batch charges only the paid proposal; $0 row rides along");
     fo = await api("/api/stripe/phased/accept-proposals", { bid_ids: ["B3"] }, OWNER);
     ok(fo.status === 409, "free row already in a pending batch can't be accepted twice");
 
@@ -928,32 +931,125 @@ const ok = (cond, msg) => { assert.ok(cond, msg); pass++; origErr("  ✓", msg);
     const bad = await fetch(base + "/webhooks/stripe", { method: "POST", headers: { "content-type": "application/json", "stripe-signature": "t=1,v1=bad" }, body: "{}" });
     ok(bad.status === 400, "legacy /webhooks/stripe path routed; bad signature → 400");
 
-    // --- fee ladder: a new student pays 30% on the part above $10 ---
-    seed();
-    db.consultant_fee_rates.length = 0;
-    const ladder = await api("/api/stripe/payment-intent", { bid_id: "B1" }, OWNER);
-    ok(ladder.status === 200 && ladder.body.amount === 10000, "new student: the business still pays exactly the offer");
-    ok(bid("B1").platform_fee_cents === 2700, "new student: a $100 offer stores a $27 platform fee");
+    // ================= fee model v3 =================
+    const NOW_BPS = fees.businessFeeBps();
+    const BEFORE_S = Math.floor(Date.parse("2027-02-28T23:59:00-05:00") / 1000);
+    const CUTOFF_S = Math.floor(fees.LAUNCH_ENDS_AT_MS / 1000);
+    const AFTER_S = Math.floor(Date.parse("2027-04-15T12:00:00-04:00") / 1000);
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-    let feeRate = await apiGet("/api/consultant/fee-rate", CONS);
-    ok(feeRate.status === 200 && feeRate.body.platform_fee_bps === 3000 && feeRate.body.reviews_to_next_drop === 2, "new student: sees the same 30% rate the charge used");
-    feeRate = await apiGet("/api/consultant/fee-rate");
-    ok(feeRate.status === 401, "fee rate requires sign in");
-
-    // --- fee ladder: students from before it stay at 5% ---
+    // --- one-time: business pays offer + fee, consultant gets offer − 10% ---
     seed();
-    await api("/api/stripe/payment-intent", { bid_id: "B1" }, OWNER);
-    ok(bid("B1").platform_fee_cents === 450, "existing student: a $100 offer stores a $4.50 platform fee");
+    idem.clear(); // earlier tests reused this bid's idempotency keys
+    calls.length = 0; transferLog.length = 0;
+    let fm = await api("/api/stripe/payment-intent", { bid_id: "B1" }, OWNER);
+    const bizFee = Math.round((10000 * NOW_BPS) / 10000);
+    ok(fm.status === 200 && fm.body.amount === 10000 + bizFee && pis.get(bid("B1").payment_intent_id).amount === 10000 + bizFee, `one-time: $100 offer charges $${(10000 + bizFee) / 100} (${NOW_BPS / 100}% business fee)`);
+    ok(bid("B1").payment_amount_cents === 10000 + bizFee && bid("B1").business_fee_cents === bizFee && bid("B1").platform_fee_cents === 1000 && bid("B1").consultant_payout_cents === 9000, "one-time: bid stores the charge, both fees and a $90 payout");
+    ok(fm.body.fee_breakdown.businessFeeCents === bizFee && fm.body.fee_breakdown.consultantPayoutCents === 9000 && fm.body.fee_breakdown.businessFeeDiscounted === (NOW_BPS < 1000), "one-time: the modal gets the server breakdown, with the launch discount flagged");
+    ok(!("platformFeeBps" in fm.body.fee_breakdown) && !fm.body.fee_breakdown.goodReviews, "one-time: nothing in the breakdown depends on reviews");
+    const fmPi = bid("B1").payment_intent_id;
+    Object.assign(pis.get(fmPi), { status: "succeeded", latest_charge: "ch_fm", payment_method: "pm_1", customer: "cus_1" });
+    await hook("payment_intent.succeeded", pis.get(fmPi));
+    ok(bid("B1").payment_status === "held", "one-time: the full charge (offer + fee) confirms");
+    fm = await api("/api/stripe/release-funds", { bid_id: "B1" }, OWNER);
+    ok(fm.status === 200 && transferLog.at(-1)?.amount === 9000 && transferLog.at(-1).source_transaction === "ch_fm", "one-time: release transfers $90, pinned to the charge");
 
-    // --- fee ladder: no rate table means no charge ---
+    // --- one-time held payment keeps its stored fees even if the rate changes ---
     seed();
-    const savedRates = db.consultant_fee_rates;
-    delete db.consultant_fee_rates;
-    const piBefore = calls.filter((c) => c.kind === "pi").length;
-    const failed = await api("/api/stripe/payment-intent", { bid_id: "B1" }, OWNER);
-    db.consultant_fee_rates = savedRates;
-    ok(failed.status >= 500 && !bid("B1").payment_intent_id, "missing fee table: the charge is refused");
-    ok(calls.filter((c) => c.kind === "pi").length === piBefore, "missing fee table: Stripe is never called");
+    heldBid({ payment_amount_cents: 10500, business_fee_cents: 500, platform_fee_cents: 1000, stripe_fee_cents: 335, consultant_payout_cents: 9000, delivered_at: ago(20) });
+    transferLog.length = 0;
+    run = await cron();
+    ok(run.released.includes("bid-B1") && bid("B1").payment_status === "released" && transferLog.at(-1)?.amount === 9000, "held launch-rate payment releases its stored $90 payout");
+
+    // --- new-model row: partial refund and support settlement math ---
+    seed();
+    heldBid({ payment_amount_cents: 10500, business_fee_cents: 500, platform_fee_cents: 1000, stripe_fee_cents: 335, consultant_payout_cents: 9000, delivered_at: ago(20) });
+    await hook("charge.refunded", { id: "ch_rel", payment_intent: "pi_rel", refunded: false, amount: 10500, amount_refunded: 4000 });
+    const heldV3 = await apiGet("/api/admin/payments/held", "admin1");
+    const hp = heldV3.body.payments.find((x) => x.key === "bid-B1");
+    ok(hp.money.gross_cents === 10500 && hp.money.business_fee_cents === 500 && hp.money.platform_fee_cents === 1000, "admin screen shows the charge and both fees");
+    ok(hp.money.remainder_payout_cents === 5000, "partly refunded: the rest pays $50 ($65 left − $5 business fee − $10 consultant fee)");
+    seed();
+    heldBid({ payment_amount_cents: 10500, business_fee_cents: 500, platform_fee_cents: 1000, stripe_fee_cents: 335, consultant_payout_cents: 9000, delivered_at: ago(2) });
+    setCharge("ch_rel", 10500, 335);
+    await api("/api/engagement/report-problem", { bid_id: "B1", note: "the deck is missing the pricing section" }, OWNER);
+    bid("B1").response_due_at = ago(0.01);
+    refundLog.length = 0; transferLog.length = 0;
+    fm = await api("/api/admin/payments/outcome", { bid_id: "B1", outcome: "scope_breached" }, "admin1");
+    ok(fm.status === 200 && refundLog[0]?.amount === 10500 && transferLog.length === 0, "C: the business gets back everything, business fee included");
+    seed();
+    heldBid({ payment_amount_cents: 10500, business_fee_cents: 500, platform_fee_cents: 1000, stripe_fee_cents: 335, consultant_payout_cents: 9000, delivered_at: ago(2) });
+    setCharge("ch_rel", 10500, 335);
+    await api("/api/engagement/report-problem", { bid_id: "B1", note: "the deck is missing the pricing section" }, OWNER);
+    bid("B1").response_due_at = ago(0.01);
+    fm = await api("/api/admin/payments/outcome", { bid_id: "B1", outcome: "split", refund_cents: 1000, transfer_cents: 9001, reason: "mostly done" }, "admin1");
+    ok(fm.status === 400 && bid("B1").payment_status === "held", "split: the consultant's part is capped at their $90 payout");
+
+    // --- payment status: the business sees what it paid, the consultant the offer ---
+    seed();
+    heldBid({ payment_amount_cents: 10500, business_fee_cents: 500, platform_fee_cents: 1000, consultant_payout_cents: 9000, delivered_at: ago(2) });
+    let ps = await apiGet("/api/engagement/B1/release-status", OWNER);
+    const psC = await apiGet("/api/engagement/B1/release-status", CONS);
+    ok(ps.body?.payments?.[0]?.amount_cents === 10500 && psC.body?.payments?.[0]?.amount_cents === 10000 && psC.body.payments[0].money.payout_cents === 9000, "status: business sees $105 paid, consultant sees the $100 offer and $90 payout");
+
+    // --- phased proposals: per-bid fees, batch charge matches the rows ---
+    seed();
+    db.bids.push({ id: "B8", listing_id: "L2", consultant_id: CONS, amount_cents: 3000, proposal_fee_cents: 1010, service_fee_cents: 3000, status: "pending", payment_status: "unpaid", refunded_cents: 0 });
+    db.bids.push({ id: "B9", listing_id: "L2", consultant_id: CONS, amount_cents: 3000, proposal_fee_cents: 2500, service_fee_cents: 3000, status: "pending", payment_status: "unpaid", refunded_cents: 0 });
+    fm = await api("/api/stripe/phased/accept-proposals", { bid_ids: ["B8", "B9"] }, OWNER);
+    const pr8 = db.bid_phase_payments.find((r) => r.bid_id === "B8");
+    const pr9 = db.bid_phase_payments.find((r) => r.bid_id === "B9");
+    const exp8 = fees.computeFees(1010), exp9 = fees.computeFees(2500);
+    ok(fm.status === 200 && fm.body.amount === exp8.businessTotalCents + exp9.businessTotalCents, "proposals: the batch charge is the sum of each bid's offer + fee");
+    ok(pr8.amount_cents === 1010 && pr8.business_fee_cents === exp8.businessFeeCents && pr8.platform_fee_cents === 101 && pr8.consultant_payout_cents === 909, "proposals: each row keeps its offer, business fee and $9.09 payout");
+    ok(fm.body.fee_breakdown.businessFeeCents === exp8.businessFeeCents + exp9.businessFeeCents && fm.body.fee_breakdown.businessTotalCents === fm.body.amount, "proposals: the combined breakdown adds up to the charge");
+    const batchPi = pr8.payment_intent_id;
+    Object.assign(pis.get(batchPi), { status: "succeeded", latest_charge: "ch_batch_v3" });
+    await hook("payment_intent.succeeded", pis.get(batchPi));
+    ok(pr8.status === "held" && pr9.status === "held", "proposals: confirm accepts a charge that includes the business fees");
+
+    // --- retainer periods: the rate on the day each invoice is created ---
+    seed();
+    db.retainer_subscriptions.push({ id: "S9", bid_id: "B1", stripe_subscription_id: "sub_v3", status: "active", periods_billed: 0, fee_cents: 50000, auto_release: false });
+    const rinv = (id, created, paid, end) => ({ id, object: "invoice", created, amount_paid: paid, lines: { data: [{ period: { start: created, end } }] }, parent: { subscription_details: { subscription: "sub_v3", metadata: { bid_id: "B1" } } } });
+    logs.length = 0;
+    await hook("invoice.paid", rinv("in_v3a", BEFORE_S, 52500, BEFORE_S + 600));
+    let per = db.bid_phase_payments.find((r) => r.payment_intent_id === "pi_inv_in_v3a");
+    ok(per && per.amount_cents === 50000 && per.business_fee_cents === 2500 && per.platform_fee_cents === 5000 && per.consultant_payout_cents === 45000, "retainer: a period billed before the cutoff has a 5% business fee and a $450 payout");
+    ok(!logs.some((l) => l.includes("retainer_invoice_amount_mismatch")), "retainer: a matching invoice raises no alert");
+    await hook("invoice.paid", rinv("in_v3b", CUTOFF_S, 55000, CUTOFF_S + 30 * 86400));
+    per = db.bid_phase_payments.find((r) => r.payment_intent_id === "pi_inv_in_v3b");
+    ok(per && per.business_fee_cents === 5000 && per.consultant_payout_cents === 45000, "retainer: a period billed at the cutoff gets the 10% business fee");
+    await hook("invoice.paid", rinv("in_v3c", AFTER_S, 52500, AFTER_S + 30 * 86400));
+    per = db.bid_phase_payments.find((r) => r.payment_intent_id === "pi_inv_in_v3c");
+    ok(per && per.business_fee_cents === 2500 && per.consultant_payout_cents === 45000 && logs.some((l) => l.includes("retainer_invoice_amount_mismatch")), "retainer: a stale-price invoice records what was really paid, alerts ops, and the payout stays $450");
+
+    // --- retainer price moves to the list rate for the first invoice after the cutoff ---
+    const subItem = (amount) => ({ data: [{ id: "si_v3", current_period_end: BEFORE_S + 600, price: { id: "price_old", unit_amount: amount, product: "prod_v3", recurring: { interval: "month", interval_count: 1 }, metadata: { bid_id: "B1" } } }] });
+    subs.set("sub_v3", { id: "sub_v3", status: "active", items: subItem(52500) });
+    calls.length = 0;
+    await hook("invoice.paid", rinv("in_v3d", BEFORE_S - 30 * 86400, 52500, BEFORE_S - 86400));
+    await sleep(80);
+    ok(!calls.some((c) => c.kind === "sub.update"), "retainer: next invoice still before the cutoff → price unchanged");
+    await hook("invoice.paid", rinv("in_v3e", BEFORE_S - 86400, 52500, CUTOFF_S + 3600));
+    await sleep(80);
+    const upd = calls.find((c) => c.kind === "sub.update");
+    ok(upd && upd.p.proration_behavior === "none" && upd.p.items?.[0]?.id === "si_v3" && calls.some((c) => c.kind === "price"), "retainer: next invoice after the cutoff → new $550 price swapped in, no proration");
+    subs.set("sub_v3", { id: "sub_v3", status: "active", items: subItem(55000) });
+    calls.length = 0;
+    await hook("invoice.paid", rinv("in_v3f", AFTER_S, 55000, AFTER_S + 30 * 86400));
+    await sleep(80);
+    ok(!calls.some((c) => c.kind === "sub.update"), "retainer: already at the list rate → nothing to change");
+
+    // --- new retainer subscription prices each period at today's rate ---
+    seed();
+    db.listings.push({ id: "L9", owner_id: OWNER, title: "r", contract_type: "retainer" });
+    db.bids.push({ id: "B10", listing_id: "L9", consultant_id: CONS, amount_cents: 20000, status: "accepted", payment_status: "released", payment_intent_id: "pi_b10", refunded_cents: 0 });
+    calls.length = 0;
+    fm = await api("/api/stripe/retainer/start-subscription", { bid_id: "B10", cadence: "monthly", period_count: 3, fee: 200 }, OWNER);
+    const priceCall = calls.find((c) => c.kind === "price");
+    ok(fm.status === 200 && priceCall?.key?.includes(`:${fees.businessTotalCents(20000)}:`), `retainer start: the Stripe price is $200 + today's ${NOW_BPS / 100}% fee`);
 
     origErr(`\n${pass} checks passed`);
   } catch (e) {
