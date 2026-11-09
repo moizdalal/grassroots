@@ -62,7 +62,7 @@
     <link rel="stylesheet" href="/home/nav.css?v=7" />
     <link rel="stylesheet" href="/home/index.css?v=36" />
     <script src="/theme.js?v=2"></script>
-    <script src="/home/theme-default.js"></script>
+    <script src="/home/theme-default.js?v=2"></script>
     <script>
       // Lite hero: a still picture instead of the animated garden, clouds
       // and blurred layers. Decided before first paint so CSS and the hero
@@ -82,9 +82,8 @@
       })();
     </script>
     <script src="/placeholders.js"></script>
-    <script src="/home/nav.js?v=4" defer></script>
+    <script src="/home/nav.js?v=5" defer></script>
     <script src="/cookie-banner.js" defer></script>
-    <script src="/desktop-hint.js?v=2" defer></script>
   </head>
 
   <body class="gr-body">
@@ -216,7 +215,6 @@
             <a class="gr-btn gr-btn--primary gr-btn--lg" href="/register.html?role=owner">Post a project</a>
             <a class="gr-btn gr-btn--ghost gr-btn--lg" href="/marketplace.html?guest=1">See what's live</a>
           </div>
-          <div class="ld-hero__desktop-hint" data-desktop-hint></div>
 
           <div class="ld-trust-row ld-reveal" aria-label="Recent activity" hidden data-placeholder="Real weekly business count and number of towns">
             <span class="ld-trust-row__avatars" aria-hidden="true">
@@ -392,7 +390,7 @@
                 <th scope="col"><span class="ld-sr">Option</span></th>
                 <th scope="col">Local talent</th>
                 <th scope="col">Priced for small jobs</th>
-                <th scope="col">Paid only on approval</th>
+                <th scope="col">Money held until you approve</th>
                 <th scope="col">College students</th>
                 <th scope="col">Saves your time</th>
               </tr>
@@ -401,7 +399,7 @@
               <tr class="is-us">
                 <th scope="row">
                   <span class="ld-compare__name">Grassroots</span>
-                  <span class="ld-compare__desc">local college students, fair prices, and payment only after the work is approved.</span>
+                  <span class="ld-compare__desc">local college students, fair prices, and your payment held until you approve the work.</span>
                 </th>
                 <td><span class="ld-compare__yes" role="img" aria-label="Yes"></span></td>
                 <td><span class="ld-compare__yes" role="img" aria-label="Yes"></span></td>
@@ -561,11 +559,11 @@
           <div class="ld-faq__list ld-reveal">
             <details>
               <summary>How does pricing work?</summary>
-              <p class="ld-faq__answer">Students bid their own price on each project; you pick the bid you like. The bid is the price you pay. No fees are added on top.</p>
+              <p class="ld-faq__answer">Students send offers with their own price, and you pick one. The offer is the whole price. You pay it when you accept, and we hold it until you approve the work. Our fee comes out of the student's payout, so nothing is added on top.</p>
             </details>
             <details>
               <summary>What kinds of students are on Grassroots?</summary>
-              <p class="ld-faq__answer">College students at four-year and two-year schools, mostly juniors and seniors. School email verification is coming. Each profile lists school, major, and past work. You can filter by skill, school, or city before you ever post.</p>
+              <p class="ld-faq__answer">College students at four-year and two-year schools, mostly juniors and seniors. School email verification is coming. Each profile lists school, major, and past work. You see a student's profile when they send an offer on your project.</p>
             </details>
             <details>
               <summary>What happens if I don't approve the work?</summary>
@@ -573,7 +571,7 @@
             </details>
             <details>
               <summary>Can I hire the same student again?</summary>
-              <p class="ld-faq__answer">Yes. You can post again directly to a past consultant, set up a retainer contract, or open a new public listing and invite them to bid. Most repeat posters lock in a retainer after two projects.</p>
+              <p class="ld-faq__answer">Yes. You can post again directly to a past student, set up a retainer contract, or open a new public project and invite them to send an offer.</p>
             </details>
             <details>
               <summary>Are taxes and 1099s handled?</summary>
@@ -581,8 +579,8 @@
             </details>
             <details>
               <summary>What cities are you in?</summary>
-              <p class="ld-faq__answer">Grassroots is opening town by town. New towns open when there's a critical mass of students and businesses; you can request your city from the footer.</p>
-              <p class="ld-faq__answer" hidden data-placeholder="Real number of towns and states">We launched in 14 college towns across Florida, Georgia, and the Carolinas. New towns open when there's a critical mass of students and businesses; you can request your city from the footer.</p>
+              <p class="ld-faq__answer">Grassroots is opening town by town. New towns open as students and businesses there join.</p>
+              <p class="ld-faq__answer" hidden data-placeholder="Real number of towns and states">We launched in 14 college towns across Florida, Georgia, and the Carolinas. New towns open as students and businesses there join.</p>
             </details>
           </div>
         </div>
@@ -640,9 +638,7 @@
             <p class="ld-foot__col-h">Company</p>
             <ul class="ld-foot__list">
               <li><a href="/about">About</a></li>
-              <li><a href="https://www.linkedin.com" target="_blank" rel="noopener">LinkedIn</a></li>
-              <li><a href="https://www.instagram.com" target="_blank" rel="noopener">Instagram</a></li>
-              <li><a href="mailto:moiz@grassroots-marketplace.com">Email us</a></li>
+              <li><a href="https://www.linkedin.com/company/grassroots-marketplace" target="_blank" rel="noopener">LinkedIn</a></li>
             </ul>
           </div>
         </div>
@@ -655,8 +651,6 @@
             <li>&copy; 2026 Grassroots</li>
           </ul>
           <div class="ld-theme" id="ld-theme" role="group" aria-label="Theme">
-            <button type="button" data-theme-set="dark-forest" aria-pressed="false">Forest</button>
-            <button type="button" data-theme-set="forest-soft" aria-pressed="false">Soft</button>
             <button type="button" data-theme-set="dark" aria-pressed="false">Dark</button>
             <button type="button" data-theme-set="light" aria-pressed="false">Light</button>
           </div>

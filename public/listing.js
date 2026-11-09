@@ -109,6 +109,31 @@ function relativeDate(iso) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+/* Friendly error copy. Database and network errors carry messages like
+   'new row for relation "listings" violates check constraint …' that
+   mean nothing to the person reading them. Log the raw error for
+   debugging and show a plain sentence instead. Messages our own code
+   (or our API) writes in plain language pass through. */
+const RAW_ERROR_PATTERN =
+  /violates|relation "|column |constraint|permission denied|row-level security|policy|syntax|duplicate key|null value|jwt|pgrst|schema cache|does not exist|could not find|invalid input|function |unexpected token|failed to fetch|networkerror|load failed|timeout/i;
+
+function friendlyError(err, fallback = "Something went wrong. Try again in a moment.") {
+  if (err) console.error("[listing]", err);
+  const msg = String(err?.message || "").trim();
+  if (!msg) return fallback;
+  if (/failed to fetch|networkerror|load failed/i.test(msg)) {
+    return "You seem to be offline. Check your connection and try again.";
+  }
+  const code = String(err?.code || "");
+  if (code === "42501" || /row-level security|permission denied/i.test(msg)) {
+    return "You don't have permission to do that.";
+  }
+  // Postgres SQLSTATE (5 chars) or PostgREST codes mean a database error.
+  if (/^[0-9A-Z]{5}$/.test(code) || code.startsWith("PGRST")) return fallback;
+  if (RAW_ERROR_PATTERN.test(msg)) return fallback;
+  return msg;
+}
+
 function isMissing(error) {
   if (!error) return false;
   const m = (error.message || "").toLowerCase();
@@ -385,8 +410,9 @@ function renderConsultantCounterPanel(client, listing, bid) {
       }
     } catch (err) {
       loader.dismiss();
-      showError(err?.message || "Could not send response.");
-      statusEl.textContent = err?.message || "Could not send response.";
+      const responseMsg = friendlyError(err, "We couldn't send your response. Try again.");
+      showError(responseMsg);
+      statusEl.textContent = responseMsg;
       statusEl.className = "gr-status ld-counter-response__status error";
       buttons.forEach((b) => (b.disabled = false));
     }
@@ -947,12 +973,20 @@ function populateListing(listing) {
 
   /* --- Business bio --- */
   const ownerName = profile?.full_name || listing.business_display_name || "Business owner";
-  document.getElementById("ld-biz-owner").textContent = ownerName;
-
   const bizName = biz?.business_name || listing.business_display_name || ownerName;
+
+  // The owner line only adds information when it differs from the
+  // business name. Without a business name the heading already shows
+  // the person's name, so a second copy is noise.
+  const ownerEl = document.getElementById("ld-biz-owner");
+  ownerEl.textContent = ownerName;
+  ownerEl.hidden = bizName.trim().toLowerCase() === ownerName.trim().toLowerCase();
+
   // Two name slots: the inline one in the toggle row shows when the
   // bio is collapsed; the body heading shows when expanded. CSS hides
-  // whichever isn't relevant to the current state.
+  // whichever isn't relevant to the current state. The toggle button
+  // carries aria-label="About the business" so its accessible name
+  // doesn't repeat the heading.
   const nameInlineEl = document.getElementById("ld-biz-name-inline");
   if (nameInlineEl) nameInlineEl.textContent = bizName;
   const nameEl = document.getElementById("ld-biz-name");
@@ -1128,7 +1162,7 @@ function openOwnerStatusForm(action) {
 
   if (statusFormIntro) {
     statusFormIntro.textContent =
-      "Removing hides this listing from the public. Consultants who already submitted can still see it. You can decide what happens to their offers below.";
+      "Removing hides this project from the public. Students who already sent offers can still see it. You can decide what happens to their offers below.";
     statusFormIntro.hidden = false;
   }
 
@@ -1212,8 +1246,8 @@ function renderOwnerActionSummary(listing) {
 
   if (status === "unlisted") {
     showCopy(reasonText
-      ? `Removed from the marketplace (reason: "${reasonText}"). Consultants who sent offers can still see it.`
-      : "Removed from the marketplace. Consultants who sent offers can still see it.");
+      ? `Removed from the marketplace (reason: "${reasonText}"). Students who sent offers can still see it.`
+      : "Removed from the marketplace. Students who sent offers can still see it.");
     lockListingBtn.hidden = true;
     completeListingBtn.hidden = true;
     unlistListingBtn.disabled = false;
@@ -1301,7 +1335,7 @@ function setupOwnerListingActions(client, listing) {
         resetOwnerStatusForm();
         showOwnerActionFeedback(successMessage);
       } catch (error) {
-        showOwnerActionFeedback(error.message || "Could not update listing.", "error");
+        showOwnerActionFeedback(friendlyError(error, "We couldn't update this project. Try again."), "error");
       } finally {
         renderOwnerActionSummary(listing);
       }
@@ -1428,10 +1462,10 @@ function setupOwnerListingActions(client, listing) {
         showOwnerActionFeedback(
           declinedCount > 0
             ? `Listing removed. ${declinedCount} outstanding offer${declinedCount === 1 ? " was" : "s were"} declined.`
-            : "Listing removed from the marketplace. Consultants who sent offers can still see it."
+            : "Project removed from the marketplace. Students who sent offers can still see it."
         );
       } catch (error) {
-        showOwnerActionFeedback(error.message || "Could not update listing status.", "error");
+        showOwnerActionFeedback(friendlyError(error, "We couldn't update this project. Try again."), "error");
       } finally {
         statusSubmitBtn.disabled = false;
       }
@@ -2044,7 +2078,7 @@ async function showConsultantView(client, session, listing, existingBid) {
         const path = `${myId}/${listingId}/${Date.now()}-${f.name.replace(/[^\w.\-]+/g, "_")}`;
         const { error: upErr } = await client.storage.from("bid-files").upload(path, f, { upsert: false });
         if (upErr) {
-          showError(`Could not upload ${f.name}: ${upErr.message}`);
+          showError(`We couldn't upload ${f.name}. ${friendlyError(upErr, "Try again.")}`);
           submitBtn.disabled = false;
           submitBtn.classList.remove("is-loading");
           return;
@@ -2062,7 +2096,9 @@ async function showConsultantView(client, session, listing, existingBid) {
         syncSubmitDisabled();
         showTrainingToast();
       } else {
-        showError(error.code === "23505" ? "You already sent an offer on this listing." : error.message);
+        showError(error.code === "23505"
+          ? "You already sent an offer on this listing."
+          : friendlyError(error, "We couldn't send your offer. Try again."));
       }
       submitBtn.disabled = false;
       submitBtn.classList.remove("is-loading");
@@ -2458,7 +2494,7 @@ function openConsultantViewer(index) {
     .catch((err) => {
       if (consultantViewerState.bids[consultantViewerState.index]?.id !== bid.id) return;
       if (statusEl) {
-        statusEl.textContent = err?.message || "Could not load consultant profile.";
+        statusEl.textContent = friendlyError(err, "We couldn't load this profile. Try again.");
         statusEl.className = "gr-status error";
       }
     });
@@ -2511,7 +2547,7 @@ function renderPitchPanel(bid) {
   const files = Array.isArray(bid.pitch_files) ? bid.pitch_files : [];
   const messageHtml = bid.message
     ? `<div class="ld-cv__pitch-body">${escapeHtml(bid.message).replace(/\n/g, "<br />")}</div>`
-    : `<p class="ld-cv__panel-empty">This consultant didn't include a pitch with their offer.</p>`;
+    : `<p class="ld-cv__panel-empty">This student didn't include a pitch with their offer.</p>`;
   const filesHtml = files.length
     ? `
       <div class="ld-cv__work-section">
@@ -2596,7 +2632,7 @@ async function loadResumePanel(consultantId) {
     panel.innerHTML = html;
     consultantViewerState.resumeCache.set(consultantId, html);
   } catch (err) {
-    panel.innerHTML = `<p class="gr-status error">${escapeHtml(err?.message || "Could not load resume.")}</p>`;
+    panel.innerHTML = `<p class="gr-status error">${escapeHtml(friendlyError(err, "We couldn't load this resume. Try again."))}</p>`;
   }
 }
 
@@ -2612,10 +2648,23 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
   // A counter stays "used" after the consultant answers it (the offer
   // fields clear but counter_attempted stays true).
   const totalCounters = bids.filter((b) => b.counter_attempted || b.counter_offer_cents != null).length;
-  budgetEl.textContent = `Counter-offers used: ${totalCounters} / 3`;
+  // The counter allowance only means something once an offer exists.
+  // Before that it read like a penalty, so keep it hidden.
+  if (bids.length) {
+    const left = Math.max(0, 3 - totalCounters);
+    budgetEl.textContent = totalCounters === 0
+      ? "You can send up to 3 counter-offers on this project."
+      : left === 0
+        ? "You've sent all 3 counter-offers for this project."
+        : `You've sent ${totalCounters} of 3 counter-offers. ${left} left.`;
+    budgetEl.hidden = false;
+  } else {
+    budgetEl.textContent = "";
+    budgetEl.hidden = true;
+  }
 
   if (!bids.length) {
-    list.innerHTML = '<p class="ld-bids-empty">No offers yet.</p>';
+    list.innerHTML = '<p class="ld-bids-empty">No offers yet. Students who send one show up here.</p>';
     return;
   }
 
@@ -2662,11 +2711,11 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
       if (result?.ok) {
         showSuccess(result.free
           ? `${selected.length === 1 ? "Proposal" : "Proposals"} accepted.`
-          : `Proposal fees held for ${selected.length} consultant${selected.length === 1 ? "" : "s"}.`);
+          : `Proposal fees held for ${selected.length} student${selected.length === 1 ? "" : "s"}.`);
         window.location.reload();
       }
     } catch (err) {
-      showError(err?.message || "Could not start payment.");
+      showError(friendlyError(err, "We couldn't start the payment. Try again."));
     } finally {
       proposalCtaBtn.disabled = false;
     }
@@ -2924,7 +2973,7 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
           showSuccess("Offer declined.");
           window.location.reload();
         } catch (err) {
-          showError(err?.message || "Could not decline offer.");
+          showError(friendlyError(err, "We couldn't decline this offer. Try again."));
           declineBtn.disabled = false;
         }
       });
@@ -3024,7 +3073,7 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
   container.innerHTML = `
     <div class="ld-counter-form-inner">
       <p class="ld-counter-form-notice">
-        This is your only counter on this offer. The consultant has 24 hours to accept, decline, or counter back. If they don't respond, the offer reverts to their original price — and you can't counter again.
+        This is your only counter on this offer. The student has 24 hours to accept, decline, or counter back. If they don't respond, the offer goes back to their original price, and you can't counter again.
       </p>
       <label class="gr-label"><span>Counter amount (USD)</span>
         <input type="number" class="ld-counter-amount" min="10" step="0.01" placeholder="0.00" />
@@ -3081,7 +3130,7 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
 
     if (error) {
       loader.dismiss();
-      showError(error.message);
+      showError(friendlyError(error, "We couldn't send your counter-offer. Try again."));
       sendBtn.disabled = false;
       return;
     }
@@ -3096,7 +3145,7 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
     notifyEvent(client, "counter_received", { bid_id: bid.id });
 
     loader.dismiss();
-    showSuccess("Counter offer sent. The consultant has 24 hours to respond.");
+    showSuccess("Counter-offer sent. The student has 24 hours to respond.");
     // Refresh the bid list in place so the card reflects the new
     // 'countered' status, the counter button hides, and the counter
     // pill renders — all without bouncing through the page loader.
@@ -3325,7 +3374,7 @@ async function init() {
 
     const { listing, error } = await loadListing(client, listingId);
 
-    if (error) { gate.textContent = error.message; gate.className = "gr-status error"; return; }
+    if (error) { gate.textContent = friendlyError(error, "We couldn't load this project. Try refreshing."); gate.className = "gr-status error"; return; }
     if (!listing) { gate.textContent = "Listing not found."; gate.className = "gr-status error"; return; }
 
     const uid = session?.user?.id ?? null;
@@ -3362,6 +3411,12 @@ async function init() {
     }
 
     const { profile, biz } = populateListing(listing);
+    // Owner without a business name: the card falls back to their
+    // personal name, so point them at the field that fixes it.
+    const addNameLink = document.getElementById("ld-biz-add-name");
+    if (addNameLink) {
+      addNameLink.hidden = !(isOwner && !(biz?.business_name || listing.business_display_name));
+    }
     populateAvatarIfAvailable(client, profile, biz);
     populateBusinessBadges(client, listing.owner_id);
     setOwnerSidebarVisible(isOwner);
@@ -3430,7 +3485,8 @@ async function init() {
           .then((analytics) =>
             renderAnalyticsPanel(analyticsHost, analytics, {
               title: "Performance",
-              subtitle: "What consultants are doing with this listing.",
+              subtitle: "How students respond to this project.",
+              emptyViewsCopy: "No views yet. Daily views show up here once students open your project.",
             })
           );
       }
@@ -3457,12 +3513,62 @@ async function init() {
     // doesn't need to render listings.
     injectListingSeo(listing);
 
+    const justPosted = consumePostedParam();
     gate.hidden = true;
     detail.hidden = false;
+    if (justPosted && isOwner && !isDraft && listingStatus === "open") {
+      showPostedPanel(listing);
+    }
   } catch (err) {
-    gate.textContent = err.message || "Could not load listing.";
+    gate.textContent = friendlyError(err, "We couldn't load this project. Try refreshing.");
     gate.className = "gr-status error";
   }
+}
+
+/* ?posted=1 is set by create-listing right after publishing. Read it
+   once and strip it from the URL so a refresh or a shared link doesn't
+   show the confirmation again. */
+function consumePostedParam() {
+  try {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("posted") !== "1") return false;
+    url.searchParams.delete("posted");
+    history.replaceState(history.state, "", url.pathname + url.search + url.hash);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function showPostedPanel(listing) {
+  const panel = document.getElementById("ld-posted");
+  if (!panel) return;
+  panel.hidden = false;
+
+  const shareBtn = document.getElementById("ld-posted-share");
+  const statusEl = document.getElementById("ld-posted-share-status");
+  const closeBtn = document.getElementById("ld-posted-close");
+  const shareUrl = `${window.location.origin}/listing.html?id=${encodeURIComponent(listing.id)}`;
+
+  shareBtn?.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      if (statusEl) statusEl.textContent = "Link copied.";
+    } catch (err) {
+      // Clipboard can be blocked (permissions, insecure origin). Show
+      // the link so it can still be copied by hand.
+      console.error("[listing] clipboard", err);
+      if (statusEl) statusEl.textContent = shareUrl;
+    }
+  });
+
+  closeBtn?.addEventListener("click", () => {
+    panel.hidden = true;
+  });
+
+  // Move focus to the panel so screen readers announce it, without
+  // scrolling past it on short screens.
+  try { panel.focus({ preventScroll: true }); } catch (_) {}
 }
 
 function showHint(html) {
