@@ -1306,7 +1306,7 @@
       .ld-manifesto {
         padding: clamp(var(--space-5), 5vw, var(--space-7)) 0;
         --ld-panel-ink: var(--fo-text);
-        --ld-panel-key: color-mix(in srgb, var(--fo-accent) 55%, var(--fo-text));
+        --ld-panel-key: var(--fo-accent);
       }
       .ld-manifesto__panel {
         position: relative;
@@ -1334,8 +1334,8 @@
         text-wrap: pretty;
       }
       .ld-manifesto__lead { margin-bottom: 0.9em; }
-      /* Keywords in bold green. On dark themes the raw accent is too dim for
-         text, so it is lifted toward the text color; light uses the accent. */
+      /* Keywords in bold brand green (--fo-accent) in every theme. On dark
+         backgrounds it clears 3:1, which is enough at this size and weight. */
       .ld-manifesto__key {
         font-weight: 700;
         color: var(--ld-panel-key);
@@ -3561,7 +3561,6 @@
       [data-theme="light"] .ld-trust-row b { color: var(--fo-accent); }
 
       /* MANIFESTO: on a light page, give the panel an edge so it doesn't blend in. */
-      [data-theme="light"] .ld-manifesto { --ld-panel-key: var(--fo-accent); }
       [data-theme="light"] .ld-manifesto__panel {
         background: var(--fo-surface);
         border: 1px solid color-mix(in srgb, var(--fo-accent) 18%, transparent);
