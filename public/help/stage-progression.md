@@ -61,6 +61,6 @@ We may add maintenance/decay later (so the badge means current trust, not just h
 
 ## FAQ
 
-- **Does Grassroots reward higher stages with lower fees?** Not yet. The platform fee is 5% during launch (10% after), across all stages. Stage-based discounts are an obvious lever later.
+- **Does Grassroots reward higher stages with lower fees?** No. The consultant platform fee is a flat 10% at every stage. See [payments and payouts](./payments-and-payouts.md).
 - **Can I see other consultants' stages?** Yes — every public profile shows the stage.
 - **Does the stage decay if I drop below 4.0 later?** Not today.

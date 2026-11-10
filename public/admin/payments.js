@@ -317,7 +317,8 @@ async function openPayment(key) {
     <h3 class="adm-section-h">Money</h3>
     ${kv([
       ["Charged", usd(m.gross_cents)],
-      ["Platform fee (from the payout)", usd(m.platform_fee_cents)],
+      ["Business fee (on top of the offer)", m.business_fee_cents ? usd(m.business_fee_cents) : null],
+      ["Consultant fee (from the payout)", usd(m.platform_fee_cents)],
       ["Card fee Grassroots absorbs on a refund", m.card_fee_absorbed_cents != null ? `${usd(m.card_fee_absorbed_cents)}${m.card_fee_source === "estimate" ? " (estimate)" : ""}` : null],
       ["Why it's not 2.9% + 30¢", esc(m.card_fee_note)],
       ["Refunded so far", m.refunded_cents ? usd(m.refunded_cents) : null],

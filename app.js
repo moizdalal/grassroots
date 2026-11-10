@@ -362,13 +362,16 @@ async function emailOfferAccepted(bidId, amountCents) {
 }
 
 // To both sides once held money moves to the consultant. Skips $0 holds.
-async function emailPaymentReleased(bidId, { grossCents, payoutCents, key, link, auto = false }) {
+// grossCents = what the business paid (offer + business fee); offerCents =
+// the agreed offer. The business email shows what it paid; the consultant
+// email shows the offer, their 10% fee and their payout.
+async function emailPaymentReleased(bidId, { grossCents, offerCents, payoutCents, key, link, auto = false }) {
   if (!(Number(grossCents) > 0)) return;
   const ctx = await releaseContext(bidId);
   if (!ctx) return;
-  const data = { title: ctx.title, bidId, link, amountCents: grossCents, payoutCents: payoutCents ?? grossCents, auto };
-  await emailUser(ctx.ownerId, "payment_released_business", data, { key });
-  await emailUser(ctx.consultantId, "payment_released_consultant", data, { key });
+  const base = { title: ctx.title, bidId, link, payoutCents: payoutCents ?? grossCents, auto };
+  await emailUser(ctx.ownerId, "payment_released_business", { ...base, amountCents: grossCents }, { key });
+  await emailUser(ctx.consultantId, "payment_released_consultant", { ...base, amountCents: offerCents ?? grossCents }, { key });
 }
 
 async function onConnectAccountUpdated(account) {
@@ -587,11 +590,12 @@ async function onRetainerInvoicePaid(invoice) {
 
   const periodIndex = subRow.periods_billed; // 0-based; first period is 0.
 
-  // Per-period fee breakdown: the offer is fee_cents, which is also what
-  // the business pays (all-in). Stripe processing and the platform fee
-  // both come out of the consultant's payout.
+  // Per-period fee breakdown. The offer is fee_cents; the business paid
+  // the offer plus the business fee at the rate on the day this invoice
+  // was created. The consultant gets the offer minus 10%.
   const offerCents = Number(subRow.fee_cents) || invoice.amount_paid;
-  const breakdown = fees.computeFees(offerCents);
+  const billedAtMs = Number(invoice.created) ? Number(invoice.created) * 1000 : Date.now();
+  const breakdown = retainerPeriodFees(offerCents, invoice.amount_paid, billedAtMs, subRow.bid_id);
 
   const { error: insertErr } = await supabase.from("bid_phase_payments").insert({
     bid_id: subRow.bid_id,
@@ -606,6 +610,7 @@ async function onRetainerInvoicePaid(invoice) {
     period_end_at: invoicePeriodEnd(invoice),
     stripe_fee_cents: breakdown.stripeFeeCents,
     platform_fee_cents: breakdown.platformFeeCents,
+    business_fee_cents: breakdown.businessFeeCents,
     consultant_payout_cents: breakdown.consultantPayoutCents,
   });
   if (insertErr) {
@@ -625,6 +630,16 @@ async function onRetainerInvoicePaid(invoice) {
     .eq("periods_billed", periodIndex);
   if (bumpErr) alertOps("retainer_periods_billed_not_bumped", { sub_id: subRow.id, period_index: periodIndex, error: bumpErr.message });
 
+  // The launch rate ends on a fixed date. If the next invoice lands on or
+  // after it, move the subscription to the list-rate price now, so that
+  // period bills at 10%. Failure here is retried by the daily cron.
+  const nextBillMs = Date.parse(invoicePeriodEnd(invoice) || "") || null;
+  if (nextBillMs) {
+    syncRetainerPrice(subscriptionId, offerCents, nextBillMs).catch((err) =>
+      alertOps("retainer_price_sync_failed", { subscription: subscriptionId, error: err.message })
+    );
+  }
+
   // Auto-release path: owner has opted in to release each period as it
   // bills. A failure (e.g. consultant payouts disabled) leaves the row
   // "held" and the owner can release manually later.
@@ -634,6 +649,90 @@ async function onRetainerInvoicePaid(invoice) {
       console.warn("[stripe webhook] auto-release failed:", result.error);
     }
   }
+}
+
+// Fees for one retainer period. Normally the invoice amount matches the
+// business total for the day it was billed. If it doesn't (a price that
+// wasn't moved to the list rate in time), what the business actually paid
+// is the truth: the business fee is that amount minus the offer. The
+// consultant's 10% never depends on it.
+function retainerPeriodFees(offerCents, amountPaidCents, billedAtMs, bidId) {
+  const breakdown = fees.computeFees(offerCents, { at: billedAtMs });
+  const paid = Number(amountPaidCents);
+  if (Number.isInteger(paid) && paid > 0 && paid !== breakdown.businessTotalCents) {
+    alertOps("retainer_invoice_amount_mismatch", { bid_id: bidId, paid, expected: breakdown.businessTotalCents });
+    const businessFee = Math.max(0, paid - breakdown.amountCents);
+    return {
+      ...breakdown,
+      businessFeeCents: businessFee,
+      businessTotalCents: breakdown.amountCents + businessFee,
+      businessFeeDiscounted: businessFee < breakdown.businessFeeFullCents,
+      stripeFeeCents: fees.estimateStripeFeeCents(breakdown.amountCents + businessFee),
+    };
+  }
+  return breakdown;
+}
+
+// Keep a retainer's Stripe price at the business total for the date its
+// next invoice is created. Prices can't be edited, so this makes a new one
+// and swaps it in with no proration. Only the business fee changes; the
+// offer (fee_cents) and the consultant's payout stay the same.
+// nextBillMs defaults to the subscription's current period end.
+async function syncRetainerPrice(subscriptionId, offerCents, nextBillMs = null) {
+  if (!stripe || !subscriptionId || !(Number(offerCents) > 0)) return { changed: false };
+  const sub = await stripe.subscriptions.retrieve(subscriptionId);
+  if (!sub || ["canceled", "incomplete_expired"].includes(sub.status)) return { changed: false };
+  const item = sub.items?.data?.[0];
+  if (!item?.price) return { changed: false };
+  // Newer Stripe API versions keep the period on the item.
+  const periodEnd = Number(sub.current_period_end ?? item.current_period_end) || 0;
+  const billMs = nextBillMs ?? (periodEnd ? periodEnd * 1000 : null);
+  if (!billMs) return { changed: false };
+  // Never bill past the agreed end; nothing left to reprice.
+  if (sub.cancel_at && billMs >= Number(sub.cancel_at) * 1000) return { changed: false };
+  const target = fees.businessTotalCents(offerCents, billMs);
+  if (Number(item.price.unit_amount) === target) return { changed: false };
+  const key = idemKey("retainer-price-sync", subscriptionId, item.id, target);
+  const price = await stripe.prices.create({
+    product: idOf(item.price.product),
+    currency: "usd",
+    unit_amount: target,
+    recurring: {
+      interval: item.price.recurring?.interval,
+      interval_count: item.price.recurring?.interval_count || 1,
+    },
+    metadata: { ...(item.price.metadata || {}), offer_cents: String(offerCents) },
+  }, { idempotencyKey: `${key}:price` });
+  await stripe.subscriptions.update(subscriptionId, {
+    items: [{ id: item.id, price: price.id }],
+    proration_behavior: "none",
+  }, { idempotencyKey: `${key}:subscription` });
+  return { changed: true, unit_amount: target };
+}
+
+// Daily backstop for the end of the launch rate: around the cutoff, make
+// sure every live retainer's next invoice is priced for the day it bills.
+// Outside that window it does nothing, so it costs no Stripe calls.
+const RETAINER_PRICE_SYNC_WINDOW_MS = 100 * 86400000;
+async function syncRetainerPricesAroundLaunchEnd(nowMs = Date.now()) {
+  if (!supabase || !stripe) return { checked: 0, changed: 0 };
+  if (Math.abs(nowMs - fees.LAUNCH_ENDS_AT_MS) > RETAINER_PRICE_SYNC_WINDOW_MS) return { checked: 0, changed: 0 };
+  const { data: subs, error } = await supabase
+    .from("retainer_subscriptions")
+    .select("id, bid_id, fee_cents, stripe_subscription_id, status")
+    .in("status", ["active", "pending"])
+    .not("stripe_subscription_id", "is", null);
+  if (error) throw new Error(`Retainer price scan failed: ${error.message}`);
+  let changed = 0;
+  for (const row of subs || []) {
+    try {
+      const r = await syncRetainerPrice(row.stripe_subscription_id, Number(row.fee_cents));
+      if (r.changed) changed += 1;
+    } catch (err) {
+      alertOps("retainer_price_sync_failed", { subscription: row.stripe_subscription_id, error: err.message });
+    }
+  }
+  return { checked: (subs || []).length, changed };
 }
 
 // End of the service period an invoice paid for (the subscription line's
@@ -793,12 +892,11 @@ async function confirmStandardBidPayment(intent, { awaitDefaultPm = false } = {}
   return { ok: true, bidId };
 }
 
-// Gross the business was charged for a phase row. All-in pricing: the
-// offer is the charge, and the platform fee comes out of it. Rows from the
-// old offer-plus-fee model all have platform_fee_cents = 0 (it was waived),
-// so this holds for them too.
+// Gross the business was charged for a phase row: the offer plus the
+// business fee stored when the charge was created. Rows from the all-in
+// model have no business fee (0 or NULL), so the offer was the charge.
 function phaseRowGross(row) {
-  return Number(row.amount_cents || 0);
+  return Number(row.amount_cents || 0) + Number(row.business_fee_cents || 0);
 }
 
 async function confirmProposalBatchPayment(intent) {
@@ -808,7 +906,7 @@ async function confirmProposalBatchPayment(intent) {
   const ownerId = intent.metadata?.owner_id;
   const { data: rows, error: rowsErr } = await supabase
     .from("bid_phase_payments")
-    .select("id, bid_id, status, amount_cents, platform_fee_cents")
+    .select("id, bid_id, status, amount_cents, platform_fee_cents, business_fee_cents")
     .eq("payment_intent_id", intent.id)
     .eq("phase", "proposal");
   if (rowsErr) throw new Error(`Proposal rows lookup failed: ${rowsErr.message}`);
@@ -859,7 +957,7 @@ async function confirmServicePayment(intent) {
   }
   const { data: row, error: rowErr } = await supabase
     .from("bid_phase_payments")
-    .select("id, bid_id, status, amount_cents, platform_fee_cents")
+    .select("id, bid_id, status, amount_cents, platform_fee_cents, business_fee_cents")
     .eq("payment_intent_id", intent.id)
     .eq("phase", "service")
     .maybeSingle();
@@ -2402,8 +2500,9 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
       return res.status(400).json({ error: "Bid amount is invalid for payment." });
     }
 
-    // All-in pricing: the business is charged the offer. The platform
-    // and Stripe fees come out of the consultant payout.
+    // The business is charged the offer plus the business fee (5% launch
+    // rate before March 1, 2027, then 10%). The consultant gets the offer
+    // minus 10%. Both are locked in here and stored on the bid.
     const feeBreakdown = fees.computeFees(offerAmount);
     const amount = feeBreakdown.businessTotalCents;
 
@@ -2462,8 +2561,8 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
     }
     // Fee breakdown was computed above off the offer amount and used to
     // derive what we charge the business. release-funds re-uses the
-    // stored consultant payout figure (offer - stripe fee) as the
-    // authoritative number to transfer.
+    // stored consultant payout figure (offer - 10%) as the authoritative
+    // number to transfer.
 
     if (!intent) {
       // Escrow: no `transfer_data.destination` and no `on_behalf_of`, so the
@@ -2499,6 +2598,7 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
           payment_amount_cents: amount,
           stripe_fee_cents: feeBreakdown.stripeFeeCents,
           platform_fee_cents: feeBreakdown.platformFeeCents,
+          business_fee_cents: feeBreakdown.businessFeeCents,
           consultant_payout_cents: feeBreakdown.consultantPayoutCents,
         })
         .eq("id", bidId)
@@ -2773,7 +2873,7 @@ app.post("/api/stripe/release-funds", async (req, res) => {
   try {
     const { data: bid, error: bidErr } = await supabase
       .from("bids")
-      .select("id, listing_id, consultant_id, payment_amount_cents, payment_status, payment_intent_id, transfer_id, stripe_fee_cents, platform_fee_cents, consultant_payout_cents")
+      .select("id, listing_id, consultant_id, payment_amount_cents, payment_status, payment_intent_id, transfer_id, stripe_fee_cents, platform_fee_cents, business_fee_cents, consultant_payout_cents")
       .eq("id", bidId)
       .maybeSingle();
     if (bidErr || !bid) return res.status(404).json({ error: "Bid not found." });
@@ -2796,7 +2896,7 @@ app.post("/api/stripe/release-funds", async (req, res) => {
 
     const result = await releaseStandardBid(bid);
     if (!result.ok) return res.status(result.status).json({ error: result.error });
-    await emailPaymentReleased(bidId, { grossCents: bid.payment_amount_cents, payoutCents: result.payout_cents, key: `bid-${bidId}` });
+    await emailPaymentReleased(bidId, { grossCents: bid.payment_amount_cents, offerCents: offerCentsOf({ kind: "bid", row: bid }), payoutCents: result.payout_cents, key: `bid-${bidId}` });
     await notifyPaymentReleased({
       bidId, consultantId: bid.consultant_id, listingId: bid.listing_id,
       payoutCents: result.payout_cents, free: Number(bid.payment_amount_cents) === 0,
@@ -2998,17 +3098,18 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
     }
 
     // Validate fees + compute the per-bid breakdown so each row stores
-    // its own (offer, stripe fee estimate, platform fee, consultant
-    // payout). The batch charge is the sum of business totals (= the sum
-    // of offers, since pricing is all-in).
+    // its own (offer, business fee, consultant fee, consultant payout).
+    // The batch charge is the sum of per-bid business totals, so it always
+    // matches the rows to the cent.
     let totalCents = 0;
+    const pricedAt = Date.now(); // one rate for the whole batch
     const bidBreakdowns = new Map();
     for (const b of bids) {
       const fee = Number(b.proposal_fee_cents);
       if (!fees.isValidOfferCents(fee)) {
         return res.status(400).json({ error: "One of the bids has an invalid proposal fee." });
       }
-      const breakdown = fees.computeFees(fee);
+      const breakdown = fees.computeFees(fee, { at: pricedAt });
       bidBreakdowns.set(b.id, breakdown);
       totalCents += breakdown.businessTotalCents;
     }
@@ -3028,6 +3129,7 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
         paid_at: now,
         stripe_fee_cents: 0,
         platform_fee_cents: 0,
+        business_fee_cents: 0,
         consultant_payout_cents: 0,
       })));
       if (freeRowsErr) return res.status(500).json({ error: freeRowsErr.message });
@@ -3100,8 +3202,9 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
 
     // Pre-create the per-bid phase payment rows so the confirm step has
     // something to flip to 'held'. amount_cents stays the offer (proposal
-    // fee); the fee columns record the breakdown so release-time can
-    // transfer just the consultant payout. If the owner abandons mid-flow,
+    // fee); business_fee_cents is what the business paid on top, and the
+    // other fee columns record the breakdown so release-time can transfer
+    // just the consultant payout. If the owner abandons mid-flow,
     // the rows stay 'authorizing' — a future cleanup webhook on
     // `payment_intent.canceled` can drop them, but for now manual review
     // is fine.
@@ -3115,6 +3218,7 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
         status: "authorizing",
         stripe_fee_cents: f.stripeFeeCents,
         platform_fee_cents: f.platformFeeCents,
+        business_fee_cents: f.businessFeeCents,
         consultant_payout_cents: f.consultantPayoutCents,
       };
     });
@@ -3130,14 +3234,17 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
     // Aggregate fee figures across the batch so the frontend can render
     // a single combined breakdown (sum of offers, sum of platform fees).
     let aggOffer = 0;
+    let aggBusinessFee = 0;
+    let aggBusinessFeeFull = 0;
     let aggPlatform = 0;
-    let aggPlatformFull = 0;
     let aggStripe = 0;
     let aggPayout = 0;
+    let businessFeeBps = fees.businessFeeBps(pricedAt);
     for (const f of bidBreakdowns.values()) {
       aggOffer += f.amountCents;
+      aggBusinessFee += f.businessFeeCents;
+      aggBusinessFeeFull += f.businessFeeFullCents;
       aggPlatform += f.platformFeeCents;
-      aggPlatformFull += f.platformFeeFullCents;
       aggStripe += f.stripeFeeCents;
       aggPayout += f.consultantPayoutCents;
     }
@@ -3150,11 +3257,15 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
       bid_ids: bidIds,
       fee_breakdown: {
         amountCents: aggOffer,
+        businessFeeBps,
+        businessFeeCents: aggBusinessFee,
+        businessFeeFullCents: aggBusinessFeeFull,
+        businessFeeDiscounted: aggBusinessFee < aggBusinessFeeFull,
         businessTotalCents: totalCents,
+        launchEndsAt: new Date(fees.LAUNCH_ENDS_AT_MS).toISOString(),
+        consultantFeeBps: fees.CONSULTANT_FEE_BPS,
         stripeFeeCents: aggStripe,
         platformFeeCents: aggPlatform,
-        platformFeeFullCents: aggPlatformFull,
-        platformFeeDiscounted: aggPlatform < aggPlatformFull,
         consultantPayoutCents: aggPayout,
       },
     });
@@ -3294,13 +3405,14 @@ app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
 
     // Create a Product + recurring Price tagged to this engagement so the
     // subscription has a clear lineage in the Stripe dashboard. Each
-    // period bills the offer (all-in; fees come out of the payout).
-    const perPeriodBreakdown = fees.computeFees(feeCents);
+    // period bills the offer plus the business fee for today's rate; if the
+    // launch rate ends mid-retainer, syncRetainerPrice moves it to 10%.
     // One key per (bid, prior retainer row state, terms) so a double-click
     // replays the same Product/Price/Subscription instead of billing twice.
+    const periodTotalCents = fees.businessTotalCents(feeCents);
     const startKey = idemKey(
       "retainer-start-card", bidId, existing?.id || "new", existing?.status || "-",
-      cadence, feeCents, cancelAtUnix || "open"
+      cadence, feeCents, periodTotalCents, cancelAtUnix || "open"
     );
     const product = await stripe.products.create({
       name: `retainer · ${listing.title}`,
@@ -3309,7 +3421,7 @@ app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
     const price = await stripe.prices.create({
       product: product.id,
       currency: "usd",
-      unit_amount: perPeriodBreakdown.businessTotalCents,
+      unit_amount: periodTotalCents,
       recurring: CADENCE_INTERVAL[cadence],
       metadata: { bid_id: bidId, offer_cents: String(feeCents) },
     }, { idempotencyKey: `${startKey}:price` });
@@ -3550,9 +3662,10 @@ app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
     // business can lengthen or shorten it later via update-settings.
     const cancelAtUnix = retainerCancelAt(Date.parse(acceptedAt) / 1000, offerRow.cadence, offerRow.period_count);
 
-    // Each invoice bills the offer (all-in; fees come out of the payout).
-    const perPeriodBreakdown = fees.computeFees(offerRow.fee_cents);
-    // accepted_at is fresh per claim, so a retry after a rollback gets new keys.
+    // Each invoice bills the offer plus the business fee for today's rate;
+    // if the launch rate ends mid-retainer, syncRetainerPrice moves it to
+    // 10%. accepted_at is fresh per claim, so a retry after a rollback gets
+    // new keys.
     const offerKey = idemKey("retainer-offer", offerRow.id, acceptedAt);
     let subscription;
     try {
@@ -3563,7 +3676,7 @@ app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
       const price = await stripe.prices.create({
         product: product.id,
         currency: "usd",
-        unit_amount: perPeriodBreakdown.businessTotalCents,
+        unit_amount: fees.businessTotalCents(offerRow.fee_cents),
         recurring: CADENCE_INTERVAL[offerRow.cadence],
         metadata: { bid_id: bidId, offer_cents: String(offerRow.fee_cents) },
       }, { idempotencyKey: `${offerKey}:price` });
@@ -3951,7 +4064,7 @@ app.post("/api/stripe/retainer/release-period", async (req, res) => {
 
     const { data: phaseRow, error: phaseErr } = await supabase
       .from("bid_phase_payments")
-      .select("id, status, amount_cents, charge_id, consultant_payout_cents")
+      .select("id, status, amount_cents, business_fee_cents, charge_id, consultant_payout_cents")
       .eq("bid_id", bidId)
       .eq("phase", "retainer_period")
       .eq("period_index", periodIndex)
@@ -3985,7 +4098,7 @@ app.post("/api/stripe/retainer/release-period", async (req, res) => {
     });
     if (result.conflict) return res.status(409).json({ error: "This period changed while you were releasing it. Reload and try again." });
     if (!result.ok) return res.status(409).json({ error: result.error });
-    await emailPaymentReleased(bidId, { grossCents: phaseRow.amount_cents, payoutCents: result.payout_cents, key: `pay-${phaseRow.id}`, link: `/engagement.html?bid=${bidId}#pay-${phaseRow.id}` });
+    await emailPaymentReleased(bidId, { grossCents: phaseRowGross(phaseRow), offerCents: phaseRow.amount_cents, payoutCents: result.payout_cents, key: `pay-${phaseRow.id}`, link: `/engagement.html?bid=${bidId}#pay-${phaseRow.id}` });
 
     await notifyPaymentReleased({ bidId, consultantId: bid.consultant_id, listingId: bid.listing_id, payoutCents: result.payout_cents });
     return res.json({ ok: true, transfer_id: result.transfer_id });
@@ -4099,6 +4212,7 @@ app.post("/api/stripe/phased/start-service", async (req, res) => {
       status: "authorizing",
       stripe_fee_cents: feeBreakdown.stripeFeeCents,
       platform_fee_cents: feeBreakdown.platformFeeCents,
+      business_fee_cents: feeBreakdown.businessFeeCents,
       consultant_payout_cents: feeBreakdown.consultantPayoutCents,
     };
     let writeErr;
@@ -4188,7 +4302,7 @@ app.post("/api/stripe/phased/release-service", async (req, res) => {
 
     const { data: phaseRow, error: phaseErr } = await supabase
       .from("bid_phase_payments")
-      .select("id, status, amount_cents, charge_id, transfer_id, consultant_payout_cents")
+      .select("id, status, amount_cents, business_fee_cents, charge_id, transfer_id, consultant_payout_cents")
       .eq("bid_id", bidId)
       .eq("phase", "service")
       .maybeSingle();
@@ -4232,7 +4346,7 @@ app.post("/api/stripe/phased/release-service", async (req, res) => {
     });
     if (result.conflict) return res.status(409).json({ error: "This payment changed while you were releasing it. Reload and try again." });
     if (!result.ok) return res.status(409).json({ error: result.error });
-    await emailPaymentReleased(bidId, { grossCents: phaseRow.amount_cents, payoutCents: result.payout_cents, key: `pay-${phaseRow.id}`, link: `/engagement.html?bid=${bidId}#pay-${phaseRow.id}` });
+    await emailPaymentReleased(bidId, { grossCents: phaseRowGross(phaseRow), offerCents: phaseRow.amount_cents, payoutCents: result.payout_cents, key: `pay-${phaseRow.id}`, link: `/engagement.html?bid=${bidId}#pay-${phaseRow.id}` });
 
     await notifyPaymentReleased({ bidId, consultantId: bid.consultant_id, listingId: bid.listing_id, payoutCents: result.payout_cents });
     return res.json({ ok: true, transfer_id: result.transfer_id });
@@ -4428,7 +4542,7 @@ const SUPPORT_HOLD_STALE_DAYS = 14;
 const RELEASE_SCAN_LIMIT = 1000;
 const DAY_MS = 86400000;
 
-const DELIVERY_COLS = "delivered_at, delivery_note, delivery_link, changes_requested_at, changes_request_note, review_reminded_at, support_hold_at, support_hold_reason, backstop_flagged_at, refunded_cents, stripe_fee_cents, platform_fee_cents, " +
+const DELIVERY_COLS = "delivered_at, delivery_note, delivery_link, changes_requested_at, changes_request_note, review_reminded_at, support_hold_at, support_hold_reason, backstop_flagged_at, refunded_cents, stripe_fee_cents, platform_fee_cents, business_fee_cents, " +
   // add_support_outcomes.sql: reported problems + support outcomes A/B/C.
   "problem_reported_at, problem_report_note, problem_report_link, problem_report_count, support_outcome, support_outcome_at, redo_offered_at, redo_deadline_at, redo_reminded_at, redo_used, consultant_choice, consultant_choice_at, response_due_at, consultant_response_at";
 const BID_RELEASE_COLS = `id, listing_id, consultant_id, payment_amount_cents, payment_status, payment_intent_id, transfer_id, consultant_payout_cents, paid_at, released_at, ${DELIVERY_COLS}`;
@@ -4617,7 +4731,7 @@ async function scanHeld(nowMs) {
     })),
     ...(rows || []).filter((r) => r.paid_at).map((r) => ({
       kind: "phase", key: `pay-${r.id}`, bidId: r.bid_id, row: r,
-      cents: r.amount_cents, payoutCents: r.consultant_payout_cents ?? r.amount_cents,
+      cents: phaseRowGross(r), payoutCents: r.consultant_payout_cents ?? phaseRowGross(r),
     })),
   ];
 }
@@ -4711,7 +4825,7 @@ async function runReleaseJob(nowMs = Date.now()) {
         await notifyOnce(ctx.ownerId, {
           type: "auto_released",
           title: "Payment released to your consultant",
-          body: `Your 14-day review window for "${ctx.title}" ended, so Grassroots released ${dollars(item.cents)} to the consultant.`,
+          body: `Your 14-day review window for "${ctx.title}" ended, so Grassroots released your ${dollars(item.cents)} payment to the consultant.`,
           link,
         });
         await notifyOnce(ctx.consultantId, {
@@ -4720,7 +4834,7 @@ async function runReleaseJob(nowMs = Date.now()) {
           body: `${dollars(item.payoutCents)} from "${ctx.title}" is on its way to your Stripe balance.`,
           link,
         });
-        await emailPaymentReleased(item.bidId, { grossCents: item.cents, payoutCents: item.payoutCents, key: item.key, link, auto: true });
+        await emailPaymentReleased(item.bidId, { grossCents: item.cents, offerCents: offerCentsOf(item), payoutCents: item.payoutCents, key: item.key, link, auto: true });
       } else if (result.disputed || result.conflict || result.partialRefund) {
         summary.skipped.push({ key: item.key, reason: result.disputed ? "disputed" : result.partialRefund ? "partial_refund" : "changed" });
       } else {
@@ -4754,8 +4868,14 @@ app.get("/api/cron/auto-release", async (req, res) => {
   if (!requireStripe(res)) return;
   try {
     const summary = await runReleaseJob();
-    console.log("[auto-release]", JSON.stringify(summary));
-    return res.json({ ok: true, ...summary });
+    let retainerPrices = null;
+    try {
+      retainerPrices = await syncRetainerPricesAroundLaunchEnd();
+    } catch (err) {
+      alertOps("retainer_price_sync_run_failed", { error: err.message });
+    }
+    console.log("[auto-release]", JSON.stringify({ ...summary, retainerPrices }));
+    return res.json({ ok: true, ...summary, retainerPrices });
   } catch (err) {
     console.error("[auto-release] run failed:", err);
     return res.status(500).json({ error: "Auto-release run failed" });
@@ -4774,7 +4894,7 @@ async function loadReleaseTarget(bidId, paymentId) {
     const { data: row } = await supabase
       .from("bid_phase_payments").select(PHASE_RELEASE_COLS).eq("id", paymentId).eq("bid_id", bidId).maybeSingle();
     if (!row) return { error: "Payment not found.", status: 404 };
-    item = { kind: "phase", key: `pay-${row.id}`, bidId, row, cents: row.amount_cents };
+    item = { kind: "phase", key: `pay-${row.id}`, bidId, row, cents: phaseRowGross(row) };
   } else {
     const { data: row } = await supabase
       .from("bids").select(BID_RELEASE_COLS).eq("id", bidId).maybeSingle();
@@ -4990,7 +5110,7 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
     const shown = (row, status) => row.paid_at && (status === "held" || status === "released" || Boolean(row.support_outcome) || /^give_back/.test(row.consultant_choice || ""));
     const items = [
       ...(bid && shown(bid, bid.payment_status) ? [{ kind: "bid", key: `bid-${bid.id}`, bidId, row: bid, cents: bid.payment_amount_cents }] : []),
-      ...(rows || []).filter((r) => shown(r, r.status)).map((r) => ({ kind: "phase", key: `pay-${r.id}`, bidId, row: r, cents: r.amount_cents })),
+      ...(rows || []).filter((r) => shown(r, r.status)).map((r) => ({ kind: "phase", key: `pay-${r.id}`, bidId, row: r, cents: phaseRowGross(r) })),
     ];
     const nowMs = Date.now();
     const iso = (ms) => (Number.isFinite(ms) ? new Date(ms).toISOString() : null);
@@ -5011,7 +5131,9 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
         payment_id: item.kind === "phase" ? row.id : null,
         kind,
         label: paymentLabel(kind, row),
-        amount_cents: item.cents,
+        // The business sees what it paid (offer + business fee); the
+        // consultant sees the offer. Their payout is in money.payout_cents.
+        amount_cents: role === "owner" ? money.gross_cents : offerCentsOf(item),
         paid_at: row.paid_at,
         delivered_at: row.delivered_at,
         delivery_note: row.delivery_note,
@@ -5087,7 +5209,7 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
                             the consultant's part is capped at their
                             full-release payout.
      Every support refund is in full: the business gets back exactly what
-     it paid (all-in pricing) and grassroots absorbs the card fee.
+     it paid, business fee included, and grassroots absorbs the card fee.
      After a redo, a second report allows only A, C or split.
    - There is no plain "clear hold": a hold ends by release, refund, or
      the consultant choosing to redo.
@@ -5102,19 +5224,32 @@ const SUPPORT_OUTCOMES = new Set(["meets_scope", "fixable", "scope_breached", "s
 const SYSTEM_ACTOR = { id: null, email: "system:auto-release" };
 const WAITING_ERROR = "This payment is waiting on the consultant's choice.";
 
+// The agreed offer behind a payment, without the business fee.
+function offerCentsOf(item) {
+  const row = item.row;
+  if (item.kind === "phase") return Number(row.amount_cents || 0);
+  return Math.max(0, Number(row.payment_amount_cents || 0) - Number(row.business_fee_cents || 0));
+}
+
 // Money on one held payment. gross = what the business was charged.
 function paymentMoney(item) {
   const row = item.row;
   const platformFee = Number(row.platform_fee_cents || 0);
-  // All-in pricing: the business paid exactly the offer. The card fee and
-  // the platform fee come out of the consultant's payout.
+  // gross = offer + business fee. On rows from the all-in model the
+  // business paid exactly the offer and the card fee came out of the payout.
   const gross = item.kind === "bid" ? Number(row.payment_amount_cents || 0) : phaseRowGross(row);
   const cardFee = row.stripe_fee_cents != null ? Number(row.stripe_fee_cents) : fees.estimateStripeFeeCents(gross);
   const refunded = Number(row.refunded_cents || 0);
   const remaining = Math.max(0, gross - refunded);
-  const payout = Number(row.consultant_payout_cents ?? fees.computeFees(gross).consultantPayoutCents);
+  // Legacy rows without a stored payout transfer the full charge (same as
+  // release-funds' grandfathering).
+  const payout = Number(row.consultant_payout_cents ?? gross);
+  // What grassroots keeps on a full release: the business fee and the
+  // consultant fee (or, on all-in rows, the card fee and platform fee).
+  const platformTake = Math.max(0, gross - payout);
   return {
     gross_cents: gross,
+    business_fee_cents: Number(row.business_fee_cents || 0),
     platform_fee_cents: platformFee,
     card_fee_cents: cardFee,
     refunded_cents: refunded,
@@ -5127,7 +5262,7 @@ function paymentMoney(item) {
     // Outcome C: everything still on the charge.
     full_refund_cents: remaining,
     // Partly refunded payment: what the consultant gets for the rest.
-    remainder_payout_cents: Math.max(0, Math.min(payout, remaining - cardFee - platformFee)),
+    remainder_payout_cents: Math.max(0, Math.min(payout, remaining - platformTake)),
   };
 }
 
@@ -5421,8 +5556,8 @@ async function splitHeldPayment(item, ctx, refundCents, transferCents, { claimEq
   if (refundCents + transferCents > money.remaining_cents) {
     return { ok: false, status: 400, error: `The refund and payout can't add up to more than the ${dollars(money.remaining_cents)} left on this payment.` };
   }
-  // All-in pricing: the consultant's part is capped at what a full release
-  // would pay them (the offer minus the card and platform fees).
+  // The consultant's part is capped at what a full release would pay them
+  // (the offer minus their 10% fee; on all-in rows, minus both fees).
   if (transferCents > money.remainder_payout_cents) {
     return { ok: false, status: 400, error: `The consultant's part can't be more than their ${dollars(money.remainder_payout_cents)} payout on a full release.` };
   }
@@ -6010,7 +6145,7 @@ async function stuckSplits() {
   ]);
   return [
     ...(bids || []).map((b) => ({ kind: "bid", key: `bid-${b.id}`, bidId: b.id, row: b, cents: b.payment_amount_cents })),
-    ...(rows || []).map((r) => ({ kind: "phase", key: `pay-${r.id}`, bidId: r.bid_id, row: r, cents: r.amount_cents })),
+    ...(rows || []).map((r) => ({ kind: "phase", key: `pay-${r.id}`, bidId: r.bid_id, row: r, cents: phaseRowGross(r) })),
   ];
 }
 

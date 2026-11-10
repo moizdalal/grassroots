@@ -14,7 +14,7 @@
 
 import { MODULES, PASS_SCORE, QUIZ_LENGTH } from "/training-content.js";
 import { confirmDialog } from "/confirm-modal.js";
-import { computeFees, formatUsd, LAUNCH_PLATFORM_FEE_BPS, PLATFORM_FEE_BPS } from "/fees.js";
+import { computeFees, formatUsd, formatBps, CONSULTANT_FEE_BPS } from "/fees.js";
 
 const QUIZ_STEP = "quiz";
 const reduceMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -52,7 +52,6 @@ function renderFlow({ label, steps }) {
 }
 
 function renderFeeCalculator() {
-  const launch = LAUNCH_PLATFORM_FEE_BPS != null && LAUNCH_PLATFORM_FEE_BPS < PLATFORM_FEE_BPS;
   return `
     <figure class="tr-visual tr-fees">
       <figcaption class="tr-fees__head">
@@ -62,15 +61,13 @@ function renderFeeCalculator() {
       <input class="tr-fees__range" id="tr-fee-range" type="range" min="10" max="1000" step="5" value="100" />
       <div class="tr-fees__bar" aria-hidden="true">
         <span class="tr-fees__seg tr-fees__seg--keep" data-seg="keep"></span>
-        <span class="tr-fees__seg tr-fees__seg--card" data-seg="card"></span>
         <span class="tr-fees__seg tr-fees__seg--platform" data-seg="platform"></span>
       </div>
       <dl class="tr-fees__legend">
         <div><dt><span class="tr-fees__swatch tr-fees__seg--keep"></span>You take home</dt><dd data-val="keep"></dd></div>
-        <div><dt><span class="tr-fees__swatch tr-fees__seg--card"></span>Card processing</dt><dd data-val="card"></dd></div>
-        <div><dt><span class="tr-fees__swatch tr-fees__seg--platform"></span>Platform fee${launch ? " (launch rate)" : ""}</dt><dd data-val="platform"></dd></div>
+        <div><dt><span class="tr-fees__swatch tr-fees__seg--platform"></span>Platform fee (${formatBps(CONSULTANT_FEE_BPS)})</dt><dd data-val="platform"></dd></div>
       </dl>
-      <p class="tr-fees__note">The business pays exactly the offer. Fees come out of your payout.</p>
+      <p class="tr-fees__note">The platform fee is a flat ${formatBps(CONSULTANT_FEE_BPS)} of your offer. Card processing is on us.</p>
     </figure>`;
 }
 
@@ -80,7 +77,7 @@ function wireFeeCalculator(scope) {
   const update = () => {
     const f = computeFees(Number(range.value) * 100);
     const total = f.amountCents || 1;
-    const parts = { keep: f.consultantPayoutCents, card: f.stripeFeeCents, platform: f.platformFeeCents };
+    const parts = { keep: f.consultantPayoutCents, platform: f.platformFeeCents };
     scope.querySelector("#tr-fee-amount").textContent = formatUsd(f.amountCents);
     for (const [k, v] of Object.entries(parts)) {
       scope.querySelector(`[data-seg="${k}"]`).style.width = `${(v / total) * 100}%`;

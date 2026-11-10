@@ -16,7 +16,7 @@ async function payAndAcceptProposals(...args) {
   const m = await loadPaymentModal();
   return m.payAndAcceptProposals(...args);
 }
-import { computeFees, formatUsd, isValidOfferCents, MIN_PAID_OFFER_CENTS, LAUNCH_PLATFORM_FEE_BPS, PLATFORM_FEE_BPS } from "/fees.js";
+import { computeFees, businessTotalCents, formatUsd, formatBps, isValidOfferCents, MIN_PAID_OFFER_CENTS, CONSULTANT_FEE_BPS } from "/fees.js";
 import { getInitials } from "/initials.js";
 import {
   trackListingView,
@@ -1499,9 +1499,9 @@ function renderMsgThread(container, messages, myId) {
    Consultant view: offer panel (sidebar) + chat drawer
    ================================================================ */
 
-// Consultant-side take-home breakdown. Pricing is all-in: the offer is
-// what the business pays, and the platform fee (10% struck through to the
-// launch rate) plus Stripe processing come out of it.
+// Consultant-side take-home breakdown. The consultant's platform fee is a
+// flat 10% of the offer. The business fee is added on the business's side,
+// so it never changes what the consultant takes home.
 function offerBreakdownHtml(f, opts = {}) {
   // Consultant-only copy. Businesses never see the free option mentioned.
   if (f.amountCents === 0) {
@@ -1512,32 +1512,17 @@ function offerBreakdownHtml(f, opts = {}) {
   if (f.amountCents < MIN_PAID_OFFER_CENTS) {
     return `<p class="ld-offer-breakdown__note">${opts.allowFree ? "Offers are free or at least $10." : "This amount must be at least $10."}</p>`;
   }
-  const bizLabel = opts.bizLabel || "Business pays";
+  const bizLabel = opts.bizLabel || "Your offer";
   const takeHomeLabel = opts.takeHomeLabel || "You take home";
-  const launchPct = LAUNCH_PLATFORM_FEE_BPS / 100;
-  // Show what a flat 10% of the whole offer would cost, struck through,
-  // next to what they actually pay after the launch rate and free first $10.
-  const undiscountedCents = Math.round((f.amountCents * PLATFORM_FEE_BPS) / 10000);
-  const platformValue = undiscountedCents > f.platformFeeCents
-    ? `<span class="ld-offer-breakdown__strike">−${formatUsd(undiscountedCents)}</span> −${formatUsd(f.platformFeeCents)}`
-    : `−${formatUsd(f.platformFeeCents)}`;
-  const platformLabel = f.platformFeeDiscounted
-    ? `Platform fee <span class="ld-offer-breakdown__strike">10%</span> ${launchPct}%
-       <span class="ld-offer-breakdown__hint">Launch rate · none on the first $10</span>`
-    : `Platform fee (10%)
-       <span class="ld-offer-breakdown__hint">None on the first $10</span>`;
+  const platformLabel = `Platform fee (${formatBps(CONSULTANT_FEE_BPS)})`;
   return `
     <div class="ld-offer-breakdown__line ld-offer-breakdown__line--biz">
       <span>${bizLabel}</span>
-      <span class="ld-offer-breakdown__value">${formatUsd(f.businessTotalCents)}</span>
+      <span class="ld-offer-breakdown__value">${formatUsd(f.amountCents)}</span>
     </div>
     <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
       <span>${platformLabel}</span>
-      <span class="ld-offer-breakdown__value">${platformValue}</span>
-    </div>
-    <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
-      <span>Card processing</span>
-      <span class="ld-offer-breakdown__value">−${formatUsd(f.stripeFeeCents)}</span>
+      <span class="ld-offer-breakdown__value">−${formatUsd(f.platformFeeCents)}</span>
     </div>
     <div class="ld-offer-breakdown__line ld-offer-breakdown__line--total">
       <span>${takeHomeLabel}</span>
@@ -1597,7 +1582,7 @@ function offerSummaryHtml(bid, listing) {
     ? `<div class="ld-offer-breakdown ld-bid-existing__breakdown">${offerBreakdownHtml(
         computeFees(Number(bid.amount_cents)),
         isRetainer
-          ? { bizLabel: "Business pays per period", takeHomeLabel: "You take home per period" }
+          ? { bizLabel: "Your offer per period", takeHomeLabel: "You take home per period" }
           : {}
       )}</div>`
     : "";
@@ -1646,18 +1631,18 @@ async function showConsultantView(client, session, listing, existingBid) {
 
   const isRetainerListing = listing?.contract_type === "retainer";
   wireBreakdown(amountInput, "ld-offer-breakdown", isRetainerListing
-    ? { offerLabel: "Fee per period", bizLabel: "Business pays per period", takeHomeLabel: "You take home per period" }
+    ? { offerLabel: "Fee per period", bizLabel: "Your offer per period", takeHomeLabel: "You take home per period" }
     : { allowFree: true });
   wireBreakdown(proposalFeeInput, "ld-offer-proposal-breakdown", {
     allowFree: true,
     freeNote: "No proposal fee.",
     offerLabel: "Proposal fee",
-    bizLabel: "Business pays for proposal",
+    bizLabel: "Your proposal fee",
     takeHomeLabel: "You take home (proposal)",
   });
   wireBreakdown(serviceFeeInput, "ld-offer-service-breakdown", {
     offerLabel: "Service fee",
-    bizLabel: "Business pays for service",
+    bizLabel: "Your service fee",
     takeHomeLabel: "You take home (service)",
   });
 
@@ -2683,7 +2668,8 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
   function renderProposalCta() {
     if (!proposalCtaEl) return;
     const selected = bids.filter((b) => selectedBidIds.has(b.id));
-    const total = selected.reduce((sum, b) => sum + Number(b.proposal_fee_cents || 0), 0);
+    // What the card is charged: each offer plus its platform fee.
+    const total = selected.reduce((sum, b) => sum + businessTotalCents(Number(b.proposal_fee_cents || 0)), 0);
     if (!selected.length) {
       proposalCtaEl.classList.add("hidden");
       return;
@@ -2865,7 +2851,7 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
               title: "Accept the original offer?",
               body: [
                 `${rawName} hasn't decided on your counter yet.`,
-                `Accepting now charges their original price of ${formatUsd(b.amount_cents)}, not your counter of ${formatUsd(b.counter_offer_cents)}.`,
+                `Accepting now charges their original price of ${formatUsd(b.amount_cents)} plus the platform fee, not your counter of ${formatUsd(b.counter_offer_cents)}.`,
               ],
               actions: [
                 { label: "Cancel", kind: "ghost", value: "cancel" },

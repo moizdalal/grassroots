@@ -6,7 +6,7 @@
    Sandbox/test-mode only.
    ================================================================ */
 
-import { computeFees, formatUsd } from "/fees.js";
+import { computeFees, formatUsd, formatBps, BUSINESS_FEE_BPS, LAUNCH_ENDS_LABEL } from "/fees.js";
 import { confirmDialog } from "/confirm-modal.js";
 import { showError } from "/toast.js";
 
@@ -21,20 +21,44 @@ function escapeHtml(s) {
 }
 
 function renderFeeBreakdown(fees) {
-  // All-in pricing: the business pays the offer and nothing on top. The
-  // platform and card fees come out of the consultant's side, so no fee
-  // lines here.
+  // The business pays the offer plus the platform fee. Before March 1,
+  // 2027 the fee is the 5% launch rate, shown next to the 10% list rate
+  // struck through so it reads as a temporary discount.
+  const discounted = Boolean(fees.businessFeeDiscounted);
+  const rate = formatBps(fees.businessFeeBps);
+  const hint = discounted
+    ? `<s>${escapeHtml(formatBps(BUSINESS_FEE_BPS))}</s> ${escapeHtml(rate)} launch rate, until ${escapeHtml(LAUNCH_ENDS_LABEL)}`
+    : escapeHtml(rate);
   return `
     <div class="pay-modal__breakdown" role="group" aria-label="Payment breakdown">
-      <div class="pay-modal__line pay-modal__line--total">
+      <div class="pay-modal__line">
+        <span class="pay-modal__line-label">Offer</span>
+        <span class="pay-modal__line-value">${escapeHtml(formatUsd(fees.amountCents))}</span>
+      </div>
+      <div class="pay-modal__line pay-modal__line--passthrough">
         <span class="pay-modal__line-label">
-          You'll be charged
-          <span class="pay-modal__line-hint">No fees added</span>
+          Platform fee
+          <span class="pay-modal__line-hint">${hint}</span>
         </span>
+        <span class="pay-modal__line-value">${escapeHtml(formatUsd(fees.businessFeeCents))}</span>
+      </div>
+      <div class="pay-modal__line pay-modal__line--total">
+        <span class="pay-modal__line-label">You'll be charged</span>
         <span class="pay-modal__line-value">${escapeHtml(formatUsd(fees.businessTotalCents))}</span>
       </div>
     </div>
   `;
+}
+
+// Swap the browser estimate for the server's numbers once the payment is
+// created, so the modal always shows exactly what the card is charged.
+function showServerBreakdown(overlay, serverFees) {
+  if (!serverFees || !Number.isFinite(Number(serverFees.businessTotalCents))) return;
+  const current = overlay.querySelector(".pay-modal__breakdown");
+  if (!current) return;
+  const wrap = document.createElement("div");
+  wrap.innerHTML = renderFeeBreakdown(serverFees).trim();
+  current.replaceWith(wrap.firstElementChild);
 }
 
 // $0 offers skip Stripe entirely: confirm, then hit the free endpoint.
@@ -118,10 +142,8 @@ async function loadStripe() {
 function buildModal({ amount, title, feeBreakdown }) {
   const overlay = document.createElement("div");
   overlay.className = "pay-overlay is-open";
-  // Standard escrow flow passes a fee breakdown so the business sees
-  // exactly what the consultant absorbs. Phased / retainer callers
-  // currently pass just `amount` and fall back to the bare summary
-  // until pass 2/3 wires their endpoints through the fee math.
+  // Callers pass a fee breakdown so the business sees the offer, the
+  // platform fee and the total before paying.
   const amountBlock = feeBreakdown
     ? renderFeeBreakdown(feeBreakdown)
     : `
@@ -219,6 +241,7 @@ export async function payAndAcceptBid({ client, bid, listing }) {
         });
         const intentData = await intentRes.json();
         if (!intentRes.ok) throw new Error(intentData.error || "Could not start payment.");
+        showServerBreakdown(overlay, intentData.fee_breakdown);
 
         const stripe = await loadStripe();
         const css = getComputedStyle(document.documentElement);
@@ -381,8 +404,18 @@ export async function payAndAcceptProposals({ client, bids, listing }) {
     ? `Proposal fee · ${listing?.title || "engagement"}`
     : `${bids.length} proposal fees · ${listing?.title || "engagement"}`;
   // Show the aggregate breakdown (sum of all proposal offers + their
-  // platform fees) so the business sees the total markup as one row.
-  const feeBreakdown = computeFees(totalAmount);
+  // platform fees) so the business sees the total markup as one row. Each
+  // bid's fee is rounded on its own, the same way the server does it.
+  const perBid = bids.map((b) => computeFees(Number(b.proposal_fee_cents || 0)));
+  const sum = (k) => perBid.reduce((acc, f) => acc + f[k], 0);
+  const feeBreakdown = {
+    ...perBid[0],
+    amountCents: sum("amountCents"),
+    businessFeeCents: sum("businessFeeCents"),
+    businessFeeFullCents: sum("businessFeeFullCents"),
+    businessTotalCents: sum("businessTotalCents"),
+  };
+  feeBreakdown.businessFeeDiscounted = feeBreakdown.businessFeeCents < feeBreakdown.businessFeeFullCents;
   const overlay = buildModal({ amount: totalAmount, title: titleLabel, feeBreakdown });
   const submitBtn = overlay.querySelector("#pay-submit");
   const statusEl = overlay.querySelector("#pay-status");
@@ -421,6 +454,7 @@ export async function payAndAcceptProposals({ client, bids, listing }) {
         });
         const intentData = await intentRes.json();
         if (!intentRes.ok) throw new Error(intentData.error || "Could not start payment.");
+        showServerBreakdown(overlay, intentData.fee_breakdown);
 
         const stripe = await loadStripe();
         const css = getComputedStyle(document.documentElement);
@@ -553,6 +587,7 @@ export async function payAndStartService({ client, bid, listing }) {
         });
         const intentData = await intentRes.json();
         if (!intentRes.ok) throw new Error(intentData.error || "Could not start payment.");
+        showServerBreakdown(overlay, intentData.fee_breakdown);
 
         const stripe = await loadStripe();
         const css = getComputedStyle(document.documentElement);

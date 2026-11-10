@@ -58,7 +58,7 @@ A complete audit of every runtime, library, file convention, and external servic
 ## Payments
 
 - **Stripe `^22.1.1`** (server SDK) + Stripe.js loaded client-side
-- **Stripe Connect** — consultants onboard as Connect accounts; payments use destination charges (money goes to consultant at capture, release is bookkeeping, 0% platform fee currently)
+- **Stripe Connect** — consultants onboard as Connect accounts; payments use destination charges (superseded: payments now capture to the platform balance and transfer on release; fees are 10% business / 10% consultant, see stripe.md)
 - Webhook endpoint: `POST /webhooks/stripe` (raw body for signature verification, registered BEFORE `express.json()`)
 - API routes:
   - `POST /api/stripe/account-session` (Connect onboarding)

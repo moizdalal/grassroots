@@ -3,6 +3,15 @@ import { renderRatingMarkup, fetchRatingFor, forgetRating } from "/rating.js";
 import { showSuccess, showError, showInfo } from "/toast.js";
 import { notifyEvent } from "/notify-event.js";
 import { confirmDialog } from "/confirm-modal.js";
+import { isLaunchPricing, LAUNCH_ENDS_LABEL } from "/fees.js";
+
+// Owner-facing note: the business pays its platform fee on top of the
+// offer. The launch rate is shown as a temporary discount.
+function businessFeeNote() {
+  return isLaunchPricing()
+    ? `plus the platform fee (a 5% launch rate until ${LAUNCH_ENDS_LABEL}, then 10%)`
+    : "plus the 10% platform fee";
+}
 // payment-modal is only needed when the owner taps "pay service fee".
 // Lazy-load on demand so engagement.html stays light on first paint.
 let _paymentModalPromise = null;
@@ -1357,7 +1366,7 @@ function renderRetainerOfferPanel() {
     const summary = `${feeLabel} every ${cadenceLabel(retainerSub.cadence)} for ${retainerSub.period_count} period${retainerSub.period_count === 1 ? "" : "s"}`;
     if (viewRole === "owner") {
       offerTitleEl.textContent = "Offer sent";
-      offerBodyEl.textContent = `Waiting for the consultant to accept or decline: ${summary}.`;
+      offerBodyEl.textContent = `Waiting for the consultant to accept or decline: ${summary}, ${businessFeeNote()}.`;
       offerActionsEl.classList.add("hidden");
     } else {
       offerTitleEl.textContent = "Retainer offer";
@@ -1380,7 +1389,9 @@ function renderRetainerOfferPanel() {
     offerStatusPill.textContent = status === "pending" ? "Starting…" : "Active";
     offerStatusPill.className = "gr-pill gr-pill--accepted gr-pill--no-dot";
     offerTitleEl.textContent = "Retainer is live";
-    const feeLabel = retainerSub.fee_cents ? formatUsd(Number(retainerSub.fee_cents)) : "—";
+    const feeLabel = retainerSub.fee_cents
+      ? `${formatUsd(Number(retainerSub.fee_cents))}${viewRole === "owner" ? ` ${businessFeeNote()}` : ""}`
+      : "—";
     offerBodyEl.textContent = `Billing ${feeLabel} every ${cadenceLabel(retainerSub.cadence)} — period ${retainerSub.periods_billed} of ${retainerSub.period_count}. Each period is held on payment and releases when the business releases it, or 14 days after the period ends.`;
     if (viewRole === "owner") {
       offerActionsEl.classList.remove("hidden");
@@ -1500,7 +1511,7 @@ function renderRetainerDecisionPanel() {
 
   if (fixed) {
     const feeLabel = formatUsd(Number(currentListing.retainer_fee_cents));
-    retainerBodyEl.textContent = `Continue billing ${feeLabel} every ${cadenceLabel(currentListing.retainer_cadence)} for ${currentListing.retainer_period_count} period${currentListing.retainer_period_count === 1 ? "" : "s"}, or close as a one-off.`;
+    retainerBodyEl.textContent = `Continue billing ${feeLabel} ${businessFeeNote()} every ${cadenceLabel(currentListing.retainer_cadence)} for ${currentListing.retainer_period_count} period${currentListing.retainer_period_count === 1 ? "" : "s"}, or close as a one-off.`;
     retainerTermsForm.classList.add("hidden");
     retainerContinueBtn.textContent = "Continue retainer";
   } else {
@@ -1564,8 +1575,8 @@ function renderServicePhasePanel() {
     serviceStatusPill.className = "gr-pill gr-pill--muted gr-pill--no-dot";
     const fee = Number(currentBid?.service_fee_cents);
     const feeLabel = Number.isFinite(fee) ? formatUsd(fee) : "The service fee";
-    serviceBodyEl.textContent = `You moved forward with this consultant. ${Number.isFinite(fee) ? `${feeLabel} ` : ""}is held by Grassroots and releases once you submit your review.`;
-    servicePayBtn.textContent = Number.isFinite(fee) ? `Pay ${feeLabel}` : "Pay service fee";
+    serviceBodyEl.textContent = `You moved forward with this consultant. You pay ${Number.isFinite(fee) ? feeLabel : "the service fee"} ${businessFeeNote()}. Grassroots holds it and releases it once you submit your review.`;
+    servicePayBtn.textContent = "Pay service fee";
     serviceActionsEl.classList.remove("hidden");
   } else {
     serviceTitleEl.textContent = "Service phase";

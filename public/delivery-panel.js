@@ -204,7 +204,7 @@ function describeReleased(p, role) {
   return {
     pill: ["Released", "accepted"],
     lines: [role === "owner"
-      ? `Released ${fmtUsd(p.amount_cents)} to the consultant on ${on}.`
+      ? `You released this payment to the consultant on ${on}.`
       : `You received ${fmtUsd(payout)} on ${on}. It's in your Stripe balance.`],
   };
 }

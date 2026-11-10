@@ -54,8 +54,9 @@ Sources: moiz's "Consultant training: core topics" (Oct 27), plus the site's hel
 - The client should see you've done your homework.
 
 ### 1.4 How pricing works
-- The business pays exactly your offer, all-in. Nothing is added on top.
-- Your payout is the offer minus card processing (2.9% + $0.30) and the platform fee: 10% of the part above $10, or 5% during launch.
+- Your platform fee is a flat 10% of your offer. It comes out of your payout.
+- Card processing is on grassroots. It never comes out of your payout.
+- The business pays its own platform fee on top of your offer. It doesn't change your take-home.
 - The offer screen shows your take-home before you send.
 - Paid offers are at least $10. A $0 offer is allowed for free work. *(consultant-only; never mention it to businesses)*
 - Price honestly. Don't underbid just to win the work.
@@ -220,11 +221,11 @@ Each question has 4 options. ✅ marks the correct answer. Tags show the module.
 
 **Q4** [1.4] How does the platform fee work?
 - A. A flat $10 on every offer
-- B. 10% added on top of what the business pays
-- C. ✅ A percentage of the part of the offer above $10, taken from your payout
+- B. It drops as you earn good reviews
+- C. ✅ A flat 10% of your offer, taken from your payout
 - D. Nothing, because the business pays all fees
 
-*Why: businesses pay exactly the offer. Your payout is the offer minus card processing and 10% of the part above $10 (5% during launch).*
+*Why: your fee is a flat 10% of your offer, taken from your payout. Card processing doesn't come out of it. The business pays its own fee on top of the offer.*
 
 **Q5** [1.4] Which pricing approach does the training recommend?
 - A. Bid the lowest price to win the work

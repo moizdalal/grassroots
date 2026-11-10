@@ -86,9 +86,9 @@ export const MODULES = [
         title: "How pricing works",
         visual: "fee-calculator",
         points: [
-          "The business pays exactly your offer. Nothing gets added on their side.",
-          "Fees come out of your payout: card processing (2.9% + $0.30) and the platform fee.",
-          "The platform fee is 10% of the part above $10. During launch it's 5%.",
+          "Your platform fee is a flat 10% of your offer. It comes out of your payout.",
+          "Card processing is on us. It never comes out of your payout.",
+          "The business pays its own platform fee on top of your offer. It doesn't change your take-home.",
           "You'll see your take-home on the offer screen before you send.",
           "Paid offers start at $10. You can also send a $0 offer for free work.",
           "You can price one-time, phased (a proposal fee, then a service fee) or as a retainer.",

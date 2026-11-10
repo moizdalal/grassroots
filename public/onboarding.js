@@ -492,7 +492,7 @@ const CONSULTANT_STEPS = [
     placement: "left",
     advanceOn: "next",
     title: "Make an offer.",
-    body: "Type an amount. The breakdown beneath shows what the business pays and what you take home. The platform fee and card processing come out of your offer.",
+    body: "Type an amount. The breakdown beneath shows your take-home. The platform fee is a flat 10% of your offer.",
   },
   {
     id: "c-submit-offer",
