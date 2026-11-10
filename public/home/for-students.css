@@ -289,8 +289,8 @@
       }
       [data-theme="light"] .fs-laptop__base { box-shadow: 0 30px 50px rgba(20, 32, 26, 0.2); }
 
-      /* The screen always shows the light marketplace in every theme
-         (data-theme="light" on .fs-laptop__screen). The black frame stays. */
+      /* The screen shows the marketplace in the page's theme, so it
+         switches with the theme toggle. The black frame stays. */
 
       /* Making the laptop read against the page. A black bezel on a dark
          green page has no edge, so the chassis gets an aluminum base and
@@ -377,12 +377,11 @@
       .fs-mk__filters .fs-mk__search { flex: 1; color: var(--fo-text-3); }
 
       /* cards use the real marketplace card (.gr-listing-*); this only
-         sets the grid, the reveal and the cursor hover. The screen is
-         always light, so keep the light-theme card fill here even when
-         the page is dark. */
+         sets the grid, the reveal and the cursor hover. The screen
+         follows the page theme, so cards are filled in light and
+         outline-only in dark, like the real marketplace. */
       .fs-mk__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
       .fs-laptop__screen .fs-mk__grid .gr-listing-card.fs-mk__card {
-        background: var(--fo-surface);
         border-color: var(--fo-line-strong);
         padding-top: 2.1rem;
         height: auto;
@@ -406,6 +405,19 @@
         transition-delay: 0s;
       }
       .fs-laptop.is-visible .fs-mk__card.is-hover .gr-listing-cta-link { color: var(--fo-accent); }
+      /* generated business marks: one line icon per business on a soft
+         tile, alternating the accent and warm accent tokens */
+      .fs-mk__mark { --mark: var(--fo-accent); }
+      .fs-mk__mark--warm { --mark: var(--fo-accent-warm); }
+      .fs-laptop__screen .gr-listing-logo-placeholder.fs-mk__mark {
+        background: color-mix(in srgb, var(--mark) 14%, transparent);
+        color: var(--mark);
+      }
+      .fs-mk__mark svg { width: 46%; height: 46%; }
+      .fs-mk__logo.fs-mk__mark {
+        background: color-mix(in srgb, var(--mark) 14%, transparent);
+        color: var(--mark);
+      }
       .fs-mk__logo {
         display: inline-grid; place-items: center;
         width: 24px; height: 24px; border-radius: 7px;
@@ -822,6 +834,9 @@
       }
       .fs-earn__sub > dt { padding-left: 14px; }
       .fs-earn__ledger > .fs-earn__sub { border-top-style: dashed; font-size: 0.9rem; padding: 8px 0; }
+      /* the split of the 10% is inside the fee line, not added to it,
+         so its numbers are muted */
+      .fs-earn__ledger > .fs-earn__sub dd { color: var(--fo-text-3); font-weight: 500; }
       .fs-earn__dot {
         display: inline-block; vertical-align: 0;
         width: 9px; height: 9px; border-radius: 3px; margin-right: 8px;
