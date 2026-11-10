@@ -1300,10 +1300,13 @@
         .ld-hero-card__avatar { width: 1.8rem; height: 1.8rem; font-size: 0.78rem; }
       }
 
-      /* ── manifesto: light rounded panel, problem then solution ── */
+      /* ── manifesto: rounded panel, mission then what we do ──
+         Theme-driven: dark themes get a border-only outline (no card fill,
+         per brandkit), light gets the white card (override near the end). */
       .ld-manifesto {
         padding: clamp(var(--space-5), 5vw, var(--space-7)) 0;
-        --ld-panel-ink: #14201a;
+        --ld-panel-ink: var(--fo-text);
+        --ld-panel-key: color-mix(in srgb, var(--fo-accent) 55%, var(--fo-text));
       }
       .ld-manifesto__panel {
         position: relative;
@@ -1315,8 +1318,8 @@
         border-radius: 28px;
         text-align: center;
         color: var(--ld-panel-ink);
-        background: #fff;
-        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+        background: transparent;
+        border: 1px solid var(--fo-line-strong);
       }
       .ld-manifesto__lead,
       .ld-manifesto__text {
@@ -1331,11 +1334,11 @@
         text-wrap: pretty;
       }
       .ld-manifesto__lead { margin-bottom: 0.9em; }
-      /* Keywords in bold green. The panel is light in every theme, so this
-         uses a deep green fixed for contrast on it rather than --fo-accent. */
+      /* Keywords in bold green. On dark themes the raw accent is too dim for
+         text, so it is lifted toward the text color; light uses the accent. */
       .ld-manifesto__key {
         font-weight: 700;
-        color: #1f6b47;
+        color: var(--ld-panel-key);
       }
       /* Timed reveal: JS wraps each word of the second statement and gives it
          --i; once the panel enters the viewport, .is-lit on the text fades the
@@ -3555,8 +3558,11 @@
       [data-theme="light"] .ld-trust-row b { color: var(--fo-accent); }
 
       /* MANIFESTO: on a light page, give the panel an edge so it doesn't blend in. */
+      [data-theme="light"] .ld-manifesto { --ld-panel-key: var(--fo-accent); }
       [data-theme="light"] .ld-manifesto__panel {
+        background: var(--fo-surface);
         border: 1px solid color-mix(in srgb, var(--fo-accent) 18%, transparent);
+        box-shadow: 0 24px 60px rgba(14, 51, 36, 0.12);
       }
 
       /* section title color in light: full ink */
