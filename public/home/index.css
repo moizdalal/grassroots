@@ -1533,6 +1533,9 @@
       .ld-compare__table {
         width: 100%;
         min-width: 640px;
+        /* Fixed layout so the five check columns get equal widths
+           regardless of header text length. */
+        table-layout: fixed;
         border-collapse: separate;
         border-spacing: 0;
         font-family: var(--font-body);
@@ -1545,7 +1548,7 @@
         text-align: center;
         vertical-align: bottom;
         padding: 0 0.75rem 0.9rem;
-        width: 15%;
+        width: 12%;
       }
       .ld-compare__table thead th:first-child { width: 40%; }
       .ld-compare__table tbody th,
@@ -1583,7 +1586,7 @@
       .ld-compare__table tr.is-us > :last-child  { border-radius: 0 16px 16px 0; }
       /* Phones: drop the descriptions and tighten columns so all four fit without swiping. */
       @media (max-width: 640px) {
-        .ld-compare__table { min-width: 0; table-layout: fixed; }
+        .ld-compare__table { min-width: 0; }
         .ld-compare__table thead th { font-size: 0.68rem; padding: 0 0.2rem 0.7rem; width: auto; }
         .ld-compare__table thead th:first-child { width: 34%; }
         .ld-compare__table tbody th { padding: 0.9rem 0.4rem 0.9rem 0.8rem; }
