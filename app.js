@@ -6509,6 +6509,14 @@ app.get("/api/admin/marketplace", async (req, res) => {
       adminSelectAll("consultant_review_summary", "consultant_id, rating_average"),
     ]);
 
+    // Sign-in emails, so the Users tab can search and show them.
+    const emailBy = new Map();
+    for (let page = 1; page <= 50; page++) {
+      const { data: au, error: auErr } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+      if (auErr) { console.warn("[admin marketplace] listUsers failed:", auErr.message); break; }
+      for (const u of au?.users || []) emailBy.set(u.id, { email: u.email || null, last_sign_in_at: u.last_sign_in_at || null });
+      if (!au?.users || au.users.length < 1000) break;
+    }
     const cpBy = new Map(consultantProfiles.map((r) => [r.user_id, r]));
     const bpBy = new Map(businessProfiles.map((r) => [r.user_id, r]));
     const ratingBy = new Map(ratings.map((r) => [r.consultant_id, r.rating_average]));
@@ -6522,6 +6530,8 @@ app.get("/api/admin/marketplace", async (req, res) => {
         return {
           id: p.id,
           name: p.full_name || "Unnamed user",
+          email: emailBy.get(p.id)?.email || null,
+          last_sign_in_at: emailBy.get(p.id)?.last_sign_in_at || null,
           role: p.role,
           school: cp.school || null,
           major: cp.major || null,
@@ -6873,6 +6883,160 @@ app.post("/api/admin/users/:id/delete", express.json(), async (req, res) => {
   if (delErr) return res.status(500).json({ error: delErr.message });
   console.log("[admin] delete user", JSON.stringify({ by: admin.email, user: userId, email }));
   return res.json({ ok: true });
+});
+
+/* Bulk delete — for clearing test and debug accounts. Two steps: the
+   preview reports which selected accounts can go and why the rest can't;
+   the delete re-checks every account and requires the phrase
+   "delete N accounts", where N is the number it will actually delete. */
+const BULK_DELETE_MAX = 100;
+
+async function adminBulkCheck(ids, admin) {
+  const out = [];
+  for (const id of ids) {
+    const { data: authData } = await supabase.auth.admin.getUserById(id);
+    const user = authData?.user || null;
+    const email = (user?.email || "").toLowerCase();
+    const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", id).maybeSingle();
+    let blockers = [];
+    if (!user) blockers = ["Account not found"];
+    else if (id === admin.id) blockers = ["This is your own account"];
+    else if (ADMIN_EMAILS.has(email)) blockers = ["Admin account"];
+    else {
+      try { blockers = await adminDeleteBlockers(id, await adminUserBids(id)); }
+      catch (e) { blockers = [`Couldn't check payment records (${e.message})`]; }
+    }
+    out.push({ id, email: user?.email || null, name: profile?.full_name || null, blockers });
+  }
+  return out;
+}
+
+function bulkIds(req, res) {
+  const raw = Array.isArray(req.body?.ids) ? req.body.ids : [];
+  const ids = [...new Set(raw.map(String))];
+  if (!ids.length) { res.status(400).json({ error: "Select at least one." }); return null; }
+  if (ids.length > BULK_DELETE_MAX) { res.status(400).json({ error: `Select ${BULK_DELETE_MAX} or fewer.` }); return null; }
+  if (!ids.every((id) => ADMIN_UUID_RE.test(id))) { res.status(400).json({ error: "Bad user id." }); return null; }
+  return ids;
+}
+
+app.post("/api/admin/users/bulk-delete/preview", express.json(), async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+  const ids = bulkIds(req, res);
+  if (!ids) return;
+  const accounts = await adminBulkCheck(ids, admin);
+  return res.json({ accounts, deletable: accounts.filter((a) => !a.blockers.length).length });
+});
+
+app.post("/api/admin/users/bulk-delete", express.json(), async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+  const ids = bulkIds(req, res);
+  if (!ids) return;
+
+  const accounts = await adminBulkCheck(ids, admin);
+  const deletable = accounts.filter((a) => !a.blockers.length);
+  const phrase = `delete ${deletable.length} account${deletable.length === 1 ? "" : "s"}`;
+  const confirm = String(req.body?.confirm || "").trim().toLowerCase();
+  if (!deletable.length) return res.status(409).json({ error: "None of these accounts can be deleted.", accounts });
+  if (confirm !== phrase) {
+    return res.status(409).json({ error: `Type "${phrase}" to confirm. The list may have changed since you opened it.`, accounts });
+  }
+
+  const deleted = [];
+  const failed = [];
+  for (const a of deletable) {
+    const { error } = await supabase.auth.admin.deleteUser(a.id);
+    if (error) failed.push({ id: a.id, email: a.email, error: error.message });
+    else deleted.push(a.id);
+  }
+  console.log("[admin] bulk delete", JSON.stringify({ by: admin.email, deleted, failed: failed.map((f) => f.id), skipped: accounts.filter((a) => a.blockers.length).map((a) => a.id) }));
+  return res.json({
+    ok: true,
+    deleted,
+    failed,
+    skipped: accounts.filter((a) => a.blockers.length).map((a) => ({ id: a.id, email: a.email, reason: a.blockers.join("; ") })),
+  });
+});
+
+/* Engagement delete — an engagement is an accepted bid, so this deletes
+   the bid row (its schedule, phase rows and reviews cascade with it). The
+   listing is left as it is. Same payment gate as account delete: any bid
+   with money on record is skipped. Same two steps as bulk user delete,
+   with the phrase "delete N engagements". */
+async function adminEngagementCheck(ids) {
+  const { data: rows, error } = await supabase
+    .from("bids")
+    .select("id, listing_id, consultant_id, status, payment_status")
+    .in("id", ids);
+  if (error) throw new Error(`bids: ${error.message}`);
+  const byId = new Map((rows || []).map((b) => [b.id, b]));
+  const listingIds = [...new Set((rows || []).map((b) => b.listing_id))];
+  const { data: listings } = listingIds.length
+    ? await supabase.from("listings").select("id, title").in("id", listingIds)
+    : { data: [] };
+  const titleBy = new Map((listings || []).map((l) => [l.id, l.title]));
+  const out = [];
+  for (const id of ids) {
+    const bid = byId.get(id);
+    let blockers;
+    if (!bid) blockers = ["Engagement not found"];
+    else {
+      try { blockers = await adminDeleteBlockers(null, [bid]); }
+      catch (e) { blockers = [`Couldn't check payment records (${e.message})`]; }
+    }
+    out.push({ id, title: bid ? titleBy.get(bid.listing_id) || "Untitled listing" : null, status: bid?.status || null, payment_status: bid?.payment_status || null, blockers });
+  }
+  return out;
+}
+
+app.post("/api/admin/engagements/delete/preview", express.json(), async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+  const ids = bulkIds(req, res);
+  if (!ids) return;
+  try {
+    const items = await adminEngagementCheck(ids);
+    return res.json({ items, deletable: items.filter((i) => !i.blockers.length).length });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/admin/engagements/delete", express.json(), async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+  const ids = bulkIds(req, res);
+  if (!ids) return;
+  let items;
+  try { items = await adminEngagementCheck(ids); }
+  catch (err) { return res.status(409).json({ error: `Couldn't check payment records, so nothing was deleted. ${err.message}` }); }
+  const deletable = items.filter((i) => !i.blockers.length);
+  const phrase = `delete ${deletable.length} engagement${deletable.length === 1 ? "" : "s"}`;
+  const confirm = String(req.body?.confirm || "").trim().toLowerCase();
+  if (!deletable.length) return res.status(409).json({ error: "None of these engagements can be deleted.", items });
+  if (confirm !== phrase) {
+    return res.status(409).json({ error: `Type "${phrase}" to confirm. The list may have changed since you opened it.`, items });
+  }
+  const deleted = [];
+  const failed = [];
+  for (const it of deletable) {
+    const { error } = await supabase.from("bids").delete().eq("id", it.id);
+    if (error) failed.push({ id: it.id, title: it.title, error: error.message });
+    else deleted.push(it.id);
+  }
+  console.log("[admin] engagement delete", JSON.stringify({ by: admin.email, deleted, failed: failed.map((f) => f.id) }));
+  return res.json({
+    ok: true,
+    deleted,
+    failed,
+    skipped: items.filter((i) => i.blockers.length).map((i) => ({ id: i.id, title: i.title, reason: i.blockers.join("; ") })),
+  });
 });
 
 /* ──────────────────────────────────────────────────────────────

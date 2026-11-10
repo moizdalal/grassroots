@@ -227,14 +227,22 @@
             </div>
           </div>
 
+          <div class="adm-bulkbar" id="adm-bulkbar" hidden>
+            <span id="adm-bulk-count"></span>
+            <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="adm-bulk-clear">Clear selection</button>
+            <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm adm-pay-danger" id="adm-bulk-delete">Delete selected</button>
+          </div>
+
           <div class="adm-table-wrap">
             <table class="adm-table">
               <thead>
                 <tr>
+                  <th class="adm-th-check"><input type="checkbox" id="adm-users-all" aria-label="Select all shown users" /></th>
                   <th>Name</th>
                   <th>Role</th>
                   <th>City</th>
                   <th>Joined</th>
+                  <th>Last sign-in</th>
                   <th>Engagements</th>
                   <th>Volume</th>
                 </tr>
@@ -267,10 +275,17 @@
             </div>
           </div>
 
+          <div class="adm-bulkbar" id="adm-eng-bulkbar" hidden>
+            <span id="adm-eng-bulk-count"></span>
+            <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="adm-eng-bulk-clear">Clear selection</button>
+            <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm adm-pay-danger" id="adm-eng-bulk-delete">Delete selected</button>
+          </div>
+
           <div class="adm-table-wrap">
             <table class="adm-table">
               <thead>
                 <tr>
+                  <th class="adm-th-check"><input type="checkbox" id="adm-eng-all" aria-label="Select all shown engagements" /></th>
                   <th>Listing</th>
                   <th>Business</th>
                   <th>Consultant</th>
@@ -508,6 +523,17 @@
       </div>
     </div>
 
+    <dialog class="adm-dialog" id="adm-bulk-dialog" aria-labelledby="adm-bulk-title">
+      <form method="dialog" class="adm-dialog__inner" id="adm-bulk-form">
+        <h2 class="adm-dialog__title" id="adm-bulk-title">Delete</h2>
+        <div id="adm-bulk-body"><p class="adm-ud-note">Checking accounts…</p></div>
+        <p class="adm-ud-status" id="adm-bulk-status" role="status" aria-live="polite"></p>
+        <div class="adm-dialog__actions">
+          <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" id="adm-bulk-cancel">Cancel</button>
+          <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm adm-pay-danger" id="adm-bulk-confirm" disabled>Delete</button>
+        </div>
+      </form>
+    </dialog>
     <script type="module" src="./admin.js"></script>
     <script defer src="/perf-beacon.js"></script>
   </body>

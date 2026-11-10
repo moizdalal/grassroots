@@ -370,6 +370,8 @@ function renderUpcomingTile() {
 
 let userFilter = "all";
 let userQuery = "";
+let shownUserIds = [];
+const selectedUsers = new Set();
 
 function renderUsersTable() {
   const host = document.getElementById("adm-users-tbody");
@@ -381,42 +383,212 @@ function renderUsersTable() {
       u.name.toLowerCase().includes(q) ||
       (u.business_name || "").toLowerCase().includes(q) ||
       (u.school || "").toLowerCase().includes(q) ||
-      (u.city || "").toLowerCase().includes(q),
+      (u.city || "").toLowerCase().includes(q) ||
+      (u.email || "").toLowerCase().includes(q),
     );
   }
   rows.sort((a, b) => b.joined_at - a.joined_at);
+  shownUserIds = rows.map((u) => u.id);
 
   document.getElementById("adm-users-count").textContent = `${rows.length} ${rows.length === 1 ? "person" : "people"}`;
 
   if (!rows.length) {
-    host.innerHTML = `<tr><td colspan="6" class="adm-table-empty">No matches.</td></tr>`;
+    host.innerHTML = `<tr><td colspan="8" class="adm-table-empty">No matches.</td></tr>`;
+    syncBulkBar();
     return;
   }
   host.innerHTML = rows.map((u) => {
     const s = userStats(u.id);
     return `
-      <tr class="adm-tr" data-user-id="${esc(u.id)}">
+      <tr class="adm-tr${selectedUsers.has(u.id) ? " is-selected" : ""}" data-user-id="${esc(u.id)}">
+        <td class="adm-td-check"><input type="checkbox" data-select-user="${esc(u.id)}" ${selectedUsers.has(u.id) ? "checked" : ""} aria-label="Select ${esc(u.name)}" /></td>
         <td>
           <div class="adm-cell-user">
             ${avatarMarkup(u)}
             <div>
               <div class="adm-cell-name">${esc(u.name)}</div>
-              <div class="adm-cell-sub">${esc(u.business_name || u.school || "")}</div>
+              <div class="adm-cell-sub">${esc([u.email, u.business_name || u.school].filter(Boolean).join(" · "))}</div>
             </div>
           </div>
         </td>
         <td>${rolePill(u.role)}</td>
         <td>${esc(u.city || "—")}</td>
         <td>${esc(fmtDate(u.joined_at))}</td>
+        <td title="${u.last_sign_in_at ? esc(fmtDateTime(u.last_sign_in_at)) : ""}">${u.last_sign_in_at ? esc(fmtRel(u.last_sign_in_at)) : `<span class="adm-ud-note">Never</span>`}</td>
         <td>${s.count}</td>
         <td class="adm-cell-money">${fmtMoneyShort(s.total_cents)}</td>
       </tr>
     `;
   }).join("");
   host.querySelectorAll(".adm-tr").forEach((tr) => {
-    tr.addEventListener("click", () => openUserDrawer(tr.dataset.userId));
+    tr.addEventListener("click", (e) => {
+      if (e.target.closest(".adm-td-check")) return;
+      openUserDrawer(tr.dataset.userId);
+    });
   });
+  host.querySelectorAll("[data-select-user]").forEach((box) => {
+    box.addEventListener("change", () => {
+      const id = box.dataset.selectUser;
+      if (box.checked) selectedUsers.add(id); else selectedUsers.delete(id);
+      box.closest("tr").classList.toggle("is-selected", box.checked);
+      syncBulkBar();
+    });
+  });
+  syncBulkBar();
 }
+
+/* ---------------- bulk delete ---------------- */
+
+function syncBulkBar() {
+  // Drop selections for accounts that no longer exist.
+  for (const id of selectedUsers) if (!data.users.some((u) => u.id === id)) selectedUsers.delete(id);
+  const bar = document.getElementById("adm-bulkbar");
+  const n = selectedUsers.size;
+  bar.hidden = n === 0;
+  document.getElementById("adm-bulk-count").textContent = `${n} selected`;
+  const all = document.getElementById("adm-users-all");
+  const shownSel = shownUserIds.filter((id) => selectedUsers.has(id)).length;
+  all.checked = shownUserIds.length > 0 && shownSel === shownUserIds.length;
+  all.indeterminate = shownSel > 0 && shownSel < shownUserIds.length;
+}
+
+document.getElementById("adm-users-all")?.addEventListener("change", (e) => {
+  for (const id of shownUserIds) {
+    if (e.target.checked) selectedUsers.add(id); else selectedUsers.delete(id);
+  }
+  renderUsersTable();
+});
+
+document.getElementById("adm-bulk-clear")?.addEventListener("click", () => {
+  selectedUsers.clear();
+  renderUsersTable();
+});
+
+const bulkDialog = document.getElementById("adm-bulk-dialog");
+const bulkTitle = document.getElementById("adm-bulk-title");
+const bulkBody = document.getElementById("adm-bulk-body");
+const bulkStatus = document.getElementById("adm-bulk-status");
+const bulkConfirmBtn = document.getElementById("adm-bulk-confirm");
+const bulkCancelBtn = document.getElementById("adm-bulk-cancel");
+let bulk = null; // { kind, ids, phrase }
+
+// What each kind of delete calls, says and does afterwards.
+const BULK_KINDS = {
+  users: {
+    one: "account", many: "accounts",
+    preview: "/api/admin/users/bulk-delete/preview",
+    run: "/api/admin/users/bulk-delete",
+    rows: (r) => r.accounts,
+    lead: (n) => `${n === 1 ? "This account" : `These ${n} accounts`} will be permanently deleted with their listings, offers and messages. This can't be undone.`,
+    label: (a) => `<strong>${esc(a.name || "Unnamed user")}</strong> <span class="adm-ud-note">${esc(a.email || a.id)}</span>`,
+    removeLocal(ids) {
+      const gone = new Set(ids);
+      for (let i = data.users.length - 1; i >= 0; i--) if (gone.has(data.users[i].id)) data.users.splice(i, 1);
+      for (const id of ids) selectedUsers.delete(id);
+      renderUsersTable();
+    },
+  },
+  engagements: {
+    one: "engagement", many: "engagements",
+    preview: "/api/admin/engagements/delete/preview",
+    run: "/api/admin/engagements/delete",
+    rows: (r) => r.items,
+    lead: (n) => `${n === 1 ? "This engagement" : `These ${n} engagements`} will be permanently deleted with their schedule and reviews. The listings stay. This can't be undone.`,
+    label: (it) => {
+      const e = data.engagements.find((x) => x.id === it.id);
+      return `<strong>${esc(it.title || "Untitled listing")}</strong> <span class="adm-ud-note">${esc(e ? `${e.owner_name} × ${e.consultant_name}` : it.id)}</span>`;
+    },
+    removeLocal(ids) {
+      const gone = new Set(ids);
+      for (let i = data.engagements.length - 1; i >= 0; i--) if (gone.has(data.engagements[i].id)) data.engagements.splice(i, 1);
+      for (let i = data.bids.length - 1; i >= 0; i--) if (gone.has(data.bids[i].id)) data.bids.splice(i, 1);
+      for (const id of ids) selectedEngagements.delete(id);
+      renderEngagementsTable();
+      if (document.querySelector('[data-section="users"]:not([hidden])')) renderUsersTable();
+    },
+  },
+};
+
+const bulkPhraseFor = (kind, n) => `delete ${n} ${n === 1 ? BULK_KINDS[kind].one : BULK_KINDS[kind].many}`;
+
+function showBulkPreview(rows) {
+  const k = BULK_KINDS[bulk.kind];
+  const ok = rows.filter((r) => !r.blockers.length);
+  const blocked = rows.filter((r) => r.blockers.length);
+  bulk.phrase = ok.length ? bulkPhraseFor(bulk.kind, ok.length) : "";
+  bulkBody.innerHTML = `
+    ${ok.length ? `
+      <p class="adm-dialog__lead">${esc(k.lead(ok.length))}</p>
+      <ul class="adm-bulk-list">${ok.map((r) => `<li>${k.label(r)}</li>`).join("")}</ul>
+    ` : `<p class="adm-dialog__lead">None of the selected ${esc(k.many)} can be deleted.</p>`}
+    ${blocked.length ? `
+      <p class="adm-dialog__lead">${blocked.length === 1 ? "This one is" : `These ${blocked.length} are`} skipped:</p>
+      <ul class="adm-bulk-list">${blocked.map((r) => `<li>${k.label(r)}<div class="adm-ud-note adm-ud-note--warn">${esc(r.blockers.join("; "))}</div></li>`).join("")}</ul>
+    ` : ""}
+    ${ok.length ? `
+      <label class="gr-label adm-ud-confirm"><span>Type <strong>${esc(bulk.phrase)}</strong> to confirm</span>
+        <input type="text" id="adm-bulk-input" autocomplete="off" spellcheck="false" />
+      </label>
+    ` : ""}
+  `;
+  bulkConfirmBtn.textContent = ok.length ? `Delete ${ok.length}` : "Delete";
+  bulkConfirmBtn.disabled = true;
+  const input = document.getElementById("adm-bulk-input");
+  input?.addEventListener("input", () => {
+    bulkConfirmBtn.disabled = input.value.trim().toLowerCase() !== bulk.phrase;
+  });
+  input?.focus();
+}
+
+async function openBulkDelete(kind, ids) {
+  const k = BULK_KINDS[kind];
+  bulk = { kind, ids, phrase: "" };
+  bulkTitle.textContent = `Delete ${ids.length === 1 ? k.one : k.many}`;
+  bulkConfirmBtn.hidden = false;
+  bulkConfirmBtn.disabled = true;
+  bulkCancelBtn.textContent = "Cancel";
+  bulkStatus.textContent = "";
+  bulkStatus.classList.remove("adm-ud-note--warn");
+  bulkBody.innerHTML = `<p class="adm-ud-note">Checking ${ids.length} ${ids.length === 1 ? k.one : k.many}…</p>`;
+  bulkDialog.showModal();
+  try {
+    const r = await adminFetch(k.preview, { method: "POST", body: JSON.stringify({ ids }) });
+    showBulkPreview(k.rows(r));
+  } catch (err) {
+    bulkBody.innerHTML = `<p class="adm-ud-note adm-ud-note--warn">${esc(err.message)}</p>`;
+  }
+}
+
+document.getElementById("adm-bulk-delete")?.addEventListener("click", () => openBulkDelete("users", [...selectedUsers]));
+bulkCancelBtn?.addEventListener("click", () => bulkDialog.close());
+
+bulkConfirmBtn?.addEventListener("click", async () => {
+  const k = BULK_KINDS[bulk.kind];
+  const input = document.getElementById("adm-bulk-input");
+  bulkConfirmBtn.disabled = true;
+  bulkStatus.classList.remove("adm-ud-note--warn");
+  bulkStatus.textContent = "Deleting…";
+  try {
+    const r = await adminFetch(k.run, { method: "POST", body: JSON.stringify({ ids: bulk.ids, confirm: input?.value || "" }) });
+    k.removeLocal(r.deleted);
+    const n = r.deleted.length;
+    const parts = [`Deleted ${n} ${n === 1 ? k.one : k.many}.`];
+    if (r.skipped.length) parts.push(`Skipped ${r.skipped.length}.`);
+    if (r.failed.length) parts.push(`${r.failed.length} failed: ${r.failed.map((f) => `${f.email || f.title || f.id} (${f.error})`).join("; ")}`);
+    bulkStatus.textContent = parts.join(" ");
+    bulkStatus.classList.toggle("adm-ud-note--warn", r.failed.length > 0);
+    bulkBody.innerHTML = "";
+    bulkConfirmBtn.hidden = true;
+    bulkCancelBtn.textContent = "Close";
+    if (n && drawer.classList.contains("is-open")) closeDrawer();
+  } catch (err) {
+    bulkStatus.textContent = err.message;
+    bulkStatus.classList.add("adm-ud-note--warn");
+    // The server re-checked and the list changed: show the fresh list.
+    const fresh = err.body && k.rows(err.body);
+    if (fresh) showBulkPreview(fresh);
+  }
+});
 
 document.getElementById("adm-users-search")?.addEventListener("input", (e) => {
   userQuery = e.target.value.trim();
@@ -438,6 +610,8 @@ document.querySelectorAll('[data-role-filter]')?.forEach((btn) => {
 
 let engStageFilter = "all";
 let engQuery = "";
+let shownEngagementIds = [];
+const selectedEngagements = new Set();
 
 function renderEngagementsTable() {
   const host = document.getElementById("adm-eng-tbody");
@@ -455,15 +629,18 @@ function renderEngagementsTable() {
     );
   }
   rows.sort((a, b) => b.created_at - a.created_at);
+  shownEngagementIds = rows.map((e) => e.id);
 
   document.getElementById("adm-eng-count").textContent = `${rows.length} engagement${rows.length === 1 ? "" : "s"}`;
 
   if (!rows.length) {
-    host.innerHTML = `<tr><td colspan="6" class="adm-table-empty">No matches.</td></tr>`;
+    host.innerHTML = `<tr><td colspan="7" class="adm-table-empty">No matches.</td></tr>`;
+    syncEngBulkBar();
     return;
   }
   host.innerHTML = rows.map((e) => `
-    <tr class="adm-tr" data-engagement-id="${esc(e.id)}">
+    <tr class="adm-tr${selectedEngagements.has(e.id) ? " is-selected" : ""}" data-engagement-id="${esc(e.id)}">
+      <td class="adm-td-check"><input type="checkbox" data-select-eng="${esc(e.id)}" ${selectedEngagements.has(e.id) ? "checked" : ""} aria-label="Select ${esc(e.listing_title)}" /></td>
       <td>
         <div class="adm-cell-listing">
           <div class="adm-cell-name">${esc(e.listing_title)}</div>
@@ -478,9 +655,44 @@ function renderEngagementsTable() {
     </tr>
   `).join("");
   host.querySelectorAll(".adm-tr").forEach((tr) => {
-    tr.addEventListener("click", () => openEngagementDrawer(tr.dataset.engagementId));
+    tr.addEventListener("click", (ev) => {
+      if (ev.target.closest(".adm-td-check")) return;
+      openEngagementDrawer(tr.dataset.engagementId);
+    });
   });
+  host.querySelectorAll("[data-select-eng]").forEach((box) => {
+    box.addEventListener("change", () => {
+      const id = box.dataset.selectEng;
+      if (box.checked) selectedEngagements.add(id); else selectedEngagements.delete(id);
+      box.closest("tr").classList.toggle("is-selected", box.checked);
+      syncEngBulkBar();
+    });
+  });
+  syncEngBulkBar();
 }
+
+function syncEngBulkBar() {
+  for (const id of selectedEngagements) if (!data.engagements.some((e) => e.id === id)) selectedEngagements.delete(id);
+  const n = selectedEngagements.size;
+  document.getElementById("adm-eng-bulkbar").hidden = n === 0;
+  document.getElementById("adm-eng-bulk-count").textContent = `${n} selected`;
+  const all = document.getElementById("adm-eng-all");
+  const shownSel = shownEngagementIds.filter((id) => selectedEngagements.has(id)).length;
+  all.checked = shownEngagementIds.length > 0 && shownSel === shownEngagementIds.length;
+  all.indeterminate = shownSel > 0 && shownSel < shownEngagementIds.length;
+}
+
+document.getElementById("adm-eng-all")?.addEventListener("change", (ev) => {
+  for (const id of shownEngagementIds) {
+    if (ev.target.checked) selectedEngagements.add(id); else selectedEngagements.delete(id);
+  }
+  renderEngagementsTable();
+});
+document.getElementById("adm-eng-bulk-clear")?.addEventListener("click", () => {
+  selectedEngagements.clear();
+  renderEngagementsTable();
+});
+document.getElementById("adm-eng-bulk-delete")?.addEventListener("click", () => openBulkDelete("engagements", [...selectedEngagements]));
 
 document.getElementById("adm-eng-search")?.addEventListener("input", (e) => {
   engQuery = e.target.value.trim();
@@ -919,8 +1131,17 @@ function openEngagementDrawer(engId) {
         </li>
       `).join("")}
     </ul>
+    <h4 class="adm-drawer-sec">Manage engagement</h4>
+    <div class="adm-ud-action adm-ud-action--danger">
+      <div>
+        <div class="adm-ud-action__title">Delete engagement</div>
+        <p class="adm-ud-note">Removes this accepted offer with its schedule and reviews. The listing stays. Engagements with a payment on record can't be deleted.</p>
+      </div>
+      <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm adm-pay-danger" data-eng-delete="${esc(e.id)}">Delete</button>
+    </div>
   `;
   openDrawer("engagement", html);
+  drawerBody.querySelector("[data-eng-delete]")?.addEventListener("click", (ev) => openBulkDelete("engagements", [ev.currentTarget.dataset.engDelete]));
   // Wire the consultant/business pair cards to open user drawers.
   drawerBody.querySelectorAll(".adm-pair-body").forEach((card) => {
     if (!card.dataset.userId) return;
