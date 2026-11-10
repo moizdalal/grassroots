@@ -159,28 +159,29 @@
         padding: clamp(40px, 6vw, 80px) 0 clamp(60px, 8vw, 110px);
       }
       /* hero: title, button and sentence on the left, laptop on the right.
-         The laptop column runs past the page shell on the right so the screen
-         stays big enough to read. Narrower screens stack them. */
+         The laptop gets the bigger share of the row and runs past the page
+         shell on the right, so the animation stays easy to follow. It sits
+         beside the text down to tablet width; phones stack them. */
       .fs-hero__grid {
         display: grid;
         gap: clamp(44px, 5vw, 64px);
       }
-      @media (min-width: 1101px) {
+      @media (min-width: 900px) {
         .fs-hero__grid {
-          grid-template-columns: minmax(0, 12fr) minmax(0, 11fr);
-          column-gap: clamp(60px, 6vw, 88px);
+          grid-template-columns: minmax(0, 9fr) minmax(0, 13fr);
+          column-gap: clamp(40px, 4.5vw, 72px);
           /* the sentence's last line and the laptop's base share a bottom edge */
           align-items: end;
-          margin-right: max(-120px, min(0px, calc((1240px - 100vw) / 2 + 30px)));
+          margin-right: max(-140px, min(0px, calc((1240px - 100vw) / 2 + 30px)));
         }
         .fs-hero__grid .fs-laptop { max-width: none; }
-        .fs-hero__h1 { font-size: clamp(2.7rem, 4.1vw, 4rem); line-height: 1.08; }
+        .fs-hero__grid .fs-hero__h1 { font-size: clamp(2.3rem, 3.7vw, 3.7rem); line-height: 1.08; }
         /* sits level with the laptop's base, so keep it well clear of it */
         .fs-hero__sub { max-width: 20em; }
       }
       /* no spare margin to run into here, so keep the base on screen */
-      @media (min-width: 1101px) and (max-width: 1260px) {
-        .fs-hero__grid .fs-laptop { width: 96%; margin-inline: 0 auto; }
+      @media (min-width: 900px) and (max-width: 1260px) {
+        .fs-hero__grid .fs-laptop { width: 93%; margin-inline: 0 auto; }
       }
 
       /* ── laptop: the student marketplace ──
