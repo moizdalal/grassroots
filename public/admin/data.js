@@ -65,7 +65,7 @@ export async function loadAdminData() {
   if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
 
   NOW = new Date(body.now || Date.now());
-  users = (body.users || []).map((u) => ({ ...u, joined_at: toDate(u.joined_at) }));
+  users = (body.users || []).map((u) => ({ ...u, joined_at: toDate(u.joined_at), last_sign_in_at: toDate(u.last_sign_in_at) }));
   listings = (body.listings || []).map((l) => ({
     ...l,
     category: categoryLabel(l.category),
