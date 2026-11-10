@@ -61,7 +61,7 @@
     <link rel="stylesheet" href="/grassroots.css?v=2" />
     <link rel="stylesheet" href="/field-office.css?v=3" />
     <link rel="stylesheet" href="/home/nav.css?v=7" />
-    <link rel="stylesheet" href="/home/for-students.css?v=60" />
+    <link rel="stylesheet" href="/home/for-students.css?v=61" />
     <script src="/theme.js?v=2"></script>
     <script src="/cookie-banner.js" defer></script>
     <script src="/home/theme-default.js?v=2"></script>
@@ -340,7 +340,7 @@
           <ol class="fs-steps fs-stagger fs-reveal">
             <li class="fs-step">
               <h3 class="fs-step__title">Get in</h3>
-              <p class="fs-step__body">You apply with your .edu email, a past project you're proud of and a few lines on why you want to help small businesses.</p>
+              <p class="fs-step__body">You apply with your .edu email, your major and a past project you're proud of.</p>
             </li>
             <li class="fs-step">
               <h3 class="fs-step__title">Build your bio</h3>
@@ -394,8 +394,8 @@
             <dl class="fs-earn__ledger">
               <div><dt>Your offer</dt><dd data-out="offer">$240</dd></div>
               <div><dt>Platform fee, 10%</dt><dd data-out="fee">−$24</dd></div>
-              <div class="fs-earn__sub"><dt><i class="fs-earn__dot fs-earn__dot--card"></i>Transaction processing, about <span data-out="cardPct">3.3%</span></dt><dd data-out="card">$7.96</dd></div>
-              <div class="fs-earn__sub"><dt><i class="fs-earn__dot"></i>Grassroots, about <span data-out="grPct">6.7%</span></dt><dd data-out="gr">$16.04</dd></div>
+              <div class="fs-earn__sub"><dt><i class="fs-earn__dot fs-earn__dot--card"></i>Transaction processing ~<span data-out="cardPct">3.3%</span></dt><dd data-out="card">$7.96</dd></div>
+              <div class="fs-earn__sub"><dt><i class="fs-earn__dot"></i>Grassroots ~<span data-out="grPct">6.7%</span></dt><dd data-out="gr">$16.04</dd></div>
               <div><dt>Subscription, bid or payout fees</dt><dd class="fs-earn__free">None</dd></div>
             </dl>
 
@@ -468,16 +468,27 @@
                 </label>
               </div>
               <label class="fs-field">
+                <span class="fs-field__label">Major</span>
+                <span class="fs-select">
+                  <select name="major" id="fs-major" required>
+                    <option value="" disabled selected>Pick your major</option>
+                  </select>
+                </span>
+              </label>
+              <!-- extra degrees: second major, minor, master's or specialization.
+                   Rows are added by the script below and sent as `extras`. -->
+              <div class="fs-extras" id="fs-extras"></div>
+              <button type="button" class="fs-extras__add" id="fs-extras-add">
+                <span aria-hidden="true">+</span> Add a minor, master's or specialization
+              </button>
+              <datalist id="fs-majors-list"></datalist>
+              <label class="fs-field">
                 <span class="fs-field__label">A past project you're proud of</span>
                 <textarea name="project" rows="3" placeholder="What it was, who it was for and what you did. Client work, class projects and personal projects all count." maxlength="2000" required></textarea>
               </label>
               <label class="fs-field">
-                <span class="fs-field__label">Link to it (optional)</span>
+                <span class="fs-field__label">Link to it (optional, but preferred)</span>
                 <input type="text" name="link" placeholder="Portfolio, site, drive folder, anything" maxlength="500"/>
-              </label>
-              <label class="fs-field">
-                <span class="fs-field__label">Why do you want to help small businesses?</span>
-                <textarea name="why" rows="3" placeholder="A few sentences is enough. Tell us about a small business near you and how you'd help." maxlength="2000" required></textarea>
               </label>
               <!-- Honeypot: hidden from people, bots fill it in. -->
               <label class="fs-apply-form__trap" aria-hidden="true">
@@ -981,6 +992,73 @@
         });
       })();
 
+      // ── apply form: majors ───────────────────────────────
+      // The major picker is a fixed list from /data/majors.json (FiveThirtyEight's
+      // college-majors list, built on the Census ACS field-of-degree codes),
+      // grouped by category. Extra degrees are free text with the same list
+      // as suggestions, since master's and specialization names vary by school.
+      (function () {
+        var major = document.getElementById('fs-major');
+        var wrap = document.getElementById('fs-extras');
+        var add = document.getElementById('fs-extras-add');
+        var suggest = document.getElementById('fs-majors-list');
+        if (!major || !wrap || !add) return;
+        var MAX_EXTRAS = 4;
+
+        fetch('/data/majors.json').then(function (r) {
+          if (!r.ok) throw new Error('majors');
+          return r.json();
+        }).then(function (list) {
+          var groups = {};
+          list.forEach(function (m) { (groups[m.category] = groups[m.category] || []).push(m.name); });
+          Object.keys(groups).sort().forEach(function (cat) {
+            var g = document.createElement('optgroup');
+            g.label = cat;
+            groups[cat].forEach(function (name) { g.appendChild(new Option(name, name)); });
+            major.appendChild(g);
+          });
+          list.forEach(function (m) { suggest.appendChild(new Option(m.name)); });
+        }).catch(function () {
+          // list didn't load: fall back to typing it in
+          var input = document.createElement('input');
+          input.type = 'text'; input.name = 'major'; input.required = true;
+          input.maxLength = 160; input.placeholder = 'Marketing';
+          major.parentNode.replaceWith(input);
+        });
+
+        var PLACEHOLDERS = {
+          'Second major': 'Your second major',
+          'Minor': 'Your minor',
+          "Master's": "e.g. Master's in Business Analytics",
+          'Specialization': 'e.g. Brand strategy'
+        };
+        function addRow() {
+          var row = document.createElement('div');
+          row.className = 'fs-extra';
+          row.innerHTML =
+            '<span class="fs-select fs-extra__type"><select name="extra_type" aria-label="Type">' +
+              Object.keys(PLACEHOLDERS).map(function (t) {
+                return '<option' + (t === 'Minor' ? ' selected' : '') + '>' + t + '</option>';
+              }).join('') +
+            '</select></span>' +
+            '<input class="fs-extra__name" type="text" name="extra_name" list="fs-majors-list" maxlength="160" aria-label="Name" required/>' +
+            '<button type="button" class="fs-extra__remove" aria-label="Remove">×</button>';
+          var type = row.querySelector('select');
+          var name = row.querySelector('input');
+          function sync() { name.placeholder = PLACEHOLDERS[type.value]; }
+          type.addEventListener('change', sync);
+          sync();
+          row.querySelector('.fs-extra__remove').addEventListener('click', function () {
+            row.remove();
+            add.hidden = false;
+          });
+          wrap.appendChild(row);
+          add.hidden = wrap.children.length >= MAX_EXTRAS;
+          name.focus();
+        }
+        add.addEventListener('click', addRow);
+      })();
+
       // ── apply form ───────────────────────────────────────
       // Sends the application to /api/student-application, which emails it
       // to the admin. The button only says "sent" once the server confirms.
@@ -1007,7 +1085,15 @@
           btn.disabled = true;
           btn.innerHTML = '<span>Sending…</span>';
           var data = {};
-          new FormData(f).forEach(function (value, key) { data[key] = value; });
+          new FormData(f).forEach(function (value, key) {
+            if (key === 'extra_type' || key === 'extra_name') return;
+            data[key] = value;
+          });
+          data.extras = [];
+          f.querySelectorAll('.fs-extra').forEach(function (row) {
+            var name = row.querySelector('[name="extra_name"]').value.trim();
+            if (name) data.extras.push({ type: row.querySelector('[name="extra_type"]').value, name: name });
+          });
           fetch('/api/student-application', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

@@ -1346,9 +1346,15 @@ app.post("/api/student-application", async (req, res) => {
   const email = line(body.email, 200).toLowerCase();
   const city = line(body.city, 120);
   const link = line(body.link, 500);
-  const why = String(body.why ?? "").trim().slice(0, 2000);
+  const major = line(body.major, 160);
+  // Extra degrees: second major, minor, master's or specialization.
+  const EXTRA_TYPES = ["Second major", "Minor", "Master's", "Specialization"];
+  const extras = (Array.isArray(body.extras) ? body.extras : [])
+    .slice(0, 4)
+    .map((e) => ({ type: EXTRA_TYPES.includes(e?.type) ? e.type : null, name: line(e?.name, 160) }))
+    .filter((e) => e.type && e.name);
   const project = String(body.project ?? "").trim().slice(0, 2000);
-  if (!name || !school || !email || !city || !why || !project) {
+  if (!name || !school || !email || !city || !major || !project) {
     return res.status(400).json({ error: "Please fill in every field." });
   }
   if (!/^[^\s@]+@[^\s@]+\.edu$/.test(email)) {
@@ -1365,11 +1371,12 @@ app.post("/api/student-application", async (req, res) => {
       `School: ${school}\n` +
       `Email:  ${email}\n` +
       `City:   ${city}\n` +
+      `Major:  ${major}\n` +
+      extras.map((e) => `${e.type}: ${e.name}\n`).join("") +
       `Link:   ${link || "none given"}\n\n` +
       `A past project they're proud of:\n${project}\n\n` +
-      `Why Grassroots:\n${why}\n\n` +
       `Reply to this email to reach them. Applicants join through a consultant invite link.`,
-    idempotencyKey: `student-application:${crypto.createHash("sha256").update(`${email}\n${why}`).digest("hex")}`,
+    idempotencyKey: `student-application:${crypto.createHash("sha256").update(`${email}\n${project}`).digest("hex")}`,
     tags: [{ name: "event", value: "student_application" }],
   });
 

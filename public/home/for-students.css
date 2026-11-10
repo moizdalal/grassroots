@@ -1192,6 +1192,76 @@
         box-shadow: 0 0 0 4px var(--fo-accent-soft);
       }
 
+      /* select chevron: the native arrow ignores padding once styled */
+      .fs-select { position: relative; display: block; }
+      .fs-field .fs-select select, .fs-extra select {
+        -webkit-appearance: none; appearance: none;
+        padding-right: 2.4rem;
+        cursor: pointer;
+      }
+      .fs-field select:invalid { color: var(--fo-text-3); }
+      .fs-field select option, .fs-field select optgroup { color: var(--fo-text); background: var(--fo-bg); }
+      .fs-select::after {
+        content: "";
+        position: absolute; right: 1rem; top: 50%;
+        width: 7px; height: 7px;
+        border-right: 1.5px solid var(--fo-text-2);
+        border-bottom: 1.5px solid var(--fo-text-2);
+        transform: translateY(-70%) rotate(45deg);
+        pointer-events: none;
+      }
+
+      /* extra degrees: type picker, name, remove */
+      .fs-extras { display: grid; gap: 10px; }
+      .fs-extras:empty { display: none; }
+      .fs-extra {
+        display: grid; grid-template-columns: 11rem 1fr auto; gap: 10px;
+        align-items: center;
+      }
+      .fs-extra select, .fs-extra input {
+        width: 100%;
+        padding: 0.85rem 1rem;
+        background: color-mix(in srgb, var(--fo-bg) 60%, transparent);
+        border: 1.5px solid var(--fo-line-strong);
+        border-radius: 12px;
+        font-family: var(--font-body);
+        font-size: 0.95rem;
+        color: var(--fo-text);
+        transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+      }
+      .fs-extra select { padding-right: 2.4rem; }
+      .fs-extra input::placeholder { color: var(--fo-text-3); }
+      .fs-extra select:focus, .fs-extra input:focus {
+        outline: none;
+        border-color: var(--fo-accent);
+        background: var(--fo-bg);
+        box-shadow: 0 0 0 4px var(--fo-accent-soft);
+      }
+      .fs-extra__remove {
+        width: 40px; height: 40px;
+        border: 0; border-radius: 50%;
+        background: transparent;
+        color: var(--fo-text-2);
+        font-size: 1.4rem; line-height: 1;
+        cursor: pointer;
+      }
+      .fs-extra__remove:hover { color: var(--fo-text); background: var(--fo-accent-soft); }
+      @media (max-width: 480px) {
+        .fs-extra { grid-template-columns: 1fr auto; }
+        .fs-extra__name { grid-column: 1 / -1; grid-row: 2; }
+      }
+      .fs-extras__add {
+        justify-self: start;
+        padding: 0;
+        border: 0; background: none;
+        font-family: var(--font-body);
+        font-size: 0.9rem; font-weight: 600;
+        color: var(--fo-accent);
+        cursor: pointer;
+      }
+      .fs-extras__add:hover { text-decoration: underline; text-underline-offset: 3px; }
+      .fs-extras__add[hidden] { display: none; }
+
       /* the refer-3 widget */
       .fs-refer__counter {
         display: flex; align-items: baseline; gap: 0.4rem;
