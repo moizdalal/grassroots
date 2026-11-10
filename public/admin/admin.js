@@ -370,6 +370,8 @@ function renderUpcomingTile() {
 
 let userFilter = "all";
 let userQuery = "";
+let shownUserIds = [];
+const selectedUsers = new Set();
 
 function renderUsersTable() {
   const host = document.getElementById("adm-users-tbody");
@@ -381,27 +383,31 @@ function renderUsersTable() {
       u.name.toLowerCase().includes(q) ||
       (u.business_name || "").toLowerCase().includes(q) ||
       (u.school || "").toLowerCase().includes(q) ||
-      (u.city || "").toLowerCase().includes(q),
+      (u.city || "").toLowerCase().includes(q) ||
+      (u.email || "").toLowerCase().includes(q),
     );
   }
   rows.sort((a, b) => b.joined_at - a.joined_at);
+  shownUserIds = rows.map((u) => u.id);
 
   document.getElementById("adm-users-count").textContent = `${rows.length} ${rows.length === 1 ? "person" : "people"}`;
 
   if (!rows.length) {
-    host.innerHTML = `<tr><td colspan="6" class="adm-table-empty">No matches.</td></tr>`;
+    host.innerHTML = `<tr><td colspan="7" class="adm-table-empty">No matches.</td></tr>`;
+    syncBulkBar();
     return;
   }
   host.innerHTML = rows.map((u) => {
     const s = userStats(u.id);
     return `
-      <tr class="adm-tr" data-user-id="${esc(u.id)}">
+      <tr class="adm-tr${selectedUsers.has(u.id) ? " is-selected" : ""}" data-user-id="${esc(u.id)}">
+        <td class="adm-td-check"><input type="checkbox" data-select-user="${esc(u.id)}" ${selectedUsers.has(u.id) ? "checked" : ""} aria-label="Select ${esc(u.name)}" /></td>
         <td>
           <div class="adm-cell-user">
             ${avatarMarkup(u)}
             <div>
               <div class="adm-cell-name">${esc(u.name)}</div>
-              <div class="adm-cell-sub">${esc(u.business_name || u.school || "")}</div>
+              <div class="adm-cell-sub">${esc([u.email, u.business_name || u.school].filter(Boolean).join(" · "))}</div>
             </div>
           </div>
         </td>
@@ -414,9 +420,144 @@ function renderUsersTable() {
     `;
   }).join("");
   host.querySelectorAll(".adm-tr").forEach((tr) => {
-    tr.addEventListener("click", () => openUserDrawer(tr.dataset.userId));
+    tr.addEventListener("click", (e) => {
+      if (e.target.closest(".adm-td-check")) return;
+      openUserDrawer(tr.dataset.userId);
+    });
   });
+  host.querySelectorAll("[data-select-user]").forEach((box) => {
+    box.addEventListener("change", () => {
+      const id = box.dataset.selectUser;
+      if (box.checked) selectedUsers.add(id); else selectedUsers.delete(id);
+      box.closest("tr").classList.toggle("is-selected", box.checked);
+      syncBulkBar();
+    });
+  });
+  syncBulkBar();
 }
+
+/* ---------------- bulk delete ---------------- */
+
+function syncBulkBar() {
+  // Drop selections for accounts that no longer exist.
+  for (const id of selectedUsers) if (!data.users.some((u) => u.id === id)) selectedUsers.delete(id);
+  const bar = document.getElementById("adm-bulkbar");
+  const n = selectedUsers.size;
+  bar.hidden = n === 0;
+  document.getElementById("adm-bulk-count").textContent = `${n} selected`;
+  const all = document.getElementById("adm-users-all");
+  const shownSel = shownUserIds.filter((id) => selectedUsers.has(id)).length;
+  all.checked = shownUserIds.length > 0 && shownSel === shownUserIds.length;
+  all.indeterminate = shownSel > 0 && shownSel < shownUserIds.length;
+}
+
+document.getElementById("adm-users-all")?.addEventListener("change", (e) => {
+  for (const id of shownUserIds) {
+    if (e.target.checked) selectedUsers.add(id); else selectedUsers.delete(id);
+  }
+  renderUsersTable();
+});
+
+document.getElementById("adm-bulk-clear")?.addEventListener("click", () => {
+  selectedUsers.clear();
+  renderUsersTable();
+});
+
+const bulkDialog = document.getElementById("adm-bulk-dialog");
+const bulkBody = document.getElementById("adm-bulk-body");
+const bulkStatus = document.getElementById("adm-bulk-status");
+const bulkConfirmBtn = document.getElementById("adm-bulk-confirm");
+let bulkPhrase = "";
+let bulkIds = [];
+
+const bulkPhraseFor = (n) => `delete ${n} account${n === 1 ? "" : "s"}`;
+
+function bulkPreviewMarkup(accounts) {
+  const ok = accounts.filter((a) => !a.blockers.length);
+  const blocked = accounts.filter((a) => a.blockers.length);
+  const who = (a) => `<strong>${esc(a.name || "Unnamed user")}</strong> <span class="adm-ud-note">${esc(a.email || a.id)}</span>`;
+  return `
+    ${ok.length ? `
+      <p class="adm-dialog__lead">These ${ok.length === 1 ? "account" : `${ok.length} accounts`} will be permanently deleted with their listings, offers and messages. This can't be undone.</p>
+      <ul class="adm-bulk-list">${ok.map((a) => `<li>${who(a)}</li>`).join("")}</ul>
+    ` : `<p class="adm-dialog__lead">None of the selected accounts can be deleted.</p>`}
+    ${blocked.length ? `
+      <p class="adm-dialog__lead">${blocked.length === 1 ? "This one is" : `These ${blocked.length} are`} skipped:</p>
+      <ul class="adm-bulk-list adm-bulk-list--skip">${blocked.map((a) => `<li>${who(a)}<div class="adm-ud-note adm-ud-note--warn">${esc(a.blockers.join("; "))}</div></li>`).join("")}</ul>
+    ` : ""}
+    ${ok.length ? `
+      <label class="gr-label adm-ud-confirm"><span>Type <strong>${esc(bulkPhraseFor(ok.length))}</strong> to confirm</span>
+        <input type="text" id="adm-bulk-input" autocomplete="off" spellcheck="false" />
+      </label>
+    ` : ""}
+  `;
+}
+
+document.getElementById("adm-bulk-delete")?.addEventListener("click", async () => {
+  bulkIds = [...selectedUsers];
+  bulkPhrase = "";
+  bulkConfirmBtn.disabled = true;
+  bulkStatus.textContent = "";
+  bulkStatus.classList.remove("adm-ud-note--warn");
+  bulkBody.innerHTML = `<p class="adm-ud-note">Checking ${bulkIds.length} ${bulkIds.length === 1 ? "account" : "accounts"}…</p>`;
+  bulkDialog.showModal();
+  try {
+    const r = await adminFetch("/api/admin/users/bulk-delete/preview", { method: "POST", body: JSON.stringify({ ids: bulkIds }) });
+    showBulkPreview(r.accounts);
+  } catch (err) {
+    bulkBody.innerHTML = `<p class="adm-ud-note adm-ud-note--warn">${esc(err.message)}</p>`;
+  }
+});
+
+function showBulkPreview(accounts) {
+  const ok = accounts.filter((a) => !a.blockers.length).length;
+  bulkPhrase = ok ? bulkPhraseFor(ok) : "";
+  bulkBody.innerHTML = bulkPreviewMarkup(accounts);
+  bulkConfirmBtn.textContent = ok ? `Delete ${ok}` : "Delete";
+  bulkConfirmBtn.disabled = true;
+  const input = document.getElementById("adm-bulk-input");
+  input?.addEventListener("input", () => {
+    bulkConfirmBtn.disabled = input.value.trim().toLowerCase() !== bulkPhrase;
+  });
+  input?.focus();
+}
+
+document.getElementById("adm-bulk-cancel")?.addEventListener("click", () => bulkDialog.close());
+
+bulkConfirmBtn?.addEventListener("click", async () => {
+  const input = document.getElementById("adm-bulk-input");
+  bulkConfirmBtn.disabled = true;
+  bulkStatus.classList.remove("adm-ud-note--warn");
+  bulkStatus.textContent = "Deleting…";
+  try {
+    const r = await adminFetch("/api/admin/users/bulk-delete", {
+      method: "POST",
+      body: JSON.stringify({ ids: bulkIds, confirm: input?.value || "" }),
+    });
+    const gone = new Set(r.deleted);
+    for (let i = data.users.length - 1; i >= 0; i--) if (gone.has(data.users[i].id)) data.users.splice(i, 1);
+    for (const id of r.deleted) selectedUsers.delete(id);
+    renderUsersTable();
+    const parts = [`Deleted ${r.deleted.length} ${r.deleted.length === 1 ? "account" : "accounts"}.`];
+    if (r.skipped.length) parts.push(`Skipped ${r.skipped.length}.`);
+    if (r.failed.length) parts.push(`${r.failed.length} failed: ${r.failed.map((f) => `${f.email || f.id} (${f.error})`).join("; ")}`);
+    bulkStatus.textContent = parts.join(" ");
+    bulkStatus.classList.toggle("adm-ud-note--warn", r.failed.length > 0);
+    bulkBody.innerHTML = "";
+    bulkConfirmBtn.hidden = true;
+    document.getElementById("adm-bulk-cancel").textContent = "Close";
+  } catch (err) {
+    bulkStatus.textContent = err.message;
+    bulkStatus.classList.add("adm-ud-note--warn");
+    // The server re-checked and the list changed: show the fresh list.
+    if (err.body?.accounts) showBulkPreview(err.body.accounts);
+  }
+});
+
+bulkDialog?.addEventListener("close", () => {
+  bulkConfirmBtn.hidden = false;
+  document.getElementById("adm-bulk-cancel").textContent = "Cancel";
+});
 
 document.getElementById("adm-users-search")?.addEventListener("input", (e) => {
   userQuery = e.target.value.trim();

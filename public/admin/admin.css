@@ -1475,3 +1475,47 @@ body.adm-body {
 .adm-ud-confirm { margin-top: 0.55rem; display: flex; flex-direction: column; gap: 0.3rem; }
 .adm-ud-confirm input { width: 100%; }
 .adm-ud-status { margin: 0; min-height: 1.2em; font-size: var(--type-meta); color: var(--fo-text-2); }
+
+/* ---------------- bulk delete (users tab) ---------------- */
+.adm-th-check, .adm-td-check { width: 2.25rem; padding-right: 0; }
+.adm-th-check input, .adm-td-check input { width: 16px; height: 16px; accent-color: var(--fo-accent); cursor: pointer; }
+.adm-tr.is-selected { background: var(--fo-surface-2); }
+.adm-bulkbar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 0.75rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--fo-line-strong);
+  border-radius: 12px;
+  font-size: var(--type-meta);
+  color: var(--fo-text);
+}
+.adm-bulkbar[hidden] { display: none; }
+.adm-bulkbar > span { flex: 1; font-weight: 600; }
+.adm-dialog {
+  width: min(32rem, calc(100vw - 32px));
+  max-height: min(80vh, 44rem);
+  padding: 0;
+  border: 1px solid var(--fo-line-strong);
+  border-radius: 16px;
+  background: var(--fo-surface, var(--fo-bg));
+  color: var(--fo-text);
+}
+.adm-dialog::backdrop { background: rgb(0 0 0 / 0.5); }
+.adm-dialog__inner { display: flex; flex-direction: column; gap: 0.75rem; padding: 1.25rem; }
+.adm-dialog__title { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: var(--type-h3); }
+.adm-dialog__lead { margin: 0; font-size: var(--type-body); color: var(--fo-text-2); }
+.adm-dialog__actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+.adm-bulk-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 14rem;
+  overflow-y: auto;
+}
+.adm-bulk-list > li { padding: 0.4rem 0.6rem; border: 1px solid var(--fo-line); border-radius: 10px; overflow-wrap: anywhere; }
+.adm-bulk-list > li .adm-ud-note { margin: 0; }
