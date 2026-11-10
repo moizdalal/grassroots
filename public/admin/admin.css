@@ -1414,3 +1414,64 @@ body.adm-body {
   font-variant-numeric: tabular-nums;
   color: var(--fo-text-2);
 }
+
+/* ============================================================== */
+/*                USER MANAGEMENT (users drawer)                   */
+/* ============================================================== */
+.adm-defs--wide { grid-template-columns: 1fr; }
+.adm-defs__full { grid-column: 1 / -1; }
+.adm-defs dd a { color: var(--fo-text); text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.adm-ud-mono { font-size: var(--type-meta); color: var(--fo-text-2); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.adm-ud-note { margin: 0.2rem 0 0; font-size: var(--type-meta); color: var(--fo-text-3); }
+.adm-ud-note--warn { color: var(--fo-accent-warm); }
+.adm-ud-link { text-decoration: none; color: inherit; }
+.adm-ud-thread__btn {
+  width: 100%;
+  text-align: left;
+  background: none;
+  font: inherit;
+  color: inherit;
+}
+.adm-ud-thread__btn[aria-expanded="true"] { border-color: var(--fo-line-strong); }
+.adm-ud-thread__body {
+  margin: 0.45rem 0 0.2rem;
+  padding-left: 0.6rem;
+  border-left: 2px solid var(--fo-line);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 22rem;
+  overflow-y: auto;
+}
+.adm-ud-msg__meta { font-size: var(--type-meta); color: var(--fo-text-3); }
+.adm-ud-msg__body { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--fo-text); }
+.adm-ud-msg.is-theirs .adm-ud-msg__meta { color: var(--fo-accent); }
+.adm-ud-emails {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 20rem;
+  overflow-y: auto;
+}
+.adm-ud-emails > li { padding-bottom: 0.45rem; border-bottom: 1px solid var(--fo-line); }
+.adm-ud-emails__subj { color: var(--fo-text); overflow-wrap: anywhere; }
+.adm-ud-manage { display: flex; flex-direction: column; gap: 0.6rem; }
+.adm-ud-action {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid var(--fo-line);
+  border-radius: 12px;
+}
+.adm-ud-action > div { flex: 1; min-width: 0; }
+.adm-ud-action--danger { border-color: color-mix(in srgb, var(--fo-accent-warm) 40%, transparent); }
+.adm-ud-action__title { font-weight: 600; color: var(--fo-text); }
+.adm-ud-blockers { margin: 0.35rem 0 0; padding-left: 1.1rem; font-size: var(--type-meta); color: var(--fo-text-2); }
+.adm-ud-confirm { margin-top: 0.55rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.adm-ud-confirm input { width: 100%; }
+.adm-ud-status { margin: 0; min-height: 1.2em; font-size: var(--type-meta); color: var(--fo-text-2); }

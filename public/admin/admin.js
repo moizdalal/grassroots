@@ -620,9 +620,238 @@ function openUserDrawer(userId) {
       </ul>
     ` : ""}
   `;
-  openDrawer(user.name, html);
-  drawerBody.querySelectorAll(".adm-drawer-row").forEach((row) => {
+  openDrawer(user.name, html + `<div id="adm-user-detail" data-user-id="${esc(userId)}"><p class="adm-ud-note">Loading account details…</p></div>`);
+  drawerBody.querySelectorAll(".adm-drawer-row[data-engagement-id]").forEach((row) => {
     row.addEventListener("click", () => openEngagementDrawer(row.dataset.engagementId));
+  });
+  loadUserDetail(userId);
+}
+
+/* ---------------- user management (contact, history, actions) ---------------- */
+
+async function adminFetch(path, opts = {}) {
+  const client = await getSupabaseClient();
+  const { data: { session } } = await client.auth.getSession();
+  if (!session?.access_token) throw new Error("Not signed in");
+  const res = await fetch(path, {
+    ...opts,
+    headers: { Authorization: `Bearer ${session.access_token}`, ...(opts.body ? { "Content-Type": "application/json" } : {}) },
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(body.error || `HTTP ${res.status}`);
+    err.body = body;
+    throw err;
+  }
+  return body;
+}
+
+const linkOut = (href, label) => `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(label)}</a>`;
+const plainHost = (url) => String(url).replace(/^https?:\/\//, "").replace(/\/$/, "");
+
+async function loadUserDetail(userId) {
+  const host = () => {
+    const el = document.getElementById("adm-user-detail");
+    return el && el.dataset.userId === userId ? el : null;
+  };
+  let d;
+  try {
+    d = await adminFetch(`/api/admin/users/${encodeURIComponent(userId)}`);
+  } catch (err) {
+    const el = host();
+    if (el) el.innerHTML = `<p class="adm-ud-note adm-ud-note--warn">Couldn't load account details: ${esc(err.message)}</p>`;
+    return;
+  }
+  const el = host();
+  if (!el) return;
+  el.innerHTML = userDetailMarkup(d);
+  wireUserDetail(el, d);
+}
+
+function userDetailMarkup(d) {
+  const c = d.contact, a = d.account;
+  const socials = [
+    c.website_url && ["Website", c.website_url],
+    c.linkedin_url && ["LinkedIn", c.linkedin_url],
+    c.company_linkedin_url && ["Company LinkedIn", c.company_linkedin_url],
+    c.instagram_url && ["Instagram", c.instagram_url],
+    c.facebook_url && ["Facebook", c.facebook_url],
+    ...(c.social_links || []).filter(Boolean).map((u) => ["Link", u]),
+  ].filter(Boolean);
+
+  const listingStatus = (s) => `<span class="adm-pill ${s === "open" ? "adm-pill--accepted" : "adm-pill--muted"}">${esc(s || "—")}</span>`;
+
+  return `
+    <h4 class="adm-drawer-sec">Contact</h4>
+    <dl class="adm-defs adm-defs--wide">
+      <div><dt>Email</dt><dd>${c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>${c.email_confirmed_at ? "" : ` <span class="adm-pill adm-pill--warn">unconfirmed</span>`}` : "—"}</dd></div>
+      <div><dt>Phone</dt><dd>${c.phone ? `<a href="tel:${esc(c.phone)}">${esc(c.phone)}</a>` : "—"}</dd></div>
+      ${c.business_address ? `<div><dt>Address</dt><dd>${esc(c.business_address)}</dd></div>` : ""}
+      ${socials.map(([label, url]) => `<div><dt>${esc(label)}</dt><dd>${linkOut(/^https?:/i.test(url) ? url : `https://${url}`, plainHost(url))}</dd></div>`).join("")}
+    </dl>
+
+    <h4 class="adm-drawer-sec">Account</h4>
+    <dl class="adm-defs">
+      <div><dt>Status</dt><dd>${a.suspended ? `<span class="adm-pill adm-pill--warn">suspended</span>` : `<span class="adm-pill adm-pill--accepted">active</span>`}</dd></div>
+      <div><dt>Last sign-in</dt><dd>${a.last_sign_in_at ? esc(fmtRel(new Date(a.last_sign_in_at))) : "Never"}</dd></div>
+      <div><dt>Sign-in method</dt><dd>${esc((a.providers || []).join(", ") || "email")}</dd></div>
+      <div><dt>Stripe</dt><dd>${a.stripe_account_id ? esc(a.stripe_account_id) : a.stripe_customer_id ? esc(a.stripe_customer_id) : "Not connected"}</dd></div>
+      ${a.deletion_requested_at ? `<div><dt>Asked to delete</dt><dd><span class="adm-pill adm-pill--warn">${esc(fmtDate(new Date(a.deletion_requested_at)))}</span></dd></div>` : ""}
+      ${a.export_requested_at ? `<div><dt>Asked for export</dt><dd>${esc(fmtDate(new Date(a.export_requested_at)))}</dd></div>` : ""}
+      <div class="adm-defs__full"><dt>User id</dt><dd class="adm-ud-mono">${esc(d.id)}</dd></div>
+    </dl>
+
+    ${d.listings.length ? `
+      <h4 class="adm-drawer-sec">Listings (${d.listings.length})</h4>
+      <ul class="adm-drawer-list">
+        ${d.listings.map((l) => `
+          <li><a class="adm-drawer-row adm-ud-link" href="/listing.html?id=${encodeURIComponent(l.id)}" target="_blank" rel="noopener">
+            <div>
+              <div class="adm-drawer-row__title">${esc(l.title || "Untitled listing")}</div>
+              <div class="adm-drawer-row__sub">${listingStatus(l.status)} · posted ${esc(fmtDate(new Date(l.created_at)))}</div>
+            </div>
+            ${l.budget_cents ? `<span class="adm-drawer-row__money">${fmtMoneyShort(l.budget_cents)}</span>` : ""}
+          </a></li>`).join("")}
+      </ul>` : ""}
+
+    ${d.offers.length ? `
+      <h4 class="adm-drawer-sec">Offers sent (${d.offers.length})</h4>
+      <ul class="adm-drawer-list">
+        ${d.offers.map((o) => `
+          <li><a class="adm-drawer-row adm-ud-link" href="/listing.html?id=${encodeURIComponent(o.listing_id)}" target="_blank" rel="noopener">
+            <div>
+              <div class="adm-drawer-row__title">${esc(o.listing_title)}</div>
+              <div class="adm-drawer-row__sub">${esc(o.status)} · ${esc(o.payment_status)} · ${esc(fmtRel(new Date(o.created_at)))}</div>
+            </div>
+            <span class="adm-drawer-row__money">${fmtMoneyShort(o.amount_cents)}</span>
+          </a></li>`).join("")}
+      </ul>` : ""}
+
+    <h4 class="adm-drawer-sec">Emails we sent (${d.emails.length})</h4>
+    ${d.emails_note ? `<p class="adm-ud-note adm-ud-note--warn">${esc(d.emails_note)}</p>` : ""}
+    ${d.emails.length ? `
+      <ul class="adm-ud-emails">
+        ${d.emails.map((m) => `
+          <li>
+            <div class="adm-ud-emails__subj">${esc(m.subject || m.event)}</div>
+            <div class="adm-drawer-row__sub">${esc(m.event)} · ${esc(fmtDateTime(new Date(m.sent_at)))}${m.status !== "sent" ? ` · <span class="adm-pill adm-pill--warn">${esc(m.status)}</span>` : ""}${m.environment && m.environment !== "production" ? ` · ${esc(m.environment)}` : ""}</div>
+          </li>`).join("")}
+      </ul>` : (d.emails_note ? "" : `<p class="adm-ud-note">No emails logged for this address yet. History starts from when recipients began being recorded.</p>`)}
+
+    <h4 class="adm-drawer-sec">Messages (${d.threads.length} ${d.threads.length === 1 ? "thread" : "threads"})</h4>
+    ${d.threads.length ? `
+      <ul class="adm-drawer-list">
+        ${d.threads.map((t) => `
+          <li class="adm-ud-thread">
+            <button type="button" class="adm-drawer-row adm-ud-thread__btn" data-thread-with="${esc(t.other_id)}" data-thread-listing="${esc(t.listing_id)}" aria-expanded="false">
+              <div>
+                <div class="adm-drawer-row__title">${esc(t.other_name)}</div>
+                <div class="adm-drawer-row__sub">${esc(t.listing_title)} · ${t.sent} sent, ${t.received} received · ${esc(fmtRel(new Date(t.last_at)))}</div>
+              </div>
+            </button>
+            <div class="adm-ud-thread__body" hidden></div>
+          </li>`).join("")}
+      </ul>` : `<p class="adm-ud-note">No messages.</p>`}
+
+    ${a.is_admin ? "" : `
+      <h4 class="adm-drawer-sec">Manage account</h4>
+      <div class="adm-ud-manage">
+        <div class="adm-ud-action">
+          <div>
+            <div class="adm-ud-action__title">${a.suspended ? "Lift suspension" : "Suspend account"}</div>
+            <p class="adm-ud-note">${a.suspended ? "They can sign in again. Listings stay unlisted until they relist them." : "Blocks sign-in and unlists their open listings. You can undo this."}</p>
+          </div>
+          <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm" data-ud-action="suspend" data-suspend="${a.suspended ? "false" : "true"}">${a.suspended ? "Lift suspension" : "Suspend"}</button>
+        </div>
+        <div class="adm-ud-action adm-ud-action--danger">
+          <div>
+            <div class="adm-ud-action__title">Delete account</div>
+            ${d.delete_blockers.length ? `
+              <p class="adm-ud-note">This account can't be deleted because it has payment records. Suspend it instead.</p>
+              <ul class="adm-ud-blockers">${d.delete_blockers.map((b) => `<li>${esc(b)}</li>`).join("")}</ul>
+            ` : `
+              <p class="adm-ud-note">Permanently removes the account with its listings, offers and messages. This can't be undone.</p>
+              <label class="gr-label adm-ud-confirm"><span>Type ${esc(c.email || "their email")} to confirm</span>
+                <input type="text" data-ud-confirm autocomplete="off" spellcheck="false" />
+              </label>
+            `}
+          </div>
+          ${d.delete_blockers.length ? "" : `<button type="button" class="gr-btn gr-btn--ghost gr-btn--sm adm-pay-danger" data-ud-action="delete" disabled>Delete</button>`}
+        </div>
+        <p class="adm-ud-status" role="status" aria-live="polite"></p>
+      </div>
+    `}
+  `;
+}
+
+function wireUserDetail(el, d) {
+  const status = el.querySelector(".adm-ud-status");
+  const say = (msg, warn) => {
+    if (!status) return;
+    status.textContent = msg;
+    status.classList.toggle("adm-ud-note--warn", Boolean(warn));
+  };
+
+  el.querySelectorAll(".adm-ud-thread__btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const body = btn.nextElementSibling;
+      const open = btn.getAttribute("aria-expanded") === "true";
+      btn.setAttribute("aria-expanded", String(!open));
+      body.hidden = open;
+      if (open || body.dataset.loaded) return;
+      body.innerHTML = `<p class="adm-ud-note">Loading…</p>`;
+      try {
+        const q = new URLSearchParams({ with: btn.dataset.threadWith, listing: btn.dataset.threadListing });
+        const { messages } = await adminFetch(`/api/admin/users/${encodeURIComponent(d.id)}/thread?${q}`);
+        body.dataset.loaded = "1";
+        body.innerHTML = messages.length ? messages.map((m) => `
+          <div class="adm-ud-msg ${m.sender_id === d.id ? "is-theirs" : ""}">
+            <div class="adm-ud-msg__meta">${m.sender_id === d.id ? esc(d.account.full_name || "This user") : esc(btn.querySelector(".adm-drawer-row__title").textContent)} · ${esc(fmtDateTime(new Date(m.created_at)))}</div>
+            <div class="adm-ud-msg__body">${esc(m.body)}</div>
+          </div>`).join("") : `<p class="adm-ud-note">No messages.</p>`;
+      } catch (err) {
+        body.innerHTML = `<p class="adm-ud-note adm-ud-note--warn">${esc(err.message)}</p>`;
+      }
+    });
+  });
+
+  const suspendBtn = el.querySelector('[data-ud-action="suspend"]');
+  suspendBtn?.addEventListener("click", async () => {
+    const suspend = suspendBtn.dataset.suspend === "true";
+    if (suspend && !window.confirm(`Suspend ${d.contact.email || "this account"}? They won't be able to sign in and their open listings will be unlisted.`)) return;
+    suspendBtn.disabled = true;
+    say(suspend ? "Suspending…" : "Lifting suspension…");
+    try {
+      const r = await adminFetch(`/api/admin/users/${encodeURIComponent(d.id)}/suspend`, { method: "POST", body: JSON.stringify({ suspend }) });
+      say(suspend ? `Suspended. ${r.unlisted} listing${r.unlisted === 1 ? "" : "s"} unlisted.` : "Suspension lifted.");
+      loadUserDetail(d.id);
+    } catch (err) {
+      suspendBtn.disabled = false;
+      say(err.message, true);
+    }
+  });
+
+  const confirmInput = el.querySelector("[data-ud-confirm]");
+  const deleteBtn = el.querySelector('[data-ud-action="delete"]');
+  const target = (d.contact.email || "").toLowerCase();
+  confirmInput?.addEventListener("input", () => {
+    deleteBtn.disabled = !target || confirmInput.value.trim().toLowerCase() !== target;
+  });
+  deleteBtn?.addEventListener("click", async () => {
+    deleteBtn.disabled = true;
+    say("Deleting…");
+    try {
+      await adminFetch(`/api/admin/users/${encodeURIComponent(d.id)}/delete`, { method: "POST", body: JSON.stringify({ confirm: confirmInput.value }) });
+      say("Account deleted.");
+      const i = data.users.findIndex((u) => u.id === d.id);
+      if (i >= 0) data.users.splice(i, 1);
+      renderUsersTable();
+      setTimeout(closeDrawer, 900);
+    } catch (err) {
+      deleteBtn.disabled = false;
+      const extra = err.body?.blockers?.length ? ` ${err.body.blockers.join("; ")}.` : "";
+      say(err.message + extra, true);
+    }
   });
 }
 

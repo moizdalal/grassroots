@@ -157,17 +157,27 @@ const supabase = hasSupabaseAdminConfig
     })
   : null;
 
-// Record every Resend attempt for the admin Emails tab. No addresses.
+// Record every Resend attempt for the admin Emails tab and the per-user
+// email history in the admin Users drawer (recipient + subject, no body).
 if (supabase) {
-  setSendLogger(async ({ event, status, httpStatus, resendId, error }) => {
-    const { error: dbError } = await supabase.from("email_log").insert({
+  setSendLogger(async ({ event, status, httpStatus, resendId, error, to, subject }) => {
+    const row = {
       event: String(event || "other").slice(0, 64),
       status,
       http_status: httpStatus ?? null,
       environment: process.env.VERCEL_ENV || "development",
       resend_id: resendId || null,
       error: error || null,
-    });
+      to_email: to ? String(to).toLowerCase() : null,
+      subject: subject || null,
+    };
+    let { error: dbError } = await supabase.from("email_log").insert(row);
+    // Before add_email_log_recipient.sql is applied the two columns don't
+    // exist yet; fall back to the old row shape so volume logging keeps working.
+    if (dbError && /to_email|subject|schema cache/i.test(dbError.message || "")) {
+      const { to_email: _t, subject: _s, ...legacy } = row;
+      ({ error: dbError } = await supabase.from("email_log").insert(legacy));
+    }
     if (dbError) console.warn("[email_log] insert failed:", dbError.message);
   });
 }
@@ -6595,6 +6605,274 @@ app.get("/api/admin/marketplace", async (req, res) => {
     console.error("admin marketplace:", err.message);
     return res.status(500).json({ error: err.message });
   }
+});
+
+/* ──────────────────────────────────────────────────────────────
+   ADMIN USER MANAGEMENT — the Users tab drawer. One read endpoint
+   gathers a person's contact info, listings, offers, email history
+   and message threads; three write endpoints suspend, read a
+   thread, and delete.
+
+   Delete is a hard delete: profiles → auth.users is ON DELETE
+   CASCADE, so removing the auth user removes listings, offers,
+   messages and phase-payment rows with it. That would erase payment
+   records, so delete fails closed whenever money has touched the
+   account (any paid offer, phase payment or retainer). Suspend is
+   the reversible option for those accounts.
+   ────────────────────────────────────────────────────────────── */
+
+const ADMIN_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Bids this user is a party to: their own offers, plus offers on their listings.
+async function adminUserBids(userId) {
+  const { data: owned, error: lErr } = await supabase.from("listings").select("id").eq("owner_id", userId);
+  if (lErr) throw new Error(`listings: ${lErr.message}`);
+  const listingIds = (owned || []).map((l) => l.id);
+  const cols = "id, listing_id, consultant_id, amount_cents, payment_amount_cents, status, payment_status, created_at, accepted_at, delivered_at, released_at";
+  const { data: mine, error: bErr } = await supabase.from("bids").select(cols).eq("consultant_id", userId);
+  if (bErr) throw new Error(`bids: ${bErr.message}`);
+  let onMine = [];
+  if (listingIds.length) {
+    const { data, error } = await supabase.from("bids").select(cols).in("listing_id", listingIds);
+    if (error) throw new Error(`bids: ${error.message}`);
+    onMine = data || [];
+  }
+  const byId = new Map([...(mine || []), ...onMine].map((b) => [b.id, b]));
+  return [...byId.values()];
+}
+
+// Reasons a hard delete would destroy payment records. Throws on a failed
+// lookup so the caller treats "couldn't check" as "blocked".
+async function adminDeleteBlockers(userId, bids) {
+  const blockers = [];
+  const paid = bids.filter((b) => b.payment_status && b.payment_status !== "unpaid");
+  if (paid.length) blockers.push(`${paid.length} offer${paid.length === 1 ? "" : "s"} with a payment on record (${[...new Set(paid.map((b) => b.payment_status))].join(", ")})`);
+  const bidIds = bids.map((b) => b.id);
+  if (bidIds.length) {
+    const { data: phases, error: pErr } = await supabase
+      .from("bid_phase_payments").select("id, status").in("bid_id", bidIds);
+    if (pErr && !/does not exist|schema cache/i.test(pErr.message)) throw new Error(`bid_phase_payments: ${pErr.message}`);
+    const livePhases = (phases || []).filter((p) => p.status && p.status !== "pending");
+    if (livePhases.length) blockers.push(`${livePhases.length} phase payment${livePhases.length === 1 ? "" : "s"} on record`);
+    const { data: subs, error: sErr } = await supabase
+      .from("retainer_subscriptions").select("id, status, stripe_subscription_id").in("bid_id", bidIds);
+    if (sErr && !/does not exist|schema cache/i.test(sErr.message)) throw new Error(`retainer_subscriptions: ${sErr.message}`);
+    const liveSubs = (subs || []).filter((s) => s.stripe_subscription_id || s.status === "active");
+    if (liveSubs.length) blockers.push(`${liveSubs.length} retainer subscription${liveSubs.length === 1 ? "" : "s"}`);
+  }
+  return blockers;
+}
+
+app.get("/api/admin/users/:id", async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+  const userId = String(req.params.id || "");
+  if (!ADMIN_UUID_RE.test(userId)) return res.status(400).json({ error: "Bad user id." });
+
+  try {
+    const [{ data: authData, error: authErr }, profileRes, cpRes, bpRes, listingsRes] = await Promise.all([
+      supabase.auth.admin.getUserById(userId),
+      supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
+      supabase.from("consultant_profiles").select("*").eq("user_id", userId).maybeSingle(),
+      supabase.from("business_profiles").select("*").eq("user_id", userId).maybeSingle(),
+      supabase.from("listings")
+        .select("id, title, status, category, contract_type, budget_cents, created_at")
+        .eq("owner_id", userId).order("created_at", { ascending: false }),
+    ]);
+    if (authErr && !profileRes.data) return res.status(404).json({ error: "User not found." });
+    const authUser = authData?.user || null;
+    const profile = profileRes.data || null;
+    const email = (authUser?.email || "").toLowerCase();
+
+    const bids = await adminUserBids(userId);
+    const offers = bids.filter((b) => b.consultant_id === userId);
+    const offerListingIds = [...new Set(offers.map((b) => b.listing_id))];
+    let offerListings = [];
+    if (offerListingIds.length) {
+      const { data } = await supabase.from("listings").select("id, title, status").in("id", offerListingIds);
+      offerListings = data || [];
+    }
+    const offerListingBy = new Map(offerListings.map((l) => [l.id, l]));
+
+    // Email history. Rows logged before add_email_log_recipient.sql have no
+    // recipient, so a person's history starts from when it was applied.
+    let emails = [];
+    let emailsNote = null;
+    if (email) {
+      const { data, error } = await supabase
+        .from("email_log")
+        .select("sent_at, event, status, subject, error, environment")
+        .eq("to_email", email)
+        .order("sent_at", { ascending: false })
+        .limit(200);
+      if (error) emailsNote = /to_email|subject|schema cache/i.test(error.message)
+        ? "Per-person email history needs the add_email_log_recipient.sql migration."
+        : error.message;
+      else emails = data || [];
+    }
+
+    // In-app message threads, grouped by listing + the other person.
+    const { data: msgs, error: msgErr } = await supabase
+      .from("messages")
+      .select("listing_id, sender_id, recipient_id, created_at")
+      .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
+      .order("created_at", { ascending: false })
+      .limit(5000);
+    if (msgErr) throw new Error(`messages: ${msgErr.message}`);
+    const threadMap = new Map();
+    for (const m of msgs || []) {
+      const other = m.sender_id === userId ? m.recipient_id : m.sender_id;
+      const key = `${m.listing_id}:${other}`;
+      let t = threadMap.get(key);
+      if (!t) { t = { listing_id: m.listing_id, other_id: other, sent: 0, received: 0, last_at: m.created_at }; threadMap.set(key, t); }
+      if (m.sender_id === userId) t.sent++; else t.received++;
+    }
+    const threads = [...threadMap.values()];
+    const otherIds = [...new Set(threads.map((t) => t.other_id))];
+    const threadListingIds = [...new Set(threads.map((t) => t.listing_id))];
+    const [{ data: others }, { data: tListings }] = await Promise.all([
+      otherIds.length ? supabase.from("profiles").select("id, full_name").in("id", otherIds) : { data: [] },
+      threadListingIds.length ? supabase.from("listings").select("id, title").in("id", threadListingIds) : { data: [] },
+    ]);
+    const nameBy = new Map((others || []).map((p) => [p.id, p.full_name]));
+    const titleBy = new Map((tListings || []).map((l) => [l.id, l.title]));
+    for (const t of threads) {
+      t.other_name = nameBy.get(t.other_id) || "Deleted user";
+      t.listing_title = titleBy.get(t.listing_id) || "Untitled listing";
+    }
+
+    let deleteBlockers;
+    try { deleteBlockers = await adminDeleteBlockers(userId, bids); }
+    catch (e) { deleteBlockers = [`Couldn't check payment records (${e.message})`]; }
+
+    const bannedUntil = authUser?.banned_until ? Date.parse(authUser.banned_until) : 0;
+    return res.json({
+      id: userId,
+      contact: {
+        email: authUser?.email || null,
+        email_confirmed_at: authUser?.email_confirmed_at || null,
+        phone: profile?.phone_number || authUser?.phone || null,
+        linkedin_url: profile?.linkedin_url || null,
+        business_address: bpRes.data?.business_address || null,
+        website_url: bpRes.data?.website_url || null,
+        instagram_url: bpRes.data?.instagram_url || null,
+        facebook_url: bpRes.data?.facebook_url || null,
+        company_linkedin_url: bpRes.data?.company_linkedin_url || null,
+        social_links: bpRes.data?.social_links || [],
+      },
+      account: {
+        role: profile?.role || null,
+        full_name: profile?.full_name || null,
+        created_at: authUser?.created_at || profile?.created_at || null,
+        last_sign_in_at: authUser?.last_sign_in_at || null,
+        providers: authUser?.app_metadata?.providers || [],
+        suspended: bannedUntil > Date.now(),
+        deletion_requested_at: profile?.deletion_requested_at || null,
+        export_requested_at: profile?.export_requested_at || null,
+        stripe_account_id: profile?.stripe_account_id || null,
+        stripe_customer_id: profile?.stripe_customer_id || null,
+        is_admin: ADMIN_EMAILS.has(email),
+      },
+      consultant: cpRes.data ? { school: cpRes.data.school || null, major: cpRes.data.major || null, city: cpRes.data.city || null } : null,
+      business: bpRes.data ? { business_name: bpRes.data.business_name || null } : null,
+      listings: listingsRes.data || [],
+      offers: offers.map((b) => ({
+        id: b.id,
+        listing_id: b.listing_id,
+        listing_title: offerListingBy.get(b.listing_id)?.title || "Untitled listing",
+        listing_status: offerListingBy.get(b.listing_id)?.status || null,
+        amount_cents: b.payment_amount_cents ?? b.amount_cents ?? 0,
+        status: b.status,
+        payment_status: b.payment_status || "unpaid",
+        created_at: b.created_at,
+      })).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))),
+      emails,
+      emails_note: emailsNote,
+      threads: threads.sort((a, b) => String(b.last_at).localeCompare(String(a.last_at))),
+      delete_blockers: deleteBlockers,
+    });
+  } catch (err) {
+    console.error("admin user detail:", err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// One message thread (listing + the two people), oldest first.
+app.get("/api/admin/users/:id/thread", async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+  const userId = String(req.params.id || "");
+  const other = String(req.query.with || "");
+  const listingId = String(req.query.listing || "");
+  if (![userId, other, listingId].every((v) => ADMIN_UUID_RE.test(v))) return res.status(400).json({ error: "Bad id." });
+  const { data, error } = await supabase
+    .from("messages")
+    .select("id, sender_id, body, created_at")
+    .eq("listing_id", listingId)
+    .or(`and(sender_id.eq.${userId},recipient_id.eq.${other}),and(sender_id.eq.${other},recipient_id.eq.${userId})`)
+    .order("created_at", { ascending: true })
+    .limit(1000);
+  if (error) return res.status(500).json({ error: error.message });
+  console.log("[admin] thread read", JSON.stringify({ by: admin.email, user: userId, with: other, listing: listingId }));
+  return res.json({ messages: data || [] });
+});
+
+// Suspend: ban sign-in and unlist their open listings. Unsuspend lifts the
+// ban only; listings stay unlisted until the owner relists them.
+app.post("/api/admin/users/:id/suspend", express.json(), async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+  const userId = String(req.params.id || "");
+  if (!ADMIN_UUID_RE.test(userId)) return res.status(400).json({ error: "Bad user id." });
+  if (userId === admin.id) return res.status(400).json({ error: "You can't suspend your own account." });
+  const suspend = req.body?.suspend !== false;
+
+  const { error } = await supabase.auth.admin.updateUserById(userId, { ban_duration: suspend ? "876000h" : "none" });
+  if (error) return res.status(500).json({ error: error.message });
+
+  let unlisted = 0;
+  if (suspend) {
+    const { data, error: lErr } = await supabase
+      .from("listings").update({ status: "unlisted" })
+      .eq("owner_id", userId).eq("status", "open").select("id");
+    if (lErr) console.warn("[admin suspend] unlist failed:", lErr.message);
+    unlisted = data?.length || 0;
+  }
+  console.log("[admin] suspend", JSON.stringify({ by: admin.email, user: userId, suspend, unlisted }));
+  return res.json({ ok: true, suspended: suspend, unlisted });
+});
+
+// Hard delete. The admin must type the account's email to confirm, and the
+// payment-record gate is re-checked here, not trusted from the drawer.
+app.post("/api/admin/users/:id/delete", express.json(), async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+  const userId = String(req.params.id || "");
+  if (!ADMIN_UUID_RE.test(userId)) return res.status(400).json({ error: "Bad user id." });
+  if (userId === admin.id) return res.status(400).json({ error: "You can't delete your own account." });
+
+  const { data: authData, error: authErr } = await supabase.auth.admin.getUserById(userId);
+  if (authErr || !authData?.user) return res.status(404).json({ error: "User not found." });
+  const email = (authData.user.email || "").toLowerCase();
+  if (ADMIN_EMAILS.has(email)) return res.status(400).json({ error: "Admin accounts can't be deleted here." });
+  const confirm = String(req.body?.confirm || "").trim().toLowerCase();
+  if (!email || confirm !== email) return res.status(400).json({ error: "Type the account's email to confirm." });
+
+  let blockers;
+  try { blockers = await adminDeleteBlockers(userId, await adminUserBids(userId)); }
+  catch (e) { return res.status(409).json({ error: `Couldn't check payment records, so nothing was deleted. ${e.message}` }); }
+  if (blockers.length) {
+    return res.status(409).json({ error: "This account has payment records, so it can't be deleted. Suspend it instead.", blockers });
+  }
+
+  const { error: delErr } = await supabase.auth.admin.deleteUser(userId);
+  if (delErr) return res.status(500).json({ error: delErr.message });
+  console.log("[admin] delete user", JSON.stringify({ by: admin.email, user: userId, email }));
+  return res.json({ ok: true });
 });
 
 /* ──────────────────────────────────────────────────────────────
