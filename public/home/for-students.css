@@ -174,7 +174,7 @@
           margin-right: max(-120px, min(0px, calc((1240px - 100vw) / 2 + 30px)));
         }
         .fs-hero__grid .fs-laptop { max-width: none; }
-        .fs-hero__h1 { font-size: clamp(2.7rem, 4.1vw, 4rem); line-height: 1; }
+        .fs-hero__h1 { font-size: clamp(2.7rem, 4.1vw, 4rem); line-height: 1.08; }
         /* sits level with the laptop's base, so keep it well clear of it */
         .fs-hero__sub { max-width: 20em; }
       }
@@ -292,6 +292,39 @@
       /* The screen always shows the light marketplace in every theme
          (data-theme="light" on .fs-laptop__screen). The black frame stays. */
 
+      /* Making the laptop read against the page. A black bezel on a dark
+         green page has no edge, so the chassis gets an aluminum base and
+         a lit rim, and in dark themes the screen casts a soft glow
+         behind it. Light theme gets a deeper shadow instead. */
+      .fs-laptop__base {
+        background: linear-gradient(#e4e6e2, #b9bdb8 55%, #8f948f);
+      }
+      .fs-laptop__base::before { background: #6f746f; }
+      .fs-laptop__screen {
+        box-shadow:
+          0 0 0 1px rgba(255, 255, 255, 0.16),
+          0 0 0 2px rgba(0, 0, 0, 0.5);
+      }
+      :root:not([data-theme="light"]) .fs-laptop::before {
+        content: "";
+        position: absolute;
+        inset: -6% -10% 8%;
+        z-index: -1;
+        border-radius: 50%;
+        background: radial-gradient(closest-side, color-mix(in srgb, #f3eee2 16%, transparent), transparent);
+        filter: blur(30px);
+        opacity: 0;
+        transition: opacity 1.2s ease 1.6s;
+        pointer-events: none;
+      }
+      :root:not([data-theme="light"]) .fs-laptop.is-visible::before { opacity: 1; }
+      :root:not([data-theme="light"]) .fs-laptop.is-closed::before { opacity: 0; transition-delay: 0s; }
+      [data-theme="light"] .fs-laptop__screen {
+        box-shadow:
+          0 0 0 1px rgba(0, 0, 0, 0.08),
+          0 24px 50px rgba(20, 32, 26, 0.22);
+      }
+
       .fs-laptop__ui {
         position: absolute;
         left: 0; top: 0;
@@ -343,15 +376,20 @@
       }
       .fs-mk__filters .fs-mk__search { flex: 1; color: var(--fo-text-3); }
 
-      .fs-mk__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-      .fs-mk__card {
-        position: relative;
-        display: flex; flex-direction: column; gap: 8px;
-        padding: 16px;
+      /* cards use the real marketplace card (.gr-listing-*); this only
+         sets the grid, the reveal and the cursor hover. The screen is
+         always light, so keep the light-theme card fill here even when
+         the page is dark. */
+      .fs-mk__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+      .fs-laptop__screen .fs-mk__grid .gr-listing-card.fs-mk__card {
         background: var(--fo-surface);
-        border: 1px solid var(--fo-line-strong);
-        border-radius: 16px;
-        transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        border-color: var(--fo-line-strong);
+        padding-top: 2.1rem;
+        height: auto;
+        cursor: default;
+      }
+      .fs-laptop__screen .fs-mk__grid .gr-listing-card-eyebrow { top: 0.95rem; right: 1.25rem; }
+      .fs-mk__card {
         opacity: 0;
         transform: translateY(14px);
       }
@@ -362,17 +400,12 @@
         transition-delay: calc(1.7s + var(--i) * 0.08s), calc(1.7s + var(--i) * 0.08s), 0s, 0s;
       }
       .fs-laptop.is-visible .fs-mk__card.is-hover {
-        transform: translateY(-4px);
+        transform: translateY(-2px);
         border-color: var(--fo-accent);
-        box-shadow: 0 14px 30px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22);
         transition-delay: 0s;
       }
-      .fs-mk__recency { align-self: flex-start; font-size: 11px; font-weight: 700; color: var(--fo-accent); }
-      .fs-mk__title { font-family: var(--font-display); font-weight: 500; font-size: 17px; line-height: 1.2; min-height: 2.4em;
-        font-weight: 600;
-        font-style: normal;
-      }
-      .fs-mk__biz { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fo-text-2); }
+      .fs-laptop.is-visible .fs-mk__card.is-hover .gr-listing-cta-link { color: var(--fo-accent); }
       .fs-mk__logo {
         display: inline-grid; place-items: center;
         width: 24px; height: 24px; border-radius: 7px;
@@ -381,18 +414,6 @@
         font-size: 10px; font-weight: 800;
         flex-shrink: 0;
       }
-      .fs-mk__tags { display: flex; gap: 6px; }
-      .fs-mk__tags span {
-        padding: 3px 9px; border-radius: 999px;
-        border: 1px solid var(--fo-line-strong);
-        font-size: 11px; color: var(--fo-text-2);
-      }
-      .fs-mk__foot { display: flex; align-items: baseline; gap: 8px; margin-top: 2px; font-size: 12px; color: var(--fo-text-3); }
-      .fs-mk__foot b { font-family: var(--font-display); font-weight: 600; font-size: 18px; color: var(--fo-text);
-        font-weight: 600;
-        font-style: normal;
-      }
-      .fs-mk__foot i { margin-left: auto; font-style: normal; font-weight: 700; color: var(--fo-accent); }
 
       /* offer panel slides in from the right */
       .fs-mk__panel {
@@ -514,7 +535,9 @@
         font-family: var(--font-display);
         font-weight: 500;
         font-size: clamp(2.4rem, 5.4vw, 4.9rem);
-        line-height: 0.95;
+        /* unitless, so the gap scales with the font: the "p" in "paid"
+           must clear the "b" in "businesses" at every size */
+        line-height: 1.08;
         letter-spacing: -0.035em;
         color: var(--fo-text);
         margin: 0 0 1.1rem;

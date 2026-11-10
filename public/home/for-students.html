@@ -59,9 +59,9 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
 
     <link rel="stylesheet" href="/grassroots.css?v=2" />
-    <link rel="stylesheet" href="/field-office.css?v=2" />
+    <link rel="stylesheet" href="/field-office.css?v=3" />
     <link rel="stylesheet" href="/home/nav.css?v=7" />
-    <link rel="stylesheet" href="/home/for-students.css?v=58" />
+    <link rel="stylesheet" href="/home/for-students.css?v=59" />
     <script src="/theme.js?v=2"></script>
     <script src="/cookie-banner.js" defer></script>
     <script src="/home/theme-default.js?v=2"></script>
@@ -175,48 +175,105 @@
                     <span>Newest first ▾</span>
                     <span>$ min – max</span>
                   </div>
-                  <div class="fs-mk__grid">
-                    <div class="fs-mk__card" style="--i: 0">
-                      <span class="fs-mk__recency">Posted 2h ago</span>
-                      <b class="fs-mk__title">Menu redesign + window decals</b>
-                      <div class="fs-mk__biz"><span class="fs-mk__logo">SS</span>Side Street Coffee</div>
-                      <div class="fs-mk__tags"><span>Design</span><span>Print</span></div>
-                      <div class="fs-mk__foot"><b>$240</b><span>One time</span><i>View →</i></div>
+                  <!-- same markup and styles as the real marketplace card
+                       (renderCard in marketplace.js; v2 styles in field-office.css,
+                       scoped by #fs-mk-grid) -->
+                  <div class="fs-mk__grid" id="fs-mk-grid">
+                    <div class="gr-listing-card fs-mk__card" style="--i: 0">
+                      <div class="gr-listing-card-eyebrow"><span class="gr-listing-recency">Posted 2h ago</span></div>
+                      <h3 class="gr-listing-title">Menu redesign + window decals</h3>
+                      <div class="gr-listing-card-head">
+                        <div class="gr-listing-logo-wrap"><div class="gr-listing-logo-placeholder">SS</div></div>
+                        <div class="gr-listing-card-meta">
+                          <div class="gr-listing-biz-row"><p class="gr-listing-biz-name">Side Street Coffee</p></div>
+                          <p class="gr-listing-budget">$240</p>
+                          <p class="gr-listing-contract">One time</p>
+                        </div>
+                      </div>
+                      <div class="gr-listing-foot">
+                        <div class="gr-listing-tags"><span class="gr-listing-tag">Design</span><span class="gr-listing-tag">Print</span></div>
+                        <span class="gr-listing-cta-link">View →</span>
+                      </div>
                     </div>
-                    <div class="fs-mk__card" style="--i: 1">
-                      <span class="fs-mk__recency">Posted today</span>
-                      <b class="fs-mk__title">Shopify cleanup + product photos</b>
-                      <div class="fs-mk__biz"><span class="fs-mk__logo">NB</span>North End Bikes</div>
-                      <div class="fs-mk__tags"><span>Shopify</span><span>Photo</span></div>
-                      <div class="fs-mk__foot"><b>$450</b><span>Phased</span><i>View →</i></div>
+                    <div class="gr-listing-card fs-mk__card" style="--i: 1">
+                      <div class="gr-listing-card-eyebrow"><span class="gr-listing-recency">Posted today</span></div>
+                      <h3 class="gr-listing-title">Shopify cleanup + product photos</h3>
+                      <div class="gr-listing-card-head">
+                        <div class="gr-listing-logo-wrap"><div class="gr-listing-logo-placeholder">NB</div></div>
+                        <div class="gr-listing-card-meta">
+                          <div class="gr-listing-biz-row"><p class="gr-listing-biz-name">North End Bikes</p></div>
+                          <p class="gr-listing-budget">$450</p>
+                          <p class="gr-listing-contract">Phased</p>
+                        </div>
+                      </div>
+                      <div class="gr-listing-foot">
+                        <div class="gr-listing-tags"><span class="gr-listing-tag">Shopify</span><span class="gr-listing-tag">Photo</span></div>
+                        <span class="gr-listing-cta-link">View →</span>
+                      </div>
                     </div>
-                    <div class="fs-mk__card" style="--i: 2">
-                      <span class="fs-mk__recency">Open</span>
-                      <b class="fs-mk__title">Weekly social posts retainer</b>
-                      <div class="fs-mk__biz"><span class="fs-mk__logo">RR</span>Rooster &amp; Rye</div>
-                      <div class="fs-mk__tags"><span>Social</span></div>
-                      <div class="fs-mk__foot"><b>$320/mo</b><span>Retainer</span><i>View →</i></div>
+                    <div class="gr-listing-card fs-mk__card" style="--i: 2">
+                      <div class="gr-listing-card-eyebrow"><span class="gr-listing-recency">Posted today</span></div>
+                      <h3 class="gr-listing-title">Weekly social posts retainer</h3>
+                      <div class="gr-listing-card-head">
+                        <div class="gr-listing-logo-wrap"><div class="gr-listing-logo-placeholder">RR</div></div>
+                        <div class="gr-listing-card-meta">
+                          <div class="gr-listing-biz-row"><p class="gr-listing-biz-name">Rooster &amp; Rye</p></div>
+                          <p class="gr-listing-budget">$320/mo</p>
+                          <p class="gr-listing-contract">Retainer</p>
+                        </div>
+                      </div>
+                      <div class="gr-listing-foot">
+                        <div class="gr-listing-tags"><span class="gr-listing-tag">Social</span></div>
+                        <span class="gr-listing-cta-link">View →</span>
+                      </div>
                     </div>
-                    <div class="fs-mk__card" style="--i: 3">
-                      <span class="fs-mk__recency">5 bids</span>
-                      <b class="fs-mk__title">Brand refresh + new logo</b>
-                      <div class="fs-mk__biz"><span class="fs-mk__logo">MF</span>Marigold Florals</div>
-                      <div class="fs-mk__tags"><span>Brand</span><span>Logo</span></div>
-                      <div class="fs-mk__foot"><b>$600</b><span>Phased</span><i>View →</i></div>
+                    <div class="gr-listing-card fs-mk__card" style="--i: 3">
+                      <div class="gr-listing-card-eyebrow"><span class="gr-listing-recency">Posted 2d ago</span></div>
+                      <h3 class="gr-listing-title">Brand refresh + new logo</h3>
+                      <div class="gr-listing-card-head">
+                        <div class="gr-listing-logo-wrap"><div class="gr-listing-logo-placeholder">MF</div></div>
+                        <div class="gr-listing-card-meta">
+                          <div class="gr-listing-biz-row"><p class="gr-listing-biz-name">Marigold Florals</p></div>
+                          <p class="gr-listing-budget">$600</p>
+                          <p class="gr-listing-contract">Phased</p>
+                        </div>
+                      </div>
+                      <div class="gr-listing-foot">
+                        <div class="gr-listing-tags"><span class="gr-listing-tag">Brand</span><span class="gr-listing-tag">Logo</span></div>
+                        <span class="gr-listing-cta-link">View →</span>
+                      </div>
                     </div>
-                    <div class="fs-mk__card" style="--i: 4">
-                      <span class="fs-mk__recency">Posted yesterday</span>
-                      <b class="fs-mk__title">Market research for new location</b>
-                      <div class="fs-mk__biz"><span class="fs-mk__logo">SF</span>Split / Fix Shop</div>
-                      <div class="fs-mk__tags"><span>Research</span></div>
-                      <div class="fs-mk__foot"><b>$520</b><span>One time</span><i>View →</i></div>
+                    <div class="gr-listing-card fs-mk__card" style="--i: 4">
+                      <div class="gr-listing-card-eyebrow"><span class="gr-listing-recency">Posted yesterday</span></div>
+                      <h3 class="gr-listing-title">Market research for new location</h3>
+                      <div class="gr-listing-card-head">
+                        <div class="gr-listing-logo-wrap"><div class="gr-listing-logo-placeholder">SF</div></div>
+                        <div class="gr-listing-card-meta">
+                          <div class="gr-listing-biz-row"><p class="gr-listing-biz-name">Split / Fix Shop</p></div>
+                          <p class="gr-listing-budget">$520</p>
+                          <p class="gr-listing-contract">One time</p>
+                        </div>
+                      </div>
+                      <div class="gr-listing-foot">
+                        <div class="gr-listing-tags"><span class="gr-listing-tag">Research</span></div>
+                        <span class="gr-listing-cta-link">View →</span>
+                      </div>
                     </div>
-                    <div class="fs-mk__card" style="--i: 5">
-                      <span class="fs-mk__recency">8 bids</span>
-                      <b class="fs-mk__title">Site copy + photo direction</b>
-                      <div class="fs-mk__biz"><span class="fs-mk__logo">AK</span>Alma Kitchen</div>
-                      <div class="fs-mk__tags"><span>Copy</span><span>Photo</span></div>
-                      <div class="fs-mk__foot"><b>$380</b><span>One time</span><i>View →</i></div>
+                    <div class="gr-listing-card fs-mk__card" style="--i: 5">
+                      <div class="gr-listing-card-eyebrow"><span class="gr-listing-recency">Posted 3d ago</span></div>
+                      <h3 class="gr-listing-title">Site copy + photo direction</h3>
+                      <div class="gr-listing-card-head">
+                        <div class="gr-listing-logo-wrap"><div class="gr-listing-logo-placeholder">AK</div></div>
+                        <div class="gr-listing-card-meta">
+                          <div class="gr-listing-biz-row"><p class="gr-listing-biz-name">Alma Kitchen</p></div>
+                          <p class="gr-listing-budget">$380</p>
+                          <p class="gr-listing-contract">One time</p>
+                        </div>
+                      </div>
+                      <div class="gr-listing-foot">
+                        <div class="gr-listing-tags"><span class="gr-listing-tag">Copy</span><span class="gr-listing-tag">Photo</span></div>
+                        <span class="gr-listing-cta-link">View →</span>
+                      </div>
                     </div>
                   </div>
                 </div>
