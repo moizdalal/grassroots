@@ -528,7 +528,7 @@ const CONSULTANT_STEPS = [
     placement: "left",
     advanceOn: "next",
     title: "Drag to garden.",
-    body: "When an engagement blooms — stage five, payment received — drag the plant into your garden tile. It preserves the work as part of your portfolio.",
+    body: "When an engagement blooms — stage five, payment received — drag the plant into your garden tile. It preserves the work as part of your resume.",
   },
 
   {

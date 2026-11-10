@@ -64,7 +64,7 @@ What we store:
 - Account info (name, email, phone, role)
 - Listings, bids, messages, reviews
 - Payment metadata via Stripe (we don't see card numbers)
-- Profile content you upload (photo, resume, portfolio)
+- Profile content you upload (photo, resume, work samples)
 
 What we don't:
 - Card or bank details (Stripe holds these)
