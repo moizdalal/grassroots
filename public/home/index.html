@@ -60,7 +60,7 @@
     <link rel="stylesheet" href="/field-office.css?v=2" />
     <link rel="stylesheet" href="/garden-stem.css?v=2" />
     <link rel="stylesheet" href="/home/nav.css?v=7" />
-    <link rel="stylesheet" href="/home/index.css?v=37" />
+    <link rel="stylesheet" href="/home/index.css?v=45" />
     <script src="/theme.js?v=2"></script>
     <script src="/home/theme-default.js?v=2"></script>
     <script>
@@ -241,7 +241,7 @@
 
     <!-- ── manifesto ──────────────────────────────────────────
          a rounded panel with two statements: the mission hook, then
-         what grassroots does about it. themed: outline in dark, card in
+         what grassroots does about it. themed: tinted panel in dark, card in
          light. the second statement's words fill in as you scroll (initialized at the bottom of <body>). -->
     <section class="ld-manifesto" id="ld-manifesto" aria-label="Why we built this">
       <div class="ld-shell">
@@ -252,88 +252,39 @@
       </div>
     </section>
 
-    <!-- ── how it works: four growth stages, side by side ──────
-         each step has its own plant stage (roots, sprout, bud, bloom).
-         cards fade in left to right once (script at the bottom of <body>). -->
-    <section class="ld-section ld-grow" id="how-it-works" aria-labelledby="ld-how-title" data-vine-anchor="how">
+    <!-- ── how it works: a 70-second walkthrough video with music, light or
+         dark to match the theme. It plays muted while on screen, and the
+         sound button turns the music on (script at the bottom of <body>). The four steps stay as text for screen readers
+         and search engines.
+         NOTE FOR MOIZ: the two videos in /home/media add about 22 MB to the
+         repo (dark 10.8 MB, light 11.7 MB, 720p with music). Only the one for the current
+         theme downloads, and only once the section scrolls into view. If
+         that's too heavy for the repo, they could move to a video host such
+         as Vercel Blob or Mux and these src paths would point there instead. -->
+    <section class="ld-section ld-howvid" id="how-it-works" aria-labelledby="ld-how-title" data-vine-anchor="how">
       <div class="ld-shell">
         <div class="ld-section__head ld-reveal">
           <h2 class="ld-section__title" id="ld-how-title">How it works</h2>
         </div>
 
-        <ol class="ld-grow__row">
-          <li class="ld-grow__step" style="--i: 0">
-            <div class="ld-grow__art" aria-hidden="true">
-              <svg viewBox="0 0 96 104">
-                <line class="ld-grow__soil" x1="8" y1="40" x2="88" y2="40"/>
-                <ellipse class="ld-grow__seed" cx="48" cy="44" rx="7" ry="5"/>
-                <path class="ld-grow__root" d="M48 48 C47 58 45 66 41 74 M48 48 C49 58 51 66 55 74 M48 48 C48 58 48 68 48 80"/>
-              </svg>
-            </div>
-            <div class="ld-grow__card">
-              <h3 class="ld-grow__title">Post a project</h3>
-              <p class="ld-grow__body">A local business writes a short brief: what they need, a budget range, and a timeline. It takes about five minutes, and posting is free.</p>
-            </div>
-          </li>
+        <div class="ld-howvid__frame ld-reveal">
+          <video class="ld-howvid__video ld-howvid__video--dark" src="/home/media/how-it-works-dark.mp4" poster="/home/media/how-it-works-dark.jpg" muted loop playsinline preload="none" aria-hidden="true"></video>
+          <video class="ld-howvid__video ld-howvid__video--light" src="/home/media/how-it-works-light.mp4" poster="/home/media/how-it-works-light.jpg" muted loop playsinline preload="none" aria-hidden="true"></video>
+          <button type="button" class="ld-howvid__toggle ld-howvid__sound" id="ld-howvid-sound" aria-label="Turn sound on" aria-pressed="false">
+            <svg class="ld-howvid__icon-muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9.5l5 5M20.5 9.5l-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <svg class="ld-howvid__icon-sound" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+          <button type="button" class="ld-howvid__toggle" id="ld-howvid-toggle" aria-label="Play the walkthrough video">
+            <svg class="ld-howvid__icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+            <svg class="ld-howvid__icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor"/></svg>
+          </button>
+        </div>
 
-          <li class="ld-grow__step" style="--i: 1">
-            <div class="ld-grow__art" aria-hidden="true">
-              <svg viewBox="0 0 96 104">
-                <line class="ld-grow__soil" x1="8" y1="92" x2="88" y2="92"/>
-                <!-- the grassroots logo sprout, same shapes as the hero's (garden-stem.js) -->
-                <g transform="translate(28.4 26) scale(0.24)">
-                  <path class="ld-grow__leaf--deep" transform="translate(72 130)" d="M19 10.15C19 4.54431 14.7467 0 9.5 0C4.25329 0 0 4.54431 0 10.15C7.91804 91.2467 8.44249 120.691 0 134.85C0 140.456 4.25329 145 9.5 145C14.7467 145 19 140.456 19 134.85C16.2169 71.2734 12.3479 23.288 19 10.15Z"/>
-                  <path class="ld-grow__leaf--deep" transform="translate(0 65)" d="M84 87C21 71.5333 -6.5625 42.5333 1.3125 0C56.4375 3.86667 84 32.8667 84 87Z"/>
-                  <path class="ld-grow__leaf" transform="translate(82 0)" d="M0 147C48.6 116.053 75.6 67.0526 81 0C27 5.1579 0 54.1579 0 147Z"/>
-                </g>
-              </svg>
-            </div>
-            <div class="ld-grow__card">
-              <h3 class="ld-grow__title">Students bid</h3>
-              <p class="ld-grow__body">College students nearby read the brief and send a short pitch with their price and plan. The business compares bids at its own pace.</p>
-            </div>
-          </li>
-
-          <li class="ld-grow__step" style="--i: 2">
-            <div class="ld-grow__art" aria-hidden="true">
-              <svg viewBox="0 0 96 104">
-                <line class="ld-grow__soil" x1="8" y1="92" x2="88" y2="92"/>
-                <path class="ld-grow__stem" d="M48 92 C48 70 48 46 48 26"/>
-                <path class="ld-grow__leaf" d="M48 74 C38 70 32 62 30 52 C40 53 46 61 48 74Z"/>
-                <path class="ld-grow__leaf ld-grow__leaf--deep" d="M48 60 C58 56 64 48 66 38 C56 39 50 47 48 60Z"/>
-                <path class="ld-grow__leaf" d="M48 44 C42 41 38 36 37 30 C43 31 47 36 48 44Z"/>
-                <ellipse class="ld-grow__bud" cx="48" cy="22" rx="6" ry="8"/>
-                <path class="ld-grow__sepal" d="M42 24 C44 28 52 28 54 24"/>
-              </svg>
-            </div>
-            <div class="ld-grow__card">
-              <h3 class="ld-grow__title">Pick a bid</h3>
-              <p class="ld-grow__body">The business picks the student who fits best and funds the project. Grassroots holds the payment, processed by Stripe, until the work is done.</p>
-            </div>
-          </li>
-
-          <li class="ld-grow__step" style="--i: 3">
-            <div class="ld-grow__art" aria-hidden="true">
-              <svg viewBox="0 0 96 104">
-                <line class="ld-grow__soil" x1="8" y1="92" x2="88" y2="92"/>
-                <path class="ld-grow__stem" d="M48 92 C48 70 48 48 48 34"/>
-                <path class="ld-grow__leaf" d="M48 76 C38 72 32 64 30 54 C40 55 46 63 48 76Z"/>
-                <path class="ld-grow__leaf ld-grow__leaf--deep" d="M48 62 C58 58 64 50 66 40 C56 41 50 49 48 62Z"/>
-                <g transform="translate(48 24)">
-                  <ellipse class="ld-grow__petal" cx="0" cy="-11" rx="7" ry="10"/>
-                  <ellipse class="ld-grow__petal" cx="0" cy="-11" rx="7" ry="10" transform="rotate(72)"/>
-                  <ellipse class="ld-grow__petal ld-grow__petal--shade" cx="0" cy="-11" rx="7" ry="10" transform="rotate(144)"/>
-                  <ellipse class="ld-grow__petal" cx="0" cy="-11" rx="7" ry="10" transform="rotate(216)"/>
-                  <ellipse class="ld-grow__petal ld-grow__petal--shade" cx="0" cy="-11" rx="7" ry="10" transform="rotate(288)"/>
-                  <circle class="ld-grow__center" r="5"/>
-                </g>
-              </svg>
-            </div>
-            <div class="ld-grow__card">
-              <h3 class="ld-grow__title">Approve and get paid</h3>
-              <p class="ld-grow__body">The student delivers the work and makes revisions if needed. Once the business approves it, the student gets paid and both sides leave a review.</p>
-            </div>
-          </li>
+        <ol class="ld-sr">
+          <li><b>Post a project.</b> A local business writes a short brief: what they need, a budget range, and a timeline. It takes about five minutes, and posting is free.</li>
+          <li><b>Students bid.</b> College students nearby read the brief and send a short pitch with their price and plan. The business compares bids at its own pace.</li>
+          <li><b>Pick a bid.</b> The business picks the student who fits best and funds the project. Grassroots holds the payment, processed by Stripe, until the work is done.</li>
+          <li><b>Approve and get paid.</b> The student delivers the work and makes revisions if needed. Once the business approves it, the student gets paid and both sides leave a review.</li>
         </ol>
       </div>
     </section>
@@ -576,11 +527,6 @@
             <details>
               <summary>Are taxes and 1099s handled?</summary>
               <p class="ld-faq__answer">Payouts go to students through Stripe. Grassroots issues tax forms to students where the law requires it. You'll get a clean year end summary of what you paid through the platform for your own books.</p>
-            </details>
-            <details>
-              <summary>What cities are you in?</summary>
-              <p class="ld-faq__answer">Grassroots is opening town by town. New towns open as students and businesses there join.</p>
-              <p class="ld-faq__answer" hidden data-placeholder="Real number of towns and states">We launched in 14 college towns across Florida, Georgia, and the Carolinas. New towns open as students and businesses there join.</p>
             </details>
           </div>
         </div>
@@ -1115,6 +1061,53 @@
       // ── How it works: each growth stage row fades up once as it scrolls in ──
       // Rows only start hidden after this runs ("is-armed"), so they still
       // show if scripts fail; reduced motion skips the effect entirely.
+      // ── How it works video: play the version that matches the theme, only
+      // while it's on screen. Reduced motion waits for the play button.
+      (function () {
+        const frame = document.querySelector(".ld-howvid__frame");
+        if (!frame) return;
+        const vids = frame.querySelectorAll(".ld-howvid__video");
+        const btn = document.getElementById("ld-howvid-toggle");
+        const soundBtn = document.getElementById("ld-howvid-sound");
+        const noMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+        let wanted = !noMotion; // the viewer's choice; the pause button sets it
+        let inView = false;
+        // Browsers only autoplay muted video, so the music starts off and the
+        // sound button turns it on. A theme swap keeps the viewer's choice.
+        let soundOn = false;
+        const current = () => (document.documentElement.getAttribute("data-theme") === "light" ? vids[1] : vids[0]);
+        function sync() {
+          const cur = current();
+          vids.forEach((v) => {
+            v.muted = !soundOn;
+            if (v !== cur && !v.paused) v.pause();
+          });
+          if (wanted && inView) {
+            if (cur.preload !== "auto") cur.preload = "auto";
+            cur.play().catch(() => {});
+          } else if (!cur.paused) {
+            cur.pause();
+          }
+          const playing = wanted && inView;
+          frame.classList.toggle("is-playing", playing);
+          btn.setAttribute("aria-label", playing ? "Pause the walkthrough video" : "Play the walkthrough video");
+          frame.classList.toggle("has-sound", soundOn);
+          soundBtn.setAttribute("aria-pressed", String(soundOn));
+          soundBtn.setAttribute("aria-label", soundOn ? "Turn sound off" : "Turn sound on");
+        }
+        btn.addEventListener("click", () => { wanted = !wanted; sync(); });
+        // Turning the sound on also starts the video, so the click is heard.
+        soundBtn.addEventListener("click", () => { soundOn = !soundOn; if (soundOn) wanted = true; sync(); });
+        if ("IntersectionObserver" in window) {
+          new IntersectionObserver((entries) => { inView = entries[0].isIntersecting; sync(); }, { threshold: 0.35 }).observe(frame);
+        } else {
+          inView = true;
+        }
+        // The theme button swaps the video in place.
+        new MutationObserver(sync).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+        sync();
+      })();
+
       const grow = document.getElementById("how-it-works");
       if (grow && grow.classList.contains("ld-grow") && !reduced && "IntersectionObserver" in window) {
         grow.classList.add("is-armed");

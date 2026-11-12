@@ -1025,6 +1025,11 @@
          left; the new center expands and gains the accent panel, the
          outgoing left fades off, a new card slides in on the right. */
       .ld-hero__cards {
+        /* --hc-x: how far the side cards sit from the middle.
+           --hc-side: a side card's width. --hc-open: a card opened on hover. */
+        --hc-x: 11rem;
+        --hc-side: clamp(7rem, 11vw, 8.6rem);
+        --hc-open: clamp(15rem, 25vw, 20rem);
         position: relative;
         height: clamp(9rem, 17vw, 12rem);
         flex-shrink: 0;
@@ -1068,32 +1073,32 @@
          off-left. Same collapsed shape as the side slots so they
          animate smoothly into the visible triplet. */
       .ld-hero-card.s-off-left {
-        transform: translate(calc(-50% - 22rem), -50%) scale(0.82) rotate(-12deg);
+        transform: translate(calc(-50% - 22rem), -50%) scale(0.82);
         opacity: 0;
         z-index: 1;
       }
       .ld-hero-card.s-off-right {
-        transform: translate(calc(-50% + 22rem), -50%) scale(0.82) rotate(12deg);
+        transform: translate(calc(-50% + 22rem), -50%) scale(0.82);
         opacity: 0;
         z-index: 1;
       }
 
-      /* Visible side slots — collapsed, slight tilt, dim. */
+      /* Visible side slots — collapsed and straight. */
       /* Full opacity so side-card text stays white, not dimmed to gray. */
       .ld-hero-card.s-left {
-        transform: translate(calc(-50% - 11rem), -50%) scale(0.94) rotate(-4deg);
+        transform: translate(calc(-50% - 11rem), -50%) scale(0.94);
         opacity: 1;
         z-index: 2;
       }
       .ld-hero-card.s-right {
-        transform: translate(calc(-50% + 11rem), -50%) scale(0.94) rotate(4deg);
+        transform: translate(calc(-50% + 11rem), -50%) scale(0.94);
         opacity: 1;
         z-index: 2;
       }
 
       /* Expanded center — solid accent panel, larger width + padding. */
       .ld-hero-card.s-center {
-        width: clamp(13rem, 21vw, 17rem);
+        width: clamp(15rem, 21vw, 17rem);
         padding: 1rem 1.15rem;
         transform: translate(-50%, -50%) scale(1.06);
         opacity: 1;
@@ -1238,35 +1243,47 @@
       .ld-hero-card.s-left,
       .ld-hero-card.s-center,
       .ld-hero-card.s-right { pointer-events: auto; }
-      /* Side cards widen on hover; shift them outward so they don't cover the center card. */
-      .ld-hero-card.s-left:hover   { transform: translate(calc(-50% - 13.5rem), -50%) scale(1.06) rotate(0deg); }
-      .ld-hero-card.s-right:hover  { transform: translate(calc(-50% + 13.5rem), -50%) scale(1.06) rotate(0deg); }
-      .ld-hero-card.s-center:hover { transform: translate(-50%, -50%) scale(1.12); }
-      .ld-hero-card.s-left:hover,
-      .ld-hero-card.s-right:hover,
-      .ld-hero-card.s-center:hover { z-index: 6; opacity: 1; }
-      /* Hovered cards widen (side cards open to the center card's layout) so names fit. */
-      .ld-hero-card.s-left:hover,
-      .ld-hero-card.s-right:hover,
-      .ld-hero-card.s-center:hover {
-        width: clamp(15rem, 25vw, 20rem);
-        padding: 1rem 1.15rem;
-      }
-      .ld-hero-card:not(.s-center):hover .ld-hero-card__head { margin-bottom: 0.55rem; }
-      .ld-hero-card:not(.s-center):hover .ld-hero-card__tagline,
-      .ld-hero-card:not(.s-center):hover .ld-hero-card__stat {
-        opacity: 1;
-        max-height: 3em;
-      }
-      .ld-hero-card:not(.s-center):hover .ld-hero-card__stat {
-        padding-top: 0.45rem;
-        border-top-color: color-mix(in srgb, var(--fo-line) 80%, transparent);
-      }
-      /* Full name on hover instead of cutting it off with "…". */
-      .ld-hero-card:hover .ld-hero-card__name,
-      .ld-hero-card:hover .ld-hero-card__tagline {
-        white-space: normal;
-        overflow: visible;
+      /* Hover opens a card to its full size so the whole name shows. A side
+         card keeps its outer edge where it was and grows in toward the middle,
+         over the center card. That way it always still covers the spot it
+         started in, so the pointer never ends up off it, and it never runs off
+         the screen. (A card that slid out from under the pointer lost its
+         hover, snapped back and flickered.) Touch screens can't hover, so they
+         skip this. */
+      @media (hover: hover) {
+        .ld-hero-card.s-left:hover,
+        .ld-hero-card.s-right:hover,
+        .ld-hero-card.s-center:hover {
+          z-index: 6;
+          opacity: 1;
+          width: var(--hc-open);
+          padding: 1rem 1.15rem;
+        }
+        /* Side cards: keep the outer edge where it was (the card is shown at
+           0.94 scale, so its half-width is 0.47 of --hc-side) and grow in. */
+        .ld-hero-card.s-left:hover {
+          transform: translate(calc(-50% - var(--hc-x) - 0.47 * var(--hc-side) + 0.5 * var(--hc-open)), calc(-50% - 4px));
+        }
+        .ld-hero-card.s-right:hover {
+          transform: translate(calc(-50% + var(--hc-x) + 0.47 * var(--hc-side) - 0.5 * var(--hc-open)), calc(-50% - 4px));
+        }
+        .ld-hero-card.s-center:hover { transform: translate(-50%, calc(-50% - 4px)) scale(1.06); }
+        .ld-hero-card:not(.s-center):hover .ld-hero-card__head { margin-bottom: 0.55rem; }
+        .ld-hero-card:not(.s-center):hover .ld-hero-card__tagline,
+        .ld-hero-card:not(.s-center):hover .ld-hero-card__stat {
+          opacity: 1;
+          max-height: 3em;
+        }
+        .ld-hero-card:not(.s-center):hover .ld-hero-card__stat {
+          padding-top: 0.45rem;
+          border-top-color: color-mix(in srgb, var(--fo-line) 80%, transparent);
+        }
+        /* Full name instead of cutting it off with "…". */
+        .ld-hero-card:hover .ld-hero-card__name,
+        .ld-hero-card:hover .ld-hero-card__tagline {
+          white-space: normal;
+          overflow: visible;
+        }
       }
       @media (max-width: 900px) { .ld-hero__visual { max-width: 500px; aspect-ratio: 1 / 1.2; } }
       /* The laptop height cap (100vh - 22rem) bites on phones, where 100vh
@@ -1274,9 +1291,10 @@
          its roots and changed height mid-scroll. Phones stack the hero
          and scroll anyway, so the garden sizes from its width alone. */
       @media (max-width: 720px) { .ld-hero__garden { max-height: none; } }
-      /* Off-stage cards sit past the viewport edge. body's overflow-x: clip
-         doesn't stop mobile browsers widening the layout viewport, so clip here. */
-      @media (max-width: 900px) { .ld-hero { overflow-x: clip; } }
+      /* Off-stage cards and the grass bleed sit past the viewport edge, and
+         body's overflow-x: clip doesn't stop the page scrolling sideways (on
+         desktop too), so the hero clips its own sides at every width. */
+      .ld-hero { overflow-x: clip; }
       /* .ld-hero's padding shorthand zeroes the .ld-shell gutter. Desktop
          gets its margin from max-width; phones need it back. */
       @media (max-width: 720px) { .ld-hero { padding-inline: 16px; } }
@@ -1287,22 +1305,24 @@
         .ld-hero__ctas { flex-direction: column; align-items: stretch; max-width: 20rem; margin-inline: auto; }
       }
       @media (max-width: 480px) {
-        .ld-hero-card.s-off-left  { transform: translate(calc(-50% - 12rem), -50%) scale(0.82) rotate(-12deg); }
-        .ld-hero-card.s-off-right { transform: translate(calc(-50% + 12rem), -50%) scale(0.82) rotate( 12deg); }
+        .ld-hero-card.s-off-left  { transform: translate(calc(-50% - 12rem), -50%) scale(0.82); }
+        .ld-hero-card.s-off-right { transform: translate(calc(-50% + 12rem), -50%) scale(0.82); }
         .ld-hero-card.s-center  { width: 11.5rem; padding: 0.75rem 0.85rem; }
         .ld-hero-card.s-left, .ld-hero-card.s-right { width: 5.4rem; padding: 0.45rem 0.55rem; }
-        .ld-hero-card.s-left  { transform: translate(calc(-50% - 8.5rem), -50%) scale(0.94) rotate(-4deg); }
-        .ld-hero-card.s-right { transform: translate(calc(-50% + 8.5rem), -50%) scale(0.94) rotate( 4deg); }
-        .ld-hero-card.s-left:hover  { transform: translate(calc(-50% - 8.5rem), -50%) scale(1.06) rotate(0deg); }
-        .ld-hero-card.s-right:hover { transform: translate(calc(-50% + 8.5rem), -50%) scale(1.06) rotate(0deg); }
-        .ld-hero-card.s-left:hover, .ld-hero-card.s-right:hover { width: 11.5rem; padding: 0.75rem 0.85rem; }
+        .ld-hero-card.s-left  { transform: translate(calc(-50% - 8.5rem), -50%) scale(0.94); }
+        .ld-hero-card.s-right { transform: translate(calc(-50% + 8.5rem), -50%) scale(0.94); }
+        .ld-hero__cards { --hc-x: 8.5rem; --hc-side: 5.4rem; --hc-open: 11.5rem; }
+        .ld-hero-card.s-left:hover,
+        .ld-hero-card.s-right:hover,
+        .ld-hero-card.s-center:hover { padding: 0.75rem 0.85rem; }
         .ld-hero-card__name { font-size: 0.84rem; }
         .ld-hero-card__avatar { width: 1.8rem; height: 1.8rem; font-size: 0.78rem; }
       }
 
       /* ── manifesto: rounded panel, mission then what we do ──
-         Theme-driven: dark themes get a border-only outline (no card fill,
-         per brandkit), light gets the white card (override near the end). */
+         Dark themes get a soft green-tinted panel with a glow at the top and
+         no outline (a brandkit exception, see "Cards"). Light gets the white
+         card (override near the end). */
       .ld-manifesto {
         padding: clamp(var(--space-5), 5vw, var(--space-7)) 0;
         --ld-panel-ink: var(--fo-text);
@@ -1318,8 +1338,13 @@
         border-radius: 28px;
         text-align: center;
         color: var(--ld-panel-ink);
-        background: transparent;
-        border: 1px solid var(--fo-line-strong);
+        background:
+          radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--fo-accent) 20%, transparent), transparent 70%),
+          color-mix(in srgb, var(--fo-accent) 6%, var(--fo-bg));
+        border: none;
+        box-shadow:
+          inset 0 1px 0 color-mix(in srgb, var(--fo-text) 8%, transparent),
+          0 30px 80px rgba(0, 0, 0, 0.35);
       }
       .ld-manifesto__lead,
       .ld-manifesto__text {
@@ -1515,6 +1540,63 @@
       }
       @media (prefers-reduced-motion: reduce) {
         .ld-grow.is-armed .ld-grow__step { opacity: 1; transform: none; transition: none; }
+      }
+
+      /* ── how it works: the walkthrough video ──
+         Two videos, one per theme; CSS shows the one that matches. The
+         video has its own background, so the frame just rounds and shadows it. */
+      .ld-howvid__frame {
+        position: relative;
+        max-width: 1100px;
+        margin: 0 auto;
+        aspect-ratio: 16 / 9;
+        border-radius: 24px;
+        overflow: hidden;
+        background: #191b20;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--fo-line);
+      }
+      [data-theme="light"] .ld-howvid__frame {
+        background: #f5f1e6;
+        box-shadow: 0 30px 70px rgba(20, 32, 26, 0.14), 0 0 0 1px var(--fo-line);
+      }
+      .ld-howvid__video { display: block; width: 100%; height: 100%; object-fit: cover; }
+      .ld-howvid__video--light { display: none; }
+      [data-theme="light"] .ld-howvid__video--dark { display: none; }
+      [data-theme="light"] .ld-howvid__video--light { display: block; }
+      .ld-howvid__toggle {
+        position: absolute;
+        right: 16px;
+        bottom: 16px;
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: rgba(20, 22, 26, 0.62);
+        color: #fff;
+        cursor: pointer;
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        opacity: 0.85;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+      }
+      .ld-howvid__toggle:hover { opacity: 1; transform: scale(1.06); }
+      .ld-howvid__toggle:focus-visible { outline: 2px solid var(--fo-accent); outline-offset: 3px; opacity: 1; }
+      .ld-howvid__toggle svg { width: 20px; height: 20px; }
+      .ld-howvid__icon-pause { display: none; }
+      .ld-howvid__frame.is-playing .ld-howvid__icon-play { display: none; }
+      .ld-howvid__frame.is-playing .ld-howvid__icon-pause { display: block; }
+      /* sound button sits to the left of play/pause */
+      .ld-howvid__sound { right: 68px; }
+      .ld-howvid__icon-sound { display: none; }
+      .ld-howvid__frame.has-sound .ld-howvid__icon-muted { display: none; }
+      .ld-howvid__frame.has-sound .ld-howvid__icon-sound { display: block; }
+      @media (max-width: 720px) {
+        .ld-howvid__frame { border-radius: 16px; }
+        .ld-howvid__toggle { right: 10px; bottom: 10px; width: 38px; height: 38px; }
+        .ld-howvid__sound { right: 54px; }
       }
 
       /* ── why grassroots: comparison table ─────────────────── */
@@ -2956,7 +3038,7 @@
         border: 1px solid transparent; border-radius: 999px;
         display: inline-flex; align-items: center; gap: 0.45rem;
         opacity: 0;
-        transform: translateY(8px) rotate(var(--chip-rot, 0deg));
+        transform: translateY(8px);
         transition: opacity 0.5s ease, transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
       }
       .ld-review__chip::before {
@@ -2966,14 +3048,14 @@
       }
       .ld-review.is-in .ld-review__chip {
         opacity: 1;
-        transform: translateY(0) rotate(var(--chip-rot, 0deg));
+        transform: translateY(0);
       }
-      .ld-review__chip:nth-child(1) { --chip-rot: -2deg; transition-delay: 0.05s; }
-      .ld-review__chip:nth-child(2) { --chip-rot: 1.5deg; transition-delay: 0.13s; }
-      .ld-review__chip:nth-child(3) { --chip-rot: -1deg; transition-delay: 0.21s; }
-      .ld-review__chip:nth-child(4) { --chip-rot: 2deg; transition-delay: 0.29s; }
-      .ld-review__chip:nth-child(5) { --chip-rot: -1.5deg; transition-delay: 0.37s; }
-      .ld-review__chip:nth-child(6) { --chip-rot: 1deg; transition-delay: 0.45s; }
+      .ld-review__chip:nth-child(1) { transition-delay: 0.05s; }
+      .ld-review__chip:nth-child(2) { transition-delay: 0.13s; }
+      .ld-review__chip:nth-child(3) { transition-delay: 0.21s; }
+      .ld-review__chip:nth-child(4) { transition-delay: 0.29s; }
+      .ld-review__chip:nth-child(5) { transition-delay: 0.37s; }
+      .ld-review__chip:nth-child(6) { transition-delay: 0.45s; }
       .ld-review__sub {
         margin: 0 auto; max-width: 52ch;
         font-size: var(--type-meta);
@@ -2999,9 +3081,9 @@
         transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
       }
       :root:not([data-theme="light"]) .ld-quote { background: transparent; }
-      .ld-quote:nth-child(1) { transform: translateY(0) rotate(-0.6deg); }
-      .ld-quote:nth-child(2) { transform: translateY(-1rem) rotate(0.4deg); }
-      .ld-quote:nth-child(3) { transform: translateY(0.4rem) rotate(-0.3deg); }
+      .ld-quote:nth-child(1) { transform: translateY(0); }
+      .ld-quote:nth-child(2) { transform: translateY(-1rem); }
+      .ld-quote:nth-child(3) { transform: translateY(0.4rem); }
       .ld-quote:hover {
         transform: translateY(-4px) rotate(0deg);
         border-color: var(--fo-accent);
