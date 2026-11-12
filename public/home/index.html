@@ -60,7 +60,7 @@
     <link rel="stylesheet" href="/field-office.css?v=2" />
     <link rel="stylesheet" href="/garden-stem.css?v=2" />
     <link rel="stylesheet" href="/home/nav.css?v=7" />
-    <link rel="stylesheet" href="/home/index.css?v=44" />
+    <link rel="stylesheet" href="/home/index.css?v=45" />
     <script src="/theme.js?v=2"></script>
     <script src="/home/theme-default.js?v=2"></script>
     <script>
@@ -252,12 +252,12 @@
       </div>
     </section>
 
-    <!-- ── how it works: a 70-second walkthrough video, light or dark to
-         match the theme. It plays muted while on screen (script at the
-         bottom of <body>). The four steps stay as text for screen readers
+    <!-- ── how it works: a 70-second walkthrough video with music, light or
+         dark to match the theme. It plays muted while on screen, and the
+         sound button turns the music on (script at the bottom of <body>). The four steps stay as text for screen readers
          and search engines.
-         NOTE FOR MOIZ: the two videos in /home/media add about 19 MB to the
-         repo (dark 9.1 MB, light 9.8 MB, 720p). Only the one for the current
+         NOTE FOR MOIZ: the two videos in /home/media add about 22 MB to the
+         repo (dark 10.8 MB, light 11.7 MB, 720p with music). Only the one for the current
          theme downloads, and only once the section scrolls into view. If
          that's too heavy for the repo, they could move to a video host such
          as Vercel Blob or Mux and these src paths would point there instead. -->
@@ -270,6 +270,10 @@
         <div class="ld-howvid__frame ld-reveal">
           <video class="ld-howvid__video ld-howvid__video--dark" src="/home/media/how-it-works-dark.mp4" poster="/home/media/how-it-works-dark.jpg" muted loop playsinline preload="none" aria-hidden="true"></video>
           <video class="ld-howvid__video ld-howvid__video--light" src="/home/media/how-it-works-light.mp4" poster="/home/media/how-it-works-light.jpg" muted loop playsinline preload="none" aria-hidden="true"></video>
+          <button type="button" class="ld-howvid__toggle ld-howvid__sound" id="ld-howvid-sound" aria-label="Turn sound on" aria-pressed="false">
+            <svg class="ld-howvid__icon-muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9.5l5 5M20.5 9.5l-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <svg class="ld-howvid__icon-sound" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
           <button type="button" class="ld-howvid__toggle" id="ld-howvid-toggle" aria-label="Play the walkthrough video">
             <svg class="ld-howvid__icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
             <svg class="ld-howvid__icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor"/></svg>
@@ -1064,13 +1068,20 @@
         if (!frame) return;
         const vids = frame.querySelectorAll(".ld-howvid__video");
         const btn = document.getElementById("ld-howvid-toggle");
+        const soundBtn = document.getElementById("ld-howvid-sound");
         const noMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
         let wanted = !noMotion; // the viewer's choice; the pause button sets it
         let inView = false;
+        // Browsers only autoplay muted video, so the music starts off and the
+        // sound button turns it on. A theme swap keeps the viewer's choice.
+        let soundOn = false;
         const current = () => (document.documentElement.getAttribute("data-theme") === "light" ? vids[1] : vids[0]);
         function sync() {
           const cur = current();
-          vids.forEach((v) => { if (v !== cur && !v.paused) v.pause(); });
+          vids.forEach((v) => {
+            v.muted = !soundOn;
+            if (v !== cur && !v.paused) v.pause();
+          });
           if (wanted && inView) {
             if (cur.preload !== "auto") cur.preload = "auto";
             cur.play().catch(() => {});
@@ -1080,8 +1091,13 @@
           const playing = wanted && inView;
           frame.classList.toggle("is-playing", playing);
           btn.setAttribute("aria-label", playing ? "Pause the walkthrough video" : "Play the walkthrough video");
+          frame.classList.toggle("has-sound", soundOn);
+          soundBtn.setAttribute("aria-pressed", String(soundOn));
+          soundBtn.setAttribute("aria-label", soundOn ? "Turn sound off" : "Turn sound on");
         }
         btn.addEventListener("click", () => { wanted = !wanted; sync(); });
+        // Turning the sound on also starts the video, so the click is heard.
+        soundBtn.addEventListener("click", () => { soundOn = !soundOn; if (soundOn) wanted = true; sync(); });
         if ("IntersectionObserver" in window) {
           new IntersectionObserver((entries) => { inView = entries[0].isIntersecting; sync(); }, { threshold: 0.35 }).observe(frame);
         } else {
