@@ -87,7 +87,7 @@ async function main() {
   for (const [name, svg] of files) {
     fs.writeFileSync(path.join(OUT, `${name}.svg`), svg + "\n");
     const [, w, h] = svg.match(/width="(\d+)" height="(\d+)"/);
-    await page.setViewport({ width: Number(w), height: Number(h), deviceScaleFactor: 2 });
+    await page.setViewport({ width: Number(w), height: Number(h), deviceScaleFactor: 4 });
     await page.setContent(`<!doctype html><style>html,body{margin:0;background:transparent}svg{display:block}</style>${svg}`);
     await page.screenshot({ path: path.join(OUT, `${name}.png`), omitBackground: true });
   }
