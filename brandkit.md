@@ -32,7 +32,7 @@ Two fonts, one rhythm. Loaded from Google Fonts in each page head (`Fraunces:ops
 - **Fraunces** (serif, variable weight + opsz axis) — `--font-display`. All headings (h1-h4, page/section/card titles), hero numbers, and the logo wordmark. Always weight 600, upright, never italic. Exception under trial: the training page (`training.css`) pins headings to `"opsz" 24` because the auto display cut renders thin, broken-looking f's. If it holds up, roll it out site-wide.
 - **Figtree** (sans, variable weight 300-900) — `--font-body`. Body copy, buttons, inputs, nav, labels, eyebrows.
 
-Point every `font-family` at the tokens (`var(--font-display)`, `var(--font-body)`); don't hardcode family names. `grassroots.css` also sets h1-h4 to display, 600, upright. Manrope, Inter, Syne, Caveat and JetBrains Mono are retired. For numbers that must align (amounts in tables), use Figtree with `font-variant-numeric: tabular-nums` rather than a monospace.
+Point every `font-family` at the tokens (`var(--font-display)`, `var(--font-body)`); don't hardcode family names. `grassroots.css` also sets h1-h4 to display, 600, upright. Manrope, Inter, Syne and JetBrains Mono are retired. Caveat (handwriting) is retired everywhere except one place: the "Start here if you're a business owner" note under the home hero's "Post a project" button (`.ld-start` in `public/home/index.css`, scoped as `--font-hand`). It is an annotation pointing at a button, not copy. Don't use it for headings, body text or anywhere else. For numbers that must align (amounts in tables), use Figtree with `font-variant-numeric: tabular-nums` rather than a monospace.
 
 ### Type scale tokens (defined in `:root` in `grassroots.css`)
 
@@ -110,6 +110,11 @@ Set on `<html data-theme="…">` by `theme.js` synchronously in head. Tokens def
 - Random orange that isn't `--fo-accent-warm`
 - Hardcoded warm tints like `rgba(232, 142, 90, 0.18)`. That is the dark-theme `--fo-accent-warm` value, so in light theme it turns peach/pink against the terracotta text. Derive tints from the token: `color-mix(in srgb, var(--fo-accent-warm) 18%, transparent)` (same for `--fo-plan`).
 - Any color picked from outside this token set, except for guaranteed-contrast hovers (see below)
+
+### Annotation and brand-logo exceptions (home page)
+
+- **Handwritten note** (`.ld-start`): `--fo-accent-warm` is pending/warn only, with one exception: the hand-drawn "Start here" note and arrow under the home hero button. It is a pointer, not a status, and it must not carry meaning anywhere else.
+- **Brand logos** (`.ld-bring` on the home page): the Instagram and Facebook marks in the "What a student brings" card keep their real colors (Facebook `#1877F2`, Instagram's gradient) so they read at a glance. Use real brand colors only for real third-party logos, never for our own UI.
 
 ### Guaranteed-contrast exception
 
