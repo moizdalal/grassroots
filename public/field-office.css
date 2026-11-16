@@ -1389,6 +1389,27 @@ body.gr-body .gr-section-h {
   color: var(--fo-accent-on);
 }
 
+/* Filter chips on the green panel: white outline, inverted when active. */
+[data-theme="light"] .cdash__notifications-section .gr-notif-filter {
+  border-color: rgba(255, 255, 255, 0.38);
+  color: rgba(255, 255, 255, 0.9);
+}
+[data-theme="light"] .cdash__notifications-section .gr-notif-filter:hover {
+  border-color: var(--fo-accent-on);
+  color: var(--fo-accent-on);
+}
+[data-theme="light"] .cdash__notifications-section .gr-notif-filter.is-active {
+  background: var(--fo-accent-on);
+  border-color: var(--fo-accent-on);
+  color: var(--fo-accent);
+}
+[data-theme="light"] .cdash__notifications-section .gr-notif-filter__count {
+  background: rgba(255, 255, 255, 0.18);
+}
+[data-theme="light"] .cdash__notifications-section .gr-notif-filter.is-active .gr-notif-filter__count {
+  background: var(--fo-accent-soft);
+}
+
 /* Empty-state copy ("no notifications yet…") also inherits white. */
 [data-theme="light"] .cdash__notifications-section #cdash-notifications-empty {
   color: rgba(255, 255, 255, 0.85);
@@ -4590,6 +4611,48 @@ body.gr-has-side-nav .bza__side {
   }
 }
 
+/* Profile-completion card in the owner home. The shared bucket panel is
+   ~345px tall at its default size, which is taller than the performance
+   block beside it and more than the viewport-locked column can hold on
+   shorter laptop screens, so it spilled out below the garden. Here it
+   gets a smaller bucket, tighter spacing and a capped summary so its
+   height stays close to its neighbour and no longer depends on how many
+   profile items are still missing. Scoped to the owner home only. */
+.dash-home-stats .bza__health {
+  gap: 0.6rem;
+}
+.dash-home-stats .bza__health-top {
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 0.9rem;
+  padding: 0 0 0.7rem;
+}
+.dash-home-stats .bza__health-bucket {
+  width: 92px;
+  height: 117px;
+}
+.dash-home-stats .bza__health-bucket-pct {
+  font-size: 1.7rem;
+}
+.dash-home-stats .bza__health-name {
+  font-size: var(--type-h3);
+}
+.dash-home-stats .bza__health-eyebrow {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+.dash-home-stats .bza__health-cta {
+  margin-bottom: 0;
+  padding: 0.5rem 0.8rem;
+}
+@media (max-width: 540px) {
+  .dash-home-stats .bza__health-top {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Listings panel — header sticks at the top, rows wrap scrolls.
    Flexes to take whatever vertical space remains in the column
    after the stats row claims its content height. The min-height
@@ -4640,6 +4703,35 @@ body.gr-has-side-nav .bza__side {
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
+}
+
+/* The no-scroll lock only works when the column can actually hold the
+   listings panel plus the stats row. When the stats stack into one
+   column (<= 1100px wide) or the window is short, release the lock and
+   let the page scroll instead of letting the cards spill out of the
+   column. Same rules the phone layout uses below. */
+@media (max-width: 1100px), (max-height: 700px) {
+  .dash-view--home:not([hidden]) {
+    height: auto;
+    min-height: calc(100vh - 4rem);
+  }
+  .dash-home-grid {
+    flex: 0 0 auto;
+  }
+  .dash-listings-panel {
+    flex: 0 0 auto;
+    min-height: 0;
+  }
+  .dash-listings-rows-wrap {
+    flex: 0 0 auto;
+  }
+}
+/* Above the phone breakpoint the list keeps its own scroll so a long
+   project list cannot stretch the page (and the garden beside it). */
+@media (min-width: 961px) and (max-width: 1100px), (min-width: 961px) and (max-height: 700px) {
+  .dash-listings-rows-wrap {
+    max-height: 22rem;
+  }
 }
 
 /* On narrow viewports the two columns stack and the page can scroll

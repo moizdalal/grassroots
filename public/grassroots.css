@@ -2631,7 +2631,7 @@ summary:focus-visible,
   color: var(--fo-accent, var(--green-mid));
 }
 
-/* Date-bucket header: small uppercase eyebrow + count, with the cards
+/* Date-bucket header: small sentence-case label + count, with the cards
    indented under it. Buckets are visually grouped, not boxed. */
 .gr-notif-bucket {
   display: grid;
@@ -2644,10 +2644,10 @@ summary:focus-visible,
   align-items: baseline;
   gap: 0.55rem;
   font-family: var(--font-body);
-  font-size: var(--type-eyebrow);
+  font-size: var(--type-meta);
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: var(--fo-text-3, var(--tagline-body));
 }
 
@@ -2859,8 +2859,8 @@ summary:focus-visible,
   background: rgba(45, 106, 79, 0.12);
   color: var(--green-deep);
   font-size: var(--type-eyebrow);  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-transform: none;
   white-space: nowrap;
 }
 
@@ -2933,6 +2933,16 @@ summary:focus-visible,
   color: var(--fo-accent-warm, #b97a2a);
 }
 
+.gr-notification-card__icon--payments {
+  background: var(--fo-accent-soft, rgba(45, 106, 79, 0.12));
+  color: var(--fo-accent, var(--green-mid));
+}
+
+.gr-notification-card__icon--engagements {
+  background: rgba(212, 165, 91, 0.16);
+  color: var(--fo-accent-warm, #b97a2a);
+}
+
 .gr-notification-card__icon--reviews {
   background: rgba(149, 213, 178, 0.22);
   color: var(--green-mid);
@@ -2989,6 +2999,31 @@ summary:focus-visible,
 /* Dashboard notifications list — fills the panel naturally. The mount
    helper already caps how many it requests from the API, so the list
    simply renders all returned cards stacked. */
+/* Filter chips above the dashboard list (inserted by
+   dashboard-notifications.js). Same chips as /notifications.html, a touch
+   tighter, and on one scrollable line so the panel height never changes. */
+.dash-notifications-filters {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0.75rem 1rem 0.5rem;
+}
+
+.dash-notifications-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.dash-notifications-filters[hidden] {
+  display: none;
+}
+
+.dash-notifications-filters .gr-notif-filter {
+  flex: 0 0 auto;
+  padding: 0.26rem 0.7rem;
+  white-space: nowrap;
+}
+
 .dash-notifications-list {
   display: flex;
   flex-direction: column;
@@ -5590,6 +5625,103 @@ button.gr-bid-link {
   border-radius: 0;
   padding: 0;
   margin-bottom: var(--space-5);
+}
+
+/* "Why Stripe asks for your SSN": a quiet label + "i" button above the
+   embedded identity form. The explainer is click-to-reveal
+   (setupInfoPopover in payouts.js), never always-visible copy. */
+.po-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2rem;
+  margin: 0 0 var(--space-3);
+  padding: 0.25rem 0.1rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fo-text-2);
+  font: inherit;
+  font-size: var(--type-meta);
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.po-info__label {
+  text-decoration: underline;
+  text-decoration-color: var(--fo-line-strong);
+  text-underline-offset: 3px;
+}
+.po-info__icon {
+  display: inline-flex;
+  color: var(--fo-text-2);
+  transition: color 0.15s ease;
+}
+.po-info__icon svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+.po-info:hover,
+.po-info[aria-expanded="true"] {
+  color: var(--fo-text);
+}
+.po-info:hover .po-info__icon,
+.po-info[aria-expanded="true"] .po-info__icon {
+  color: var(--fo-text);
+}
+.po-info:focus-visible {
+  outline: 2px solid var(--fo-accent);
+  outline-offset: 2px;
+}
+
+.po-info-pop {
+  position: fixed;
+  z-index: 1000;
+  box-sizing: border-box;
+  width: min(320px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  padding: 0.85rem 1rem;
+  background: var(--fo-surface);
+  color: var(--fo-text);
+  border: 1px solid var(--fo-line-strong);
+  border-radius: 12px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.22);
+  font-size: var(--type-meta);
+  line-height: 1.5;
+}
+.po-info-pop[hidden] {
+  display: none;
+}
+/* Dark themes: lift the surface so the text stays readable over the page. */
+:root:not([data-theme="light"]) .po-info-pop {
+  background: var(--fo-surface-2);
+}
+.po-info-pop p {
+  margin: 0 0 0.55rem;
+}
+.po-info-pop p:last-child {
+  margin-bottom: 0;
+}
+.po-info-pop__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  padding-top: 0.15rem;
+}
+.po-info-pop__links a {
+  /* --fo-accent is too dim for text on dark surfaces; use the text color. */
+  color: var(--fo-text);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--fo-text-3);
+  text-underline-offset: 3px;
+}
+.po-info-pop__links a:focus-visible {
+  outline: 2px solid var(--fo-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* At-a-glance balance summary card. Sits above the embedded Stripe

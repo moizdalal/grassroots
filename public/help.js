@@ -8,13 +8,13 @@ const ARTICLES = [
   { slug: "profile-and-portfolio", title: "Your profile", group: "start" },
 
   { slug: "listings", title: "Listings", group: "businesses" },
-  { slug: "reviews-and-ratings", title: "Reviews & ratings", group: "businesses" },
+  { slug: "reviews-and-ratings", title: "Reviews and ratings", group: "businesses" },
 
   { slug: "bids", title: "Bids", group: "consultants" },
   { slug: "stripe-onboarding", title: "Stripe onboarding", group: "consultants" },
   { slug: "stage-progression", title: "Stage progression", group: "consultants" },
 
-  { slug: "engagements", title: "Engagements", group: "shared" },
+  { slug: "engagements", title: "Projects", group: "shared" },
   { slug: "payments-and-payouts", title: "Payments & payouts", group: "shared" },
   { slug: "messaging", title: "Messaging", group: "shared" },
 

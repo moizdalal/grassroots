@@ -1,4 +1,15 @@
 import { getSupabaseClient } from "/supabase-loader.js";
+import {
+  categorize,
+  FILTER_ORDER,
+  CORE_FILTERS,
+  filterLabel,
+  countByFilter,
+  renderFilterChipsHtml,
+  loadNotificationRole,
+} from "/dashboard-notifications.js?v=2";
+// ?v=2: browsers cache modules for an hour; the version makes sure this
+// page never pairs with an older copy that lacks these exports.
 
 const gate = document.getElementById("gate");
 const list = document.getElementById("notif-list");
@@ -12,6 +23,7 @@ const EMPTY_HTML =
 let _client = null;
 let _notifs = [];
 let _activeFilter = "all";
+let _role = "owner";
 
 function escapeHtml(s) {
   return String(s)
@@ -20,25 +32,6 @@ function escapeHtml(s) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
-
-// Map raw notification.type strings to a small set of filter buckets so we
-// don't end up with 12 chips for 12 server-side type variants. Anything we
-// don't recognize falls into "updates" so it still gets surfaced.
-function categorize(type) {
-  const t = String(type || "").toLowerCase();
-  if (t.startsWith("bid") || t.startsWith("counter")) return "bids";
-  if (t.startsWith("message") || t.startsWith("msg")) return "messages";
-  if (t.startsWith("meeting") || t.startsWith("kickoff")) return "meetings";
-  return "updates";
-}
-
-const FILTER_LABELS = {
-  all: "All",
-  bids: "Offers",
-  messages: "Messages",
-  meetings: "Meetings",
-  updates: "Updates",
-};
 
 function startOfDay(d) {
   const x = new Date(d);
@@ -76,19 +69,15 @@ function fmtTime(iso) {
 }
 
 function renderFilters() {
-  const counts = { all: _notifs.length, bids: 0, messages: 0, meetings: 0, updates: 0 };
-  for (const n of _notifs) counts[categorize(n.type)]++;
+  const counts = countByFilter(_notifs);
 
-  // Only show chips that have at least one match (and "all" always).
-  const chips = ["all", "bids", "messages", "meetings", "updates"]
-    .filter((k) => k === "all" || counts[k] > 0);
+  // The main chips always show, even at zero, so consultants and
+  // businesses see the same row. Messages and updates only show when
+  // they have something in them.
+  const chips = FILTER_ORDER.filter((k) => CORE_FILTERS.includes(k) || counts[k] > 0);
+  if (!chips.includes(_activeFilter)) _activeFilter = "all";
 
-  filtersHost.innerHTML = chips.map((k) => {
-    const active = k === _activeFilter ? "is-active" : "";
-    return `<button type="button" role="tab" class="gr-notif-filter ${active}" data-filter="${k}" aria-selected="${k === _activeFilter}">
-      ${FILTER_LABELS[k]}<span class="gr-notif-filter__count">${counts[k]}</span>
-    </button>`;
-  }).join("");
+  filtersHost.innerHTML = renderFilterChipsHtml({ keys: chips, counts, active: _activeFilter, role: _role });
 
   filtersHost.querySelectorAll(".gr-notif-filter").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -142,7 +131,7 @@ function renderFeed() {
     : _notifs.filter((n) => categorize(n.type) === _activeFilter);
 
   if (!filtered.length) {
-    list.innerHTML = `<p class="gr-empty-state">Nothing in ${escapeHtml(_activeFilter)} right now.</p>`;
+    list.innerHTML = `<p class="gr-empty-state">Nothing under ${escapeHtml(filterLabel(_activeFilter, _role).toLowerCase())} right now.</p>`;
     return;
   }
 
@@ -320,12 +309,16 @@ async function init() {
       return;
     }
 
-    const { data: notifs, error } = await client
-      .from("notifications")
-      .select("*")
-      .eq("user_id", session.user.id)
-      .order("created_at", { ascending: false })
-      .limit(100);
+    const [{ data: notifs, error }, role] = await Promise.all([
+      client
+        .from("notifications")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: false })
+        .limit(100),
+      loadNotificationRole(client, session.user.id),
+    ]);
+    _role = role;
 
     if (error) {
       gate.textContent = error.message;

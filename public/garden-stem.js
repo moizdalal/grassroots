@@ -76,7 +76,7 @@ export function mountGardenStem(container, { roots = [], interactive = true, nav
       <div class="gs__copy">
         ${
           roots.length === 0
-            ? `<p class="gs__empty">Complete an engagement to grow your first root.</p>`
+            ? `<p class="gs__empty">Complete a project to grow your first root.</p>`
             : `<p class="gs__count">${roots.length} root${roots.length === 1 ? "" : "s"} grown.</p>`
         }
       </div>

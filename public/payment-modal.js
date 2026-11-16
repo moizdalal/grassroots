@@ -158,7 +158,7 @@ function buildModal({ amount, title, feeBreakdown }) {
       <header class="pay-modal__head">
         <div>
           <p class="pay-modal__eyebrow">Accept &amp; pay</p>
-          <h2 id="pay-title" class="pay-modal__title">${escapeHtml(title || "engagement")}</h2>
+          <h2 id="pay-title" class="pay-modal__title">${escapeHtml(title || "project")}</h2>
         </div>
         <button type="button" class="pay-modal__close" data-pay-close aria-label="Close">&times;</button>
       </header>
@@ -366,7 +366,7 @@ export async function payAndAcceptBid({ client, bid, listing }) {
             return;
           }
 
-          statusEl.textContent = "Payment held. Redirecting to engagement…";
+          statusEl.textContent = "Payment held. Redirecting to project…";
           statusEl.className = "gr-status success";
           setTimeout(() => cleanup({ ok: true }), 700);
         });
@@ -401,8 +401,8 @@ export async function payAndAcceptProposals({ client, bids, listing }) {
     });
   }
   const titleLabel = bids.length === 1
-    ? `Proposal fee · ${listing?.title || "engagement"}`
-    : `${bids.length} proposal fees · ${listing?.title || "engagement"}`;
+    ? `Proposal fee · ${listing?.title || "project"}`
+    : `${bids.length} proposal fees · ${listing?.title || "project"}`;
   // Show the aggregate breakdown (sum of all proposal offers + their
   // platform fees) so the business sees the total markup as one row. Each
   // bid's fee is rounded on its own, the same way the server does it.
@@ -548,7 +548,7 @@ export async function payAndStartService({ client, bid, listing }) {
   const feeBreakdown = computeFees(amount);
   const overlay = buildModal({
     amount,
-    title: `Service fee · ${listing?.title || "engagement"}`,
+    title: `Service fee · ${listing?.title || "project"}`,
     feeBreakdown,
   });
   const submitBtn = overlay.querySelector("#pay-submit");

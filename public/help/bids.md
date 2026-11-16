@@ -1,11 +1,11 @@
 # Bids
 
-> A bid is a consultant's offer on a business owner's listing. It has a price, an optional message, and goes through a small state machine before becoming an engagement.
+> A bid is a consultant's offer on a business owner's listing. It has a price, an optional message, and goes through a small state machine before becoming a project.
 
 ## The lifecycle
 
 ```
-draft  →  pending  →  accepted  →  engagement begins
+draft  →  pending  →  accepted  →  project begins
                   ↘  countered  →  consultant accepts counter  →  pending again
                   ↘  declined / withdrawn
 ```
@@ -31,7 +31,7 @@ Every bid on their listing appears in a side rail, with the consultant's:
 - Work or proposal samples (if attached)
 
 The owner can:
-- **Accept** — opens a Stripe payment modal; on confirmation, the bid moves to `accepted` and the engagement begins
+- **Accept** — opens a Stripe payment modal; on confirmation, the bid moves to `accepted` and the project begins
 - **Decline** — closes this bid; the consultant gets a notification
 - **Counter** — proposes a different amount with a short note; the bid moves to `countered`
 
@@ -46,7 +46,7 @@ Each owner can counter up to three times per listing across all bids. Consultant
 | State | Meaning |
 |---|---|
 | `pending` | Consultant submitted, owner hasn't acted yet |
-| `accepted` | Owner paid, engagement is live |
+| `accepted` | Owner paid, project is live |
 | `countered` | Owner proposed a different amount |
 | `declined` | Owner rejected |
 | `withdrawn` | Consultant withdrew before acceptance |

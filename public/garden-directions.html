@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,follow" />
+    <title>Grassroots — garden background directions</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
+    <link rel="stylesheet" href="/grassroots.css?v=2" />
+    <link rel="stylesheet" href="/field-office.css?v=2" />
+    <link rel="stylesheet" href="/plant-animations.css" />
+    <link rel="stylesheet" href="/garden.css?v=4" />
+    <script src="/theme.js"></script>
+    <style>
+      /* Design mock only: page chrome for comparing the four garden
+         backdrops. The gardens themselves are the real component
+         (garden.js + garden.css) fed sample engagements. */
+      .gd-page {
+        max-width: 920px;
+        margin: 0 auto;
+        padding: 2.5rem 1.25rem 4rem;
+      }
+      .gd-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 1rem 2rem;
+        margin-bottom: 2rem;
+      }
+      .gd-head h1 {
+        margin: 0 0 0.4rem;
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: var(--type-display);
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        color: var(--fo-text);
+      }
+      .gd-head p {
+        margin: 0;
+        max-width: 58ch;
+        font-family: var(--font-body);
+        font-size: var(--type-body);
+        color: var(--fo-text-2);
+      }
+      .gd-themes {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.4rem;
+        font-family: var(--font-body);
+        font-size: var(--type-meta);
+        color: var(--fo-text-3);
+      }
+      .gd-themes button {
+        padding: 0.35rem 0.8rem;
+        border-radius: 999px;
+        border: 1px solid var(--fo-line-strong);
+        background: transparent;
+        color: var(--fo-text-2);
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .gd-themes button[aria-pressed="true"] {
+        background: var(--fo-accent);
+        border-color: var(--fo-accent);
+        color: var(--fo-accent-on);
+      }
+      /* Stacked, one per row, at about the width the garden has on
+         the profile so each backdrop is judged at its real size. */
+      .gd-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 2.5rem;
+      }
+      .gd-option h2 {
+        margin: 0;
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: var(--type-h2);
+        color: var(--fo-text);
+      }
+      .gd-option__num {
+        color: var(--fo-text-3);
+        font-weight: 400;
+        margin-right: 0.35rem;
+      }
+      .gd-option__why {
+        margin: 0.25rem 0 0.85rem;
+        font-family: var(--font-body);
+        font-size: var(--type-body);
+        color: var(--fo-text-2);
+      }
+      .gd-current {
+        margin-top: 3rem;
+        padding-top: 2rem;
+        border-top: 1px solid var(--fo-line);
+      }
+    </style>
+  </head>
+  <body class="gr-body">
+    <main class="gd-page">
+      <header class="gd-head">
+        <div>
+          <h1>Garden background directions</h1>
+          <p>Four simple backdrops for the garden on your profile, each shown with the same sample projects. Flowers at earlier stages are included so you can see how a growing plant would look. Paper is now the live backdrop, with bees in the light theme and fireflies in the dark themes.</p>
+        </div>
+        <div class="gd-themes" id="gd-themes" role="group" aria-label="Theme">
+          <span>Theme</span>
+          <button type="button" data-theme-pick="dark-forest">Dark forest</button>
+          <button type="button" data-theme-pick="forest-soft">Forest soft</button>
+          <button type="button" data-theme-pick="dark">Dark</button>
+          <button type="button" data-theme-pick="light">Light</button>
+        </div>
+      </header>
+
+      <div class="gd-grid">
+        <section class="gd-option">
+          <h2><span class="gd-option__num">1</span>Paper</h2>
+          <p class="gd-option__why">A plain card and one soft ground line. The quietest option: nothing competes with the flowers.</p>
+          <div class="pp-garden" data-garden-bg="paper"></div>
+        </section>
+
+        <section class="gd-option">
+          <h2><span class="gd-option__num">2</span>Field notebook</h2>
+          <p class="gd-option__why">A dot-grid plot, like a page from a grower's notebook. Ties the garden to the "field office" feel of the rest of the app.</p>
+          <div class="pp-garden" data-garden-bg="notebook"></div>
+        </section>
+
+        <section class="gd-option">
+          <h2><span class="gd-option__num">3</span>Horizon</h2>
+          <p class="gd-option__why">A soft wash of green that gathers at the ground. Keeps a hint of outdoors without any scenery.</p>
+          <div class="pp-garden" data-garden-bg="horizon"></div>
+        </section>
+
+        <section class="gd-option">
+          <h2><span class="gd-option__num">4</span>Specimen shelf</h2>
+          <p class="gd-option__why">A framed card with the flowers standing on a shelf and name tags below. Reads as a collection you have earned.</p>
+          <div class="pp-garden" data-garden-bg="shelf"></div>
+        </section>
+      </div>
+
+      <section class="gd-option gd-current">
+        <h2>Today's background, for comparison</h2>
+        <p class="gd-option__why">The current sky and hills (stars, moon and fireflies in dark themes; sun, clouds and bees in light).</p>
+        <div class="pp-garden" data-garden-bg="meadow"></div>
+      </section>
+    </main>
+
+    <script type="module">
+      import { mountGarden } from "/garden.js";
+
+      // Sample engagements. `stage` 5 is a finished, bloomed flower;
+      // 2 to 4 are plants still growing.
+      const SAMPLE = [
+        { id: "s1", counterpart: "Harbor Coffee", title: "Menu redesign", stage: 5, species: 0 },
+        { id: "s2", counterpart: "Cedar Yoga", title: "Spring launch plan", stage: 5, species: 1 },
+        { id: "s3", counterpart: "Tidewater Books", title: "Loyalty program audit", stage: 5, species: 2 },
+        { id: "s4", counterpart: "Juniper Florist", title: "Instagram content sprint", stage: 4, species: 3 },
+        { id: "s5", counterpart: "North End Bikes", title: "Brand voice cleanup", stage: 3, species: 4 },
+        { id: "s6", counterpart: "Palm Street Deli", title: "Catering one-pager", stage: 2, species: 5 },
+      ];
+
+      for (const el of document.querySelectorAll("[data-garden-bg]")) {
+        mountGarden(el, { engagements: SAMPLE, background: el.dataset.gardenBg });
+      }
+
+      // Theme switcher: same themes theme.js applies site-wide.
+      const picker = document.getElementById("gd-themes");
+      const sync = () => {
+        const current = document.documentElement.getAttribute("data-theme");
+        picker.querySelectorAll("button").forEach((b) => {
+          b.setAttribute("aria-pressed", String(b.dataset.themePick === current));
+        });
+      };
+      picker.addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-theme-pick]");
+        if (btn && window.GrassrootsTheme) window.GrassrootsTheme.set(btn.dataset.themePick);
+      });
+      window.addEventListener("grassroots:themechange", sync);
+      sync();
+    </script>
+  </body>
+</html>

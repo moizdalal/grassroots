@@ -33,7 +33,7 @@ export const QUIZ_LENGTH = 10;
 export const MODULES = [
   {
     id: "before",
-    title: "Before the engagement",
+    title: "Before the project",
     goal: "Show up prepared, price honestly and take on work you can do well.",
     lessons: [
       {
@@ -189,7 +189,7 @@ export const MODULES = [
   },
   {
     id: "during",
-    title: "During the engagement",
+    title: "During the project",
     goal: "Keep the client in the loop, keep the scope clear and keep things moving.",
     lessons: [
       {
@@ -223,7 +223,7 @@ export const MODULES = [
         points: [
           "Settle it at kickoff: how often you'll update, how fast you'll reply and who to contact.",
           "Send updates on schedule, even quiet ones. “On track for Friday” counts.",
-          "Keep it in the engagement's message thread so there's a record.",
+          "Keep it in the project's message thread so there's a record.",
         ],
         example: {
           label: "Try saying at kickoff",
@@ -353,7 +353,7 @@ export const MODULES = [
         },
         points: [
           "Reviews can't be edited. A negative one isn't removed just for being negative.",
-          "Your rating and engagement count move you up the stage ladder, from seedling to sequoia.",
+          "Your rating and project count move you up the stage ladder, from seedling to sequoia.",
           "Ask for a review every time you wrap up.",
         ],
       },
@@ -372,7 +372,7 @@ export const MODULES = [
   {
     id: "trust",
     title: "Professionalism and trust",
-    goal: "These hold before, during and after every engagement.",
+    goal: "These hold before, during and after every project.",
     lessons: [
       {
         title: "Keep everything on Grassroots",
@@ -397,8 +397,8 @@ export const MODULES = [
         title: "Confidentiality",
         points: [
           "Client data, logins, numbers and customer lists are private. Treat them that way.",
-          "Use them only for the engagement. Return or delete them when it ends, or when asked (Terms section 13).",
-          "This lasts 2 years after the engagement, and forever for trade secrets and customer data.",
+          "Use them only for the project. Return or delete them when it ends, or when asked (Terms section 13).",
+          "This lasts 2 years after the project, and forever for trade secrets and customer data.",
           "Ask before you put their work on your resume.",
         ],
       },

@@ -7,26 +7,9 @@ import { getSupabaseClient } from "/supabase-loader.js";
 import { fetchRatingFor, renderRatingMarkup } from "/rating.js";
 import { getInitials } from "/initials.js";
 import { renderHealthBucket, kickHealthBucketAnimation } from "/health-bucket.js";
-// engagement-journey-flowers.js pulls flower-sketch.js (~250KB raw)
-// which is the heaviest module on the page. Defer the import until the
-// panel mounts so the rest of the dashboard becomes interactive first.
-let _flowersModulePromise = null;
-function loadFlowersModule() {
-  if (!_flowersModulePromise) {
-    _flowersModulePromise = import("/engagement-journey-flowers.js");
-  }
-  return _flowersModulePromise;
-}
-async function mountEngagementJourneyFlowers(container, opts) {
-  // Show a placeholder while the heavy art module fetches. Once mod
-  // arrives it overwrites the container's contents.
-  if (container && !container.dataset.flowersLoading) {
-    container.dataset.flowersLoading = "1";
-    container.innerHTML = '<p class="ej-loading">Loading your garden…</p>';
-  }
-  const mod = await loadFlowersModule();
-  return mod.mountEngagementJourneyFlowers(container, opts);
-}
+// Stage / action / status rules shared with the garden on the profile.
+// This module has no drawing code, so the table stays light.
+import { detectFlowerStage, isPremature, detectAction, detectStatus } from "/engagement-stage.js";
 import { mountDashboardNotifications } from "/dashboard-notifications.js";
 
 const $ = (id) => document.getElementById(id);
@@ -293,12 +276,9 @@ async function loadData(client, userId) {
   };
 }
 
-// Build the engagements list the journey panel consumes. Now returns
-// every bid in any status — the flower journey shows pending bids as
-// seeds (stage 1), accepted bids as sprouts (stage 2), etc. The panel
-// itself filters out premature engagements (those that ended without
-// payout). Each entry is joined with its listing, owner, counterpart
-// name, and engagement_schedule (when present).
+// Build the engagements list the table consumes: every bid in any
+// status, joined with its listing, owner, counterpart name and
+// engagement_schedule (when present).
 function journeyEngagements(bids, listingMap, ownerMap, ownerBizMap, scheduleMap) {
   return (bids || []).map((bid) => {
     const listing = listingMap.get(bid.listing_id);
@@ -317,11 +297,165 @@ function counterpartName(ownerId, ownerMap, ownerBizMap) {
   return ownerBizMap.get(ownerId) || ownerMap.get(ownerId)?.full_name || "business";
 }
 
-// activeEngagements + renderEngagements were retired when the
-// notifications + active engagements panels were replaced by the
-// engagement journey. Stage detection + species assignment now live
-// in /engagement-journey-flowers.js; we just hand it every bid
-// enriched with listing/owner/schedule.
+/* ============================================================== */
+/*                       ENGAGEMENTS TABLE                        */
+/* ============================================================== */
+
+// The consultant's view of the owner dashboard's "Your projects" panel
+// (dashboard.js listingRowHtml): same .bza__row markup, state dot,
+// state label and CTA pill. Stage + action rules come from
+// /engagement-stage.js, the same ones the profile garden uses.
+
+// Tabs that cover more than one state, like "Past" on the owner side.
+const ENGAGEMENT_STATE_GROUPS = { past: ["completed", "closed"] };
+const engagementStatesFor = (s) => ENGAGEMENT_STATE_GROUPS[s] || [s];
+
+// state → [dot/label class modifier, label]. Modifiers reuse the owner
+// dashboard's classes so no new colors are introduced.
+function engagementState(eng) {
+  const { bid, listing, schedule } = eng;
+  if (isPremature(bid, listing, schedule)) {
+    const label =
+      bid?.payment_status === "refunded" ? "Refunded"
+      : bid?.status === "withdrawn" ? "Withdrawn"
+      : bid?.status === "rejected" || bid?.status === "declined" ? "Not selected"
+      : "Closed";
+    return { state: "closed", mod: "unlisted", label };
+  }
+  const stage = detectFlowerStage(bid, listing, schedule);
+  if (stage === 5) return { state: "completed", mod: "completed", label: "Completed", stage };
+  if (bid?.status === "accepted") return { state: "hired", mod: "hired", label: "In progress", stage };
+  return {
+    state: "offer",
+    mod: "open",
+    label: bid?.status === "countered" ? "Counter offer" : "Offer sent",
+    stage,
+  };
+}
+
+function engagementRowHtml(eng, unreadByBid) {
+  const { bid, listing, schedule } = eng;
+  const { state, mod, label, stage } = engagementState(eng);
+  const action = state === "closed" ? null : detectAction(bid, listing, schedule);
+  const free = Number(bid?.amount_cents) === 0;
+
+  let statusLine = "";
+  if (state === "completed") statusLine = free ? "Marked complete" : "Payout received";
+  else if (state === "offer" && !action) statusLine = "Awaiting business response";
+  else if (state !== "closed") statusLine = detectStatus(stage, action, schedule, listing);
+
+  const metaBits = [
+    `<span class="bza__row-state-label bza__row-state-label--${mod}">${escape(label)}</span>`,
+    `<span class="bza__row-meta-sep">·</span><span>${escape(eng.counterpart || "Business")}</span>`,
+    statusLine ? `<span class="bza__row-meta-sep">·</span><span class="bza__row-meta-strong">${escape(statusLine)}</span>` : "",
+  ].join("");
+
+  const amountText = free
+    ? "Free"
+    : Number.isFinite(Number(bid?.amount_cents)) && bid?.amount_cents != null
+    ? `$${Math.round(Number(bid.amount_cents) / 100)}`
+    : "—";
+
+  // Accepted work opens the engagement; everything else opens the listing.
+  const engagementHref = `/engagement.html?bid=${encodeURIComponent(bid.id)}`;
+  const rowHref = bid?.status === "accepted" ? engagementHref : `/listing.html?id=${encodeURIComponent(bid.listing_id)}`;
+
+  // Same CTA vocabulary as the owner rows: a filled pill when something
+  // is waiting on you, a quiet outline link otherwise.
+  let ctaHtml = "";
+  if (action) {
+    ctaHtml = `<a class="bza__row-cta bza__row-cta--schedule" href="${escape(action.href)}">${escape(action.title)} →</a>`;
+  } else if (state === "completed") {
+    ctaHtml = `<a class="bza__row-cta bza__row-cta--manage" href="${escape(engagementHref)}">View project →</a>`;
+  } else if (state === "hired") {
+    ctaHtml = `<a class="bza__row-cta bza__row-cta--manage" href="${escape(engagementHref)}">Manage →</a>`;
+  }
+
+  const unread = unreadByBid?.get(bid.id)?.unread || 0;
+  const unreadPill = unread
+    ? `<span class="bza__row-unread" title="${unread} unread message${unread === 1 ? "" : "s"}">${unread}</span>`
+    : "";
+
+  const dotClass = `bza__row-state bza__row-state--${mod}${action ? " bza__row-state--pulse" : ""}`;
+
+  return `
+    <div class="bza__row" data-bid-id="${escape(bid.id)}" data-state="${state}">
+      <a class="bza__row-link" href="${escape(rowHref)}">
+        <span class="${dotClass}"></span>
+        <div class="bza__row-main">
+          <h3 class="bza__row-title">${escape(listing?.title || "Untitled project")}${unreadPill}</h3>
+          <div class="bza__row-meta">${metaBits}</div>
+        </div>
+        <div class="bza__row-budget">${escape(amountText)}</div>
+        <span class="bza__row-chev">›</span>
+      </a>
+      ${ctaHtml}
+    </div>
+  `;
+}
+
+function renderEngagementsTable(engagements, unreadByBid) {
+  const rowsEl = $("cdash-engagements-rows");
+  const wrapEl = $("cdash-engagements-rows-wrap");
+  const emptyEl = $("cdash-engagements-empty");
+  const tabsHost = $("cdash-engagements-tabs");
+  if (!rowsEl) return;
+
+  // Rows waiting on the consultant float to the top; the rest keep the
+  // newest-first order the query returned.
+  const rows = engagements
+    .map((eng, i) => {
+      const s = engagementState(eng);
+      const needsYou = s.state !== "closed" && !!detectAction(eng.bid, eng.listing, eng.schedule);
+      return { eng, state: s.state, needsYou, i };
+    })
+    .sort((a, b) => Number(b.needsYou) - Number(a.needsYou) || a.i - b.i);
+
+  const counts = { all: rows.length, offer: 0, hired: 0, past: 0 };
+  for (const r of rows) {
+    if (ENGAGEMENT_STATE_GROUPS.past.includes(r.state)) counts.past += 1;
+    else counts[r.state] = (counts[r.state] || 0) + 1;
+  }
+  const countEl = $("cdash-engagements-count");
+  if (countEl) countEl.textContent = String(rows.length);
+  tabsHost?.querySelectorAll("[data-count]").forEach((el) => {
+    el.textContent = String(counts[el.dataset.count] || 0);
+  });
+
+  const html = (list) => list.map((r) => engagementRowHtml(r.eng, unreadByBid)).join("");
+  const isEmpty = rows.length === 0;
+  if (emptyEl) emptyEl.hidden = !isEmpty;
+  if (wrapEl) wrapEl.hidden = isEmpty;
+  if (tabsHost) tabsHost.hidden = isEmpty;
+  rowsEl.innerHTML = html(rows);
+
+  if (tabsHost && !tabsHost.dataset.bound) {
+    tabsHost.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-state]");
+      if (!btn) return;
+      tabsHost.querySelectorAll("button").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      const state = btn.dataset.state;
+      const filtered = state === "all" ? rows : rows.filter((r) => engagementStatesFor(state).includes(r.state));
+      rowsEl.innerHTML = filtered.length
+        ? html(filtered)
+        : `<p class="gr-empty-state" style="padding:1rem">No projects in this state.</p>`;
+    });
+    tabsHost.dataset.bound = "1";
+  }
+}
+
+function renderTodayDate() {
+  // Today's date, top right. Same format as the owner dashboard.
+  const dateEl = $("cdash-page-date");
+  if (dateEl) {
+    dateEl.textContent = new Date().toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    });
+  }
+}
 
 function renderRecommended(client, listing, ownerMap, ownerBizMap) {
   const root = $("cdash-recommended");
@@ -468,7 +602,7 @@ function consultantHealth(profile, consultant, portfolioCount) {
     .sort((a, b) => b.weight - a.weight);
 
   let tierName;
-  if (pct >= 100) tierName = "complete";
+  if (pct >= 100) tierName = "Complete";
   else if (pct >= 67) tierName = "Almost there";
   else if (pct >= 34) tierName = "Needs attention";
   else tierName = "Needs love";
@@ -550,8 +684,10 @@ function renderDashboard(client, data) {
     welcomeEl.innerHTML = `Welcome back, ${escape(firstName)}`;
   }
 
-  // Build a map of bid_id → unread thread so each plant in the journey
-  // can show a paper-plane indicator. The unreadThreads list is keyed by
+  renderTodayDate();
+
+  // Build a map of bid_id → unread thread so each row in the table
+  // can show an unread count. The unreadThreads list is keyed by
   // (listing_id, other_user_id); each bid pairs a listing with the
   // listing's owner (the consultant's counterparty), so we match by that.
   const unreadByBid = new Map();
@@ -572,25 +708,13 @@ function renderDashboard(client, data) {
     }
   }
 
-  // Engagement journey — one flower per engagement across the five
-  // lifecycle stages (seed → bloom). The module computes stage,
-  // species, and premature-engagement filtering internally; we just
-  // hand it every bid enriched with listing/owner/schedule + the
-  // per-bid unread map for the in-plant message indicator.
-  const journeyPanel = $("cdash-journey-panel");
+  // Engagements table — one row per offer, in the same panel the owner
+  // dashboard uses for projects.
   const engagements = journeyEngagements(bids, listingMap, ownerMap, ownerBizMap, scheduleMap);
-  if (journeyPanel) {
-    mountEngagementJourneyFlowers(journeyPanel, {
-      client,
-      engagements,
-      userId,
-      unreadByBid,
-      threadLinkBase: "/inbox.html#",
-    });
-  }
+  renderEngagementsTable(engagements, unreadByBid);
 
-  // Empty-state surfaces — both the browse CTA and the payouts nudge
-  // only appear when the consultant has nothing in flight yet. Stripe
+  // The payouts nudge only appears when the consultant has nothing in
+  // flight yet (the table shows its own empty state then). Stripe
   // status is the additional gate on the payouts banner; cheap fetch
   // (cached server-side) that fails silently if the account-status
   // endpoint is unavailable.
@@ -603,10 +727,8 @@ function renderDashboard(client, data) {
     });
   }
 
-  const browseCta = $("cdash-browse-cta");
   const payoutsBanner = $("cdash-payouts-banner");
   if (engagements.length === 0) {
-    if (browseCta) browseCta.hidden = false;
     if (payoutsBanner) {
       (async () => {
         try {
@@ -635,12 +757,12 @@ function renderDashboard(client, data) {
   const userName = $("cdash-user-name");
   if (userName) userName.textContent = profile?.full_name || "Your account";
 
-  // Profile completion → bucket card beneath the journey.
+  // Profile completion → bucket card beneath the table.
   const healthPanel = $("cdash-health");
   if (healthPanel) renderHealth(healthPanel, consultantHealth(profile, consultant, portfolioCount), userId);
 
   // Notifications → recent feed (right column of the row beneath the
-  // journey). Shared renderer with the owner dashboard; the unread
+  // table). Shared renderer with the owner dashboard; the unread
   // count also drives the sidebar bell badge.
   const notifList = $("cdash-notifications-list");
   const notifEmpty = $("cdash-notifications-empty");
@@ -741,20 +863,17 @@ function setupShell() {
   showView(initialHash || "dashboard");
 }
 
-// ───────────────── tutorial garden fixture ─────────────────
-// The consultant onboarding tutorial ends on a simulated garden: the
-// journey panel rendered with hand-crafted engagements that cover all
-// five lifecycle stages, plus a populated garden tile so the user can
-// see the drag-to-garden affordance in action. Nothing here writes to
-// the database; the fixture lives in localStorage scoped to this user.
+// ───────────────── tutorial fixture ─────────────────
+// /consultant-dashboard.html?tutorial=garden shows the engagements
+// table filled with hand-crafted sample engagements covering every
+// lifecycle stage. Nothing here reads or writes the database. (The
+// garden itself now lives on the profile; the flag name is kept so the
+// onboarding tutorial's existing link still lands on a populated page.)
 function isTutorialGarden() {
   return new URLSearchParams(window.location.search).get("tutorial") === "garden";
 }
 
 function buildTutorialGardenFixture(userId) {
-  // Stable bid ids — used both as fixture engagement keys and as
-  // garden ids (so the garden tile shows a populated count on first
-  // paint).
   const now = Date.now();
   const days = (n) => new Date(now - n * 86400000).toISOString();
   const baseListing = (id, title) => ({
@@ -784,6 +903,7 @@ function buildTutorialGardenFixture(userId) {
     },
     listing: baseListing(`tut-listing-${id}`, opts.title),
     owner: baseOwner(id, opts.owner),
+    counterpart: opts.owner,
     schedule: opts.schedule || null,
   });
 
@@ -847,39 +967,20 @@ function buildTutorialGardenFixture(userId) {
     }),
   ];
 
-  // Pre-seed two bloomed engagements into the garden so the tile shows
-  // a populated count + view link on first paint. The third bloomed
-  // plant stays in the row so the user can practice dragging it over.
-  const gardenSeed = {
-    "tut-6": now - 3 * 86400000,
-    "tut-7": now - 14 * 86400000,
-  };
-  try {
-    localStorage.setItem(`grassroots_garden_${userId}`, JSON.stringify(gardenSeed));
-  } catch (_) {}
-
   return engagements;
 }
 
 async function runTutorialGarden(client, session) {
   const userId = session.user.id;
   const engagements = buildTutorialGardenFixture(userId);
-  const journeyPanel = $("cdash-journey-panel");
-  if (journeyPanel) {
-    mountEngagementJourneyFlowers(journeyPanel, {
-      client,
-      engagements,
-      userId,
-      unreadByBid: new Map(),
-      threadLinkBase: "/inbox.html#",
-    });
-  }
+  renderTodayDate();
+  renderEngagementsTable(engagements, new Map());
   // Welcome heading + sidebar still wire up normally — keep the
   // dashboard chrome intact so the bubble's spotlight has familiar
   // anchors. Profile completion + notifications are skipped because
-  // they'd surface real data underneath the simulated garden.
+  // they'd surface real data underneath the sample engagements.
   const welcome = $("cdash-welcome");
-  if (welcome) welcome.textContent = "Your garden — a preview.";
+  if (welcome) welcome.textContent = "Your projects, a preview";
 }
 
 async function init() {
@@ -892,8 +993,7 @@ async function init() {
       window.location.replace("/signin.html?next=/consultant-dashboard.html");
       return;
     }
-    // Show the shell (the journey flowers measure their container) but
-    // keep the gate in its loading state so the loader overlay stays up
+    // Show the shell but keep the gate in its loading state so the loader overlay stays up
     // until the data has rendered. Otherwise the panels sit blank.
     gate.style.display = "none";
     shell.hidden = false;
