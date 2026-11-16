@@ -185,6 +185,11 @@ function activateTab(name) {
         .then((m) => m.renderPayments())
         .catch((err) => console.warn("payments tab failed to load", err));
       break;
+    case "applications":
+      import("./applications.js")
+        .then((m) => m.renderApplications())
+        .catch((err) => console.warn("applications tab failed to load", err));
+      break;
     case "emails":
       import("./emails.js")
         .then((m) => m.renderEmails())

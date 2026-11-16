@@ -1519,3 +1519,16 @@ body.adm-body {
 }
 .adm-bulk-list > li { padding: 0.4rem 0.6rem; border: 1px solid var(--fo-line); border-radius: 10px; overflow-wrap: anywhere; }
 .adm-bulk-list > li .adm-ud-note { margin: 0; }
+
+/* ===== applications tab ===== */
+.adm-table tr.adm-tr.is-open td { background: var(--fo-surface-2); border-bottom: 0; }
+.adm-app-detail > td { background: var(--fo-surface-2); padding: var(--space-3, 12px) var(--space-4, 16px) var(--space-4, 16px); }
+.adm-app-kv { display: grid; gap: var(--space-3, 12px); margin: 0 0 var(--space-4, 16px); }
+.adm-app-kv dt { font-size: var(--type-meta); color: var(--fo-text-3); margin-bottom: 2px; }
+.adm-app-kv dd { margin: 0; color: var(--fo-text); max-width: 72ch; }
+.adm-app-kv a { color: var(--fo-accent); word-break: break-all; }
+.adm-app-project { white-space: pre-wrap; line-height: 1.55; }
+.adm-app-actions { display: flex; flex-wrap: wrap; gap: var(--space-2, 8px); }
+.adm-app-invite { margin: var(--space-3, 12px) 0 0; font-size: var(--type-meta); color: var(--fo-text-2); }
+.adm-app-invite code { display: inline-block; margin-top: 4px; padding: 6px 8px; border-radius: 6px; background: var(--fo-surface); border: 1px solid var(--fo-line); color: var(--fo-text); word-break: break-all; user-select: all; }
+.adm-app-late { color: var(--fo-accent-warm); }

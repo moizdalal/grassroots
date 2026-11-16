@@ -28,7 +28,10 @@ const SPROUT = [
 ].join("");
 
 // 24px stroke icons. The accepted glyph is the sprout itself, outlined.
+// sprout is the same mark filled solid, like the logo (FILL is swapped for
+// the theme color in glyphSvg).
 const GLYPHS = {
+  sprout: `<g transform="translate(5.9 1.7) scale(0.075)" stroke="none" fill="FILL">${SPROUT}</g>`,
   offer: `<path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.5"/>`,
   counter: `<path d="M7 4 3 8l4 4"/><path d="M3 8h14"/><path d="m17 20 4-4-4-4"/><path d="M21 16H7"/>`,
   accepted: `<g transform="translate(6.3 2.4) scale(0.07)" stroke-width="25">${SPROUT}</g>`,
@@ -47,7 +50,7 @@ function glyphSvg(name, t) {
   const muted = name === "declined";
   return `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
 <circle cx="22" cy="22" r="22" fill="${muted ? t.mutedDisc : t.disc}"/>
-<g transform="translate(11 11)" fill="none" stroke="${muted ? t.mutedStroke : t.stroke}" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">${GLYPHS[name]}</g>
+<g transform="translate(11 11)" fill="none" stroke="${muted ? t.mutedStroke : t.stroke}" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">${GLYPHS[name].replace("FILL", muted ? t.mutedStroke : t.stroke)}</g>
 </svg>`;
 }
 
@@ -84,7 +87,7 @@ async function main() {
   for (const [name, svg] of files) {
     fs.writeFileSync(path.join(OUT, `${name}.svg`), svg + "\n");
     const [, w, h] = svg.match(/width="(\d+)" height="(\d+)"/);
-    await page.setViewport({ width: Number(w), height: Number(h), deviceScaleFactor: 2 });
+    await page.setViewport({ width: Number(w), height: Number(h), deviceScaleFactor: 4 });
     await page.setContent(`<!doctype html><style>html,body{margin:0;background:transparent}svg{display:block}</style>${svg}`);
     await page.screenshot({ path: path.join(OUT, `${name}.png`), omitBackground: true });
   }
