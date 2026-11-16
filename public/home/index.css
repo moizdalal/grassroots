@@ -1230,6 +1230,7 @@
         opacity: 1;
         max-height: 3em;
       }
+      .ld-hero-card.s-center .ld-hero-card__stat { max-height: 6em; }
       .ld-hero-card__head { transition: margin-bottom 0.45s ease; }
 
       /* Avatar + name colors flip smoothly as cards cross the center. */
@@ -1298,6 +1299,14 @@
         padding-top: 0.45rem;
         border-top: 1px dashed color-mix(in srgb, var(--fo-line) 80%, transparent);
       }
+      /* Example project: a small label, then the project itself in the
+         display face so it reads as the point of the card. */
+      .ld-hero-card__stat-label { display: block; opacity: 0.8; margin-bottom: 0.15rem; }
+      .ld-hero-card__project {
+        display: block; font-family: var(--font-display); font-weight: 600;
+        font-size: 1.12em; line-height: 1.2; letter-spacing: -0.005em; color: var(--fo-text);
+      }
+      .ld-hero-card.s-center .ld-hero-card__project { color: var(--fo-accent-on); }
       /* The expanded center card uses a solid accent panel — invert
          the bio text and avatar against it so contrast holds. */
       .ld-hero-card.s-center .ld-hero-card__name,
@@ -1344,6 +1353,7 @@
         opacity: 1;
         max-height: 3em;
       }
+      .ld-hero-card:not(.s-center):hover .ld-hero-card__stat { max-height: 6em; }
       .ld-hero-card:not(.s-center):hover .ld-hero-card__stat {
         padding-top: 0.45rem;
         border-top-color: color-mix(in srgb, var(--fo-line) 80%, transparent);

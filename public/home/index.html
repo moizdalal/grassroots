@@ -60,7 +60,7 @@
     <link rel="stylesheet" href="/field-office.css?v=2" />
     <link rel="stylesheet" href="/garden-stem.css?v=2" />
     <link rel="stylesheet" href="/home/nav.css?v=7" />
-    <link rel="stylesheet" href="/home/index.css?v=38" />
+    <link rel="stylesheet" href="/home/index.css?v=39" />
     <script src="/theme.js?v=2"></script>
     <script src="/home/theme-default.js?v=2"></script>
     <script>
@@ -1031,18 +1031,19 @@
         // Every card uses the same format: name, then "type · City, ST".
         // Names and City, ST are proper nouns, so they keep their capitals.
         // avatar = initials shown in the logo circle until real logos exist.
-        { name: "Side Street Coffee",   tagline: "Café · Gainesville, FL",         avatar: "SS" },
-        { name: "North End Bikes",      tagline: "Bike shop · Athens, GA",         avatar: "NB" },
-        { name: "Rooster & Rye",        tagline: "Bakery · Chapel Hill, NC",       avatar: "RR" },
-        { name: "Marigold Florals",     tagline: "Florist · Columbia, SC",         avatar: "MF" },
-        { name: "Split / Fix Shop",     tagline: "Auto repair · Gainesville, FL",  avatar: "SF" },
-        { name: "Alma Kitchen",         tagline: "Restaurant · Tampa, FL",         avatar: "AK" },
-        { name: "Ember Tea Room",       tagline: "Tea house · Savannah, GA",       avatar: "ET" },
-        { name: "Blue Line Printing",   tagline: "Print shop · Raleigh, NC",       avatar: "BL" },
-        { name: "West Village Wines",   tagline: "Wine bar · Oxford, MS",          avatar: "WW" },
-        { name: "The Spool Record Co.", tagline: "Vinyl · Auburn, AL",             avatar: "SR" },
-        { name: "Harbor & Hide",        tagline: "Leather goods · Charleston, SC", avatar: "HH" },
-        { name: "Amber Haus Design",    tagline: "Design studio · Austin, TX",     avatar: "AH" },
+        // project = an example of the kind of work a student does for them.
+        { name: "Side Street Coffee",   tagline: "Café · Gainesville, FL",         avatar: "SS", project: "Instagram, set up from scratch" },
+        { name: "North End Bikes",      tagline: "Bike shop · Athens, GA",         avatar: "NB", project: "Website and online store" },
+        { name: "Rooster & Rye",        tagline: "Bakery · Chapel Hill, NC",       avatar: "RR", project: "Facebook page and first posts" },
+        { name: "Marigold Florals",     tagline: "Florist · Columbia, SC",         avatar: "MF", project: "Inventory management app" },
+        { name: "Split / Fix Shop",     tagline: "Auto repair · Gainesville, FL",  avatar: "SF", project: "Online booking for repairs" },
+        { name: "Alma Kitchen",         tagline: "Restaurant · Tampa, FL",         avatar: "AK", project: "Logo and a new menu" },
+        { name: "Ember Tea Room",       tagline: "Tea house · Savannah, GA",       avatar: "ET", project: "Getting found on Google" },
+        { name: "Blue Line Printing",   tagline: "Print shop · Raleigh, NC",       avatar: "BL", project: "Online order form for print jobs" },
+        { name: "West Village Wines",   tagline: "Wine bar · Oxford, MS",          avatar: "WW", project: "Email newsletter, from scratch" },
+        { name: "The Spool Record Co.", tagline: "Vinyl · Auburn, AL",             avatar: "SR", project: "Online store for used vinyl" },
+        { name: "Harbor & Hide",        tagline: "Leather goods · Charleston, SC", avatar: "HH", project: "Product photos for the shop" },
+        { name: "Amber Haus Design",    tagline: "Design studio · Austin, TX",     avatar: "AH", project: "Bookkeeping spreadsheet" },
       ];
 
       // Three business-bio cards in fixed slots above the garden +
@@ -1056,8 +1057,8 @@
       // entire morph (transform, width, padding, background, content
       // max-height) smoothly in one go. The center card always gets
       // the accent-green panel via .s-center.
-      // Placeholder bottom line, the same on every card until real per-business stats exist.
-      const CARD_STAT = "Example business";
+      // Bottom line: an example project, to show the range of work students take on.
+      const CARD_STAT_LABEL = "Example project";
       const cardsRoot = document.getElementById("ld-hero-cards");
       const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
       const canHover = window.matchMedia?.("(hover: hover)").matches;
@@ -1066,7 +1067,8 @@
           card.querySelector(".ld-hero-card__avatar").textContent  = B.avatar;
           card.querySelector(".ld-hero-card__name").textContent    = B.name;
           card.querySelector(".ld-hero-card__tagline").textContent = B.tagline;
-          card.querySelector(".ld-hero-card__stat").textContent    = CARD_STAT;
+          card.querySelector(".ld-hero-card__stat-label").textContent = CARD_STAT_LABEL;
+          card.querySelector(".ld-hero-card__project").textContent    = B.project;
         }
         function makeCard(B, slotClass) {
           const el = document.createElement("div");
@@ -1079,7 +1081,7 @@
                 <div class="ld-hero-card__tagline"></div>
               </div>
             </div>
-            <div class="ld-hero-card__stat"></div>`;
+            <div class="ld-hero-card__stat"><span class="ld-hero-card__stat-label"></span><span class="ld-hero-card__project"></span></div>`;
           fillCard(el, B);
           return el;
         }
