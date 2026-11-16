@@ -281,11 +281,11 @@ async function openPayment(key) {
       </div>
       <div class="adm-drawer-amount">${usd(p.amount_cents)}</div>
     </div>
-    <h3 class="adm-section-h">Engagement</h3>
+    <h3 class="adm-section-h">Project</h3>
     ${kv([
       ["Business", esc(p.owner.name || p.owner.id)],
       ["Consultant", esc(p.consultant.name || p.consultant.id)],
-      ["Engagement", link(p.engagement_link, "Open the engagement page")],
+      ["Project", link(p.engagement_link, "Open the project page")],
       ["Charged", `${day(p.paid_at)} · held ${p.days_held} days`],
       ["Delivered", p.delivered_at ? day(p.delivered_at) : "Not yet"],
       ["Delivery note", quote(p.delivery_note)],

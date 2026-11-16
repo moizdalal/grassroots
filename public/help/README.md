@@ -10,7 +10,7 @@ Short articles explaining how Grassroots works — the payment flow, what a kick
 ## For businesses
 
 - [Listings](./listings.md) — posting work, pausing, closing
-- [Paying for work](./payments-and-payouts.md#what-business-owners-pay) — how you fund an engagement
+- [Paying for work](./payments-and-payouts.md#what-business-owners-pay) — how you fund a project
 - [Reviewing a consultant](./reviews-and-ratings.md) — the five dimensions you rate
 
 ## For consultants
@@ -22,7 +22,7 @@ Short articles explaining how Grassroots works — the payment flow, what a kick
 
 ## Shared flows
 
-- [Engagements](./engagements.md) — what happens after a bid is accepted
+- [Projects](./engagements.md) — what happens after a bid is accepted
 - [Kickoff meetings](./engagements.md#the-kickoff-meeting) — picking a time, calendar invites
 - [Messaging](./messaging.md) — inbox, threading, read receipts
 

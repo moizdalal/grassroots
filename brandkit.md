@@ -257,6 +257,22 @@ The headline of the consultant offer viewer (`listing.html`): two side-by-side `
 
 Bio tab order is fixed: header (name, degree line, `.pf-bv__meta-row` with city · completed projects · joined · short `LinkedIn ↗` link) → education → ratings last. Never print a full URL in the meta row.
 
+### `.gr-onb-*` — walkthrough (spotlight + movable card)
+
+The first-run tour (`onboarding.js`, `onboarding.css`; pages load it through `/onboarding-shim.js`). The page dims and `.gr-onb-spot` highlights the current element; the overlay never blocks clicks, so dropdowns, dialogs and file pickers keep working. The card (`.gr-onb-tooltip`) has a `.gr-onb-grip` labelled "Drag to move" and can be moved by mouse, touch or arrow keys. Every step carries one `.gr-onb-status` marker: "Your turn", "Your turn · optional", "Done" or "Just a look". The primary button reads "Skip for now" until the step's action is done, then "Next". Copy is full sentences, casual but professional, and never states fee numbers. A page that a tour step points at must load the shim, or the step is skipped. The old vine is retired; don't bring it back.
+
+### `.dash-notifications-filters` — notification filter chips
+
+One shared chip row for both roles, on the dashboard panel and `/notifications.html`: All, Offers, Engagements, Payouts (consultant) or Payments (business), Meetings, Reviews. Sentence case. The type-to-chip mapping lives in `dashboard-notifications.js`; a new notification type must be added there or it only shows under All.
+
+### `.po-info` + `.po-info-pop` — click-to-reveal explainer
+
+A quiet text button with an "i" icon that opens a fixed-position popover clamped to the window (`payouts.js` `setupInfoPopover`). Use this pattern for reassurance or explainer copy instead of always-visible text. Every claim in the payouts popover was checked against the code and Stripe's docs; re-check before editing.
+
+### Consultant engagements table and the garden
+
+The consultant dashboard lists engagements in a plain table (`#cdash-engagements-panel`, tabs All / Offers sent / In progress / Past), matching the business side; on phones each row stacks into a card. Stage rules are shared in `engagement-stage.js`. The garden lives only on the profile (`garden.js`, `garden.css`): one flower per engagement whose payout was released, planted automatically, with a `flower_planted` notification linking to `/profile.html?flower=<bid>#pp-garden-section`. Background options under review are in `public/garden-directions.html` (noindex, not linked).
+
 ---
 
 ## Email

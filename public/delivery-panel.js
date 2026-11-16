@@ -46,8 +46,8 @@ async function post(path, body) {
 }
 
 function supportHref(p) {
-  const subject = `Question about a held payment · ${ctx.title || "engagement"}`;
-  const body = `engagement: ${location.origin}/engagement.html?bid=${ctx.bidId}\npayment: ${p.label} (${fmtUsd(p.amount_cents)})\n\nwhat's going on:\n`;
+  const subject = `Question about a held payment · ${ctx.title || "project"}`;
+  const body = `project: ${location.origin}/engagement.html?bid=${ctx.bidId}\npayment: ${p.label} (${fmtUsd(p.amount_cents)})\n\nwhat's going on:\n`;
   return `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
@@ -60,8 +60,8 @@ function responseLines(p, role) {
   if (role === "owner") return p.responded_at ? ["The consultant sent support their side."] : [];
   if (p.responded_at && p.can_respond) return [`You sent support your side. You can update it until ${fmtWhen(p.response_due_at)}.`];
   if (p.responded_at) return ["You sent support your side. Support will decide and let you both know."];
-  if (p.can_respond) return [`Tell support your side by ${fmtWhen(p.response_due_at)}. After that, support decides from the engagement record.`];
-  if (p.response_due_at) return ["The 48 hours to respond have passed. Support will decide from the engagement record."];
+  if (p.can_respond) return [`Tell support your side by ${fmtWhen(p.response_due_at)}. After that, support decides from the project record.`];
+  if (p.response_due_at) return ["The 48 hours to respond have passed. Support will decide from the project record."];
   return [];
 }
 
@@ -592,7 +592,7 @@ export async function refreshDeliveryPanel() {
   const heading = panel.querySelector(".eg-panel__title");
   if (heading) heading.textContent = settled ? "Payment record" : "What Grassroots is holding";
   intro.textContent = settled
-    ? (allFree ? "This engagement is complete." : "Every payment on this engagement is settled.")
+    ? (allFree ? "This project is complete." : "Every payment on this project is settled.")
     : allFree
     ? (data.role === "owner"
       ? "You get 14 days to review delivered work. Then it's marked complete."

@@ -315,7 +315,7 @@ export function mountTraining(root, deps) {
   root.innerHTML = `
     <div class="gr-page-intro tr-intro">
       <p class="tr-eyebrow">Consultant training</p>
-      <h1 class="gr-title">Get ready for your first engagement</h1>
+      <h1 class="gr-title">Get ready for your first project</h1>
       <p class="gr-subtitle">Four short modules, then a ${QUIZ_LENGTH}-question quiz. You need ${PASS_SCORE} of ${QUIZ_LENGTH} to pass.</p>
       <p class="tr-latest" id="tr-latest" hidden></p>
     </div>

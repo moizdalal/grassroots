@@ -24,7 +24,7 @@ The inbox shows every active thread, with the listing title as the subject line 
 Threads are keyed by `(listing_id, owner_id, consultant_id)`. So:
 
 - One listing + one consultant = one thread
-- The thread persists from "ask a question" all the way through "engagement complete"
+- The thread persists from "ask a question" all the way through "project complete"
 - If the same consultant bids on a different listing from the same owner, that's a separate thread
 
 ## Read receipts

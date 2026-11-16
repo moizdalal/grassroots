@@ -1,16 +1,16 @@
-# Reviews & ratings
+# Reviews and ratings
 
-> After an engagement wraps, the business owner rates the consultant on five dimensions, and the student can rate the business. Owner reviews are the signal Grassroots uses to surface trusted consultants and to drive the stage-progression ladder.
+> After a project wraps, the business owner rates the consultant on five dimensions, and the student can rate the business. Owner reviews are the signal Grassroots uses to surface trusted consultants and to drive the stage-progression ladder.
 
 ## Who rates whom
 
-The business owner rates the consultant. That review is **required** to close an engagement. You can't mark a job complete without rating the consultant first.
+The business owner rates the consultant. That review is **required** to close a project. You can't mark a job complete without rating the consultant first.
 
-The student rates the business after the work wraps. That review is optional and does not hold the payout. One review per engagement, and it can't be edited.
+The student rates the business after the work wraps. That review is optional and does not hold the payout. One review per project, and it can't be edited.
 
 A student can submit once any of these is true:
 
-- The owner marked the engagement complete.
+- The owner marked the project complete.
 - The payment was released or refunded.
 - The phased service fee was released or refunded.
 - The proposal was declined and that fee was released or refunded.
@@ -40,9 +40,9 @@ Same scale: half stars from 0.5 to 5, plus an optional note up to 280 characters
 | **Communication** | Were replies timely and clear? |
 | **Approval speed** | How quickly was delivered work approved? |
 | **Respect** | How was the working relationship? |
-| **Would work again** | Would you take another engagement with this business? |
+| **Would work again** | Would you take another project with this business? |
 
-The business and the student can both read the review on the engagement page. It does not show on the marketplace card. Clear scope, the trust badge, uses the scope-clarity average once at least two reviews land in a 90-day window.
+The business and the student can both read the review on the project page. It does not show on the marketplace card. Clear scope, the trust badge, uses the scope-clarity average once at least two reviews land in a 90-day window.
 
 ## How a consultant's overall rating is computed
 
@@ -52,7 +52,7 @@ overall = average of all five dimension averages across all reviews
 
 So a consultant with two reviews gets the per-dimension averages calculated first, then those averaged together. One bad review doesn't tank the score, but it doesn't get hidden either.
 
-Reviews with **no rating data submitted** (e.g., the engagement was canceled before completion) don't count.
+Reviews with **no rating data submitted** (e.g., the project was canceled before completion) don't count.
 
 ## Visibility
 
@@ -66,9 +66,9 @@ Written endorsements display the **owner's display name + the listing title** (t
 
 ## Ratings drive stage progression
 
-Your overall rating is one of the two inputs (the other is engagement count) that determines your stage on the seedling → sequoia ladder. See [stage progression](./stage-progression.md) for the full mechanic.
+Your overall rating is one of the two inputs (the other is project count) that determines your stage on the seedling → sequoia ladder. See [stage progression](./stage-progression.md) for the full mechanic.
 
-A quick read: you need to maintain a **4.0+ average** across at least a few engagements to advance past seedling.
+A quick read: you need to maintain a **4.0+ average** across at least a few projects to advance past seedling.
 
 ## Editing or removing a review
 
@@ -79,6 +79,6 @@ If a review contains something inappropriate (harassment, identifying private in
 ## FAQ
 
 - **Can I see who left a review?** The owner's display name and the listing title are shown. Their full profile isn't linked from the endorsement.
-- **What counts as a "no rating"?** An engagement that ended without an owner-submitted review — for example, canceled before kickoff. These don't affect averages.
+- **What counts as a "no rating"?** A project that ended without an owner-submitted review — for example, canceled before kickoff. These don't affect averages.
 - **Does Grassroots show the lowest-rated consultants in search?** They appear, but they rank lower. We don't hide consultants below a threshold; we want owners to see real signal.
 - **Can the consultant respond to a review?** Not currently. We may add a reply feature later if there's demand.

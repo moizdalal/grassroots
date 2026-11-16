@@ -6,6 +6,7 @@
 import { getSupabaseClient } from "/supabase-loader.js";
 import { hydrateRatings } from "/rating.js";
 import { mountDashboardNotifications } from "/dashboard-notifications.js";
+import { loadUnreadNotificationCount } from "/nav-notify.js";
 import { getInitials } from "/initials.js";
 // The analytics + garden + completed-engagement modules together add
 // ~19KB gz to the dashboard's initial JS. Both surfaces render below
@@ -132,7 +133,7 @@ function profileCompleteness(profile, biz) {
   const pct = Math.round((done / total) * 100);
   const missing = fields.filter((f) => !f.filled).map((f) => f.label);
   let tierName;
-  if (pct >= 100) tierName = "complete";
+  if (pct >= 100) tierName = "Complete";
   else if (pct >= 67) tierName = "Almost there";
   else if (pct >= 34) tierName = "Needs attention";
   else tierName = "Needs love";
@@ -402,7 +403,7 @@ function listingPrimaryAction(l, schedulesByBidId) {
   // a to-do (a stale schedule row would otherwise ask for availability).
   if (state === "completed") {
     return accepted
-      ? { label: "View engagement", kind: "manage", quiet: true, href: `/engagement.html?bid=${accepted.id}` }
+      ? { label: "View project page", kind: "manage", quiet: true, href: `/engagement.html?bid=${accepted.id}` }
       : null;
   }
 
@@ -1002,6 +1003,16 @@ function renderDashboard(client, data) {
       emptyEl: notifEmpty,
     }).then((result) => {
       const unread = result?.unreadCount || 0;
+      const notifBadge = $("dash-notif-badge");
+      if (notifBadge) {
+        notifBadge.textContent = String(unread);
+        notifBadge.hidden = unread === 0;
+      }
+    });
+  } else if (data.session?.user?.id) {
+    // The owner home has no notifications panel, so the sidebar badge
+    // gets its number from a count-only query instead.
+    loadUnreadNotificationCount(client, data.session.user.id).then((unread) => {
       const notifBadge = $("dash-notif-badge");
       if (notifBadge) {
         notifBadge.textContent = String(unread);

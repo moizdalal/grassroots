@@ -1,26 +1,34 @@
-// garden.js — bloomed engagements the consultant has dragged into
-// their garden from the journey on the dashboard. Lives in its own
-// section on /profile.html above the consultant-progression card.
+// garden.js — the consultant's garden on /profile.html: one flower for
+// every engagement they finished (payout released, or a free job marked
+// complete). Flowers are planted automatically; the server sends a
+// "flower planted" notification that links here (see app.js
+// notifyFlowerPlanted). Engagements still in progress are not planted
+// yet — they live in the dashboard table — but the head line counts them.
 //
 // Inside the bed:
 //   - Each plant is absolutely positioned and drag-to-slide along x;
 //     its position persists per-consultant in localStorage.
-//   - A monarch butterfly and a small bee wander the bed at random,
-//     occasionally landing on a plant's flower.
+//   - Bees (fireflies at night in the default backdrop) wander the bed
+//     and occasionally land on a flower.
+//
+// Options:
+//   client, userId   live data for the signed-in consultant
+//   engagements      fixture rows instead of live data (design mocks):
+//                    [{ id, counterpart, title, stage?, species? }]
+//   background       backdrop behind the plants. "paper" (default) is
+//                    the live one: a plain card and one ground line.
+//                    "meadow" (the old sky + hills), "notebook",
+//                    "horizon" and "shelf" stay available for
+//                    /garden-directions.html.
 //
 // State (per consultant):
-//   localStorage["grassroots_garden_<userId>"]            (membership)
 //   localStorage["grassroots_garden_positions_<userId>"]  (x-positions)
 
-import {
-  loadGardenForUser,
-  saveGardenForUser,
-  assignSpecies,
-  isPremature,
-} from "/engagement-journey-flowers.js";
+import { assignSpecies, isPremature } from "/engagement-journey-flowers.js";
 import { FLOWERS, plantSvg } from "/flower-sketch.js";
 import { getInitials } from "/initials.js";
-import { showToast } from "/toast.js";
+
+export const GARDEN_BACKGROUNDS = ["meadow", "paper", "notebook", "horizon", "shelf"];
 
 function positionsKey(userId) {
   return userId ? `grassroots_garden_positions_${userId}` : null;
@@ -44,28 +52,34 @@ function savePosition(userId, bidId, xPct) {
   try { localStorage.setItem(key, JSON.stringify(positions)); } catch (_) {}
 }
 
-export async function mountGarden(container, { client, userId }) {
-  if (!container || !userId || !client) return;
+export async function mountGarden(container, { client, userId, engagements: fixture, background = "paper" } = {}) {
+  const isFixture = Array.isArray(fixture);
+  if (!container || (!isFixture && (!userId || !client))) return;
+  const bg = GARDEN_BACKGROUNDS.includes(background) ? background : "paper";
+  const isMeadow = bg === "meadow";
+  container.classList.add("pp-garden", `pp-garden--bg-${bg}`);
 
-  // Sky lives at the .pp-garden level (not the bed) so stars + moon /
-  // sun + clouds span the whole section, drifting behind the header
-  // as well as the bed. It's rendered once at mount; the per-render
-  // bed update below leaves it alone.
+  // Meadow only: the sky lives at the .pp-garden level (not the bed) so
+  // stars + moon / sun + clouds span the whole section, drifting behind
+  // the header as well as the bed. It's rendered once at mount; the
+  // per-render bed update below leaves it alone. The simple backdrops
+  // are pure CSS (garden.css), so they need no extra DOM.
   container.innerHTML = `
-    ${skyDom()}
+    ${isMeadow ? skyDom() : ""}
     <div class="pp-garden__head">
       <p class="pf-level-kicker">Your garden</p>
-      <h2 class="pp-garden__title">Bloomed engagements</h2>
-      <p class="pp-garden__copy" id="pp-garden-copy"></p>
+      <h2 class="pp-garden__title">Completed projects</h2>
+      <p class="pp-garden__copy"></p>
     </div>
-    <div class="pp-garden__bed" id="pp-garden-bed"></div>
+    <div class="pp-garden__bed"></div>
   `;
   const gardenEl = container;
-  const bedEl = container.querySelector("#pp-garden-bed");
-  const copyEl = container.querySelector("#pp-garden-copy");
+  const bedEl = container.querySelector(".pp-garden__bed");
+  const copyEl = container.querySelector(".pp-garden__copy");
 
-  let gardenIds = loadGardenForUser(userId);
   let enriched = [];
+  let loaded = false;
+  let growingCount = 0;
   let speciesByBidId = new Map();
   // Per-render bed cleanups (pollinators). Star repulsion is wired
   // once at mount and isn't part of this list.
@@ -78,6 +92,7 @@ export async function mountGarden(container, { client, userId }) {
         "id, listing_id, consultant_id, amount_cents, message, status, payment_status, paid_at, released_at, accepted_at, created_at"
       )
       .eq("consultant_id", userId);
+    loaded = true;
     if (!Array.isArray(bids) || !bids.length) {
       enriched = [];
       speciesByBidId = new Map();
@@ -119,6 +134,29 @@ export async function mountGarden(container, { client, userId }) {
       return { bid, listing, owner, counterpart, premature, id, ownerAvatarUrl };
     });
     speciesByBidId = assignSpecies(enriched);
+    growingCount = enriched.filter(
+      (e) => !e.premature && e.bid.status === "accepted" && e.bid.payment_status !== "released"
+    ).length;
+  }
+
+  // The flowers in the bed, newest first. Live: every engagement whose
+  // payout was released. Fixture: whatever the mock hands us.
+  async function plantedEngagements() {
+    if (isFixture) {
+      return fixture.map((f, i) => ({
+        id: String(f.id ?? `fixture-${i}`),
+        counterpart: f.counterpart || "Business",
+        listing: { title: f.title || "Project" },
+        stage: f.stage || 5,
+        species: FLOWERS[(f.species ?? i) % FLOWERS.length],
+        href: f.href || null,
+      }));
+    }
+    if (!loaded) await loadEngagementData();
+    return enriched
+      .filter((e) => !e.premature && e.bid.payment_status === "released")
+      .sort((a, b) => new Date(b.bid.released_at || 0) - new Date(a.bid.released_at || 0))
+      .map((e) => ({ ...e, stage: 5, href: `/engagement.html?bid=${encodeURIComponent(e.id)}` }));
   }
 
   async function render() {
@@ -127,30 +165,91 @@ export async function mountGarden(container, { client, userId }) {
     bugCleanups.forEach((fn) => { try { fn(); } catch (_) {} });
     bugCleanups = [];
 
-    gardenIds = loadGardenForUser(userId);
-    const bidIds = Object.keys(gardenIds);
-    const landscapeMarkup = `<div class="pp-garden__landscape">${landscapeSvg()}</div>`;
-    if (bidIds.length === 0) {
-      bedEl.innerHTML = `${landscapeMarkup}<p class="pp-garden__empty">No bloomed plants here yet — drag a bloomed plant from your engagement journey on the dashboard.</p>`;
-      if (copyEl) copyEl.textContent = "";
+    const landscapeMarkup = isMeadow ? `<div class="pp-garden__landscape">${landscapeSvg()}</div>` : "";
+    const inGarden = await plantedEngagements();
+    const growingNote = growingCount
+      ? ` ${growingCount} more ${growingCount === 1 ? "is" : "are"} in progress on your <a href="/consultant-dashboard.html">dashboard</a>.`
+      : "";
+    if (inGarden.length === 0) {
+      bedEl.innerHTML = `${landscapeMarkup}<p class="pp-garden__empty">No flowers yet. When you finish a project and the payout is released, a flower is planted here.</p>`;
+      if (copyEl) copyEl.innerHTML = growingNote.trim();
+      current = [];
+      sizePlants(0);
       spawnBugs();
       return;
     }
-    if (!enriched.length) await loadEngagementData();
-    const inGarden = bidIds
-      .map((id) => enriched.find((e) => e.id === id))
-      .filter(Boolean)
-      .sort((a, b) => (gardenIds[b.id] || 0) - (gardenIds[a.id] || 0));
     bedEl.innerHTML =
       landscapeMarkup +
       inGarden.map((eng) => renderPlant(eng)).join("");
     if (copyEl) {
-      const n = inGarden.length;
-      copyEl.textContent = `${n} bloomed engagement${n === 1 ? "" : "s"} in your garden.`;
+      // Fixtures may include plants still growing; live data never does.
+      const n = inGarden.filter((e) => e.stage === 5).length;
+      const sprouts = inGarden.length - n;
+      const sproutNote = sprouts ? ` ${sprouts} more ${sprouts === 1 ? "is" : "are"} still growing.` : "";
+      copyEl.innerHTML = `${n} flower${n === 1 ? "" : "s"}, one for each project you finished.${sproutNote}${growingNote}`;
     }
+    current = inGarden;
+    sizePlants(inGarden.length);
     applyPositions(inGarden);
     wireInteractions(inGarden);
     spawnBugs();
+    focusFromLink();
+  }
+
+  // Re-fit when the bed's width changes: the profile mounts the garden
+  // while the page is still hidden (width 0), and phones rotate.
+  let current = [];
+  let lastBedW = 0;
+  if (typeof ResizeObserver === "function") {
+    new ResizeObserver(() => {
+      const w = Math.round(bedEl.getBoundingClientRect().width);
+      if (!w || w === lastBedW) return;
+      lastBedW = w;
+      sizePlants(current.length);
+      applyPositions(current);
+    }).observe(bedEl);
+  }
+
+  // Shrink the plants when the collection outgrows the bed so every
+  // flower stays visible, and tell the CSS backdrops where the soil
+  // line sits (it moves with the plant height).
+  function sizePlants(count) {
+    const bedW = bedEl.getBoundingClientRect().width || 0;
+    let w = 130;
+    if (count > 0 && bedW > 0) w = Math.max(64, Math.min(130, Math.floor((bedW * 0.94) / count)));
+    const h = Math.round(w * 1.6);
+    gardenEl.style.setProperty("--garden-plant-w", `${w}px`);
+    gardenEl.style.setProperty("--garden-plant-h", `${h}px`);
+    // Small plants have no room for the business avatar beside the name.
+    gardenEl.classList.toggle("pp-garden--compact", w < 96);
+    // Soil sits at y=150 of the plant's 160-tall viewBox, above the
+    // name label under each plant.
+    const meta = bedEl.querySelector(".pp-garden__plant-meta");
+    const metaH = meta ? meta.getBoundingClientRect().height : 38;
+    gardenEl.style.setProperty("--garden-ground", `${Math.round(metaH + h * (10 / 160))}px`);
+  }
+
+  // Arriving from the "flower planted" notification
+  // (/profile.html?flower=<bid>#pp-garden-section): bring the garden
+  // into view and give the new flower a short highlight.
+  let focused = false;
+  function focusFromLink() {
+    if (focused || isFixture) return;
+    const flowerId = new URLSearchParams(window.location.search).get("flower");
+    const wantsGarden = !!flowerId || /garden/.test(window.location.hash);
+    if (!wantsGarden) return;
+    focused = true;
+    // The profile page is still hidden behind its loading gate while
+    // the garden mounts, so wait a beat before scrolling.
+    setTimeout(() => {
+      gardenEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (!flowerId) return;
+      const el = bedEl.querySelector(`.pp-garden__plant[data-bid-id="${cssId(flowerId)}"]`);
+      if (el) {
+        el.classList.add("is-new");
+        setTimeout(() => el.classList.remove("is-new"), 6000);
+      }
+    }, 450);
   }
 
   // Shared with wirePlantDrag — when a plant is being dragged the
@@ -243,50 +342,38 @@ export async function mountGarden(container, { client, userId }) {
 
   function applyPositions(inGarden) {
     const positions = loadPositions(userId);
+    const bedW = bedEl.getBoundingClientRect().width;
+    if (!bedW) return; // hidden; the resize observer lays out once visible
+    const first = bedEl.querySelector(".pp-garden__plant");
+    const plantPct = first ? (first.getBoundingClientRect().width / bedW) * 100 : 16;
+    // Furthest left a plant can sit without running off the right edge.
+    const maxLeft = Math.max(0, 100 - plantPct);
     inGarden.forEach((eng, idx) => {
       const el = bedEl.querySelector(`.pp-garden__plant[data-bid-id="${cssId(eng.id)}"]`);
       if (!el) return;
       let x = positions[eng.id];
       if (typeof x !== "number" || !isFinite(x)) {
-        // Default layout: evenly spaced across the bed, leaving a small
-        // margin at each edge so plants don't touch the borders.
-        x = inGarden.length === 1 ? 50 : 6 + (idx * 88) / (inGarden.length - 1);
+        // Default layout: evenly spaced across the bed, edge to edge.
+        x = inGarden.length === 1 ? maxLeft / 2 : (idx * maxLeft) / (inGarden.length - 1);
       }
-      el.style.left = `${x}%`;
+      el.style.left = `${Math.min(maxLeft, Math.max(0, x))}%`;
     });
   }
 
   function wireInteractions(inGarden) {
     bedEl.querySelectorAll(".pp-garden__plant").forEach((plantEl) => {
       wirePlantDrag(plantEl, inGarden);
-      const removeBtn = plantEl.querySelector(".pp-garden__plant-remove");
-      if (removeBtn) {
-        removeBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const id = plantEl.dataset.bidId;
-          if (!id) return;
-          const eng = inGarden.find((x) => x.id === id);
-          delete gardenIds[id];
-          saveGardenForUser(userId, gardenIds);
-          showToast(
-            `Uprooted ${eng?.counterpart || "plant"} — back in your engagement journey.`,
-            { duration: 2400 }
-          );
-          render();
-        });
-      }
     });
   }
 
   // Pointer-based drag-to-position along the x-axis. Plain clicks
-  // (no movement above DRAG_THRESHOLD) still open the listing. The
+  // (no movement above DRAG_THRESHOLD) still open the engagement. The
   // trailing synthetic click is suppressed after a real drag so the
   // browser doesn't navigate after the user releases.
   const DRAG_THRESHOLD = 5;
   function wirePlantDrag(plantEl, inGarden) {
     plantEl.addEventListener("pointerdown", (e) => {
       if (e.pointerType === "mouse" && e.button !== 0) return;
-      if (e.target.closest(".pp-garden__plant-remove")) return;
       const bedRect = bedEl.getBoundingClientRect();
       const plantRect = plantEl.getBoundingClientRect();
       const startX = e.clientX;
@@ -327,7 +414,7 @@ export async function mountGarden(container, { client, userId }) {
           const xPct = parseFloat(plantEl.style.left) || 0;
           savePosition(userId, plantEl.dataset.bidId, xPct);
           // Suppress the synthetic click that follows pointerup so a
-          // drag doesn't also navigate to the listing.
+          // drag doesn't also navigate to the engagement.
           const sup = (ce) => { ce.stopPropagation(); ce.preventDefault(); };
           plantEl.addEventListener("click", sup, { capture: true, once: true });
           setTimeout(() => plantEl.removeEventListener("click", sup, true), 250);
@@ -338,27 +425,23 @@ export async function mountGarden(container, { client, userId }) {
       window.addEventListener("pointercancel", onUp);
     });
 
-    plantEl.addEventListener("click", (e) => {
-      if (e.target.closest(".pp-garden__plant-remove")) return;
-      const id = plantEl.dataset.bidId;
-      const eng = inGarden.find((x) => x.id === id);
-      if (eng?.listing?.id) window.location.href = `/listing.html?id=${eng.listing.id}`;
-    });
+    const open = () => {
+      const eng = inGarden.find((x) => x.id === plantEl.dataset.bidId);
+      if (eng?.href) window.location.href = eng.href;
+    };
+    plantEl.addEventListener("click", open);
     plantEl.addEventListener("keydown", (e) => {
-      if ((e.key === "Enter" || e.key === " ") && !e.target.closest(".pp-garden__plant-remove")) {
+      if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        const id = plantEl.dataset.bidId;
-        const eng = inGarden.find((x) => x.id === id);
-        if (eng?.listing?.id) window.location.href = `/listing.html?id=${eng.listing.id}`;
+        open();
       }
     });
   }
 
-  // Theme-aware bug spawn. Light theme keeps the original bee that
-  // buzzes around and lands on plants; dark theme replaces it with
-  // a swarm of fireflies that drift slowly and pulse on their own
-  // phases. Bugs are cleared and re-spawned on theme change so the
-  // user never sees a bee in a starry sky.
+  // Theme-aware bug spawn, same for every backdrop: the light theme
+  // gets bees that buzz around and land on plants; the dark themes
+  // (dark-forest, forest-soft, dark) get fireflies that drift slowly
+  // and pulse on their own phases.
   function spawnBugs() {
     const isLight =
       document.documentElement.getAttribute("data-theme") === "light";
@@ -425,30 +508,22 @@ export async function mountGarden(container, { client, userId }) {
   window.addEventListener("grassroots:themechange", onThemeChange);
 
   function renderPlant(eng) {
-    const species = speciesByBidId.get(eng.id) || FLOWERS[0];
-    const plantMarkup = plantSvg(species, 5);
+    const species = eng.species || speciesByBidId.get(eng.id) || FLOWERS[0];
+    const plantMarkup = plantSvg(species, eng.stage || 5);
     const avatarMarkup = eng.ownerAvatarUrl
       ? `<img src="${escapeHtml(eng.ownerAvatarUrl)}" alt=""/>`
       : `<span>${escapeHtml(getInitials(eng.counterpart))}</span>`;
+    const title = eng.listing?.title || "Project";
     return `
       <div class="pp-garden__plant" data-bid-id="${escapeHtml(eng.id)}"
            role="button" tabindex="0"
-           aria-label="${escapeHtml(eng.counterpart)} — ${escapeHtml(eng.listing?.title || "engagement")} — drag to position, click to open listing">
-        <button type="button" class="pp-garden__plant-remove" data-bid-id="${escapeHtml(eng.id)}"
-                aria-label="Move ${escapeHtml(eng.counterpart)} back to your journey"
-                title="Move back to journey">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
-               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="6" y1="6" x2="18" y2="18"/>
-            <line x1="18" y1="6" x2="6" y2="18"/>
-          </svg>
-        </button>
+           aria-label="${escapeHtml(eng.counterpart)}, ${escapeHtml(title)}. Drag to move, press Enter to open the project.">
         <div class="pp-garden__plant-canvas">${plantMarkup}</div>
         <div class="pp-garden__plant-meta">
           <span class="pp-garden__plant-avatar">${avatarMarkup}</span>
           <div class="pp-garden__plant-text">
             <span class="pp-garden__plant-biz">${escapeHtml(eng.counterpart)}</span>
-            <span class="pp-garden__plant-title">${escapeHtml(eng.listing?.title || "engagement")}</span>
+            <span class="pp-garden__plant-title">${escapeHtml(title)}</span>
           </div>
         </div>
       </div>
@@ -457,7 +532,7 @@ export async function mountGarden(container, { client, userId }) {
 
   // Star repulsion is wired once at mount — the sky lives on the
   // garden container and persists across plant re-renders.
-  wireStarRepulsion();
+  if (isMeadow) wireStarRepulsion();
 
   await render();
 }

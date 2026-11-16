@@ -236,10 +236,10 @@ function renderKpis() {
   const vol = totalVolumeCents(rangeDays);
   const tiles = [
     { label: "Users", value: totalUsers(), sub: `${data.consultants.length} consultants · ${data.owners.length} owners` },
-    { label: "Active engagements", value: activeEngagements(), sub: `${totalEngagements()} total to date` },
+    { label: "Active projects", value: activeEngagements(), sub: `${totalEngagements()} total to date` },
     { label: `Volume (${moneyRange === "ytd" ? "YTD" : moneyRange})`, value: fmtMoneyShort(vol), sub: "Released payouts" },
     { label: "Offer acceptance rate", value: fmtPct(bidAcceptanceRate()), sub: `${totalBids()} offers submitted` },
-    { label: "Avg engagement value", value: fmtMoneyShort(avgEngagementValueCents()), sub: `${openListings()} listings open now` },
+    { label: "Avg project value", value: fmtMoneyShort(avgEngagementValueCents()), sub: `${openListings()} listings open now` },
     { label: "Kickoffs this week", value: kickoffsThisWeek().length, sub: `${upcomingKickoffs().length} upcoming overall` },
   ];
   host.innerHTML = tiles.map((t) => `
@@ -267,9 +267,9 @@ function renderStatusDonut() {
   const host = document.getElementById("adm-status-donut");
   const segments = engagementStatusBreakdown();
   renderDonut(host, segments, {
-    ariaLabel: "Engagements by stage",
+    ariaLabel: "Projects by stage",
     centerLabel: segments.reduce((s, r) => s + r.value, 0),
-    centerSub: "engagements",
+    centerSub: "projects",
   });
 }
 
@@ -489,11 +489,11 @@ const BULK_KINDS = {
     },
   },
   engagements: {
-    one: "engagement", many: "engagements",
+    one: "project", many: "projects",
     preview: "/api/admin/engagements/delete/preview",
     run: "/api/admin/engagements/delete",
     rows: (r) => r.items,
-    lead: (n) => `${n === 1 ? "This engagement" : `These ${n} engagements`} will be permanently deleted with their schedule and reviews. The listings stay. This can't be undone.`,
+    lead: (n) => `${n === 1 ? "This project" : `These ${n} projects`} will be permanently deleted with their schedule and reviews. The listings stay. This can't be undone.`,
     label: (it) => {
       const e = data.engagements.find((x) => x.id === it.id);
       return `<strong>${esc(it.title || "Untitled listing")}</strong> <span class="adm-ud-note">${esc(e ? `${e.owner_name} × ${e.consultant_name}` : it.id)}</span>`;
@@ -631,7 +631,7 @@ function renderEngagementsTable() {
   rows.sort((a, b) => b.created_at - a.created_at);
   shownEngagementIds = rows.map((e) => e.id);
 
-  document.getElementById("adm-eng-count").textContent = `${rows.length} engagement${rows.length === 1 ? "" : "s"}`;
+  document.getElementById("adm-eng-count").textContent = `${rows.length} project${rows.length === 1 ? "" : "s"}`;
 
   if (!rows.length) {
     host.innerHTML = `<tr><td colspan="7" class="adm-table-empty">No matches.</td></tr>`;
@@ -812,13 +812,13 @@ function openUserDrawer(userId) {
       ${user.major ? `<div><dt>Major</dt><dd>${esc(user.major)}</dd></div>` : ""}
       ${user.city ? `<div><dt>City</dt><dd>${esc(user.city)}</dd></div>` : ""}
       ${user.rating ? `<div><dt>Rating</dt><dd>${user.rating.toFixed(1)} / 5</dd></div>` : ""}
-      <div><dt>Engagements</dt><dd>${stats.count}</dd></div>
+      <div><dt>Projects</dt><dd>${stats.count}</dd></div>
       <div><dt>Total released</dt><dd>${fmtMoneyShort(stats.total_cents)}</dd></div>
       ${userListings.length ? `<div><dt>Listings posted</dt><dd>${userListings.length}</dd></div>` : ""}
       ${userBids.length ? `<div><dt>Offers submitted</dt><dd>${userBids.length}</dd></div>` : ""}
     </dl>
     ${userEngagements.length ? `
-      <h4 class="adm-drawer-sec">Engagements</h4>
+      <h4 class="adm-drawer-sec">Projects</h4>
       <ul class="adm-drawer-list">
         ${userEngagements.slice(0, 12).map((e) => `
           <li class="adm-drawer-row" data-engagement-id="${esc(e.id)}">
@@ -1131,16 +1131,16 @@ function openEngagementDrawer(engId) {
         </li>
       `).join("")}
     </ul>
-    <h4 class="adm-drawer-sec">Manage engagement</h4>
+    <h4 class="adm-drawer-sec">Manage project</h4>
     <div class="adm-ud-action adm-ud-action--danger">
       <div>
-        <div class="adm-ud-action__title">Delete engagement</div>
-        <p class="adm-ud-note">Removes this accepted offer with its schedule and reviews. The listing stays. Engagements with a payment on record can't be deleted.</p>
+        <div class="adm-ud-action__title">Delete project</div>
+        <p class="adm-ud-note">Removes this accepted offer with its schedule and reviews. The listing stays. Projects with a payment on record can't be deleted.</p>
       </div>
       <button type="button" class="gr-btn gr-btn--ghost gr-btn--sm adm-pay-danger" data-eng-delete="${esc(e.id)}">Delete</button>
     </div>
   `;
-  openDrawer("engagement", html);
+  openDrawer("Project", html);
   drawerBody.querySelector("[data-eng-delete]")?.addEventListener("click", (ev) => openBulkDelete("engagements", [ev.currentTarget.dataset.engDelete]));
   // Wire the consultant/business pair cards to open user drawers.
   drawerBody.querySelectorAll(".adm-pair-body").forEach((card) => {
@@ -1255,7 +1255,7 @@ function drawBusinessTiles(b) {
     {
       label: "New offers",
       value: b.activity.new_bids,
-      sub: `${b.activity.in_progress_engagements} engagements in progress`,
+      sub: `${b.activity.in_progress_engagements} projects in progress`,
       explain: "demand side — how actively consultants are engaging with what's on the marketplace. lots of listings but few offers = your matching isn't working.",
     },
     {

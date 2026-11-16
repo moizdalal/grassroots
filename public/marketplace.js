@@ -428,6 +428,7 @@ const HAS_HOVER = typeof window.matchMedia === "function"
 
 let hoverPop = null;
 let hoverTimer = null;
+let hoverCard = null;
 
 function ensureHoverPop() {
   if (hoverPop) return hoverPop;
@@ -438,22 +439,98 @@ function ensureHoverPop() {
   return hoverPop;
 }
 
+/* Keep the popover fully inside the window. It sits beside the card
+   (right first, then left) with its top lined up with the card's, and
+   slides up or down as needed so it never crosses the top or bottom
+   edge. Only when neither side has room (a narrow window) does it go
+   under or over the card instead. */
+const POP_GAP = 10;      // space between card and popover
+const POP_EDGE = 8;      // minimum space to the window edge
+const POP_SIDE_MAX = 360;
+const POP_SIDE_MIN = 240;
+
+function clampNum(value, min, max) {
+  return Math.max(min, Math.min(value, max));
+}
+
+function positionHoverPop(card) {
+  const pop = hoverPop;
+  if (!pop) return;
+  const vw = document.documentElement.clientWidth;
+  const vh = window.innerHeight;
+  const rect = card.getBoundingClientRect();
+  // Card scrolled out of view: nothing to point at.
+  if (rect.bottom <= 0 || rect.top >= vh || rect.right <= 0 || rect.left >= vw) {
+    hideHoverPop();
+    return;
+  }
+
+  const roomRight = vw - POP_EDGE - (rect.right + POP_GAP);
+  const roomLeft = rect.left - POP_GAP - POP_EDGE;
+  let side = "";
+  if (roomRight >= POP_SIDE_MAX) side = "right";
+  else if (roomLeft >= POP_SIDE_MAX) side = "left";
+  else if (Math.max(roomRight, roomLeft) >= POP_SIDE_MIN) side = roomRight >= roomLeft ? "right" : "left";
+
+  pop.style.maxHeight = `${Math.max(0, vh - POP_EDGE * 2)}px`;
+  pop.style.overflow = "hidden";
+
+  let left;
+  let top;
+  if (side) {
+    const width = Math.min(POP_SIDE_MAX, side === "right" ? roomRight : roomLeft);
+    pop.style.width = `${width}px`;
+    const height = pop.offsetHeight;
+    left = side === "right" ? rect.right + POP_GAP : rect.left - POP_GAP - width;
+    top = rect.top;
+    top = clampNum(top, POP_EDGE, Math.max(POP_EDGE, vh - POP_EDGE - height));
+  } else {
+    const width = Math.min(rect.width, 480, vw - POP_EDGE * 2);
+    pop.style.width = `${width}px`;
+    const height = pop.offsetHeight;
+    left = clampNum(rect.left, POP_EDGE, Math.max(POP_EDGE, vw - POP_EDGE - width));
+    const below = rect.bottom + POP_GAP;
+    const above = rect.top - POP_GAP - height;
+    if (below + height <= vh - POP_EDGE) top = below;
+    else if (above >= POP_EDGE) top = above;
+    else top = clampNum(below, POP_EDGE, Math.max(POP_EDGE, vh - POP_EDGE - height));
+  }
+  pop.style.left = `${Math.round(left)}px`;
+  pop.style.top = `${Math.round(top)}px`;
+}
+
 function showHoverPop(card) {
   const summary = card.querySelector("[data-summary]")?.textContent;
   if (!summary) return;
   const pop = ensureHoverPop();
   pop.textContent = summary;
-  // Position once content is set so the popover knows its own width.
+  hoverCard = card;
+  // Position once content is set so the popover knows its own size.
   pop.classList.add("is-visible");
-  const rect = card.getBoundingClientRect();
-  pop.style.left = `${rect.left}px`;
-  pop.style.top = `${rect.bottom + 8}px`;
-  pop.style.width = `${rect.width}px`;
+  positionHoverPop(card);
 }
 
 function hideHoverPop() {
+  hoverCard = null;
   if (!hoverPop) return;
   hoverPop.classList.remove("is-visible");
+}
+
+// The popover is pinned to the window, so follow the card when the page
+// or a card row scrolls, or the window is resized, while it is showing.
+let hoverRaf = 0;
+function trackHoverPop() {
+  if (!hoverCard || hoverRaf) return;
+  hoverRaf = requestAnimationFrame(() => {
+    hoverRaf = 0;
+    if (!hoverCard) return;
+    if (!hoverCard.isConnected) hideHoverPop();
+    else positionHoverPop(hoverCard);
+  });
+}
+if (HAS_HOVER) {
+  window.addEventListener("scroll", trackHoverPop, { passive: true, capture: true });
+  window.addEventListener("resize", trackHoverPop, { passive: true });
 }
 
 function wireHoverPopover(scope) {

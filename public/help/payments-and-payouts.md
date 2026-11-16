@@ -51,7 +51,7 @@ Retainers stop billing after the number of periods in the offer. You can change 
 
 1. You finish Stripe payout setup before you can submit offers. See [Stripe onboarding](./stripe-onboarding.md).
 2. When the business pays, the money is held by Grassroots. It isn't in your Stripe balance yet.
-3. When the work is done, mark it delivered on the engagement page. The business has 14 days to review. Retainer periods don't need marking: the 14 days start when the period ends.
+3. When the work is done, mark it delivered on the project page. The business has 14 days to review. Retainer periods don't need marking: the 14 days start when the period ends.
 4. When it's released, Grassroots transfers your payout to your connected account.
 5. Stripe pays out to your bank on your payout schedule, usually about 2 business days.
 
@@ -85,8 +85,8 @@ Every bid carries a `payment_status`:
 
 This is the same policy as [section 7 of the terms](/terms.html#refunds). If anything here differs, the terms win.
 
-1. **Within 24 hours (one-time jobs):** cancel from the engagement page for a full refund. This only works while the payment is still held.
-2. **After 24 hours, before release:** report a problem from the engagement page during your 14-day review, or email [moiz@grassroots-marketplace.com](mailto:moiz@grassroots-marketplace.com) with the bid ID. This is also the only route for proposal fees, service fees, and retainer periods. The payment locks while we review. We then decide one of three things:
+1. **Within 24 hours (one-time jobs):** cancel from the project page for a full refund. This only works while the payment is still held.
+2. **After 24 hours, before release:** report a problem from the project page during your 14-day review, or email [moiz@grassroots-marketplace.com](mailto:moiz@grassroots-marketplace.com) with the bid ID. This is also the only route for proposal fees, service fees, and retainer periods. The payment locks while we review. We then decide one of three things:
    - **The work meets scope:** it's released to the consultant.
    - **It falls short but can be fixed:** the consultant has 5 days to redo it once, or give the money back. A give-back refunds you minus card-processing fees. No answer in 5 days counts as a give-back.
    - **Scope was breached:** you get a full refund. The consultant gets nothing.

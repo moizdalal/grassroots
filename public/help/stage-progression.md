@@ -1,39 +1,39 @@
 # Stage progression
 
-> Grassroots ranks consultants on a four-stage ladder. Your stage shows on your public profile and affects search ranking on the marketplace. It's driven entirely by **completed engagements + average rating**.
+> Grassroots ranks consultants on a four-stage ladder. Your stage shows on your public profile and affects search ranking on the marketplace. It's driven entirely by **completed projects + average rating**.
 
 ## The four stages
 
 | Stage | Name | What it takes |
 |---|---|---|
 | 0 | **Seedling** | Starting stage — no bar |
-| 1 | **Sprout** | 1 completed engagement with a 4.0+ average rating |
-| 2 | **Small tree** | 2 completed engagements at 4.0+ |
-| 3 | **Giant sequoia** | 10 completed engagements at >4.0 |
+| 1 | **Sprout** | 1 completed project with a 4.0+ average rating |
+| 2 | **Small tree** | 2 completed projects at 4.0+ |
+| 3 | **Giant sequoia** | 10 completed projects at >4.0 |
 
 New consultants start at seedling.
 
 ## How the gates work
 
-Both conditions need to be true at the same time. Rating is the hard gate — without an average of 4.0+, you stay at seedling no matter how many engagements you complete.
+Both conditions need to be true at the same time. Rating is the hard gate — without an average of 4.0+, you stay at seedling no matter how many projects you complete.
 
 ```
-                            avg ≥ 4.0   AND   1+ engagement  →  sprout
-                            avg ≥ 4.0   AND   2+ engagements →  small tree
-                            avg > 4.0   AND  10+ engagements →  giant sequoia
+                            avg ≥ 4.0   AND   1+ project   →  sprout
+                            avg ≥ 4.0   AND   2+ projects  →  small tree
+                            avg > 4.0   AND  10+ projects  →  giant sequoia
 ```
 
 Sequoia uses **strictly greater than 4.0** — a clean 4.0 isn't enough.
 
 ## What counts as "completed"
 
-An engagement counts when the owner has submitted their review and the bid is `released`. Canceled or paused engagements don't count.
+A project counts when the owner has submitted their review and the bid is `released`. Canceled or paused projects don't count.
 
 ## What counts as "average rating"
 
-It's the average of all your dimension scores across all reviewed engagements. See [reviews & ratings](./reviews-and-ratings.md) for how it's computed.
+It's the average of all your dimension scores across all reviewed projects. See [reviews and ratings](./reviews-and-ratings.md) for how it's computed.
 
-If you have zero ratings, your "average" doesn't exist yet — so you sit at seedling regardless of engagement count.
+If you have zero ratings, your "average" doesn't exist yet — so you sit at seedling regardless of project count.
 
 ## What changing stages does
 
@@ -46,10 +46,10 @@ If you have zero ratings, your "average" doesn't exist yet — so you sit at see
 Your **profile page** (`/profile.html`) shows:
 - Current stage (with a small visual)
 - Your average rating (if any)
-- Engagements completed
+- Projects completed
 - Progress bar toward the next stage
 
-The progress bar is **the lowest-bound metric** — whichever requirement you're furthest from. So if you need 2 engagements and an average of 4.0, and you've done 1 engagement with a 5.0 average, the bar shows 50% (the engagement-count side is the binding constraint).
+The progress bar is **the lowest-bound metric** — whichever requirement you're furthest from. So if you need 2 projects and an average of 4.0, and you've done 1 project with a 5.0 average, the bar shows 50% (the project-count side is the binding constraint).
 
 ## What stages don't do (today)
 
