@@ -54,13 +54,13 @@
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&family=Caveat:wght@600&display=swap" />
 
     <link rel="stylesheet" href="/grassroots.css?v=2" />
     <link rel="stylesheet" href="/field-office.css?v=2" />
     <link rel="stylesheet" href="/garden-stem.css?v=2" />
     <link rel="stylesheet" href="/home/nav.css?v=7" />
-    <link rel="stylesheet" href="/home/index.css?v=37" />
+    <link rel="stylesheet" href="/home/index.css?v=39" />
     <script src="/theme.js?v=2"></script>
     <script src="/home/theme-default.js?v=2"></script>
     <script>
@@ -204,15 +204,29 @@
       </div>
       <div class="ld-hero__grid">
         <div>
-          <h1 class="ld-hero__title ld-reveal" id="ld-hero-title">
-            <span class="ld-hero__title-line">Local business meets</span>
-            <span class="ld-hero__title-line ld-italic">campus&nbsp;talent</span>
+          <h1 class="ld-hero__title ld-hero__title--ask ld-reveal" id="ld-hero-title" aria-label="Need an Instagram, a website or an online store? A student wants to help.">
+            <span class="ld-hero__title-line" aria-hidden="true">Need <span class="ld-hero__rot" id="ld-hero-rot"><span class="ld-italic" id="ld-hero-rot-word">an Instagram</span>?</span></span>
+            <span class="ld-hero__title-line" aria-hidden="true">A student wants to help.</span>
           </h1>
           <p class="ld-hero__sub ld-reveal">
-            The marketplace built for local businesses that need a hand, and the college students who want real, paid experience.
+            Start from nothing. A local college student builds it with you, and Grassroots holds your payment until you approve the work.
           </p>
           <div class="ld-hero__ctas ld-reveal">
             <a class="gr-btn gr-btn--primary gr-btn--lg" href="/register.html?role=owner">Post a project</a>
+            <!-- handwritten pointer at "Post a project". Sits between the buttons
+                 so phones (stacked buttons) show it under the right one; CSS moves
+                 it below both buttons on wider screens. -->
+            <p class="ld-start" id="ld-start">
+              <svg class="ld-start__arrow" viewBox="0 0 60 128" fill="none" preserveAspectRatio="none" aria-hidden="true">
+                <path d="M53 120 C22 116 6 84 8 8"/>
+                <path d="M1.5 17 L8 6 L15 16.5"/>
+              </svg>
+              <svg class="ld-start__up" viewBox="0 0 24 36" fill="none" aria-hidden="true">
+                <path d="M12 33 C10 24 13 14 12 4"/>
+                <path d="M5 12 L12 3 L19 11.5"/>
+              </svg>
+              <span class="ld-start__text">Start here if you're a business owner</span>
+            </p>
             <a class="gr-btn gr-btn--ghost gr-btn--lg" href="/marketplace.html?guest=1">See what's live</a>
           </div>
 
@@ -238,6 +252,38 @@
         </div>
       </div>
     </header>
+
+    <!-- ── you bring / they bring ───────────────────────────────
+         for owners starting from nothing: the left card is everything they
+         need (an empty storefront), the right card is what a student adds. -->
+    <section class="ld-bring" aria-labelledby="ld-bring-title">
+      <div class="ld-shell">
+        <div class="ld-section__head ld-reveal">
+          <h2 class="ld-section__title" id="ld-bring-title">You bring the business. A student brings the rest.</h2>
+        </div>
+        <div class="ld-bring__row ld-reveal">
+          <div class="ld-bring__card">
+            <div class="ld-bring__art" aria-hidden="true"><svg viewBox="0 0 308 164"><rect class="ld-bring__ghost" x="119" y="20" width="70" height="18" rx="5"/><path class="ld-bring__line" d="M100 72 L112 46 H196 L208 72 Z"/><path class="ld-bring__line" d="M124 46 L119 72 M142 46 L140 72 M166 46 L168 72 M184 46 L189 72"/><rect class="ld-bring__line" x="106" y="72" width="96" height="68"/><rect class="ld-bring__line" x="142" y="98" width="24" height="42"/><rect class="ld-bring__line" x="114" y="88" width="20" height="22"/><rect class="ld-bring__line" x="174" y="88" width="20" height="22"/><line class="ld-bring__line" x1="24" y1="140" x2="284" y2="140"/><circle class="ld-bring__ghost" cx="52" cy="54" r="17"/><circle class="ld-bring__ghost" cx="52" cy="106" r="17"/><circle class="ld-bring__ghost" cx="256" cy="54" r="17"/><circle class="ld-bring__ghost" cx="256" cy="106" r="17"/></svg></div>
+            <h3 class="ld-bring__title">All you need</h3>
+            <ul class="ld-bring__list">
+              <li><svg viewBox="0 0 22 22" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.3l3 3 6-6.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>A business</b>Any size, any stage.</span></li>
+              <li><svg viewBox="0 0 22 22" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.3l3 3 6-6.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>Something you wish you had</b>A few sentences is plenty.</span></li>
+              <li><svg viewBox="0 0 22 22" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.3l3 3 6-6.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>Five minutes</b>Posting is free.</span></li>
+            </ul>
+          </div>
+          <span class="ld-bring__plus" aria-hidden="true">+</span>
+          <div class="ld-bring__card ld-bring__card--student">
+            <div class="ld-bring__art" aria-hidden="true"><svg viewBox="0 0 308 164"><rect class="ld-bring__fill" x="119" y="20" width="70" height="18" rx="5"/><path class="ld-bring__line" d="M100 72 L112 46 H196 L208 72 Z"/><path class="ld-bring__line" d="M124 46 L119 72 M142 46 L140 72 M166 46 L168 72 M184 46 L189 72"/><rect class="ld-bring__line" x="106" y="72" width="96" height="68"/><rect class="ld-bring__line" x="142" y="98" width="24" height="42"/><rect class="ld-bring__line" x="114" y="88" width="20" height="22"/><rect class="ld-bring__line" x="174" y="88" width="20" height="22"/><line class="ld-bring__line" x1="24" y1="140" x2="284" y2="140"/><circle class="ld-bring__fill" cx="52" cy="54" r="17"/><g class="ld-bring__ico" transform="translate(52 54)"><rect x="-9" y="-7.5" width="18" height="15" rx="2.6"/><line x1="-9" y1="-3" x2="9" y2="-3"/><path d="M-4 1.5 H4 M-4 4.5 H1.5"/></g><circle class="ld-bring__dot" cx="45.6" cy="48.6" r="0.9"/><circle class="ld-bring__dot" cx="48.4" cy="48.6" r="0.9"/><defs><radialGradient id="ld-bring-ig" cx="0.3" cy="1.07" r="1.3"><stop offset="0" stop-color="#FDF497"/><stop offset="0.05" stop-color="#FDF497"/><stop offset="0.45" stop-color="#FD5949"/><stop offset="0.6" stop-color="#D6249F"/><stop offset="0.9" stop-color="#285AEB"/></radialGradient></defs><rect x="35" y="89" width="34" height="34" rx="9.5" fill="url(#ld-bring-ig)"/><g fill="none" stroke="#fff" stroke-width="2.4"><rect x="42" y="96" width="20" height="20" rx="6"/><circle cx="52" cy="106" r="4.8"/></g><circle cx="57.4" cy="100.6" r="1.4" fill="#fff"/><circle cx="256" cy="54" r="16.6" fill="#fff"/><path fill="#1877F2" transform="translate(239 37) scale(1.4167)" d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z"/><circle class="ld-bring__fill" cx="256" cy="106" r="17"/><g class="ld-bring__ico" transform="translate(256 106)"><path d="M0 -9 V9 M5 -5 C3.5 -7 -5 -7.5 -5 -3 C-5 1 5 -1 5 3.5 C5 7.5 -3.5 7.5 -5.5 5"/></g></svg></div>
+            <h3 class="ld-bring__title">What a student brings</h3>
+            <ul class="ld-bring__list">
+              <li><svg viewBox="0 0 22 22" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.3l3 3 6-6.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>They know the tools</b>They grew up on the apps you're trying to figure out.</span></li>
+              <li><svg viewBox="0 0 22 22" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.3l3 3 6-6.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>They want to help</b>Your project goes on their resume, so they show up.</span></li>
+              <li><svg viewBox="0 0 22 22" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.3l3 3 6-6.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>They're priced for a small business</b>You pay the price you agree to, held until you approve the work.</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- ── manifesto ──────────────────────────────────────────
          a rounded panel with two statements: the mission hook, then
@@ -985,18 +1031,19 @@
         // Every card uses the same format: name, then "type · City, ST".
         // Names and City, ST are proper nouns, so they keep their capitals.
         // avatar = initials shown in the logo circle until real logos exist.
-        { name: "Side Street Coffee",   tagline: "Café · Gainesville, FL",         avatar: "SS" },
-        { name: "North End Bikes",      tagline: "Bike shop · Athens, GA",         avatar: "NB" },
-        { name: "Rooster & Rye",        tagline: "Bakery · Chapel Hill, NC",       avatar: "RR" },
-        { name: "Marigold Florals",     tagline: "Florist · Columbia, SC",         avatar: "MF" },
-        { name: "Split / Fix Shop",     tagline: "Auto repair · Gainesville, FL",  avatar: "SF" },
-        { name: "Alma Kitchen",         tagline: "Restaurant · Tampa, FL",         avatar: "AK" },
-        { name: "Ember Tea Room",       tagline: "Tea house · Savannah, GA",       avatar: "ET" },
-        { name: "Blue Line Printing",   tagline: "Print shop · Raleigh, NC",       avatar: "BL" },
-        { name: "West Village Wines",   tagline: "Wine bar · Oxford, MS",          avatar: "WW" },
-        { name: "The Spool Record Co.", tagline: "Vinyl · Auburn, AL",             avatar: "SR" },
-        { name: "Harbor & Hide",        tagline: "Leather goods · Charleston, SC", avatar: "HH" },
-        { name: "Amber Haus Design",    tagline: "Design studio · Austin, TX",     avatar: "AH" },
+        // project = an example of the kind of work a student does for them.
+        { name: "Side Street Coffee",   tagline: "Café · Gainesville, FL",         avatar: "SS", project: "Instagram, set up from scratch" },
+        { name: "North End Bikes",      tagline: "Bike shop · Athens, GA",         avatar: "NB", project: "Website and online store" },
+        { name: "Rooster & Rye",        tagline: "Bakery · Chapel Hill, NC",       avatar: "RR", project: "Facebook page and first posts" },
+        { name: "Marigold Florals",     tagline: "Florist · Columbia, SC",         avatar: "MF", project: "Inventory management app" },
+        { name: "Split / Fix Shop",     tagline: "Auto repair · Gainesville, FL",  avatar: "SF", project: "Online booking for repairs" },
+        { name: "Alma Kitchen",         tagline: "Restaurant · Tampa, FL",         avatar: "AK", project: "Logo and a new menu" },
+        { name: "Ember Tea Room",       tagline: "Tea house · Savannah, GA",       avatar: "ET", project: "Getting found on Google" },
+        { name: "Blue Line Printing",   tagline: "Print shop · Raleigh, NC",       avatar: "BL", project: "Online order form for print jobs" },
+        { name: "West Village Wines",   tagline: "Wine bar · Oxford, MS",          avatar: "WW", project: "Email newsletter, from scratch" },
+        { name: "The Spool Record Co.", tagline: "Vinyl · Auburn, AL",             avatar: "SR", project: "Online store for used vinyl" },
+        { name: "Harbor & Hide",        tagline: "Leather goods · Charleston, SC", avatar: "HH", project: "Product photos for the shop" },
+        { name: "Amber Haus Design",    tagline: "Design studio · Austin, TX",     avatar: "AH", project: "Bookkeeping spreadsheet" },
       ];
 
       // Three business-bio cards in fixed slots above the garden +
@@ -1010,8 +1057,8 @@
       // entire morph (transform, width, padding, background, content
       // max-height) smoothly in one go. The center card always gets
       // the accent-green panel via .s-center.
-      // Placeholder bottom line, the same on every card until real per-business stats exist.
-      const CARD_STAT = "Example business";
+      // Bottom line: an example project, to show the range of work students take on.
+      const CARD_STAT_LABEL = "Example project";
       const cardsRoot = document.getElementById("ld-hero-cards");
       const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
       const canHover = window.matchMedia?.("(hover: hover)").matches;
@@ -1020,7 +1067,8 @@
           card.querySelector(".ld-hero-card__avatar").textContent  = B.avatar;
           card.querySelector(".ld-hero-card__name").textContent    = B.name;
           card.querySelector(".ld-hero-card__tagline").textContent = B.tagline;
-          card.querySelector(".ld-hero-card__stat").textContent    = CARD_STAT;
+          card.querySelector(".ld-hero-card__stat-label").textContent = CARD_STAT_LABEL;
+          card.querySelector(".ld-hero-card__project").textContent    = B.project;
         }
         function makeCard(B, slotClass) {
           const el = document.createElement("div");
@@ -1033,7 +1081,7 @@
                 <div class="ld-hero-card__tagline"></div>
               </div>
             </div>
-            <div class="ld-hero-card__stat"></div>`;
+            <div class="ld-hero-card__stat"><span class="ld-hero-card__stat-label"></span><span class="ld-hero-card__project"></span></div>`;
           fillCard(el, B);
           return el;
         }
@@ -1189,5 +1237,40 @@
       }
     </script>
     <script defer src="/perf-beacon.js"></script>
+
+    <script>
+      // hero: rotate the thing the owner is missing, and aim the handwritten
+      // note's arrow at the middle of "Post a project".
+      (() => {
+        const rot = document.getElementById("ld-hero-rot");
+        const word = document.getElementById("ld-hero-rot-word");
+        const WORDS = ["an Instagram", "a website", "an online store", "a logo", "a booking page", "an inventory app"];
+        const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (rot && word && !still) {
+          let i = 0;
+          setInterval(() => {
+            rot.classList.add("is-out");
+            setTimeout(() => {
+              i = (i + 1) % WORDS.length;
+              word.textContent = WORDS[i];
+              rot.classList.remove("is-out");
+              rot.classList.add("is-in");
+              void rot.offsetWidth;
+              rot.classList.remove("is-in");
+            }, 280);
+          }, 2400);
+        }
+        const note = document.getElementById("ld-start");
+        const btn = document.querySelector(".ld-hero__ctas .gr-btn--primary");
+        const aim = () => {
+          if (!note || !btn) return;
+          const b = btn.getBoundingClientRect(), n = note.getBoundingClientRect();
+          note.style.setProperty("--cx", (b.left + b.width / 2 - n.left) + "px");
+        };
+        aim();
+        addEventListener("resize", aim);
+        if (document.fonts) document.fonts.ready.then(aim);
+      })();
+    </script>
   </body>
 </html>
