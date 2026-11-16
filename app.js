@@ -18,7 +18,7 @@ const {
   createPaymentIntentOnce,
 } = require("./lib/stripe-compat");
 const { sendEmail, setSendLogger } = require("./lib/email");
-const { buildNotificationEmail } = require("./lib/notification-emails");
+const { buildNotificationEmail, buildApplicationReceivedEmail } = require("./lib/notification-emails");
 const { schoolMatchesEmail } = require("./lib/schools");
 const {
   normalizeEmail,
@@ -34,6 +34,8 @@ const crypto = require("crypto");
 // data-export requests, suggestion submissions). Overridable per-env so we
 // don't accidentally hit a real inbox from staging.
 const PRIVACY_ADMIN_EMAIL = (process.env.PRIVACY_ADMIN_EMAIL || "moiz@grassroots-marketplace.com").trim();
+// Where student applicants send questions (shown in their confirmation email).
+const APPLICATIONS_CONTACT_EMAIL = "moiz@grassroots-marketplace.com";
 
 const app = express();
 
@@ -1319,9 +1321,11 @@ app.get("/api/public-config", (_req, res) => {
 });
 
 // Student applications from /for-students. Consultant signup is invite-only,
-// so this emails the application to the admin, who replies with an invite.
-// It sits above the /api Supabase gate because it needs no database. Nothing
-// is stored, so the student only sees success if the email really went out.
+// so each application is saved to student_applications, emailed to the
+// admin (who replies with an invite), and the student gets a confirmation.
+// It sits above the /api Supabase gate so the admin email still goes out if
+// the database is down. The student only sees success once the application
+// is recorded somewhere: saved, or the admin email went out.
 const APPLICATION_LIMIT = 5;
 const APPLICATION_WINDOW_MS = 10 * 60 * 1000;
 const applicationHits = new Map();
@@ -1371,6 +1375,29 @@ app.post("/api/student-application", async (req, res) => {
     return res.status(400).json({ error: "Please use your .edu email." });
   }
 
+  const dedupeKey = crypto.createHash("sha256").update(`${email}\n${project}`).digest("hex");
+
+  // 1. Save it. A resubmit of the same application hits the unique
+  //    dedupe_key and counts as already saved.
+  let saved = false;
+  let applicationId = null;
+  if (supabase) {
+    const { data: row, error } = await supabase
+      .from("student_applications")
+      .insert({ name, school, email, city, major, extras, link: link || null, project, dedupe_key: dedupeKey })
+      .select("id")
+      .single();
+    if (!error) {
+      saved = true;
+      applicationId = row.id;
+    } else if (error.code === "23505") {
+      saved = true;
+    } else {
+      console.warn("[student-application] save failed", error.message);
+    }
+  }
+
+  // 2. Tell the admin.
   const result = await sendEmail({
     to: PRIVACY_ADMIN_EMAIL,
     subject: `[grassroots] student application — ${name}, ${school}`,
@@ -1385,17 +1412,41 @@ app.post("/api/student-application", async (req, res) => {
       extras.map((e) => `${e.type}: ${e.name}\n`).join("") +
       `Link:   ${link || "none given"}\n\n` +
       `A past project they're proud of:\n${project}\n\n` +
-      `Reply to this email to reach them. Applicants join through a consultant invite link.`,
-    idempotencyKey: `student-application:${crypto.createHash("sha256").update(`${email}\n${project}`).digest("hex")}`,
+      `Reply to this email to reach them. Applicants join through a consultant invite link.` +
+      (saved ? "" : `\n\nNote: this application was NOT saved to the database. This email is the only copy.`),
+    idempotencyKey: `student-application:${dedupeKey}`,
     tags: [{ name: "event", value: "student_application" }],
   });
+  const adminSent = result.sent || result.reason === "duplicate";
 
-  if (!result.sent && result.reason !== "duplicate") {
-    console.warn("[student-application] not sent", result.reason || result.status);
+  if (!saved && !adminSent) {
+    console.warn("[student-application] not recorded", result.reason || result.status);
     return res.status(503).json({
-      error: `We couldn't send your application. Please email ${PRIVACY_ADMIN_EMAIL} instead.`,
+      error: `We couldn't send your application. Please email ${APPLICATIONS_CONTACT_EMAIL} instead.`,
     });
   }
+
+  // 3. Confirm to the student. Best-effort: the application is already
+  //    recorded, so a failed confirmation doesn't fail the request.
+  const confirmation = buildApplicationReceivedEmail({ name, baseUrl: emailBaseUrl() });
+  const sent = await sendEmail({
+    to: email,
+    subject: confirmation.subject,
+    html: confirmation.html,
+    text: confirmation.text,
+    replyTo: APPLICATIONS_CONTACT_EMAIL,
+    idempotencyKey: `student-application-received:${dedupeKey}`,
+    tags: [{ name: "event", value: "student_application_received" }],
+  });
+  if (sent.sent && applicationId) {
+    await supabase
+      .from("student_applications")
+      .update({ confirmation_sent_at: new Date().toISOString() })
+      .eq("id", applicationId);
+  } else if (!sent.sent && sent.reason !== "duplicate") {
+    console.warn("[student-application] confirmation not sent", sent.reason || sent.status);
+  }
+
   res.json({ ok: true });
 });
 
@@ -6460,6 +6511,59 @@ const EMAIL_MONTHLY_LIMIT = Number(process.env.RESEND_MONTHLY_LIMIT) || 3000;
 
 // Daily counts, month-to-date and recent failures from email_log. Days are
 // UTC, which is how Resend counts its daily quota.
+// Student applications from /for-students (saved by /api/student-application).
+// The admin reviews them here: create an invite link (marks it invited),
+// decline, or move it back to new. Nothing here emails the student; the
+// admin sends the invite link themselves.
+app.get("/api/admin/applications", async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+  const { data, error } = await supabase
+    .from("student_applications")
+    .select("id, created_at, name, school, email, city, major, extras, link, project, status, confirmation_sent_at")
+    .order("created_at", { ascending: false })
+    .limit(1000);
+  if (error) return res.status(500).json({ error: error.message });
+  res.set("Cache-Control", "no-store");
+  return res.json({ applications: data || [] });
+});
+
+app.post("/api/admin/applications/:id", express.json(), async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+  const action = String(req.body?.action || "");
+  if (!["invite", "decline", "reopen"].includes(action)) {
+    return res.status(400).json({ error: "Unknown action." });
+  }
+  const { data: application, error } = await supabase
+    .from("student_applications")
+    .select("id, email, status")
+    .eq("id", req.params.id)
+    .maybeSingle();
+  if (error) return res.status(500).json({ error: error.message });
+  if (!application) return res.status(404).json({ error: "Application not found." });
+
+  let invite = null;
+  if (action === "invite") {
+    try {
+      // Revokes any earlier unused link for this address, so the newest
+      // link is the only one that works.
+      invite = await createInvite(supabase, { email: application.email, appUrl: appOrigin(req) });
+    } catch (err) {
+      return res.status(err.status || 500).json({ error: err.message || "Could not create invite." });
+    }
+  }
+  const status = { invite: "invited", decline: "declined", reopen: "new" }[action];
+  const { error: updateError } = await supabase
+    .from("student_applications")
+    .update({ status })
+    .eq("id", application.id);
+  if (updateError) return res.status(500).json({ error: updateError.message });
+  return res.json({ ok: true, status, invite });
+});
+
 app.get("/api/admin/emails", async (req, res) => {
   const admin = await requireAdmin(req);
   if (!admin) return res.status(403).json({ error: "Admin only." });

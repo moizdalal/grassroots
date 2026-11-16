@@ -444,7 +444,7 @@
             <h3 class="fs-path__head">
               Apply to <span class="fs-italic">join</span>
             </h3>
-            <p class="fs-path__sub">Send us a few details about yourself, and we'll be in touch.</p>
+            <p class="fs-path__sub">Send us a few details about yourself. You'll get a confirmation email, and you'll hear back within a week.</p>
 
             <form class="fs-apply-form" id="fs-apply-form" onsubmit="return false;">
               <div class="fs-apply-form__row">
@@ -1060,8 +1060,9 @@
       })();
 
       // ── apply form ───────────────────────────────────────
-      // Sends the application to /api/student-application, which emails it
-      // to the admin. The button only says "sent" once the server confirms.
+      // Sends the application to /api/student-application, which saves it,
+      // emails the admin and sends the student a confirmation. The button
+      // only says "sent" once the server confirms.
       (function () {
         var f = document.getElementById('fs-apply-form');
         var btn = document.getElementById('fs-apply-submit');

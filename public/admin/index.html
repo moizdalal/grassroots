@@ -69,6 +69,14 @@
             </svg>
             <span>Users</span>
           </button>
+          <button type="button" class="adm-nav__item" data-tab="applications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+              <path d="M14 3v6h6"/>
+              <path d="M8 13h8M8 17h5"/>
+            </svg>
+            <span>Applications</span>
+          </button>
           <button type="button" class="adm-nav__item" data-tab="engagements">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 6h18M3 12h18M3 18h18"/>
@@ -248,6 +256,38 @@
                 </tr>
               </thead>
               <tbody id="adm-users-tbody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ============ APPLICATIONS (live) ============ -->
+        <section class="adm-section" data-section="applications" hidden>
+          <header class="adm-page-h">
+            <div>
+              <h1 class="adm-page-h__title">Applications</h1>
+              <p class="adm-page-h__sub">Live data · students who applied on the for-students page · click a row to read it</p>
+            </div>
+            <span class="adm-results-count" id="adm-app-count"></span>
+          </header>
+
+          <div class="adm-toolbar">
+            <div class="adm-chips" id="adm-app-filters"></div>
+          </div>
+
+          <p id="adm-app-status" class="adm-gate" hidden></p>
+          <div class="adm-table-wrap">
+            <table class="adm-table">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Email</th>
+                  <th>Major</th>
+                  <th>City</th>
+                  <th>Applied</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="adm-app-tbody"></tbody>
             </table>
           </div>
         </section>
