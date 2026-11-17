@@ -2403,13 +2403,51 @@ const CONSULTANT_BUSINESS_PROFILE = {
     "Independent consulting services arranged through the Grassroots Marketplace.",
 };
 
+/* US-person gate. Stripe files 1099-K for US persons only; nonresident
+   aliens (most F-1 students, even with OPT/CPT) need W-8BEN + 1042-S,
+   which Stripe doesn't support. So consultants attest before we create
+   or reopen their Stripe account. Bump the version when the wording in
+   payouts.html changes so everyone is asked again. */
+const US_PERSON_ATTESTATION_VERSION = "2026-10-28";
+
+function attestationRequiredError() {
+  const err = new Error("Confirm you're a US person for tax purposes before setting up payouts.");
+  err.code = "attestation_required";
+  err.status = 403;
+  return err;
+}
+
+// Backstop for every point where a business commits money to a consultant
+// (and the consultant-side retainer accept). Any version counts here: a
+// wording bump re-asks on the payouts page, it doesn't freeze live deals.
+// The bids_require_us_person_attestation trigger enforces the same rule
+// when a paid offer is inserted. Never throws: a lookup error counts as
+// not attested (fail closed), since some callers sit outside a try.
+async function consultantIsUsPersonAttested(consultantId) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("us_person_attested_at")
+    .eq("id", consultantId)
+    .maybeSingle();
+  if (error) {
+    console.error("[us-person] attestation lookup failed:", error.message);
+    return false;
+  }
+  return !!data?.us_person_attested_at;
+}
+const CONSULTANT_NOT_ATTESTED_ERROR =
+  "This consultant hasn't confirmed their US tax status yet. They'll need to do that in payout setup before you can accept.";
+
 async function ensureConsultantStripeAccount(viewerId) {
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("id, role, full_name, stripe_account_id, stripe_account_status")
+    .select("id, role, full_name, stripe_account_id, stripe_account_status, us_person_attested_at, us_person_attestation_version")
     .eq("id", viewerId)
     .maybeSingle();
   if (error) {
+    if (/us_person_attest/i.test(error.message || "")) {
+      throw new Error("Attestation schema not deployed yet — run supabase/migrations/add_us_person_attestation.sql.");
+    }
     if (/stripe_account_id|stripe_account_status|column .* does not exist/i.test(error.message || "")) {
       throw new Error("Payments schema not deployed yet — run supabase/migrations/add_stripe_fields.sql.");
     }
@@ -2417,6 +2455,11 @@ async function ensureConsultantStripeAccount(viewerId) {
   }
   if (!profile) throw new Error("Profile not found.");
   if (profile.role !== "consultant") throw new Error("Only consultants can set up payouts.");
+  // Fail closed: no attestation (or an outdated one) means no Stripe session,
+  // including for accounts created before this gate existed.
+  if (!profile.us_person_attested_at || profile.us_person_attestation_version !== US_PERSON_ATTESTATION_VERSION) {
+    throw attestationRequiredError();
+  }
 
   if (profile.stripe_account_id) {
     // Account already exists — backfill business_profile if Stripe still
@@ -2501,6 +2544,45 @@ async function ensureOwnerStripeCustomer(viewerId) {
   return { ...profile, stripe_customer_id: customer.id };
 }
 
+// Consultant: has a US-person attestation on file? The offer form reads
+// this (clients can't read the column) to block paid offers until it is.
+app.get("/api/stripe/us-person-attestation", async (req, res) => {
+  const viewer = await getViewerFromRequest(req);
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
+  return res.json({ attested: await consultantIsUsPersonAttested(viewer.id) });
+});
+
+// Consultant: record the US-person attestation that gates payout setup.
+app.post("/api/stripe/us-person-attestation", async (req, res) => {
+  const viewer = await getViewerFromRequest(req);
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
+  if (req.body?.us_person !== true || req.body?.version !== US_PERSON_ATTESTATION_VERSION) {
+    return res.status(400).json({ error: "Confirm the statement to continue." });
+  }
+  try {
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", viewer.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (profile?.role !== "consultant") {
+      return res.status(403).json({ error: "Only consultants can set up payouts." });
+    }
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({
+        us_person_attested_at: new Date().toISOString(),
+        us_person_attestation_version: US_PERSON_ATTESTATION_VERSION,
+      })
+      .eq("id", viewer.id);
+    if (updateError) throw new Error(updateError.message);
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "Could not save your confirmation." });
+  }
+});
+
 // Consultant: open the embedded onboarding component in our own UI.
 app.post("/api/stripe/account-session", async (req, res) => {
   if (!requireStripe(res)) return;
@@ -2529,6 +2611,8 @@ app.post("/api/stripe/account-session", async (req, res) => {
           enabled: true,
           features: { disable_stripe_user_authentication: true, external_account_collection: true },
         },
+        // Lets consultants download the 1099-K Stripe files for them.
+        documents: { enabled: true },
       },
     });
     return res.json({
@@ -2537,6 +2621,13 @@ app.post("/api/stripe/account-session", async (req, res) => {
       account_id: profile.stripe_account_id,
     });
   } catch (err) {
+    if (err.code === "attestation_required") {
+      return res.status(err.status).json({
+        error: err.message,
+        code: err.code,
+        attestation_version: US_PERSON_ATTESTATION_VERSION,
+      });
+    }
     return res.status(500).json({ error: err.message || "Could not create account session." });
   }
 });
@@ -2571,7 +2662,10 @@ app.get("/api/stripe/account-status", async (req, res) => {
       charges_enabled: charges,
       payouts_enabled: payouts,
       details_submitted: !!account.details_submitted,
-      requirements_due: account.requirements?.currently_due || [],
+      // eventually_due is a superset of currently_due. Onboarding collects
+      // eventually_due fields up front (full SSN for the 1099-K), so list
+      // those too rather than only what blocks payouts today.
+      requirements_due: account.requirements?.eventually_due || account.requirements?.currently_due || [],
     });
   } catch (err) {
     return res.status(500).json({ error: err.message || "Could not load account status." });
@@ -2697,6 +2791,9 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
       .maybeSingle();
     if (!consultantProfile?.stripe_account_id) {
       return res.status(409).json({ error: "This consultant hasn't set up payouts yet — they need to finish onboarding before their offer can be accepted." });
+    }
+    if (!(await consultantIsUsPersonAttested(bid.consultant_id))) {
+      return res.status(409).json({ error: CONSULTANT_NOT_ATTESTED_ERROR });
     }
     try {
       const acct = await stripe.accounts.retrieve(consultantProfile.stripe_account_id);
@@ -3367,6 +3464,11 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
           error: "One of these consultants hasn't set up payouts yet — they need to finish onboarding before you can accept.",
         });
       }
+      if (!(await consultantIsUsPersonAttested(b.consultant_id))) {
+        return res.status(409).json({
+          error: "One of these consultants hasn't confirmed their US tax status yet. They'll need to do that in payout setup before you can accept.",
+        });
+      }
       try {
         const acct = await stripe.accounts.retrieve(c.stripe_account_id);
         if (!acct.charges_enabled || !acct.payouts_enabled || !acct.details_submitted) {
@@ -3587,6 +3689,9 @@ app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
       .maybeSingle();
     if (!consultantProfile?.stripe_account_id) {
       return res.status(409).json({ error: "Consultant hasn't set up payouts yet." });
+    }
+    if (!(await consultantIsUsPersonAttested(bid.consultant_id))) {
+      return res.status(409).json({ error: CONSULTANT_NOT_ATTESTED_ERROR });
     }
 
     const owner = await ensureOwnerStripeCustomer(viewer.id);
@@ -3854,6 +3959,9 @@ app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
       .maybeSingle();
     if (!consultantProfile?.stripe_account_id) {
       return res.status(409).json({ error: "Finish payout setup before accepting a retainer." });
+    }
+    if (!(await consultantIsUsPersonAttested(viewer.id))) {
+      return res.status(409).json({ error: "Confirm your US tax status in payout setup before accepting a retainer." });
     }
 
     // Claim the offer (offered → pending) before any Stripe call so a
@@ -4376,6 +4484,9 @@ app.post("/api/stripe/phased/start-service", async (req, res) => {
       .maybeSingle();
     if (!consultantProfile?.stripe_account_id) {
       return res.status(409).json({ error: "Consultant hasn't set up payouts yet." });
+    }
+    if (!(await consultantIsUsPersonAttested(bid.consultant_id))) {
+      return res.status(409).json({ error: CONSULTANT_NOT_ATTESTED_ERROR });
     }
     try {
       const acct = await stripe.accounts.retrieve(consultantProfile.stripe_account_id);
