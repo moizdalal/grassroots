@@ -16,7 +16,7 @@ async function payAndAcceptProposals(...args) {
   const m = await loadPaymentModal();
   return m.payAndAcceptProposals(...args);
 }
-import { computeFees, formatUsd, isValidOfferCents, MIN_PAID_OFFER_CENTS, LAUNCH_PLATFORM_FEE_BPS, PLATFORM_FEE_BPS } from "/fees.js";
+import { computeFees, businessTotalCents, formatUsd, formatBps, isValidOfferCents, MIN_PAID_OFFER_CENTS, CONSULTANT_FEE_BPS } from "/fees.js";
 import { getInitials } from "/initials.js";
 import {
   trackListingView,
@@ -27,6 +27,15 @@ import { showToast, showSuccess, showError, showLoading, flashToast } from "/toa
 import { confirmDialog } from "/confirm-modal.js";
 import { isGuest, setGuestMode, clearGuestModeIfSignedIn } from "/guest-mode.js";
 import { loadBusinessBadges, renderBadgeBlock } from "/business-badges.js";
+import { notifyEvent } from "/notify-event.js";
+import {
+  renderConsultantBioHtml,
+  renderConsultantPastWorkHtml,
+  loadConsultantEngagements,
+  renderResumeEmbedHtml,
+  fetchResumeUrl,
+  RESUME_HIDDEN_HTML,
+} from "/consultant-viewer.js";
 
 const gate = document.getElementById("listing-gate");
 const detail = document.getElementById("listing-detail");
@@ -35,8 +44,9 @@ const ownerSidebar = document.getElementById("ld-sidebar");
 const offerRail = document.getElementById("ld-offer-rail");
 const ownerActionsPanel = document.getElementById("ld-owner-actions");
 const ownerActionsCopy = document.getElementById("ld-owner-actions-copy");
-const pauseListingBtn = document.getElementById("ld-pause-listing-btn");
-const closeListingBtn = document.getElementById("ld-close-listing-btn");
+const lockListingBtn = document.getElementById("ld-lock-listing-btn");
+const completeListingBtn = document.getElementById("ld-complete-listing-btn");
+const unlistListingBtn = document.getElementById("ld-unlist-listing-btn");
 const statusForm = document.getElementById("ld-status-form");
 const statusFormTitle = document.getElementById("ld-status-form-title");
 const statusOtherWrap = document.getElementById("ld-status-other-wrap");
@@ -57,13 +67,17 @@ const STATUS_REASON_LABELS = {
 
 // Bid statuses that still represent an offer the owner could decline.
 // Accepted bids belong to a live engagement — leaving them alone is the
-// only safe behavior when the listing is being closed.
+// only safe behavior when the listing is being removed.
 const PENDING_BID_STATUSES = new Set(["pending", "submitted", "countered"]);
 
 let pendingListingStatusAction = null;
 // Cached on the owner side once bids load (see loadOwnerBids call site)
-// so the close-form can read pending + accepted counts without a refetch.
+// so the remove-form can read pending + accepted counts without a refetch.
 let cachedOwnerBids = [];
+// Owner-only summary of accepted work, from the listing_engagement_state
+// RPC: "active" | "released" | "none". Null until it loads, which keeps
+// "remove from marketplace" disabled (fail closed).
+let ownerEngagementState = null;
 
 /* ================================================================
    Utility helpers
@@ -93,6 +107,31 @@ function relativeDate(iso) {
   if (diff === 1) return "yesterday";
   if (diff < 30) return `${diff} days ago`;
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+/* Friendly error copy. Database and network errors carry messages like
+   'new row for relation "listings" violates check constraint …' that
+   mean nothing to the person reading them. Log the raw error for
+   debugging and show a plain sentence instead. Messages our own code
+   (or our API) writes in plain language pass through. */
+const RAW_ERROR_PATTERN =
+  /violates|relation "|column |constraint|permission denied|row-level security|policy|syntax|duplicate key|null value|jwt|pgrst|schema cache|does not exist|could not find|invalid input|function |unexpected token|failed to fetch|networkerror|load failed|timeout/i;
+
+function friendlyError(err, fallback = "Something went wrong. Try again in a moment.") {
+  if (err) console.error("[listing]", err);
+  const msg = String(err?.message || "").trim();
+  if (!msg) return fallback;
+  if (/failed to fetch|networkerror|load failed/i.test(msg)) {
+    return "You seem to be offline. Check your connection and try again.";
+  }
+  const code = String(err?.code || "");
+  if (code === "42501" || /row-level security|permission denied/i.test(msg)) {
+    return "You don't have permission to do that.";
+  }
+  // Postgres SQLSTATE (5 chars) or PostgREST codes mean a database error.
+  if (/^[0-9A-Z]{5}$/.test(code) || code.startsWith("PGRST")) return fallback;
+  if (RAW_ERROR_PATTERN.test(msg)) return fallback;
+  return msg;
 }
 
 function isMissing(error) {
@@ -163,7 +202,7 @@ async function resolveManageLinkLabel(client, bidId, viewerRole) {
     }
     return { label: "Pick your kickoff time" };
   }
-  return { label: "View engagement" };
+  return { label: "View project page" };
 }
 
 /* ================================================================
@@ -275,6 +314,7 @@ function renderConsultantCounterPanel(client, listing, bid) {
           body: `The consultant accepted your ${formatUsd(counter)} counter on "${listing.title}". You can finalize the deal now.`,
           link: `/listing.html?id=${listing.id}`,
         });
+        notifyEvent(client, "counter_accepted", { bid_id: bid.id });
         statusEl.textContent = "Accepted. The business can now finalize.";
         statusEl.className = "gr-status ld-counter-response__status success";
       } else if (action === "rescind") {
@@ -302,6 +342,7 @@ function renderConsultantCounterPanel(client, listing, bid) {
           body: `The consultant withdrew their offer on "${listing.title}" after your counter.`,
           link: `/listing.html?id=${listing.id}`,
         });
+        notifyEvent(client, "counter_rescinded", { bid_id: bid.id });
         statusEl.textContent = "Offer rescinded.";
         statusEl.className = "gr-status ld-counter-response__status success";
       } else {
@@ -325,6 +366,7 @@ function renderConsultantCounterPanel(client, listing, bid) {
           body: `The consultant declined your counter on "${listing.title}". Their original ${formatUsd(bid.amount_cents)} offer is back on the table.`,
           link: `/listing.html?id=${listing.id}`,
         });
+        notifyEvent(client, "counter_declined", { bid_id: bid.id });
         statusEl.textContent = "Counter declined. Your original offer is back on the table.";
         statusEl.className = "gr-status ld-counter-response__status success";
       }
@@ -368,8 +410,9 @@ function renderConsultantCounterPanel(client, listing, bid) {
       }
     } catch (err) {
       loader.dismiss();
-      showError(err?.message || "Could not send response.");
-      statusEl.textContent = err?.message || "Could not send response.";
+      const responseMsg = friendlyError(err, "We couldn't send your response. Try again.");
+      showError(responseMsg);
+      statusEl.textContent = responseMsg;
       statusEl.className = "gr-status ld-counter-response__status error";
       buttons.forEach((b) => (b.disabled = false));
     }
@@ -691,11 +734,14 @@ function parseStructuredListingDetails(text) {
   return parsed;
 }
 
+// open (takes offers), locked (public, no new offers), completed (public
+// past project), unlisted (owner + bidders only). Drafts are handled
+// separately via listing.status === "draft".
 function getListingStatusLabel(status) {
   const normalized = String(status || "open").toLowerCase();
-  if (normalized === "paused") return "paused";
-  if (normalized === "closed") return "closed";
-  if (normalized === "filled") return "filled";
+  if (normalized === "locked") return "locked";
+  if (normalized === "completed") return "completed";
+  if (normalized === "unlisted") return "unlisted";
   return "open";
 }
 
@@ -742,12 +788,21 @@ function setOfferRailVisible(visible) {
    sign-in link for anyone who already has an account. The default
    pitch leans toward the business side because that's the dominant
    guest persona (and the side we're actively trying to grow). */
-function renderGuestRail() {
+// Locked and completed listings stay public; the eyebrow tells guests
+// they're looking at work that's underway or done, not an open request.
+const GUEST_RAIL_EYEBROW = {
+  open: "Guest preview",
+  locked: "Locked · not taking offers",
+  completed: "Past project",
+};
+
+function renderGuestRail(status = "open") {
   const rail = document.getElementById("ld-guest-rail");
   if (!rail) return;
+  const eyebrow = GUEST_RAIL_EYEBROW[status] || GUEST_RAIL_EYEBROW.open;
   rail.innerHTML = `
     <section class="ld-guest-rail__card" aria-label="Join Grassroots">
-      <span class="ld-guest-rail__eyebrow">Guest preview</span>
+      <span class="ld-guest-rail__eyebrow">${escapeHtml(eyebrow)}</span>
       <h2 class="ld-guest-rail__title">Like what you see?</h2>
       <p class="ld-guest-rail__body">
         Join Grassroots to post your own project and get matched with
@@ -755,7 +810,7 @@ function renderGuestRail() {
       </p>
       <div class="ld-guest-rail__actions">
         <a class="gr-btn gr-btn--primary" href="/register.html?role=owner">Post a project</a>
-        <a class="gr-btn gr-btn--ghost" href="/home/for-students.html">Apply as a consultant</a>
+        <a class="gr-btn gr-btn--ghost" href="/for-students">Apply as a consultant</a>
       </div>
       <div class="ld-guest-rail__divider" aria-hidden="true">Or</div>
       <div class="ld-guest-rail__secondary">
@@ -918,12 +973,20 @@ function populateListing(listing) {
 
   /* --- Business bio --- */
   const ownerName = profile?.full_name || listing.business_display_name || "Business owner";
-  document.getElementById("ld-biz-owner").textContent = ownerName;
-
   const bizName = biz?.business_name || listing.business_display_name || ownerName;
+
+  // The owner line only adds information when it differs from the
+  // business name. Without a business name the heading already shows
+  // the person's name, so a second copy is noise.
+  const ownerEl = document.getElementById("ld-biz-owner");
+  ownerEl.textContent = ownerName;
+  ownerEl.hidden = bizName.trim().toLowerCase() === ownerName.trim().toLowerCase();
+
   // Two name slots: the inline one in the toggle row shows when the
   // bio is collapsed; the body heading shows when expanded. CSS hides
-  // whichever isn't relevant to the current state.
+  // whichever isn't relevant to the current state. The toggle button
+  // carries aria-label="About the business" so its accessible name
+  // doesn't repeat the heading.
   const nameInlineEl = document.getElementById("ld-biz-name-inline");
   if (nameInlineEl) nameInlineEl.textContent = bizName;
   const nameEl = document.getElementById("ld-biz-name");
@@ -1054,54 +1117,18 @@ function populateListing(listing) {
   return { profile, biz };
 }
 
-function populateAvatarIfAvailable(client, profile) {
+// Logo when the business has one; otherwise the same initials the
+// marketplace card shows (business name, then the owner's name).
+function populateAvatarIfAvailable(client, profile, biz) {
+  const wrap = document.getElementById("ld-biz-avatar-wrap");
   const url = publicAvatarUrl(client, profile?.avatar_path);
   if (url) {
     document.getElementById("ld-biz-avatar").src = url;
-    document.getElementById("ld-biz-avatar-wrap").hidden = false;
+  } else {
+    wrap.textContent = getInitials(biz?.business_name || profile?.full_name || "Business");
+    wrap.classList.add("ld-bio__avatar-wrap--initials");
   }
-}
-
-function formatConsultantEducationLine(education) {
-  // Prefer the structured educations array (chunk 3+); fall back to the
-  // legacy flat columns for rows that haven't been migrated to the new
-  // schema yet.
-  const primary = Array.isArray(education?.educations) && education.educations[0]
-    ? education.educations[0]
-    : education || {};
-  const degree = (primary.degree || "").trim();
-  const major = (primary.major || "").trim();
-  const school = (primary.school || "").trim();
-  // Format priority: "Bachelor's in marketing @ University of Florida".
-  const head = degree && major
-    ? `${degree} in ${major}`
-    : major || degree || "";
-  if (head && school) return `${head} @ ${school}`;
-  return head || school || "";
-}
-
-function renderEducationEntriesList(education) {
-  // Build a structured display of every entry in the educations array. If
-  // the array is empty/missing, return a single-line fallback from legacy
-  // flat fields.
-  const entries = Array.isArray(education?.educations) && education.educations.length
-    ? education.educations
-    : (education?.major || education?.school
-      ? [{ degree: null, major: education.major, minor: education.minor, school: education.school }]
-      : []);
-  if (!entries.length) return "";
-  return entries
-    .map((e) => {
-      const parts = [];
-      if (e.degree) parts.push(escapeHtml(e.degree));
-      if (e.major) parts.push(escapeHtml(`in ${e.major}`));
-      if (e.minor) parts.push(escapeHtml(`(minor: ${e.minor})`));
-      const head = parts.join(" ");
-      const school = e.school ? escapeHtml(e.school) : "";
-      if (head && school) return `<p class="pf-bv__detail">${head} · ${school}</p>`;
-      return `<p class="pf-bv__detail">${head || school}</p>`;
-    })
-    .join("");
+  wrap.hidden = false;
 }
 
 function resetOwnerStatusForm() {
@@ -1128,32 +1155,21 @@ function openOwnerStatusForm(action) {
   pendingListingStatusAction = action;
   ownerActionStatus.textContent = "";
   ownerActionStatus.className = "gr-status";
-  statusFormTitle.textContent =
-    action === "paused" ? "Why are you pausing this listing?" : "Why are you closing this listing?";
-  statusSubmitBtn.textContent = action === "paused" ? "Pause listing" : "Close listing";
+  // Removing is the only action that goes through the reason form; lock,
+  // unlock and mark-completed are one click.
+  statusFormTitle.textContent = "Why are you removing this listing?";
+  statusSubmitBtn.textContent = "Remove from marketplace";
 
-  // Action-specific intro — explains the consequence in plain language
-  // so the owner knows what closing vs pausing actually does.
   if (statusFormIntro) {
-    if (action === "closed") {
-      statusFormIntro.textContent =
-        "Closing stops new offers, but consultants who already submitted can still see this listing. You can decide what happens to their offers below.";
-      statusFormIntro.hidden = false;
-    } else if (action === "paused") {
-      statusFormIntro.textContent =
-        "Pausing hides this listing from marketplace browsing. Existing offers stay in place and you can resume any time.";
-      statusFormIntro.hidden = false;
-    } else {
-      statusFormIntro.hidden = true;
-      statusFormIntro.textContent = "";
-    }
+    statusFormIntro.textContent =
+      "Removing hides this project from the public. Students who already sent offers can still see it. You can decide what happens to their offers below.";
+    statusFormIntro.hidden = false;
   }
 
-  // Work-completed reason only makes sense when an offer has been
-  // accepted and the engagement is in flight. Mark the radio disabled
-  // (visually + functionally) when no accepted bid exists; a click on
-  // the label still fires and surfaces a toast explaining the gate.
-  const hasAccepted = cachedOwnerBids.some((b) => b.status === "accepted");
+  // Work-completed reason only makes sense once accepted work has been
+  // paid out. Mark the radio disabled (visually + functionally) until
+  // then; a click on the label still fires and surfaces a toast.
+  const hasAccepted = ownerEngagementState === "released";
   if (workCompletedOption) {
     const input = workCompletedOption.querySelector('input[type="radio"]');
     if (!hasAccepted) {
@@ -1170,13 +1186,13 @@ function openOwnerStatusForm(action) {
     }
   }
 
-  // Pending-offers disposition only applies when closing AND there are
+  // Pending-offers disposition only applies when removing AND there are
   // outstanding offers to disposition. Default radio (`keep`) stays
   // checked so submitting without changing anything matches today's
   // behavior — leaves offers pending.
   const pendingCount = cachedOwnerBids.filter((b) => PENDING_BID_STATUSES.has(b.status)).length;
   if (statusOffersFieldset) {
-    if (action === "closed" && pendingCount > 0) {
+    if (action === "unlisted" && pendingCount > 0) {
       statusOffersFieldset.hidden = false;
       const keepRadio = statusOffersFieldset.querySelector('input[value="keep"]');
       if (keepRadio) keepRadio.checked = true;
@@ -1190,57 +1206,81 @@ function openOwnerStatusForm(action) {
 }
 
 function renderOwnerActionSummary(listing) {
-  if (!ownerActionsCopy || !pauseListingBtn || !closeListingBtn) return;
+  if (!ownerActionsCopy || !lockListingBtn || !unlistListingBtn || !completeListingBtn) return;
   const status = getListingStatusLabel(listing?.status);
   const reasonText = getListingReasonText(listing);
-  const buttonsWrap = pauseListingBtn.closest(".ld-owner-actions__buttons");
+  const hasActiveWork = ownerEngagementState === "active";
+  // Disabled until the engagement state loads, then only while work is active.
+  const unlistBlocked = ownerEngagementState !== "none" && ownerEngagementState !== "released";
 
-  // The intro copy element starts present-but-empty; make sure it's
-  // visible whenever we set text on it. (Earlier HTML carried `hidden`
-  // which kept the closed-state explanation from ever rendering.)
   const showCopy = (text) => {
     ownerActionsCopy.textContent = text;
     ownerActionsCopy.hidden = false;
   };
 
-  if (status === "paused") {
-    showCopy(reasonText
-      ? `This listing is paused because of "${reasonText}". Resume it any time or close it permanently.`
-      : "This listing is paused. Existing offers stay in place while it stays out of marketplace browsing.");
-    if (buttonsWrap) buttonsWrap.hidden = false;
-    pauseListingBtn.textContent = "Resume listing";
-    pauseListingBtn.disabled = false;
-    closeListingBtn.textContent = "Close listing";
-    closeListingBtn.disabled = false;
+  lockListingBtn.hidden = false;
+  lockListingBtn.disabled = false;
+  completeListingBtn.hidden = ownerEngagementState !== "released";
+  completeListingBtn.disabled = false;
+  unlistListingBtn.hidden = false;
+  unlistListingBtn.disabled = unlistBlocked;
+  unlistListingBtn.textContent = "Remove from marketplace";
+  unlistListingBtn.title = hasActiveWork
+    ? "You can remove this listing once payment for the current work is released."
+    : "";
+
+  if (status === "locked") {
+    showCopy(hasActiveWork
+      ? "Locked. It stays public but takes no new offers. Current work continues as normal."
+      : "Locked. It stays public but takes no new offers. Unlock it any time.");
+    lockListingBtn.textContent = "Unlock listing";
     return;
   }
 
-  if (status === "closed") {
-    // Closed is terminal — drop the action buttons entirely so the panel
-    // reads as a status note rather than a disabled control surface.
+  if (status === "completed") {
+    showCopy("Completed. It stays public as a past project. Remove it to keep it private.");
+    lockListingBtn.hidden = true;
+    completeListingBtn.hidden = true;
+    return;
+  }
+
+  if (status === "unlisted") {
     showCopy(reasonText
-      ? `This listing is already closed (reason: "${reasonText}"). Existing participants can still refer back to it here.`
-      : "This listing is already closed. Existing participants can still refer back to it here.");
-    if (buttonsWrap) buttonsWrap.hidden = true;
+      ? `Removed from the marketplace (reason: "${reasonText}"). Students who sent offers can still see it.`
+      : "Removed from the marketplace. Students who sent offers can still see it.");
+    lockListingBtn.hidden = true;
+    completeListingBtn.hidden = true;
+    unlistListingBtn.disabled = false;
+    unlistListingBtn.title = "";
+    unlistListingBtn.textContent = "Show on marketplace";
     resetOwnerStatusForm();
     return;
   }
 
-  // Default ("open" / actionable) state: the explainer copy lives in the
-  // `?` tooltip next to the heading now, so suppress the inline paragraph
-  // and let the buttons speak for themselves. paused / closed branches
-  // still set status copy above (those describe current state).
-  ownerActionsCopy.textContent = "";
-  ownerActionsCopy.hidden = true;
-  if (buttonsWrap) buttonsWrap.hidden = false;
-  pauseListingBtn.textContent = "Pause listing";
-  closeListingBtn.textContent = "Close listing";
-  pauseListingBtn.disabled = false;
-  closeListingBtn.disabled = false;
+  // Open: the explainer lives in the `?` tooltip next to the heading, so
+  // only show inline copy when there's active work to reassure about.
+  if (hasActiveWork) {
+    showCopy("Lock this listing to stop new offers. Work already underway isn't affected.");
+  } else {
+    ownerActionsCopy.textContent = "";
+    ownerActionsCopy.hidden = true;
+  }
+  lockListingBtn.textContent = "Lock listing";
+}
+
+async function loadOwnerEngagementState(client, listingId) {
+  const { data, error } = await client.rpc("listing_engagement_state", { target_listing_id: listingId });
+  if (error) {
+    // Fail closed: without the RPC, treat the listing as having active
+    // work so the owner can't remove it out from under a consultant.
+    console.warn("listing engagement state:", error);
+    return "active";
+  }
+  return data || "none";
 }
 
 function showOwnerActionFeedback(message, kind = "success") {
-  // Owner actions (pause / resume / cancel listing) now route through
+  // Owner actions (lock / unlock / remove listing) now route through
   // the app-wide toast stack instead of an inline `gr-status` line.
   if (kind === "error") showError(message);
   else showSuccess(message);
@@ -1265,8 +1305,9 @@ function setupOwnerListingActions(client, listing) {
   if (
     !ownerSidebar ||
     !ownerActionsPanel ||
-    !pauseListingBtn ||
-    !closeListingBtn ||
+    !lockListingBtn ||
+    !completeListingBtn ||
+    !unlistListingBtn ||
     !statusForm ||
     !statusCancelBtn ||
     !statusSubmitBtn
@@ -1277,33 +1318,65 @@ function setupOwnerListingActions(client, listing) {
   setOwnerSidebarVisible(true);
   ownerActionsPanel.hidden = false;
   renderOwnerActionSummary(listing);
+  loadOwnerEngagementState(client, listing.id).then((state) => {
+    ownerEngagementState = state;
+    renderOwnerActionSummary(listing);
+  });
 
   if (!ownerActionsPanel.dataset.bound) {
-    pauseListingBtn.addEventListener("click", async () => {
-      if (getListingStatusLabel(listing.status) === "paused") {
-        ownerActionStatus.textContent = "";
-        ownerActionStatus.className = "gr-status";
-        pauseListingBtn.disabled = true;
-        try {
-          await persistListingStatus(client, listing, "open", null, null);
-          renderOwnerActionSummary(listing);
-          resetOwnerStatusForm();
-          showOwnerActionFeedback("Listing resumed. It is visible in marketplace browsing again.");
-        } catch (error) {
-          showOwnerActionFeedback(error.message || "Could not resume listing.", "error");
-        } finally {
-          renderOwnerActionSummary(listing);
-        }
+    // Lock, unlock, complete and relist are reversible or system-checked,
+    // so they skip the reason form.
+    const setStatusDirect = async (button, nextStatus, successMessage) => {
+      ownerActionStatus.textContent = "";
+      ownerActionStatus.className = "gr-status";
+      button.disabled = true;
+      try {
+        await persistListingStatus(client, listing, nextStatus, null, null);
+        resetOwnerStatusForm();
+        showOwnerActionFeedback(successMessage);
+      } catch (error) {
+        showOwnerActionFeedback(friendlyError(error, "We couldn't update this project. Try again."), "error");
+      } finally {
+        renderOwnerActionSummary(listing);
+      }
+    };
+
+    lockListingBtn.addEventListener("click", async () => {
+      if (getListingStatusLabel(listing.status) === "locked") {
+        await setStatusDirect(lockListingBtn, "open", "Listing unlocked. It's taking offers again.");
         return;
       }
-
-      resetOwnerStatusForm();
-      openOwnerStatusForm("paused");
+      await setStatusDirect(lockListingBtn, "locked", "Listing locked. It stays public but takes no new offers.");
     });
 
-    closeListingBtn.addEventListener("click", () => {
+    completeListingBtn.addEventListener("click", async () => {
+      await setStatusDirect(
+        completeListingBtn,
+        "completed",
+        "Listing marked completed. It stays public as a past project."
+      );
+    });
+
+    unlistListingBtn.addEventListener("click", async () => {
+      // Relisting returns paid-out work to completed; anything else comes
+      // back locked so it doesn't silently start taking offers again.
+      if (getListingStatusLabel(listing.status) === "unlisted") {
+        const nextStatus = ownerEngagementState === "released" ? "completed" : "locked";
+        await setStatusDirect(
+          unlistListingBtn,
+          nextStatus,
+          nextStatus === "completed"
+            ? "Listing is back on the marketplace as a past project."
+            : "Listing is back on the marketplace, locked. Unlock it to take offers."
+        );
+        return;
+      }
+      if (ownerEngagementState !== "none" && ownerEngagementState !== "released") {
+        showOwnerActionFeedback("This listing has active work. Lock it instead.", "error");
+        return;
+      }
       resetOwnerStatusForm();
-      openOwnerStatusForm("closed");
+      openOwnerStatusForm("unlisted");
     });
 
     // Work-completed reason is gated on an accepted bid existing. Clicks
@@ -1314,7 +1387,7 @@ function setupOwnerListingActions(client, listing) {
         if (workCompletedOption.classList.contains("is-disabled")) {
           event.preventDefault();
           showToast(
-            "This reason applies once you've accepted a consultant's offer. Close the engagement from the engagement page instead.",
+            "This reason applies once payment for accepted work has been released.",
             { kind: "info", duration: 5000 }
           );
         }
@@ -1350,11 +1423,9 @@ function setupOwnerListingActions(client, listing) {
         return;
       }
 
-      // Pending-offers disposition only applies when closing. The
-      // fieldset stays hidden in the paused flow so the radio value is
-      // ignored there even if it somehow got selected.
+      // Pending-offers disposition only applies when removing.
       const offersDisposition =
-        action === "closed"
+        action === "unlisted"
           ? document.querySelector('input[name="listingOffersDisposition"]:checked')?.value || "keep"
           : "keep";
 
@@ -1363,13 +1434,13 @@ function setupOwnerListingActions(client, listing) {
       ownerActionStatus.className = "gr-status";
 
       try {
-        // Bulk-decline FIRST so we don't leave a half-closed listing
+        // Bulk-decline FIRST so we don't leave a half-removed listing
         // with pending bids if the listing update succeeds and the
         // bulk-decline then errors. A successful decline followed by
         // a failed status update still leaves the bids in a sensible
         // declined state and the listing technically still open.
         let declinedCount = 0;
-        if (action === "closed" && offersDisposition === "decline_all") {
+        if (action === "unlisted" && offersDisposition === "decline_all") {
           const targets = cachedOwnerBids.filter((b) => PENDING_BID_STATUSES.has(b.status));
           if (targets.length > 0) {
             const { error: declineErr } = await client
@@ -1388,16 +1459,13 @@ function setupOwnerListingActions(client, listing) {
         await persistListingStatus(client, listing, action, reason, otherReason || null);
         renderOwnerActionSummary(listing);
         resetOwnerStatusForm();
-        const closedCopy = declinedCount > 0
-          ? `Listing closed. ${declinedCount} outstanding offer${declinedCount === 1 ? " was" : "s were"} declined.`
-          : "Listing closed. Existing offers remain on file. Consultants who already submitted can still see this listing.";
         showOwnerActionFeedback(
-          action === "paused"
-            ? "Listing paused. It is now hidden from marketplace browsing, but current offers remain in place."
-            : closedCopy
+          declinedCount > 0
+            ? `Listing removed. ${declinedCount} outstanding offer${declinedCount === 1 ? " was" : "s were"} declined.`
+            : "Project removed from the marketplace. Students who sent offers can still see it."
         );
       } catch (error) {
-        showOwnerActionFeedback(error.message || "Could not update listing status.", "error");
+        showOwnerActionFeedback(friendlyError(error, "We couldn't update this project. Try again."), "error");
       } finally {
         statusSubmitBtn.disabled = false;
       }
@@ -1431,9 +1499,9 @@ function renderMsgThread(container, messages, myId) {
    Consultant view: offer panel (sidebar) + chat drawer
    ================================================================ */
 
-// Consultant-side take-home breakdown. Pricing is all-in: the offer is
-// what the business pays, and the platform fee (10% struck through to the
-// launch rate) plus Stripe processing come out of it.
+// Consultant-side take-home breakdown. The consultant's platform fee is a
+// flat 10% of the offer. The business fee is added on the business's side,
+// so it never changes what the consultant takes home.
 function offerBreakdownHtml(f, opts = {}) {
   // Consultant-only copy. Businesses never see the free option mentioned.
   if (f.amountCents === 0) {
@@ -1444,32 +1512,17 @@ function offerBreakdownHtml(f, opts = {}) {
   if (f.amountCents < MIN_PAID_OFFER_CENTS) {
     return `<p class="ld-offer-breakdown__note">${opts.allowFree ? "Offers are free or at least $10." : "This amount must be at least $10."}</p>`;
   }
-  const bizLabel = opts.bizLabel || "Business pays";
+  const bizLabel = opts.bizLabel || "Your offer";
   const takeHomeLabel = opts.takeHomeLabel || "You take home";
-  const launchPct = LAUNCH_PLATFORM_FEE_BPS / 100;
-  // Show what a flat 10% of the whole offer would cost, struck through,
-  // next to what they actually pay after the launch rate and free first $10.
-  const undiscountedCents = Math.round((f.amountCents * PLATFORM_FEE_BPS) / 10000);
-  const platformValue = undiscountedCents > f.platformFeeCents
-    ? `<span class="ld-offer-breakdown__strike">−${formatUsd(undiscountedCents)}</span> −${formatUsd(f.platformFeeCents)}`
-    : `−${formatUsd(f.platformFeeCents)}`;
-  const platformLabel = f.platformFeeDiscounted
-    ? `Platform fee <span class="ld-offer-breakdown__strike">10%</span> ${launchPct}%
-       <span class="ld-offer-breakdown__hint">Launch rate · none on the first $10</span>`
-    : `Platform fee (10%)
-       <span class="ld-offer-breakdown__hint">None on the first $10</span>`;
+  const platformLabel = `Platform fee (${formatBps(CONSULTANT_FEE_BPS)})`;
   return `
     <div class="ld-offer-breakdown__line ld-offer-breakdown__line--biz">
       <span>${bizLabel}</span>
-      <span class="ld-offer-breakdown__value">${formatUsd(f.businessTotalCents)}</span>
+      <span class="ld-offer-breakdown__value">${formatUsd(f.amountCents)}</span>
     </div>
     <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
       <span>${platformLabel}</span>
-      <span class="ld-offer-breakdown__value">${platformValue}</span>
-    </div>
-    <div class="ld-offer-breakdown__line ld-offer-breakdown__line--sub">
-      <span>Card processing</span>
-      <span class="ld-offer-breakdown__value">−${formatUsd(f.stripeFeeCents)}</span>
+      <span class="ld-offer-breakdown__value">−${formatUsd(f.platformFeeCents)}</span>
     </div>
     <div class="ld-offer-breakdown__line ld-offer-breakdown__line--total">
       <span>${takeHomeLabel}</span>
@@ -1512,7 +1565,7 @@ function offerSummaryHtml(bid, listing) {
     : "";
 
   const statusLine = isAccepted
-    ? "Accepted. Head to the engagement for next steps."
+    ? "Accepted. Head to the project page for next steps."
     : isCountered
     ? "The business sent a counter. Respond below."
     : bid.status === "declined"
@@ -1529,7 +1582,7 @@ function offerSummaryHtml(bid, listing) {
     ? `<div class="ld-offer-breakdown ld-bid-existing__breakdown">${offerBreakdownHtml(
         computeFees(Number(bid.amount_cents)),
         isRetainer
-          ? { bizLabel: "Business pays per period", takeHomeLabel: "You take home per period" }
+          ? { bizLabel: "Your offer per period", takeHomeLabel: "You take home per period" }
           : {}
       )}</div>`
     : "";
@@ -1578,18 +1631,18 @@ async function showConsultantView(client, session, listing, existingBid) {
 
   const isRetainerListing = listing?.contract_type === "retainer";
   wireBreakdown(amountInput, "ld-offer-breakdown", isRetainerListing
-    ? { offerLabel: "Fee per period", bizLabel: "Business pays per period", takeHomeLabel: "You take home per period" }
+    ? { offerLabel: "Fee per period", bizLabel: "Your offer per period", takeHomeLabel: "You take home per period" }
     : { allowFree: true });
   wireBreakdown(proposalFeeInput, "ld-offer-proposal-breakdown", {
     allowFree: true,
     freeNote: "No proposal fee.",
     offerLabel: "Proposal fee",
-    bizLabel: "Business pays for proposal",
+    bizLabel: "Your proposal fee",
     takeHomeLabel: "You take home (proposal)",
   });
   wireBreakdown(serviceFeeInput, "ld-offer-service-breakdown", {
     offerLabel: "Service fee",
-    bizLabel: "Business pays for service",
+    bizLabel: "Your service fee",
     takeHomeLabel: "You take home (service)",
   });
 
@@ -1765,12 +1818,36 @@ async function showConsultantView(client, session, listing, existingBid) {
      Stripe before locking the gate — handles the lag where the
      account.updated webhook hasn't fired yet. */
   let payoutsBlocked = true;
+  // New consultants must pass training before any offer, free ones
+  // included (consultants with earlier offers are exempt). The real gate
+  // is the bids_require_training trigger; this just explains it before
+  // they fill in the form. Starts open so a slow or failed check never
+  // blocks someone who is cleared.
+  let trainingBlocked = false;
   // A free standard offer never pays out, so it doesn't need payouts set up.
   const isFreeOffer = () => !isPhased && !isRetainer && amountInput.value.trim() !== "" && Number(amountInput.value) === 0;
   const syncSubmitDisabled = () => {
-    if (payoutsBlocked && !isFreeOffer()) submitBtn.setAttribute("aria-disabled", "true");
+    if (trainingBlocked || (payoutsBlocked && !isFreeOffer())) submitBtn.setAttribute("aria-disabled", "true");
     else submitBtn.removeAttribute("aria-disabled");
   };
+  const showTrainingToast = () =>
+    showToast("Pass consultant training before you send an offer. It takes about 25 minutes.", {
+      kind: "error",
+      duration: 6000,
+      action: {
+        label: "Start training",
+        onClick: () => {
+          window.location.href = "/training.html";
+        },
+      },
+    });
+  (async () => {
+    const { data: cleared, error } = await client.rpc("my_training_cleared");
+    // No function yet (migration not applied) means no trigger either.
+    if (error) return;
+    trainingBlocked = cleared === false;
+    syncSubmitDisabled();
+  })();
   const setPayoutsBlocked = (blocked) => {
     payoutsBlocked = blocked;
     syncSubmitDisabled();
@@ -1934,6 +2011,10 @@ async function showConsultantView(client, session, listing, existingBid) {
 
   /* --- Submit offer --- */
   submitBtn.addEventListener("click", async () => {
+    if (trainingBlocked) {
+      showTrainingToast();
+      return;
+    }
     if (payoutsBlocked && !isFreeOffer() && needsAttestation) {
       showAttestationToast();
       return;
@@ -2022,7 +2103,7 @@ async function showConsultantView(client, session, listing, existingBid) {
         const path = `${myId}/${listingId}/${Date.now()}-${f.name.replace(/[^\w.\-]+/g, "_")}`;
         const { error: upErr } = await client.storage.from("bid-files").upload(path, f, { upsert: false });
         if (upErr) {
-          showError(`Could not upload ${f.name}: ${upErr.message}`);
+          showError(`We couldn't upload ${f.name}. ${friendlyError(upErr, "Try again.")}`);
           submitBtn.disabled = false;
           submitBtn.classList.remove("is-loading");
           return;
@@ -2041,7 +2122,15 @@ async function showConsultantView(client, session, listing, existingBid) {
       return;
     }
     if (error) {
-      showError(error.code === "23505" ? "You already sent an offer on this listing." : error.message);
+      if (error.hint === "training_required") {
+        trainingBlocked = true;
+        syncSubmitDisabled();
+        showTrainingToast();
+      } else {
+        showError(error.code === "23505"
+          ? "You already sent an offer on this listing."
+          : friendlyError(error, "We couldn't send your offer. Try again."));
+      }
       submitBtn.disabled = false;
       submitBtn.classList.remove("is-loading");
       return;
@@ -2073,6 +2162,7 @@ async function showConsultantView(client, session, listing, existingBid) {
     // Offers are immutable once submitted — reload so the form is replaced
     // by the read-only summary on next render. The toast is carried across
     // the reload; keep the spinner up until navigation kicks in.
+    await notifyEvent(client, "offer_received", { listing_id: listingId });
     flashToast("Offer submitted. The business has been notified.");
     window.location.reload();
   });
@@ -2435,7 +2525,7 @@ function openConsultantViewer(index) {
     .catch((err) => {
       if (consultantViewerState.bids[consultantViewerState.index]?.id !== bid.id) return;
       if (statusEl) {
-        statusEl.textContent = err?.message || "Could not load consultant profile.";
+        statusEl.textContent = friendlyError(err, "We couldn't load this profile. Try again.");
         statusEl.className = "gr-status error";
       }
     });
@@ -2488,7 +2578,7 @@ function renderPitchPanel(bid) {
   const files = Array.isArray(bid.pitch_files) ? bid.pitch_files : [];
   const messageHtml = bid.message
     ? `<div class="ld-cv__pitch-body">${escapeHtml(bid.message).replace(/\n/g, "<br />")}</div>`
-    : `<p class="ld-cv__panel-empty">This consultant didn't include a pitch with their offer.</p>`;
+    : `<p class="ld-cv__panel-empty">This student didn't include a pitch with their offer.</p>`;
   const filesHtml = files.length
     ? `
       <div class="ld-cv__work-section">
@@ -2508,81 +2598,10 @@ function renderPitchPanel(bid) {
   panel.innerHTML = `${messageHtml}${filesHtml}`;
 }
 
-function renderConsultantViewerContent({ profile, education, rating }) {
+function renderConsultantViewerContent(data) {
   const contentEl = document.getElementById("ld-cv-content");
   if (!contentEl) return;
-  const edu = education || {};
-
-  const avatarHtml = profile.avatar_url
-    ? `<img class="pf-bv__avatar" src="${escapeAttr(profile.avatar_url)}" alt="" />`
-    : `<div class="pf-bv__avatar-placeholder" aria-hidden="true">${escapeHtml(getInitials(profile.full_name))}</div>`;
-
-  const dims = [
-    ["Work product", rating?.work_product_quality_avg],
-    ["Communication", rating?.communication_avg],
-    ["Timeliness", rating?.timeliness_avg],
-    ["Professionalism", rating?.professionalism_avg],
-    ["Cost value", rating?.cost_value_avg],
-  ];
-  const ratingBreakdown = rating?.review_count
-    ? `
-      <div class="pf-bv__section">
-        <p class="pf-bv__section-title">Ratings · ${rating.review_count} review${rating.review_count === 1 ? "" : "s"}</p>
-        <div class="ld-cv__rating-grid">
-          ${dims.map(([label, val]) => `
-            <div class="ld-cv__rating-row">
-              <span class="ld-cv__rating-row__label">${label}</span>
-              ${renderRatingMarkup({ rating_average: val, review_count: 1 }, { size: "sm", showCount: false })}
-            </div>
-          `).join("")}
-        </div>
-      </div>
-    `
-    : "";
-
-  // Header: name, primary degree line, then a compact meta row (location,
-  // tenure, LinkedIn as a short link). Education detail sits directly under
-  // the header; ratings close out the panel.
-  const headerLine = formatConsultantEducationLine(edu);
-  const eduEntriesHtml = renderEducationEntriesList(edu);
-  const metaBits = [];
-  if (profile.city) metaBits.push(`<span>${escapeHtml(profile.city)}</span>`);
-  if (profile.completed_count) {
-    metaBits.push(`<span>${profile.completed_count} completed project${profile.completed_count === 1 ? "" : "s"}</span>`);
-  }
-  if (profile.member_since) {
-    const since = new Date(profile.member_since).toLocaleDateString("en-US", { month: "short", year: "numeric" });
-    metaBits.push(`<span>Joined ${escapeHtml(since)}</span>`);
-  }
-  if (profile.linkedin_url) {
-    metaBits.push(`<a class="pf-bv__link" href="${escapeAttr(profile.linkedin_url)}" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>`);
-  }
-  const metaRow = metaBits.length
-    ? `<p class="pf-bv__meta-row">${metaBits.join('<span class="pf-bv__dot" aria-hidden="true">·</span>')}</p>`
-    : "";
-
-  contentEl.innerHTML = `
-    <div class="pf-bv">
-      <div class="pf-bv__header">
-        ${avatarHtml}
-        <div>
-          <h2 class="pf-bv__name">${escapeHtml(profile.full_name)}</h2>
-          ${headerLine ? `<p class="pf-bv__meta">${escapeHtml(headerLine)}</p>` : ""}
-          ${metaRow}
-        </div>
-      </div>
-      ${eduEntriesHtml ? `
-        <div class="pf-bv__section">
-          <p class="pf-bv__section-title">Education</p>
-          ${eduEntriesHtml}
-        </div>
-      ` : ""}
-      ${ratingBreakdown}
-      ${(!profile.linkedin_url && !eduEntriesHtml && !ratingBreakdown) ? `
-        <p class="pf-bv__empty">This consultant hasn't shared any public bio details yet.</p>
-      ` : ""}
-    </div>
-  `;
+  contentEl.innerHTML = renderConsultantBioHtml(data);
 }
 
 async function renderConsultantPastWorkPanel(consultantId, data) {
@@ -2591,86 +2610,20 @@ async function renderConsultantPastWorkPanel(consultantId, data) {
   const portfolio = Array.isArray(data?.portfolio) ? data.portfolio : [];
   panel.innerHTML = `<p class="gr-status" data-cv-loading>Loading past work…</p>`;
 
-  const engagements = await loadConsultantEngagements(consultantId).catch(() => []);
+  const engagements = await loadCachedConsultantEngagements(consultantId).catch(() => []);
 
   if (consultantViewerState.bids[consultantViewerState.index]?.consultant_id !== consultantId) return;
 
-  const sections = [];
-  if (engagements.length) {
-    sections.push(`
-      <div class="ld-cv__work-section">
-        <p class="ld-cv__work-section-title">Past engagements</p>
-        <div class="ld-cv__work-list">
-          ${engagements.map((eng) => {
-            const title = eng.listings?.title || "engagement";
-            const scope = eng.listings?.description || "";
-            const amount = eng.amount_cents != null ? formatUsd(eng.amount_cents) : "";
-            return `
-              <div class="ld-cv__work-row">
-                <div>
-                  <p class="ld-cv__work-row__title">${escapeHtml(title)}</p>
-                  ${scope ? `<p class="ld-cv__work-row__scope">${escapeHtml(truncateScope(scope))}</p>` : ""}
-                </div>
-                ${amount ? `<span class="ld-cv__work-row__amount">${escapeHtml(amount)}</span>` : ""}
-              </div>
-            `;
-          }).join("")}
-        </div>
-      </div>
-    `);
-  }
-
-  if (portfolio.length) {
-    sections.push(`
-      <div class="ld-cv__work-section">
-        <p class="ld-cv__work-section-title">Shared files</p>
-        <div class="ld-cv__work-list">
-          ${portfolio.map((item) => {
-            const fileName = (item.file_path || "").split("/").pop() || "file";
-            const url = item.url || "#";
-            return `
-              <div class="ld-cv__work-row">
-                <div>
-                  <p class="ld-cv__work-row__title">${escapeHtml(fileName)}</p>
-                  ${item.description ? `<p class="ld-cv__work-row__scope">${escapeHtml(item.description)}</p>` : ""}
-                  <a class="ld-cv__work-row__file" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">Open file ↗</a>
-                </div>
-              </div>
-            `;
-          }).join("")}
-        </div>
-      </div>
-    `);
-  }
-
-  panel.innerHTML = sections.length
-    ? sections.join("")
-    : `<p class="ld-cv__panel-empty">No past engagements or shared files yet.</p>`;
+  panel.innerHTML = renderConsultantPastWorkHtml(engagements, portfolio);
 }
 
-async function loadConsultantEngagements(consultantId) {
+async function loadCachedConsultantEngagements(consultantId) {
   if (consultantViewerState.engagementsCache.has(consultantId)) {
     return consultantViewerState.engagementsCache.get(consultantId);
   }
-  const client = consultantViewerState.client;
-  if (!client) return [];
-  const { data, error } = await client
-    .from("bids")
-    .select("id, amount_cents, accepted_at, listings!inner(id, title, description, status)")
-    .eq("consultant_id", consultantId)
-    .eq("status", "accepted")
-    .order("accepted_at", { ascending: false })
-    .limit(20);
-  if (error) return [];
-  const list = data || [];
+  const list = await loadConsultantEngagements(consultantViewerState.client, consultantId);
   consultantViewerState.engagementsCache.set(consultantId, list);
   return list;
-}
-
-function truncateScope(text, max = 180) {
-  const trimmed = String(text || "").trim();
-  if (trimmed.length <= max) return trimmed;
-  return trimmed.slice(0, max - 1).trimEnd() + "…";
 }
 
 async function loadResumePanel(consultantId) {
@@ -2686,7 +2639,7 @@ async function loadResumePanel(consultantId) {
   const profile = data?.profile;
 
   if (!profile?.resume_on_file) {
-    const html = `<p class="ld-cv__panel-empty">This consultant has not made a resume publicly visible.</p>`;
+    const html = RESUME_HIDDEN_HTML;
     panel.innerHTML = html;
     consultantViewerState.resumeCache.set(consultantId, html);
     return;
@@ -2701,27 +2654,16 @@ async function loadResumePanel(consultantId) {
   panel.innerHTML = `<p class="gr-status">Loading resume…</p>`;
 
   try {
-    const client = consultantViewerState.client;
-    const { data: { session } } = await client.auth.getSession();
-    const headers = {};
-    if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-    const res = await fetch(`/api/consultant-profile/${encodeURIComponent(consultantId)}/resume`, { headers });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok || !body.url) throw new Error(body.error || "Could not open resume.");
+    const body = await fetchResumeUrl(consultantViewerState.client, consultantId);
 
     if (consultantViewerState.bids[consultantViewerState.index]?.consultant_id !== consultantId) return;
     if (consultantViewerState.activeTab !== "resume") return;
 
-    const html = `
-      <div class="ld-cv__resume-actions">
-        <a class="gr-btn gr-btn--ghost gr-btn--sm" href="${escapeAttr(body.url)}" target="_blank" rel="noopener noreferrer">Open in new tab ↗</a>
-      </div>
-      <iframe class="ld-cv__resume-frame" src="${escapeAttr(body.url)}" title="${escapeAttr((body.file_name || "resume"))}"></iframe>
-    `;
+    const html = renderResumeEmbedHtml(body.url, body.file_name);
     panel.innerHTML = html;
     consultantViewerState.resumeCache.set(consultantId, html);
   } catch (err) {
-    panel.innerHTML = `<p class="gr-status error">${escapeHtml(err?.message || "Could not load resume.")}</p>`;
+    panel.innerHTML = `<p class="gr-status error">${escapeHtml(friendlyError(err, "We couldn't load this resume. Try again."))}</p>`;
   }
 }
 
@@ -2737,10 +2679,23 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
   // A counter stays "used" after the consultant answers it (the offer
   // fields clear but counter_attempted stays true).
   const totalCounters = bids.filter((b) => b.counter_attempted || b.counter_offer_cents != null).length;
-  budgetEl.textContent = `Counter-offers used: ${totalCounters} / 3`;
+  // The counter allowance only means something once an offer exists.
+  // Before that it read like a penalty, so keep it hidden.
+  if (bids.length) {
+    const left = Math.max(0, 3 - totalCounters);
+    budgetEl.textContent = totalCounters === 0
+      ? "You can send up to 3 counter-offers on this project."
+      : left === 0
+        ? "You've sent all 3 counter-offers for this project."
+        : `You've sent ${totalCounters} of 3 counter-offers. ${left} left.`;
+    budgetEl.hidden = false;
+  } else {
+    budgetEl.textContent = "";
+    budgetEl.hidden = true;
+  }
 
   if (!bids.length) {
-    list.innerHTML = '<p class="ld-bids-empty">No offers yet.</p>';
+    list.innerHTML = '<p class="ld-bids-empty">No offers yet. Students who send one show up here.</p>';
     return;
   }
 
@@ -2759,7 +2714,8 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
   function renderProposalCta() {
     if (!proposalCtaEl) return;
     const selected = bids.filter((b) => selectedBidIds.has(b.id));
-    const total = selected.reduce((sum, b) => sum + Number(b.proposal_fee_cents || 0), 0);
+    // What the card is charged: each offer plus its platform fee.
+    const total = selected.reduce((sum, b) => sum + businessTotalCents(Number(b.proposal_fee_cents || 0)), 0);
     if (!selected.length) {
       proposalCtaEl.classList.add("hidden");
       return;
@@ -2787,11 +2743,11 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
       if (result?.ok) {
         showSuccess(result.free
           ? `${selected.length === 1 ? "Proposal" : "Proposals"} accepted.`
-          : `Proposal fees held for ${selected.length} consultant${selected.length === 1 ? "" : "s"}.`);
+          : `Proposal fees held for ${selected.length} student${selected.length === 1 ? "" : "s"}.`);
         window.location.reload();
       }
     } catch (err) {
-      showError(err?.message || "Could not start payment.");
+      showError(friendlyError(err, "We couldn't start the payment. Try again."));
     } finally {
       proposalCtaBtn.disabled = false;
     }
@@ -2941,7 +2897,7 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
               title: "Accept the original offer?",
               body: [
                 `${rawName} hasn't decided on your counter yet.`,
-                `Accepting now charges their original price of ${formatUsd(b.amount_cents)}, not your counter of ${formatUsd(b.counter_offer_cents)}.`,
+                `Accepting now charges their original price of ${formatUsd(b.amount_cents)} plus the platform fee, not your counter of ${formatUsd(b.counter_offer_cents)}.`,
               ],
               actions: [
                 { label: "Cancel", kind: "ghost", value: "cancel" },
@@ -2982,7 +2938,7 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
       // destination.
       manageLink.className = "gr-btn gr-btn--primary gr-btn--sm";
       manageLink.href = engagementLink(b.id);
-      manageLink.textContent = "Manage engagement";
+      manageLink.textContent = "Open project page";
       resolveManageLinkLabel(client, b.id, "owner")
         .then(({ label, hide, quiet }) => {
           if (hide) { manageLink.remove(); return; }
@@ -3049,7 +3005,7 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
           showSuccess("Offer declined.");
           window.location.reload();
         } catch (err) {
-          showError(err?.message || "Could not decline offer.");
+          showError(friendlyError(err, "We couldn't decline this offer. Try again."));
           declineBtn.disabled = false;
         }
       });
@@ -3149,7 +3105,7 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
   container.innerHTML = `
     <div class="ld-counter-form-inner">
       <p class="ld-counter-form-notice">
-        This is your only counter on this offer. The consultant has 24 hours to accept, decline, or counter back. If they don't respond, the offer reverts to their original price — and you can't counter again.
+        This is your only counter on this offer. The student has 24 hours to accept, decline, or counter back. If they don't respond, the offer goes back to their original price, and you can't counter again.
       </p>
       <label class="gr-label"><span>Counter amount (USD)</span>
         <input type="number" class="ld-counter-amount" min="10" step="0.01" placeholder="0.00" />
@@ -3206,7 +3162,7 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
 
     if (error) {
       loader.dismiss();
-      showError(error.message);
+      showError(friendlyError(error, "We couldn't send your counter-offer. Try again."));
       sendBtn.disabled = false;
       return;
     }
@@ -3218,9 +3174,10 @@ function buildCounterForm(client, listing, bid, container, card, budgetEl, curre
       body: `The business countered your offer on "${listing.title}" with ${formatUsd(cents)}. You have 24 hours to respond.`,
       link: `/listing.html?id=${listing.id}`,
     });
+    notifyEvent(client, "counter_received", { bid_id: bid.id });
 
     loader.dismiss();
-    showSuccess("Counter offer sent. The consultant has 24 hours to respond.");
+    showSuccess("Counter-offer sent. The student has 24 hours to respond.");
     // Refresh the bid list in place so the card reflects the new
     // 'countered' status, the counter button hides, and the counter
     // pill renders — all without bouncing through the page loader.
@@ -3377,7 +3334,7 @@ function runTutorialListing() {
   const submitBtn = document.getElementById("ld-bid-submit");
   submitBtn?.addEventListener("click", () => {
     showSuccess(
-      "Submitted (tutorial). Real offers go to the business right away.",
+      "That was a practice offer, so nothing was sent. A real offer goes to the business as soon as you submit it.",
       { duration: 4500 }
     );
     submitBtn.disabled = true;
@@ -3405,7 +3362,7 @@ function runTutorialListing() {
   const questionBtn = document.getElementById("ld-question-btn");
   questionBtn?.addEventListener("click", () => {
     showToast(
-      "In real use this opens a chat with the business. Tutorial mode keeps it simple.",
+      "On a real project this opens a chat with the business. It is switched off during the walkthrough.",
       { kind: "info", duration: 4500 }
     );
   });
@@ -3420,7 +3377,7 @@ async function init() {
     try { runTutorialListing(); }
     catch (err) {
       console.warn("[tutorial] listing fixture failed", err);
-      gate.textContent = "Tutorial preview unavailable. Ping support.";
+      gate.textContent = "The practice project isn't loading right now. Please contact support if this keeps happening.";
       gate.className = "gr-status error";
     }
     return;
@@ -3449,7 +3406,7 @@ async function init() {
 
     const { listing, error } = await loadListing(client, listingId);
 
-    if (error) { gate.textContent = error.message; gate.className = "gr-status error"; return; }
+    if (error) { gate.textContent = friendlyError(error, "We couldn't load this project. Try refreshing."); gate.className = "gr-status error"; return; }
     if (!listing) { gate.textContent = "Listing not found."; gate.className = "gr-status error"; return; }
 
     const uid = session?.user?.id ?? null;
@@ -3470,7 +3427,7 @@ async function init() {
       trackListingView(client, listingId, uid, listing.owner_id, viewerRole);
     }
 
-    if (listingStatus !== "open" && !isOwner && !hasExistingBid) {
+    if (listingStatus === "unlisted" && !isOwner && !hasExistingBid) {
       gate.textContent = "This listing is no longer available from marketplace browsing.";
       gate.className = "gr-status error";
       return;
@@ -3485,15 +3442,21 @@ async function init() {
       return;
     }
 
-    const { profile } = populateListing(listing);
-    populateAvatarIfAvailable(client, profile);
+    const { profile, biz } = populateListing(listing);
+    // Owner without a business name: the card falls back to their
+    // personal name, so point them at the field that fixes it.
+    const addNameLink = document.getElementById("ld-biz-add-name");
+    if (addNameLink) {
+      addNameLink.hidden = !(isOwner && !(biz?.business_name || listing.business_display_name));
+    }
+    populateAvatarIfAvailable(client, profile, biz);
     populateBusinessBadges(client, listing.owner_id);
     setOwnerSidebarVisible(isOwner);
     if (!isOwner) setOfferRailVisible(false);
 
     // Owner viewing a draft: show the resume-editing banner, hide
     // the listing-controls panel (irrelevant for an unpublished
-    // listing — there's nothing to pause / close yet), and skip the
+    // listing — there's nothing to lock / remove yet), and skip the
     // bid + analytics loads since neither applies to a draft.
     const draftBanner = document.getElementById("ld-draft-banner");
     if (isDraft && isOwner && draftBanner) {
@@ -3510,7 +3473,7 @@ async function init() {
       // bids, listing analytics, or the question chat — none of
       // those are accessible to a logged-out visitor anyway, and
       // skipping them keeps the network requests honest.
-      renderGuestRail();
+      renderGuestRail(listingStatus);
     } else if (uid && !isOwner) {
       if (viewerRole === "consultant") {
         if (bidsAvailable) {
@@ -3525,7 +3488,7 @@ async function init() {
       setupOwnerListingActions(client, listing);
       const { bids, available } = await loadOwnerBids(client, listingId);
       if (available) {
-        // Cache for the owner close-form: lets it decide whether the
+        // Cache for the owner remove-form: lets it decide whether the
         // pending-offers disposition question shows and whether the
         // work-completed radio should be enabled.
         cachedOwnerBids = bids;
@@ -3554,7 +3517,8 @@ async function init() {
           .then((analytics) =>
             renderAnalyticsPanel(analyticsHost, analytics, {
               title: "Performance",
-              subtitle: "What consultants are doing with this listing.",
+              subtitle: "How students respond to this project.",
+              emptyViewsCopy: "No views yet. Daily views show up here once students open your project.",
             })
           );
       }
@@ -3566,9 +3530,9 @@ async function init() {
       // CTA that returns to this listing after sign-in.
       const nextUrl = encodeURIComponent(`/listing.html?id=${listingId}`);
       if (uid) {
-        showHint('Only consultants can submit a proposal. <a href="/home/for-students.html#apply">Apply as a consultant →</a>');
+        showHint('Only consultants can submit a proposal. <a href="/for-students#apply">Apply as a consultant →</a>');
       } else {
-        showHint(`<strong>Sign in to make an offer →</strong> <a href="/signin.html?next=${nextUrl}">sign in</a> · <a href="/home/for-students.html#apply">apply as a consultant</a>`);
+        showHint(`<strong>Sign in to make an offer →</strong> <a href="/signin.html?next=${nextUrl}">sign in</a> · <a href="/for-students#apply">apply as a consultant</a>`);
         // Hide attachments for guests — the file links may include
         // direct storage URLs the bucket RLS won't gate.
         const attachmentsWrap = document.getElementById("ld-attachments");
@@ -3581,12 +3545,62 @@ async function init() {
     // doesn't need to render listings.
     injectListingSeo(listing);
 
+    const justPosted = consumePostedParam();
     gate.hidden = true;
     detail.hidden = false;
+    if (justPosted && isOwner && !isDraft && listingStatus === "open") {
+      showPostedPanel(listing);
+    }
   } catch (err) {
-    gate.textContent = err.message || "Could not load listing.";
+    gate.textContent = friendlyError(err, "We couldn't load this project. Try refreshing.");
     gate.className = "gr-status error";
   }
+}
+
+/* ?posted=1 is set by create-listing right after publishing. Read it
+   once and strip it from the URL so a refresh or a shared link doesn't
+   show the confirmation again. */
+function consumePostedParam() {
+  try {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("posted") !== "1") return false;
+    url.searchParams.delete("posted");
+    history.replaceState(history.state, "", url.pathname + url.search + url.hash);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function showPostedPanel(listing) {
+  const panel = document.getElementById("ld-posted");
+  if (!panel) return;
+  panel.hidden = false;
+
+  const shareBtn = document.getElementById("ld-posted-share");
+  const statusEl = document.getElementById("ld-posted-share-status");
+  const closeBtn = document.getElementById("ld-posted-close");
+  const shareUrl = `${window.location.origin}/listing.html?id=${encodeURIComponent(listing.id)}`;
+
+  shareBtn?.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      if (statusEl) statusEl.textContent = "Link copied.";
+    } catch (err) {
+      // Clipboard can be blocked (permissions, insecure origin). Show
+      // the link so it can still be copied by hand.
+      console.error("[listing] clipboard", err);
+      if (statusEl) statusEl.textContent = shareUrl;
+    }
+  });
+
+  closeBtn?.addEventListener("click", () => {
+    panel.hidden = true;
+  });
+
+  // Move focus to the panel so screen readers announce it, without
+  // scrolling past it on short screens.
+  try { panel.focus({ preventScroll: true }); } catch (_) {}
 }
 
 function showHint(html) {

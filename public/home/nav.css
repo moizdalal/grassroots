@@ -249,14 +249,31 @@
         position: absolute;
         left: 0; top: 0;
         height: 100%;
-        width: 0%;
+        /* Full width, scaled by nav.js: transform skips layout on every
+           scroll frame, where animating width did not. */
+        width: 100%;
         background: linear-gradient(90deg, var(--fo-accent), color-mix(in srgb, var(--fo-accent) 60%, transparent));
         transform-origin: left;
-        transition: width 0.12s linear;
+        transform: scaleX(0);
+        transition: transform 0.12s linear;
       }
 
       @media (max-width: 720px) {
         .ld-nav__links li.ld-nav__hide-sm { display: none; }
+      }
+      /* Phones: brand, sign in and the CTA have to share ~340px. The theme
+         toggle drops out and the CTA tightens so nothing wraps or spills. */
+      @media (max-width: 480px) {
+        .ld-nav { padding-inline: 16px; }
+        .ld-nav__inner { gap: var(--space-2); }
+        .ld-nav__links { gap: 0.25rem; }
+        .ld-nav__links li:has(> .ld-nav__theme) { display: none; }
+        .ld-nav__link { white-space: nowrap; }
+        .ld-nav__cta { padding: 0.5rem 0.9rem; font-size: 0.9rem; white-space: nowrap; }
+      }
+      /* Smallest phones (iPhone SE, 320px): the sprout carries the brand. */
+      @media (max-width: 360px) {
+        .ld-nav__brand-text { display: none; }
       }
       @media (prefers-reduced-motion: reduce) {
         .ld-nav, .ld-nav *,

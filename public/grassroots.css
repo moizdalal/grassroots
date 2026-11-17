@@ -3,6 +3,12 @@
    see /placeholders.js. */
 [hidden][data-placeholder] { display: none !important; }
 
+/* The hidden attribute always wins. Component rules like
+   `.bza__banner { display: flex }` otherwise beat the UA [hidden] rule
+   and leave "hidden" elements on screen (payouts banner, preview links,
+   empty pills). Show an element by removing the attribute, never with CSS. */
+[hidden] { display: none !important; }
+
 :root {
   /* Enable height/width transitions to auto/min/max-content so any
      collapsing component animates smoothly without bespoke max-height
@@ -168,6 +174,12 @@ img.gr-listing-logo {
   right: 0;
   z-index: 100;
   padding: 0.85rem clamp(1rem, 3vw, 1.5rem);
+}
+
+/* The fixed nav covers the top ~90px. Reserve it plus room for a field label
+   when the browser scrolls focus or an anchor into view (WCAG 2.4.11). */
+html:has(> body > .gr-nav) {
+  scroll-padding-top: 8rem;
 }
 
 .gr-nav__inner {
@@ -504,6 +516,16 @@ img.gr-listing-logo {
   background: var(--sky);
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
   outline: none;
+}
+
+/* iOS Safari zooms the page into any focused field under 16px and
+   doesn't zoom back out. Touch screens get 16px text in every field. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]),
+  select,
+  textarea {
+    font-size: max(16px, 1em) !important;
+  }
 }
 
 .gr-label input:focus,
@@ -844,7 +866,7 @@ img.gr-listing-logo {
 
 .pf-portfolio-item__delete:hover {
   color: var(--fo-plan, #c46f44);
-  background: rgba(196, 111, 68, 0.1);
+  background: color-mix(in srgb, var(--fo-plan) 10%, transparent);
 }
 
 .pf-portfolio-add {
@@ -2230,7 +2252,7 @@ summary:focus-visible,
 }
 
 .gr-btn--danger:hover:not(:disabled) {
-  background: rgba(196, 111, 68, 0.1);
+  background: color-mix(in srgb, var(--fo-plan) 10%, transparent);
   border-color: var(--fo-plan, #c46f44);
   color: var(--fo-plan, #c46f44);
 }
@@ -2609,7 +2631,7 @@ summary:focus-visible,
   color: var(--fo-accent, var(--green-mid));
 }
 
-/* Date-bucket header: small uppercase eyebrow + count, with the cards
+/* Date-bucket header: small sentence-case label + count, with the cards
    indented under it. Buckets are visually grouped, not boxed. */
 .gr-notif-bucket {
   display: grid;
@@ -2622,10 +2644,10 @@ summary:focus-visible,
   align-items: baseline;
   gap: 0.55rem;
   font-family: var(--font-body);
-  font-size: var(--type-eyebrow);
+  font-size: var(--type-meta);
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: var(--fo-text-3, var(--tagline-body));
 }
 
@@ -2837,8 +2859,8 @@ summary:focus-visible,
   background: rgba(45, 106, 79, 0.12);
   color: var(--green-deep);
   font-size: var(--type-eyebrow);  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-transform: none;
   white-space: nowrap;
 }
 
@@ -2911,6 +2933,16 @@ summary:focus-visible,
   color: var(--fo-accent-warm, #b97a2a);
 }
 
+.gr-notification-card__icon--payments {
+  background: var(--fo-accent-soft, rgba(45, 106, 79, 0.12));
+  color: var(--fo-accent, var(--green-mid));
+}
+
+.gr-notification-card__icon--engagements {
+  background: rgba(212, 165, 91, 0.16);
+  color: var(--fo-accent-warm, #b97a2a);
+}
+
 .gr-notification-card__icon--reviews {
   background: rgba(149, 213, 178, 0.22);
   color: var(--green-mid);
@@ -2967,6 +2999,31 @@ summary:focus-visible,
 /* Dashboard notifications list — fills the panel naturally. The mount
    helper already caps how many it requests from the API, so the list
    simply renders all returned cards stacked. */
+/* Filter chips above the dashboard list (inserted by
+   dashboard-notifications.js). Same chips as /notifications.html, a touch
+   tighter, and on one scrollable line so the panel height never changes. */
+.dash-notifications-filters {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0.75rem 1rem 0.5rem;
+}
+
+.dash-notifications-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.dash-notifications-filters[hidden] {
+  display: none;
+}
+
+.dash-notifications-filters .gr-notif-filter {
+  flex: 0 0 auto;
+  padding: 0.26rem 0.7rem;
+  white-space: nowrap;
+}
+
 .dash-notifications-list {
   display: flex;
   flex-direction: column;
@@ -4325,12 +4382,12 @@ button.gr-bid-link {
 
 .gr-pill--pending,
 .gr-pill--warn {
-  background: rgba(232, 142, 90, 0.18);
+  background: color-mix(in srgb, var(--fo-accent-warm) 18%, transparent);
   color: var(--fo-accent-warm, #e88e5a);
 }
 
 .gr-pill--paused {
-  background: rgba(232, 142, 90, 0.12);
+  background: color-mix(in srgb, var(--fo-accent-warm) 12%, transparent);
   color: var(--fo-accent-warm, #e88e5a);
 }
 
@@ -4342,7 +4399,7 @@ button.gr-bid-link {
 }
 
 .gr-pill--danger {
-  background: rgba(196, 111, 68, 0.18);
+  background: color-mix(in srgb, var(--fo-plan) 18%, transparent);
   color: var(--fo-plan, #c46f44);
 }
 
@@ -4580,8 +4637,8 @@ button.gr-bid-link {
 
 /* --- Counter banner (consultant view) --- */
 .ld-counter-banner {
-  background: rgba(232, 142, 90, 0.08);
-  border: 1px solid rgba(232, 142, 90, 0.2);
+  background: color-mix(in srgb, var(--fo-accent-warm) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fo-accent-warm) 20%, transparent);
   border-radius: 12px;
   padding: 1rem 1.15rem;
   margin-bottom: 1rem;
@@ -5625,6 +5682,103 @@ button.gr-bid-link {
   margin-bottom: var(--space-5);
 }
 
+/* "Why Stripe asks for your SSN": a quiet label + "i" button above the
+   embedded identity form. The explainer is click-to-reveal
+   (setupInfoPopover in payouts.js), never always-visible copy. */
+.po-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2rem;
+  margin: 0 0 var(--space-3);
+  padding: 0.25rem 0.1rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fo-text-2);
+  font: inherit;
+  font-size: var(--type-meta);
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.po-info__label {
+  text-decoration: underline;
+  text-decoration-color: var(--fo-line-strong);
+  text-underline-offset: 3px;
+}
+.po-info__icon {
+  display: inline-flex;
+  color: var(--fo-text-2);
+  transition: color 0.15s ease;
+}
+.po-info__icon svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+.po-info:hover,
+.po-info[aria-expanded="true"] {
+  color: var(--fo-text);
+}
+.po-info:hover .po-info__icon,
+.po-info[aria-expanded="true"] .po-info__icon {
+  color: var(--fo-text);
+}
+.po-info:focus-visible {
+  outline: 2px solid var(--fo-accent);
+  outline-offset: 2px;
+}
+
+.po-info-pop {
+  position: fixed;
+  z-index: 1000;
+  box-sizing: border-box;
+  width: min(320px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  padding: 0.85rem 1rem;
+  background: var(--fo-surface);
+  color: var(--fo-text);
+  border: 1px solid var(--fo-line-strong);
+  border-radius: 12px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.22);
+  font-size: var(--type-meta);
+  line-height: 1.5;
+}
+.po-info-pop[hidden] {
+  display: none;
+}
+/* Dark themes: lift the surface so the text stays readable over the page. */
+:root:not([data-theme="light"]) .po-info-pop {
+  background: var(--fo-surface-2);
+}
+.po-info-pop p {
+  margin: 0 0 0.55rem;
+}
+.po-info-pop p:last-child {
+  margin-bottom: 0;
+}
+.po-info-pop__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  padding-top: 0.15rem;
+}
+.po-info-pop__links a {
+  /* --fo-accent is too dim for text on dark surfaces; use the text color. */
+  color: var(--fo-text);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--fo-text-3);
+  text-underline-offset: 3px;
+}
+.po-info-pop__links a:focus-visible {
+  outline: 2px solid var(--fo-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* At-a-glance balance summary card. Sits above the embedded Stripe
    iframes for active accounts. Card pattern per brandkit: light theme
    gets a surface fill; dark themes use border-only floating outline. */
@@ -5964,13 +6118,24 @@ button.gr-bid-link {
   opacity: 0;
   pointer-events: none;
 }
+/* First SPROUT_DELAY_MS: the cover is up but the sprout isn't drawn,
+   so pages that settle fast never flash it. */
+.gr-loader-overlay--quiet .gr-loader-overlay__svg {
+  visibility: hidden;
+}
+.gr-loader-overlay--fast {
+  transition-duration: 0.15s;
+}
 .gr-loader-overlay__svg {
   position: relative;
-  width: clamp(72px, 9vw, 112px);
+  /* Scaled up 203/163 to offset the padded viewBox — sprout renders the same size. */
+  width: clamp(90px, 11.2vw, 140px);
   height: auto;
+  overflow: visible;
   color: var(--green-light, #6dbf8a);
   fill: currentColor;
-  transform-origin: 50% 95%;
+  /* Stem base: (81.5, 261) in the padded -20 -20 203 315 viewBox. */
+  transform-origin: 50% 89%;
   animation: gr-loader-sway 4.2s ease-in-out infinite;
   filter: drop-shadow(0 6px 16px rgba(27, 67, 50, 0.18));
 }
@@ -6184,6 +6349,18 @@ button, input, select, textarea {
   transform: translateY(0.5rem);
 }
 
+/* While the notice is up, reserve room under the page so it never
+   sits on top of the last row of content. */
+body:has(> .gr-cookie-banner.is-visible) {
+  padding-bottom: 5.5rem;
+}
+
+@media (max-width: 560px) {
+  body:has(> .gr-cookie-banner.is-visible) {
+    padding-bottom: 7.5rem;
+  }
+}
+
 .gr-cookie-banner__msg {
   margin: 0;
   font-size: var(--type-meta);
@@ -6243,4 +6420,56 @@ button, input, select, textarea {
     transform: none;
   }
   .gr-cookie-banner.is-leaving { transform: none; }
+}
+
+/* ── desktop hint ─────────────────────────────────────────────── */
+/* Inline note rendered by desktop-hint.js on phones. Border-only in dark
+   themes, surface fill in light. Sits in the flow, never fixed, so it
+   can't stack with the cookie banner or cover a CTA. */
+.gr-desktop-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.4rem 0.55rem 0.8rem;
+  border: 1px solid var(--fo-line);
+  border-radius: 12px;
+  color: var(--fo-text-2);
+  font-family: var(--font-body);
+  font-size: var(--type-meta);
+  line-height: 1.4;
+  text-align: left;
+}
+[data-theme="light"] .gr-desktop-hint {
+  background: var(--fo-surface-2);
+}
+.gr-desktop-hint__icon {
+  flex-shrink: 0;
+  width: 1.1rem;
+  height: 1.1rem;
+  color: var(--fo-accent);
+}
+.gr-desktop-hint__msg {
+  flex: 1;
+  margin: 0;
+}
+.gr-desktop-hint__dismiss {
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fo-text-3);
+  cursor: pointer;
+}
+.gr-desktop-hint__dismiss svg {
+  width: 1rem;
+  height: 1rem;
+}
+.gr-desktop-hint__dismiss:focus-visible {
+  outline: 2px solid var(--fo-accent);
+  outline-offset: 2px;
 }

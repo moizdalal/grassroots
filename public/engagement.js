@@ -1,7 +1,17 @@
 import { getSupabaseClient } from "/supabase-loader.js";
 import { renderRatingMarkup, fetchRatingFor, forgetRating } from "/rating.js";
 import { showSuccess, showError, showInfo } from "/toast.js";
+import { notifyEvent } from "/notify-event.js";
 import { confirmDialog } from "/confirm-modal.js";
+import { isLaunchPricing, LAUNCH_ENDS_LABEL } from "/fees.js";
+
+// Owner-facing note: the business pays its platform fee on top of the
+// offer. The launch rate is shown as a temporary discount.
+function businessFeeNote() {
+  return isLaunchPricing()
+    ? `plus the platform fee (a 5% launch rate until ${LAUNCH_ENDS_LABEL}, then 10%)`
+    : "plus the 10% platform fee";
+}
 // payment-modal is only needed when the owner taps "pay service fee".
 // Lazy-load on demand so engagement.html stays light on first paint.
 let _paymentModalPromise = null;
@@ -37,7 +47,7 @@ const meetingTimeEl = document.getElementById("eg-meeting-time");
 const meetingBodyEl = document.getElementById("eg-meeting-body");
 const ownerActionsPanel = document.getElementById("eg-owner-actions-panel");
 const reviewOffersLink = document.getElementById("eg-review-offers-link");
-const closeListingBtn = document.getElementById("eg-close-listing-btn");
+const lockListingBtn = document.getElementById("eg-lock-listing-btn");
 const workCompletedBtn = document.getElementById("eg-work-completed-btn");
 const refundBtn = document.getElementById("eg-refund-btn");
 const refundRequestBtn = document.getElementById("eg-refund-request-btn");
@@ -127,9 +137,9 @@ const END_HOUR = 20;
 const SLOT_COUNT = ((END_HOUR - START_HOUR) * 60) / SLOT_MINUTES;
 const RATING_DIMENSIONS = [
   ["work_product_quality", "Work product quality"],
-  ["communication", "communication"],
-  ["timeliness", "timeliness"],
-  ["professionalism", "professionalism"],
+  ["communication", "Communication"],
+  ["timeliness", "Timeliness"],
+  ["professionalism", "Professionalism"],
   ["cost_value", "Cost value"],
 ];
 const BIZ_REVIEW_DIMENSIONS = [
@@ -218,9 +228,9 @@ function openRefundRequestModal({ engagementId, listingTitle } = {}) {
     }
     // Pre-fill mailto with engagement context so the support inbox has
     // everything it needs to triage without round-tripping.
-    const subject = `Refund request — engagement ${engagementId || "unknown"}`;
+    const subject = `Refund request — project ${engagementId || "unknown"}`;
     const bodyLines = [
-      `Engagement ID: ${engagementId || "(unavailable)"}`,
+      `Project ID: ${engagementId || "(unavailable)"}`,
       `listing: ${listingTitle || "(unavailable)"}`,
       "",
       "What happened:",
@@ -688,7 +698,7 @@ async function saveReview(payload) {
       await insertNotification(
         payload.consultant_id,
         "You got a new review",
-        `The business reviewed your work on "${currentListing?.title || "your engagement"}".`,
+        `The business reviewed your work on "${currentListing?.title || "your project"}".`,
         `/engagement.html?bid=${payload.bid_id}`,
         "consultant_review"
       );
@@ -854,7 +864,7 @@ function renderMeetingSummary() {
     meetingSummaryEl.classList.remove("hidden");
     meetingTimeEl.textContent = formatDateTimeRange(scheduleState.selected_start, scheduleState.selected_end);
     meetingBodyEl.textContent =
-      "Grassroots wishes you both the best of luck on this engagement. We're excited to hear back.";
+      "Grassroots wishes you both the best of luck on this project. We're excited to hear back.";
   } else {
     meetingSummaryEl.classList.add("hidden");
   }
@@ -1034,6 +1044,7 @@ async function submitBusinessReview() {
       `/engagement.html?bid=${currentBid.id}`,
       "business_review"
       );
+      notifyEvent(supabase, "business_review", { bid_id: currentBid.id });
     }
     showSuccess("Your review has been saved.");
     renderBusinessReview();
@@ -1355,7 +1366,7 @@ function renderRetainerOfferPanel() {
     const summary = `${feeLabel} every ${cadenceLabel(retainerSub.cadence)} for ${retainerSub.period_count} period${retainerSub.period_count === 1 ? "" : "s"}`;
     if (viewRole === "owner") {
       offerTitleEl.textContent = "Offer sent";
-      offerBodyEl.textContent = `Waiting for the consultant to accept or decline: ${summary}.`;
+      offerBodyEl.textContent = `Waiting for the consultant to accept or decline: ${summary}, ${businessFeeNote()}.`;
       offerActionsEl.classList.add("hidden");
     } else {
       offerTitleEl.textContent = "Retainer offer";
@@ -1378,7 +1389,9 @@ function renderRetainerOfferPanel() {
     offerStatusPill.textContent = status === "pending" ? "Starting…" : "Active";
     offerStatusPill.className = "gr-pill gr-pill--accepted gr-pill--no-dot";
     offerTitleEl.textContent = "Retainer is live";
-    const feeLabel = retainerSub.fee_cents ? formatUsd(Number(retainerSub.fee_cents)) : "—";
+    const feeLabel = retainerSub.fee_cents
+      ? `${formatUsd(Number(retainerSub.fee_cents))}${viewRole === "owner" ? ` ${businessFeeNote()}` : ""}`
+      : "—";
     offerBodyEl.textContent = `Billing ${feeLabel} every ${cadenceLabel(retainerSub.cadence)} — period ${retainerSub.periods_billed} of ${retainerSub.period_count}. Each period is held on payment and releases when the business releases it, or 14 days after the period ends.`;
     if (viewRole === "owner") {
       offerActionsEl.classList.remove("hidden");
@@ -1466,7 +1479,7 @@ function renderRetainerDecisionPanel() {
     retainerTitleEl.textContent = "Closed as one-off";
     retainerStatusPill.textContent = "one-off";
     retainerStatusPill.className = "gr-pill gr-pill--muted gr-pill--no-dot";
-    retainerBodyEl.textContent = "You chose not to continue. This engagement closes here, with just the first period paid out.";
+    retainerBodyEl.textContent = "You chose not to continue. This project closes here, with just the first period paid out.";
     retainerActionsEl.classList.add("hidden");
     retainerTermsForm.classList.add("hidden");
     return;
@@ -1498,7 +1511,7 @@ function renderRetainerDecisionPanel() {
 
   if (fixed) {
     const feeLabel = formatUsd(Number(currentListing.retainer_fee_cents));
-    retainerBodyEl.textContent = `Continue billing ${feeLabel} every ${cadenceLabel(currentListing.retainer_cadence)} for ${currentListing.retainer_period_count} period${currentListing.retainer_period_count === 1 ? "" : "s"}, or close as a one-off.`;
+    retainerBodyEl.textContent = `Continue billing ${feeLabel} ${businessFeeNote()} every ${cadenceLabel(currentListing.retainer_cadence)} for ${currentListing.retainer_period_count} period${currentListing.retainer_period_count === 1 ? "" : "s"}, or close as a one-off.`;
     retainerTermsForm.classList.add("hidden");
     retainerContinueBtn.textContent = "Continue retainer";
   } else {
@@ -1532,7 +1545,7 @@ function renderServicePhasePanel() {
     serviceTitleEl.textContent = "Service fee released";
     serviceStatusPill.textContent = "Released";
     serviceStatusPill.className = "gr-pill gr-pill--accepted gr-pill--no-dot";
-    serviceBodyEl.textContent = "The service fee was paid out to the consultant. Engagement complete.";
+    serviceBodyEl.textContent = "The service fee was paid out to the consultant. Project complete.";
     serviceActionsEl.classList.add("hidden");
     return;
   }
@@ -1562,8 +1575,8 @@ function renderServicePhasePanel() {
     serviceStatusPill.className = "gr-pill gr-pill--muted gr-pill--no-dot";
     const fee = Number(currentBid?.service_fee_cents);
     const feeLabel = Number.isFinite(fee) ? formatUsd(fee) : "The service fee";
-    serviceBodyEl.textContent = `You moved forward with this consultant. ${Number.isFinite(fee) ? `${feeLabel} ` : ""}is held by Grassroots and releases once you submit your review.`;
-    servicePayBtn.textContent = Number.isFinite(fee) ? `Pay ${feeLabel}` : "Pay service fee";
+    serviceBodyEl.textContent = `You moved forward with this consultant. You pay ${Number.isFinite(fee) ? feeLabel : "the service fee"} ${businessFeeNote()}. Grassroots holds it and releases it once you submit your review.`;
+    servicePayBtn.textContent = "Pay service fee";
     serviceActionsEl.classList.remove("hidden");
   } else {
     serviceTitleEl.textContent = "Service phase";
@@ -1688,11 +1701,7 @@ function renderOwnerActions() {
     !engagementOngoing,
     "You'll be able to mark work completed once a kickoff time is locked in.",
   );
-  setBtnUnavailable(
-    closeListingBtn,
-    currentListing.status === "closed",
-    "This listing is already closed.",
-  );
+  renderLockListingBtn();
   renderRefundCta();
 
   if (reviewState) {
@@ -1700,7 +1709,7 @@ function renderOwnerActions() {
     setBtnUnavailable(
       workCompletedBtn,
       true,
-      "You've already submitted a review for this engagement.",
+      "You've already submitted a review for this project.",
     );
     reviewPanel.classList.remove("hidden");
     reviewForm.classList.add("hidden");
@@ -1901,16 +1910,36 @@ async function confirmConsultantTime() {
   }
 }
 
-async function closeListing() {
-  const { error } = await supabase.from("listings").update({ status: "closed" }).eq("id", currentListing.id);
+// Locking stops new offers without touching this engagement. Completed
+// and removed listings are managed from the listing page instead.
+function renderLockListingBtn() {
+  const status = currentListing.status || "open";
+  lockListingBtn.textContent = status === "locked" ? "Unlock listing" : "Lock listing";
+  setBtnUnavailable(
+    lockListingBtn,
+    status !== "open" && status !== "locked",
+    "Manage completed or removed listings from the listing page.",
+  );
+}
+
+async function toggleListingLock() {
+  const nextStatus = currentListing.status === "locked" ? "open" : "locked";
+  const { error } = await supabase
+    .from("listings")
+    .update({ status: nextStatus, status_reason: null, status_reason_other: null })
+    .eq("id", currentListing.id);
   if (error) {
-    showError(error.message || "Could not close listing.");
+    showError(error.message || "Could not update listing.");
     return;
   }
-  currentListing.status = "closed";
-  listingStatusEl.textContent = "Closed";
-  setBtnUnavailable(closeListingBtn, true, "This listing is already closed.");
-  showSuccess("Opportunity closed. You can still manage this engagement here.");
+  currentListing.status = nextStatus;
+  listingStatusEl.textContent = capFirst(nextStatus);
+  renderLockListingBtn();
+  showSuccess(
+    nextStatus === "locked"
+      ? "Listing locked. It takes no new offers. Work already underway isn't affected."
+      : "Listing unlocked. It's taking offers again.",
+  );
 }
 
 // The payment the owner's review releases, if any. Phased contracts use the
@@ -1984,6 +2013,7 @@ async function submitReview() {
         cost_value: reviewRatings.cost_value,
         endorsement: endorsement || null,
       });
+      if (reviewStore === "remote") notifyEvent(supabase, "consultant_review", { bid_id: currentBid.id });
       scheduleState = await saveSchedule({
         ...(scheduleState || getDefaultSchedule()),
         status: "completed",
@@ -2529,7 +2559,7 @@ function bindReviewInteractions() {
 
   proposalDeclineBtn?.addEventListener("click", () => {
     const confirmed = window.confirm(
-      "Stay at proposal only? The consultant will be paid for their proposal work and the engagement closes here. You won't be charged the full service fee."
+      "Stay at proposal only? The consultant will be paid for their proposal work and the project closes here. You won't be charged the full service fee."
     );
     if (!confirmed) return;
     submitProposalDecision("declined");
@@ -2549,7 +2579,7 @@ function bindReviewInteractions() {
 
   refundBtn?.addEventListener("click", async () => {
     const confirmed = window.confirm(
-      "Refund this engagement? The funds will return to your payment method and the consultant will be notified. This cannot be undone."
+      "Refund this project? The funds will return to your payment method and the consultant will be notified. This cannot be undone."
     );
     if (!confirmed) return;
     refundBtn.disabled = true;
@@ -2638,7 +2668,7 @@ async function init() {
 
     if (sessionUserId === listing.owner_id) viewRole = "owner";
     else if (sessionUserId === bid.consultant_id) viewRole = "consultant";
-    else throw new Error("You do not have access to this engagement.");
+    else throw new Error("You do not have access to this project.");
 
     scheduleState = (await loadSchedule(bidId)) || getDefaultSchedule();
     reviewState = await loadReview(bidId);
@@ -2701,8 +2731,8 @@ confirmTimeBtn.addEventListener("click", async () => {
 // just updates the working value used by saveOwnerAvailability — no
 // re-render needed.
 
-closeListingBtn.addEventListener("click", async () => {
-  await closeListing();
+lockListingBtn.addEventListener("click", async () => {
+  await toggleListingLock();
 });
 
 // Capture-phase delegate that intercepts clicks on any owner-action

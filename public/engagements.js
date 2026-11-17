@@ -46,7 +46,7 @@ async function loadEngagements(client, userId) {
   // All accepted bids for this consultant — these are the engagements.
   const { data: bids, error: bidsErr } = await client
     .from("bids")
-    .select("id, listing_id, consultant_id, amount_cents, status, accepted_at, proposal_due_at, proposal_path, created_at")
+    .select("id, listing_id, consultant_id, amount_cents, status, payment_status, released_at, accepted_at, proposal_due_at, proposal_path, created_at")
     .eq("consultant_id", userId)
     .eq("status", "accepted")
     .order("accepted_at", { ascending: false });
@@ -106,12 +106,27 @@ async function loadEngagements(client, userId) {
 // the consultant can take from this page directly.
 function engagementState(eng) {
   const { bid, listing, schedule } = eng;
-  const listingClosed = listing?.status === "closed";
   const scheduleStatus = schedule?.status || null;
+  // Paid out (or the listing auto-completed on release) means the work
+  // is done, whatever the kickoff schedule row still says. Checked
+  // first so a stale "awaiting_consultant" row can't nag about kickoff.
+  const finished =
+    bid.payment_status === "released" || listing?.status === "completed";
 
-  // Past: review submitted (schedule completed) OR listing closed. The
-  // listing-closed case keeps closed-but-unreviewed work in "past" so it
-  // doesn't clutter the current list with stalled engagements.
+  // Past: review submitted (schedule completed), payment settled, or the
+  // listing completed. Locking or removing a listing never ends an
+  // engagement on its own — accepted work stays current until it's done.
+  if (finished) {
+    return {
+      bucket: "past",
+      label: "Completed",
+      pill: "completed",
+      action: null,
+      summary: bid.released_at
+        ? `Paid out ${fmtDate(bid.released_at)}`
+        : `Accepted ${fmtDate(bid.accepted_at)}`,
+    };
+  }
   if (scheduleStatus === "completed") {
     return {
       bucket: "past",
@@ -123,11 +138,20 @@ function engagementState(eng) {
         : `Accepted ${fmtDate(bid.accepted_at)}`,
     };
   }
-  if (listingClosed) {
+  if (bid.payment_status === "refunded") {
     return {
       bucket: "past",
-      label: "Closed",
+      label: "Refunded",
       pill: "muted",
+      action: null,
+      summary: `Accepted ${fmtDate(bid.accepted_at)}`,
+    };
+  }
+  if (bid.payment_status === "released" || listing?.status === "completed") {
+    return {
+      bucket: "past",
+      label: "Completed",
+      pill: "completed",
       action: null,
       summary: `Accepted ${fmtDate(bid.accepted_at)}`,
     };
@@ -205,7 +229,7 @@ function renderActions(client, actionables) {
           <span class="eng-action__avatar cdash__eng-avatar gr-avatar">${avatar}</span>
           <div class="eng-action__meta">
             <span class="eng-action__title">${escape(state.action.title)}</span>
-            <span class="eng-action__sub">${escape(eng.counterpart)} · ${escape(eng.listing?.title || "engagement")}</span>
+            <span class="eng-action__sub">${escape(eng.counterpart)} · ${escape(eng.listing?.title || "project")}</span>
             <p class="eng-action__copy">${escape(state.action.copy)}</p>
           </div>
           <a class="gr-btn gr-btn--primary gr-btn--sm eng-action__cta" href="${escape(state.action.href)}">${escape(state.action.cta)} →</a>
@@ -223,8 +247,8 @@ function renderList(client, rows, view) {
     empty.hidden = false;
     empty.textContent =
       view === "past"
-        ? "No past engagements yet. Once work wraps up, completed engagements will live here."
-        : "No active engagements right now. Accepted offers will show up here.";
+        ? "No past projects yet. Once work wraps up, completed projects will live here."
+        : "No active projects right now. Accepted offers will show up here.";
     return;
   }
   empty.hidden = true;
@@ -239,7 +263,7 @@ function renderList(client, rows, view) {
           <span class="cdash__eng-avatar gr-avatar">${avatar}</span>
           <div class="cdash__eng-meta eng-row__meta">
             <span class="cdash__eng-biz">${escape(eng.counterpart)}</span>
-            <span class="cdash__eng-title">${escape(eng.listing?.title || "engagement")}</span>
+            <span class="cdash__eng-title">${escape(eng.listing?.title || "project")}</span>
             <span class="eng-row__sub">${escape(state.summary)}</span>
           </div>
           <span class="gr-pill gr-pill--${escape(state.pill)} gr-pill--no-dot eng-row__pill">${escape(state.label)}</span>
@@ -256,7 +280,7 @@ function updateCount(rows, view) {
   if (!el) return;
   const n = rows.length;
   const label = view === "past" ? "past" : "active";
-  el.textContent = `${n} ${label} engagement${n === 1 ? "" : "s"}`;
+  el.textContent = `${n} ${label} project${n === 1 ? "" : "s"}`;
 }
 
 /* ============================================================== */
@@ -372,7 +396,7 @@ async function init() {
 
     if (profile?.role !== "consultant") {
       // Owners don't have an "engagements" surface in this iteration.
-      gate.textContent = "Engagements is a consultant-only view for now.";
+      gate.textContent = "This page is for consultants only for now.";
       gate.className = "gr-status";
       return;
     }
@@ -411,7 +435,7 @@ async function init() {
     window.addEventListener("popstate", () => applyView(readViewFromUrl()));
   } catch (err) {
     console.error("engagements load failed", err);
-    gate.textContent = err?.message || "Could not load engagements.";
+    gate.textContent = err?.message || "Could not load projects.";
     gate.className = "gr-status error";
   }
 }

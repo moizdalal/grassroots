@@ -4,13 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,follow" />
-    <title>Grassroots — engagements</title>
+    <title>Grassroots — projects</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
-    <link rel="stylesheet" href="/grassroots.css" />
-    <link rel="stylesheet" href="/field-office.css" />
+    <link rel="stylesheet" href="/grassroots.css?v=2" />
+    <link rel="stylesheet" href="/field-office.css?v=2" />
     <link rel="stylesheet" href="/engagements.css" />
     <script src="/theme.js"></script>
     <script src="/cookie-banner.js" defer></script>
@@ -19,7 +19,7 @@
   <body class="gr-body gr-has-side-nav">
     <main class="gr-shell gr-shell--wide eng-shell">
       <div class="gr-page-intro">
-        <h1 class="gr-title">Engagements</h1>
+        <h1 class="gr-title">Projects</h1>
         <p class="gr-subtitle">Handle pending action items across active work, or revisit a past collaboration. Everything in one place.</p>
       </div>
 
@@ -27,14 +27,14 @@
 
       <div id="eng-shell" hidden>
         <div class="eng-toggle-row">
-          <div class="eng-toggle" role="tablist" aria-label="Filter engagements">
+          <div class="eng-toggle" role="tablist" aria-label="Filter projects">
             <span class="eng-toggle__indicator" aria-hidden="true"></span>
             <button type="button" class="eng-toggle__btn is-active" data-view="current" role="tab" aria-selected="true">
-              <span class="eng-toggle__base">Current</span><span class="eng-toggle__suffix">&nbsp;engagements</span>
+              <span class="eng-toggle__base">Current</span><span class="eng-toggle__suffix">&nbsp;projects</span>
             </button>
             <span class="eng-toggle__divider" aria-hidden="true">/</span>
             <button type="button" class="eng-toggle__btn" data-view="past" role="tab" aria-selected="false">
-              <span class="eng-toggle__base">Past</span><span class="eng-toggle__suffix">&nbsp;engagements</span>
+              <span class="eng-toggle__base">Past</span><span class="eng-toggle__suffix">&nbsp;projects</span>
             </button>
           </div>
           <span class="eng-count" id="eng-count" aria-live="polite"></span>
@@ -48,7 +48,7 @@
           <div class="eng-actions__list" id="eng-actions-list"></div>
         </section>
 
-        <section class="eng-list-section" aria-label="Engagements list">
+        <section class="eng-list-section" aria-label="Projects list">
           <div class="eng-list" id="eng-list"></div>
           <p id="eng-empty" class="gr-empty-state" hidden></p>
         </section>

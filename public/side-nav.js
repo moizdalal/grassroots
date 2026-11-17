@@ -6,6 +6,7 @@
 // dashboard injects its own from the loaded data).
 
 import { getInitials } from "/initials.js";
+import "/mobile-nav.js";
 
 const COLLAPSE_KEY = "grassroots_dash_sidebar_collapsed";
 const ENG_SUBNAV_KEY = "grassroots_side_engagements_open";
@@ -23,6 +24,8 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/></svg>',
   payouts:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-1"/><path d="M16 12a2 2 0 0 0 0 4h5v-4z"/></svg>',
+  training:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10 12 5l10 5-10 5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg>',
   notifications:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
   chevron:
@@ -53,17 +56,18 @@ function buildNavItems(role) {
     return [
       { href: "/consultant-dashboard.html", label: "Home", icon: ICONS.home, navId: "home" },
       { href: "/marketplace.html", label: "Marketplace", icon: ICONS.marketplace, navId: "marketplace" },
-      { href: "/engagements.html", label: "Engagements", icon: ICONS.engagements, navId: "engagements" },
+      { href: "/engagements.html", label: "Projects", icon: ICONS.engagements, navId: "engagements" },
       { href: "/inbox.html", label: "Inbox", icon: ICONS.inbox, navId: "inbox" },
       { href: "/notifications.html", label: "Notifications", icon: ICONS.notifications, navId: "notifications" },
       { href: "/payouts.html", label: "Payouts", icon: ICONS.payouts, navId: "payouts" },
+      { href: "/training.html", label: "Training", icon: ICONS.training, navId: "training" },
     ];
   }
   // Default to the owner layout. This is also what unauthenticated visitors
   // see, but the sidebar's user card / logout will be hidden in that case.
   return [
     { href: "/dashboard.html", label: "Home", icon: ICONS.home, navId: "home" },
-    { href: "/dashboard.html#listings", label: "My listings", icon: ICONS.listings, navId: "listings" },
+    { href: "/dashboard.html#listings", label: "My projects", icon: ICONS.listings, navId: "listings" },
     { href: "/inbox.html", label: "Inbox", icon: ICONS.inbox, navId: "inbox" },
     { href: "/notifications.html", label: "Notifications", icon: ICONS.notifications, navId: "notifications" },
   ];
@@ -86,6 +90,7 @@ function inferActiveNavId(role) {
   if (path === "/marketplace.html") return role === "consultant" ? "marketplace" : null;
   if (path === "/engagements.html") return "engagements";
   if (path === "/payouts.html") return role === "consultant" ? "payouts" : null;
+  if (path === "/training.html") return role === "consultant" ? "training" : null;
   if (path === "/notifications.html") return "notifications";
   if (path === "/inbox.html") return "inbox";
   if (path === "/settings.html") return "settings";
@@ -149,7 +154,7 @@ function renderSidebar({ role, activeNavId }) {
   const navItems = buildNavItems(role);
   const primary = navItems.map((it) => renderNavItem(it, activeNavId)).join("");
   const secondary = SECONDARY_NAV_ITEMS.map((it) => renderNavItem(it, activeNavId)).join("");
-  // Owners get a "post a listing" CTA pinned to the bottom of the
+  // Owners get a "post a project" CTA pinned to the bottom of the
   // sidebar, sitting just above the dark-mode toggle. `margin-top: auto`
   // on `.bza__post` (set in CSS) anchors it + everything below to the
   // bottom of the flex column.
@@ -157,9 +162,9 @@ function renderSidebar({ role, activeNavId }) {
     role === "consultant"
       ? ""
       : `
-      <a href="/create-listing.html" class="bza__post" id="gr-side-post" title="Post a listing">
+      <a href="/create-listing.html" class="bza__post" id="gr-side-post" title="Post a project">
         <span class="bza__nav-icon" aria-hidden="true">${ICONS.plus}</span>
-        <span class="bza__nav-label">Post a listing</span>
+        <span class="bza__nav-label">Post a project</span>
       </a>`;
   return `
     <aside class="bza__side" id="gr-side">
@@ -185,7 +190,7 @@ function renderSidebar({ role, activeNavId }) {
         <span class="bza__darkmode-switch" aria-hidden="true"></span>
       </label>
       <div class="bza__side-foot">
-        <a class="bza__user" id="gr-side-user" href="/settings.html#personal" title="Open profile settings">
+        <a class="bza__user" id="gr-side-user" href="/profile.html" title="Open your profile">
           <span class="bza__user-avatar" id="gr-side-user-avatar"></span>
           <span class="bza__user-meta">
             <span class="bza__user-name" id="gr-side-user-name">Your account</span>
@@ -201,20 +206,36 @@ function renderSidebar({ role, activeNavId }) {
   `;
 }
 
-async function loadProfile() {
+async function loadSession() {
   try {
     const { getSupabaseClient } = await import("/supabase-loader.js");
     const client = await getSupabaseClient();
     const { data: { session } } = await client.auth.getSession();
-    if (!session?.user) return { client, profile: null };
+    return { client, session: session || null };
+  } catch {
+    return { client: null, session: null };
+  }
+}
+
+async function loadProfile(client, session) {
+  if (!client || !session?.user) return null;
+  try {
+    // Reuse a profile row another script on this page already has in
+    // flight (settings.html shares one via my-profile-cache.js) instead
+    // of issuing a second `profiles` request.
+    const shared = window.__grMyProfileCache?.profile;
+    if (shared) {
+      const { row } = await shared;
+      if (row) return row;
+    }
     const { data: profile } = await client
       .from("profiles")
       .select("id, full_name, role, avatar_path")
       .eq("id", session.user.id)
       .single();
-    return { client, profile: profile || null };
+    return profile || null;
   } catch {
-    return { client: null, profile: null };
+    return null;
   }
 }
 
@@ -243,13 +264,23 @@ async function init() {
   // notifications, payouts) all lead to pages a guest can't access.
   // guest-nav.js renders a slim top bar instead; we just bail out
   // here so no side nav is injected at all.
+  //
+  // The guest flag lives in sessionStorage and was only cleared on the
+  // marketplace and listing pages. Someone who browsed as a guest and
+  // then signed up in the same tab kept the flag, so every page that
+  // relies on this injected nav (profile, settings, create-listing)
+  // rendered without one. A real session always wins: clear the stale
+  // flag and render the nav.
+  const { client, session } = await loadSession();
   try {
-    const { isGuest } = await import("/guest-mode.js");
-    if (isGuest()) return;
+    const { isGuest, clearGuestModeIfSignedIn } = await import("/guest-mode.js");
+    if (session?.user) clearGuestModeIfSignedIn(session);
+    else if (isGuest()) return;
   } catch (_) {
     // If the import fails for any reason fall through to the normal
     // render — a missing guest module shouldn't break the side nav.
   }
+  if (document.querySelector("aside.bza__side")) return;
 
   const main = document.querySelector("body > main");
   if (!main) return;
@@ -265,7 +296,7 @@ async function init() {
   // on first paint. Previously we rendered the owner layout synchronously
   // and mutated it for consultants, which caused both "marketplace" and
   // "my listings" to flash active for consultants on the marketplace page.
-  const { client, profile } = await loadProfile();
+  const profile = await loadProfile(client, session);
   const role = profile?.role || null;
   const activeNavId = inferActiveNavId(role);
   wrap.insertAdjacentHTML("afterbegin", renderSidebar({ role, activeNavId }));
@@ -371,8 +402,16 @@ function wireToggle() {
   edge?.addEventListener("dblclick", toggleCollapsed);
 }
 
+// Keep the loading cover up until the nav has wrapped <main> and drawn
+// itself (or decided not to), so the page never shows the re-layout.
+window.grLoader?.hold("side-nav");
+const runInit = () => {
+  init()
+    .catch(() => {})
+    .finally(() => window.grLoader?.release("side-nav"));
+};
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", init);
+  document.addEventListener("DOMContentLoaded", runInit);
 } else {
-  init();
+  runInit();
 }

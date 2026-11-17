@@ -1,0 +1,694 @@
+[
+{
+"name": "Accounting",
+"category": "Business"
+},
+{
+"name": "Actuarial Science",
+"category": "Business"
+},
+{
+"name": "Advertising and Public Relations",
+"category": "Communications & Journalism"
+},
+{
+"name": "Aerospace Engineering",
+"category": "Engineering"
+},
+{
+"name": "Agricultural Economics",
+"category": "Agriculture & Natural Resources"
+},
+{
+"name": "Agriculture Production and Management",
+"category": "Agriculture & Natural Resources"
+},
+{
+"name": "Animal Sciences",
+"category": "Agriculture & Natural Resources"
+},
+{
+"name": "Anthropology and Archeology",
+"category": "Humanities & Liberal Arts"
+},
+{
+"name": "Applied Mathematics",
+"category": "Computers & Mathematics"
+},
+{
+"name": "Architectural Engineering",
+"category": "Engineering"
+},
+{
+"name": "Architecture",
+"category": "Engineering"
+},
+{
+"name": "Area Ethnic and Civilization Studies",
+"category": "Humanities & Liberal Arts"
+},
+{
+"name": "Art History and Criticism",
+"category": "Humanities & Liberal Arts"
+},
+{
+"name": "Art and Music Education",
+"category": "Education"
+},
+{
+"name": "Astronomy and Astrophysics",
+"category": "Physical Sciences"
+},
+{
+"name": "Atmospheric Sciences and Meteorology",
+"category": "Physical Sciences"
+},
+{
+"name": "Biochemical Sciences",
+"category": "Biology & Life Science"
+},
+{
+"name": "Biological Engineering",
+"category": "Engineering"
+},
+{
+"name": "Biology",
+"category": "Biology & Life Science"
+},
+{
+"name": "Biomedical Engineering",
+"category": "Engineering"
+},
+{
+"name": "Botany",
+"category": "Biology & Life Science"
+},
+{
+"name": "Business Economics",
+"category": "Business"
+},
+{
+"name": "Business Management and Administration",
+"category": "Business"
+},
+{
+"name": "Chemical Engineering",
+"category": "Engineering"
+},
+{
+"name": "Chemistry",
+"category": "Physical Sciences"
+},
+{
+"name": "Civil Engineering",
+"category": "Engineering"
+},
+{
+"name": "Clinical Psychology",
+"category": "Psychology & Social Work"
+},
+{
+"name": "Cognitive Science and Biopsychology",
+"category": "Biology & Life Science"
+},
+{
+"name": "Commercial Art and Graphic Design",
+"category": "Arts"
+},
+{
+"name": "Communication Disorders Sciences and Services",
+"category": "Health"
+},
+{
+"name": "Communication Technologies",
+"category": "Computers & Mathematics"
+},
+{
+"name": "Communications",
+"category": "Communications & Journalism"
+},
+{
+"name": "Community and Public Health",
+"category": "Health"
+},
+{
+"name": "Composition and Rhetoric",
+"category": "Humanities & Liberal Arts"
+},
+{
+"name": "Computer Administration Management and Security",
+"category": "Computers & Mathematics"
+},
+{
+"name": "Computer Engineering",
+"category": "Engineering"
+},
+{
+"name": "Computer Networking and Telecommunications",
+"category": "Computers & Mathematics"
+},
+{
+"name": "Computer Programming and Data Processing",
+"category": "Computers & Mathematics"
+},
+{
+"name": "Computer Science",
+"category": "Computers & Mathematics"
+},
+{
+"name": "Computer and Information Systems",
+"category": "Computers & Mathematics"
+},
+{
+"name": "Construction Services",
+"category": "Industrial Arts & Consumer Services"
+},
+{
+"name": "Cosmetology Services and Culinary Arts",
+"category": "Industrial Arts & Consumer Services"
+},
+{
+"name": "Counseling Psychology",
+"category": "Psychology & Social Work"
+},
+{
+"name": "Court Reporting",
+"category": "Law & Public Policy"
+},
+{
+"name": "Criminal Justice and Fire Protection",
+"category": "Law & Public Policy"
+},
+{
+"name": "Criminology",
+"category": "Social Science"
+},
+{
+"name": "Drama and Theater Arts",
+"category": "Arts"
+},
+{
+"name": "Early Childhood Education",
+"category": "Education"
+},
+{
+"name": "Ecology",
+"category": "Biology & Life Science"
+},
+{
+"name": "Economics",
+"category": "Social Science"
+},
+{
+"name": "Educational Administration and Supervision",
+"category": "Education"
+},
+{
+"name": "Educational Psychology",
+"category": "Psychology & Social Work"
+},
+{
+"name": "Electrical Engineering",
+"category": "Engineering"
+},
+{
+"name": "Electrical Engineering Technology",
+"category": "Engineering"
+},
+{
+"name": "Electrical, Mechanical, and Precision Technologies and Production",
+"category": "Industrial Arts & Consumer Services"
+},
+{
+"name": "Elementary Education",
+"category": "Education"
+},
+{
+"name": "Engineering Mechanics Physics and Science",
+"category": "Engineering"
+},
+{
+"name": "Engineering Technologies",
+"category": "Engineering"
+},
+{
+"name": "Engineering and Industrial Management",
+"category": "Engineering"
+},
+{
+"name": "English Language and Literature",
+"category": "Humanities & Liberal Arts"
+},
+{
+"name": "Environmental Engineering",
+"category": "Engineering"
+},
+{
+"name": "Environmental Science",
+"category": "Biology & Life Science"
+},
+{
+"name": "Family and Consumer Sciences",
+"category": "Industrial Arts & Consumer Services"
+},
+{
+"name": "Film Video and Photographic Arts",
+"category": "Arts"
+},
+{
+"name": "Finance",
+"category": "Business"
+},
+{
+"name": "Fine Arts",
+"category": "Arts"
+},
+{
+"name": "Food Science",
+"category": "Agriculture & Natural Resources"
+},
+{
+"name": "Forestry",
+"category": "Agriculture & Natural Resources"
+},
+{
+"name": "French German Latin and Other Common Foreign Language Studies",
+"category": "Humanities & Liberal Arts"
+},
+{
+"name": "General Agriculture",
+"category": "Agriculture & Natural Resources"
+},
+{
+"name": "General Business",
+"category": "Business"
+},
+{
+"name": "General Education",
+"category": "Education"
+},
+{
+"name": "General Engineering",
+"category": "Engineering"
+},
+{
+"name": "General Medical and Health Services",
+"category": "Health"
+},
+{
+"name": "General Social Sciences",
+"category": "Social Science"
+},
+{
+"name": "Genetics",
+"category": "Biology & Life Science"
+},
+{
+"name": "Geography",
+"category": "Social Science"
+},
+{
+"name": "Geological and Geophysical Engineering",
+"category": "Engineering"
+},
+{
+"name": "Geology and Earth Science",
+"category": "Physical Sciences"
+},
+{
+"name": "Geosciences",
+"category": "Physical Sciences"
+},
+{
+"name": "Health and Medical Administrative Services",
+"category": "Health"
+},
+{
+"name": "Health and Medical Preparatory Programs",
+"category": "Health"
+},
+{
+"name": "History",
+"category": "Humanities & Liberal Arts"
+},
+{
+"name": "Hospitality Management",
+"category": "Business"
+},
+{
+"name": "Human Resources and Personnel Management",
+"category": "Business"
+},
+{
+"name": "Human Services and Community Organization",
+"category": "Psychology & Social Work"
+},
+{
+"name": "Humanities",
+"category": "Humanities & Liberal Arts"
+},
+{
+"name": "Industrial Production Technologies",
+"category": "Engineering"
+},
+{
+"name": "Industrial and Manufacturing Engineering",
+"category": "Engineering"
+},
+{
+"name": "Industrial and Organizational Psychology",
+"category": "Psychology & Social Work"
+},
+{
+"name": "Information Sciences",
+"category": "Computers & Mathematics"
+},
+{
+"name": "Intercultural and International Studies",
+"category": "Humanities & Liberal Arts"
+},
+{
+"name": "Interdisciplinary Social Sciences",
+"category": "Social Science"
+},
+{
+"name": "International Business",
+"category": "Business"
+},
+{
+"name": "International Relations",
+"category": "Social Science"
+},
+{
+"name": "Journalism",
+"category": "Communications & Journalism"
+},
+{
+"name": "Language and Drama Education",
+"category": "Education"
+},
+{
+"name": "Liberal Arts",
+"category": "Humanities & Liberal Arts"
+},
+{
+"name": "Library Science",
+"category": "Education"
+},
+{
+"name": "Linguistics and Comparative Language and Literature",
+"category": "Humanities & Liberal Arts"
+},
+{
+"name": "Management Information Systems and Statistics",
+"category": "Business"
+},
+{
+"name": "Marketing and Marketing Research",
+"category": "Business"
+},
+{
+"name": "Mass Media",
+"category": "Communications & Journalism"
+},
+{
+"name": "Materials Engineering and Materials Science",
+"category": "Engineering"
+},
+{
+"name": "Materials Science",
+"category": "Engineering"
+},
+{
+"name": "Mathematics",
+"category": "Computers & Mathematics"
+},
+{
+"name": "Mathematics Teacher Education",
+"category": "Education"
+},
+{
+"name": "Mathematics and Computer Science",
+"category": "Computers & Mathematics"
+},
+{
+"name": "Mechanical Engineering",
+"category": "Engineering"
+},
+{
+"name": "Mechanical Engineering Related Technologies",
+"category": "Engineering"
+},
+{
+"name": "Medical Assisting Services",
+"category": "Health"
+},
+{
+"name": "Medical Technologies Technicians",
+"category": "Health"
+},
+{
+"name": "Metallurgical Engineering",
+"category": "Engineering"
+},
+{
+"name": "Microbiology",
+"category": "Biology & Life Science"
+},
+{
+"name": "Military Technologies",
+"category": "Industrial Arts & Consumer Services"
+},
+{
+"name": "Mining and Mineral Engineering",
+"category": "Engineering"
+},
+{
+"name": "Miscellaneous Agriculture",
+"category": "Agriculture & Natural Resources"
+},
+{
+"name": "Miscellaneous Biology",
+"category": "Biology & Life Science"
+},
+{
+"name": "Miscellaneous Business & Medical Administration",
+"category": "Business"
+},
+{
+"name": "Miscellaneous Education",
+"category": "Education"
+},
+{
+"name": "Miscellaneous Engineering",
+"category": "Engineering"
+},
+{
+"name": "Miscellaneous Engineering Technologies",
+"category": "Engineering"
+},
+{
+"name": "Miscellaneous Fine Arts",
+"category": "Arts"
+},
+{
+"name": "Miscellaneous Health Medical Professions",
+"category": "Health"
+},
+{
+"name": "Miscellaneous Psychology",
+"category": "Psychology & Social Work"
+},
+{
+"name": "Miscellaneous Social Sciences",
+"category": "Social Science"
+},
+{
+"name": "Molecular Biology",
+"category": "Biology & Life Science"
+},
+{
+"name": "Multi-Disciplinary or General Science",
+"category": "Physical Sciences"
+},
+{
+"name": "Multi/Interdisciplinary Studies",
+"category": "Interdisciplinary"
+},
+{
+"name": "Music",
+"category": "Arts"
+},
+{
+"name": "Natural Resources Management",
+"category": "Agriculture & Natural Resources"
+},
+{
+"name": "Naval Architecture and Marine Engineering",
+"category": "Engineering"
+},
+{
+"name": "Neuroscience",
+"category": "Biology & Life Science"
+},
+{
+"name": "Nuclear Engineering",
+"category": "Engineering"
+},
+{
+"name": "Nuclear, Industrial Radiology, and Biological Technologies",
+"category": "Physical Sciences"
+},
+{
+"name": "Nursing",
+"category": "Health"
+},
+{
+"name": "Nutrition Sciences",
+"category": "Health"
+},
+{
+"name": "Oceanography",
+"category": "Physical Sciences"
+},
+{
+"name": "Operations Logistics and E-Commerce",
+"category": "Business"
+},
+{
+"name": "Other Foreign Languages",
+"category": "Humanities & Liberal Arts"
+},
+{
+"name": "Petroleum Engineering",
+"category": "Engineering"
+},
+{
+"name": "Pharmacology",
+"category": "Biology & Life Science"
+},
+{
+"name": "Pharmacy Pharmaceutical Sciences and Administration",
+"category": "Health"
+},
+{
+"name": "Philosophy and Religious Studies",
+"category": "Humanities & Liberal Arts"
+},
+{
+"name": "Physical Fitness Parks Recreation and Leisure",
+"category": "Industrial Arts & Consumer Services"
+},
+{
+"name": "Physical Sciences",
+"category": "Physical Sciences"
+},
+{
+"name": "Physical and Health Education Teaching",
+"category": "Education"
+},
+{
+"name": "Physics",
+"category": "Physical Sciences"
+},
+{
+"name": "Physiology",
+"category": "Biology & Life Science"
+},
+{
+"name": "Plant Science and Agronomy",
+"category": "Agriculture & Natural Resources"
+},
+{
+"name": "Political Science and Government",
+"category": "Social Science"
+},
+{
+"name": "Pre-Law and Legal Studies",
+"category": "Law & Public Policy"
+},
+{
+"name": "Psychology",
+"category": "Psychology & Social Work"
+},
+{
+"name": "Public Administration",
+"category": "Law & Public Policy"
+},
+{
+"name": "Public Policy",
+"category": "Law & Public Policy"
+},
+{
+"name": "School Student Counseling",
+"category": "Education"
+},
+{
+"name": "Science and Computer Teacher Education",
+"category": "Education"
+},
+{
+"name": "Secondary Teacher Education",
+"category": "Education"
+},
+{
+"name": "Social Psychology",
+"category": "Psychology & Social Work"
+},
+{
+"name": "Social Science or History Teacher Education",
+"category": "Education"
+},
+{
+"name": "Social Work",
+"category": "Psychology & Social Work"
+},
+{
+"name": "Sociology",
+"category": "Social Science"
+},
+{
+"name": "Soil Science",
+"category": "Agriculture & Natural Resources"
+},
+{
+"name": "Special Needs Education",
+"category": "Education"
+},
+{
+"name": "Statistics and Decision Science",
+"category": "Computers & Mathematics"
+},
+{
+"name": "Studio Arts",
+"category": "Arts"
+},
+{
+"name": "Teacher Education: Multiple Levels",
+"category": "Education"
+},
+{
+"name": "Theology and Religious Vocations",
+"category": "Humanities & Liberal Arts"
+},
+{
+"name": "Transportation Sciences and Technologies",
+"category": "Industrial Arts & Consumer Services"
+},
+{
+"name": "Treatment Therapy Professions",
+"category": "Health"
+},
+{
+"name": "United States History",
+"category": "Humanities & Liberal Arts"
+},
+{
+"name": "Visual and Performing Arts",
+"category": "Arts"
+},
+{
+"name": "Zoology",
+"category": "Biology & Life Science"
+}
+]

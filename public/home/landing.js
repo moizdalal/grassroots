@@ -8,19 +8,23 @@
 
   const reduced = window.matchMedia &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // Lite (phones, slow devices; set in index.html's <head>) skips the
+  // entrance effects too: each pending one held a will-change layer and
+  // a rect read on every scroll frame, and phones painted blank frames.
+  const still = reduced || document.documentElement.classList.contains("ld-lite");
 
   /* ── why-cards: rAF-driven entrance + soft scroll parallax.
      IntersectionObserver is unreliable in scaled iframes, so we
      check viewport intersection by scroll position. */
   const whyCards = [...document.querySelectorAll('[data-why]')];
   const whyState = whyCards.map(() => ({ entered: false, enteredAt: 0 }));
-  whyCards.forEach((c) => {
+  if (!still) whyCards.forEach((c) => {
     c.style.opacity = "0";
     c.style.transform = "translate3d(0, 28px, 0)";
     c.style.willChange = "transform, opacity";
   });
   function checkWhyEntry(now) {
-    if (!whyCards.length) return false;
+    if (still || !whyCards.length) return false;
     const vh = window.innerHeight;
     let any = false;
     whyCards.forEach((card, i) => {
@@ -56,7 +60,7 @@
      each .ld-reveal sets inline opacity:0/translateY(14px) on init,
      then animates to (1,0) on the first frame after its top enters
      the viewport bottom. lightweight; no observer required. */
-  const reduced2 = reduced;
+  const reduced2 = still;
   const revealEls = [...document.querySelectorAll(".ld-reveal")];
   if (!reduced2 && revealEls.length) {
     revealEls.forEach((el) => {
@@ -72,6 +76,9 @@
     let anyActive = false;
     revealEls.forEach((el, i) => {
       const st = revealState[i];
+      // Settled: skip before measuring. Every rect read here ran on every
+      // scroll frame for the life of the page.
+      if (st.enteredAt === -1) return;
       const r = el.getBoundingClientRect();
       if (!st.enteredAt && r.top < vh - vh * 0.08 && r.bottom > 0) {
         st.enteredAt = now;
@@ -95,27 +102,17 @@
     });
     return anyActive;
   }
-  const nav = document.getElementById("ld-nav");
-  const navProgress = document.getElementById("ld-nav-progress");
-  // The theme toggle is wired once in /home/nav.js. A second click handler here
-  // made each click flip the theme twice, so it never changed on the home page.
-  function updateNav() {
-    if (nav) nav.classList.toggle("is-scrolled", window.scrollY > 8);
-    if (navProgress) {
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      const p = max > 0 ? window.scrollY / max : 0;
-      navProgress.style.width = (p * 100).toFixed(2) + "%";
-    }
-  }
-  updateNav();
-  window.addEventListener("scroll", updateNav, { passive: true });
+  // The nav (theme toggle, .is-scrolled, progress hairline) is owned by
+  // /home/nav.js. Copies here doubled the per-scroll work on phones.
 
   /* ── vine progress — removed ───────────────────────────── */
 
   /* ── hero card parallax ─────────────────────────────────── */
   const heroCards = document.querySelectorAll(".ld-hero-card");
   function updateHeroParallax() {
-    if (reduced) return;
+    // Lite (phones, slow devices) keeps the hero still; each write here
+    // restyled every hero card on every scroll frame.
+    if (reduced || document.documentElement.classList.contains("ld-lite")) return;
     const y = window.scrollY;
     heroCards.forEach((c) => {
       const px = parseFloat(c.dataset.px || "0.1");
@@ -130,7 +127,7 @@
     el.dataset.counted = "1";
     const target = parseInt(el.dataset.counter, 10);
     if (Number.isNaN(target)) return;
-    if (reduced) { el.textContent = target; return; }
+    if (still) { el.textContent = target; return; }
     const start = performance.now();
     const duration = 1200;
     function frame(now) {
@@ -465,8 +462,11 @@
         </div>
       </a>
     `;
+    // The second copy only exists so the marquee loops seamlessly. Lite
+    // swipes instead of animating, so it gets one copy.
+    const lite = document.documentElement.classList.contains("ld-lite");
     peekTrack.innerHTML = listings.map(cardHTML).join("") +
-                          listings.map(cardHTML).join("");
+                          (lite ? "" : listings.map(cardHTML).join(""));
   }
 
   /* ── theme pill: sync with GrassrootsTheme and persist ── */
@@ -495,7 +495,6 @@
   let ticking = false;
   function onScrollFrame() {
     const now = performance.now();
-    updateNav();
     updateHeroParallax();
     updateStory();
     updateEscrow();

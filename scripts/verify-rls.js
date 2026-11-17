@@ -102,7 +102,7 @@ async function expectBlocked(name, query) {
 
   // ── S1: bid payment / lifecycle columns ──────────────────────
   for (const col of ["payment_status", "payment_intent_id", "paid_at", "released_at", "transfer_id",
-    "payment_amount_cents", "consultant_payout_cents", "platform_fee_cents", "accepted_at"]) {
+    "payment_amount_cents", "consultant_payout_cents", "platform_fee_cents", "business_fee_cents", "accepted_at"]) {
     await expectDenied(`owner writes bids.${col}`, owner.client.from("bids").update({ [col]: null }).eq("id", NIL));
     await expectDenied(`consultant writes bids.${col}`, consultant.client.from("bids").update({ [col]: null }).eq("id", NIL));
   }

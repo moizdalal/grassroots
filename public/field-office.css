@@ -139,6 +139,25 @@ body.gr-body {
   text-transform: none;
 }
 
+/* Light mode: the home page's soft peach and green wash on every other page.
+   Plain gradients on the body (the same approach as the home page's lite
+   mode), alternating warm and green down the page so each screen gets some.
+   The home page paints its own glows with .ld-page-bg, so it's skipped. */
+[data-theme="light"] body.gr-body:not(:has(.ld-page-bg)) {
+  --pg-warm: color-mix(in srgb, var(--fo-accent-warm) 30%, transparent);
+  --pg-green: color-mix(in srgb, var(--fo-accent) 18%, transparent);
+  background-color: var(--fo-bg);
+  background-image:
+    radial-gradient(circle 520px at 0 0, var(--pg-warm), transparent),
+    radial-gradient(circle 460px at 100% 1000px, var(--pg-green), transparent),
+    radial-gradient(circle 480px at 0 2100px, var(--pg-warm), transparent),
+    radial-gradient(circle 460px at 100% 3200px, var(--pg-green), transparent),
+    radial-gradient(circle 480px at 0 4300px, var(--pg-warm), transparent),
+    radial-gradient(circle 460px at 100% 5400px, var(--pg-green), transparent),
+    radial-gradient(circle 480px at 0 6500px, var(--pg-warm), transparent);
+  background-repeat: no-repeat;
+}
+
 body.gr-body * {
   text-transform: none;
 }
@@ -730,7 +749,7 @@ body.gr-body .gr-section-h {
 }
 
 /* ===== marketplace card v2 (2026-05-15) =====
-   Scoped to `:where(#listing-grid, #dash-listings-cards)` so other surfaces that still render the
+   Scoped to `:where(#listing-grid, #dash-listings-cards, #fs-mk-grid)` so other surfaces that still render the
    older `.gr-listing-card` markup (consultant dashboard's recommended
    cards) keep their previous look until they're updated. Move this
    scope off when those surfaces adopt the new markup.
@@ -738,12 +757,16 @@ body.gr-body .gr-section-h {
    Title-dominant layout: recency eyebrow (right-aligned) → big
    serif title → identity row (96px avatar tile + tags band) → foot
    (biz name on top, budget + contract on left + view CTA on right). */
-:where(#listing-grid, #dash-listings-cards) .gr-listing-card {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-card {
   background: var(--fo-surface);
   border: 1px solid var(--fo-line);
   border-radius: 18px;
   padding: 1.5rem;
   display: grid;
+  /* minmax(0, 1fr) keeps the column at the card's width. With the
+     implicit auto column, a long business name grew it past the
+     card edge and the content spilled into the next card. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 1fr auto;
   gap: 1rem;
   text-decoration: none;
@@ -759,11 +782,11 @@ body.gr-body .gr-section-h {
    outline per brandkit. The light theme fill above stays because
    light-theme page bg is brighter than the surface and needs
    contrast to register the card as a separate plane. */
-:root:not([data-theme="light"]) :where(#listing-grid, #dash-listings-cards) .gr-listing-card {
+:root:not([data-theme="light"]) :where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-card {
   background: transparent;
 }
 
-:where(#listing-grid, #dash-listings-cards) .gr-listing-card:hover {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-card:hover {
   border-color: var(--fo-accent);
   transform: translateY(-2px);
   box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22);
@@ -772,7 +795,7 @@ body.gr-body .gr-section-h {
 /* Eyebrow ─ recency floats OUTSIDE the card outline, above the top
    border. Absolutely positioned so it doesn't take a card row; the
    track has matching top padding to make room. Right-aligned. */
-:where(#listing-grid, #dash-listings-cards) .gr-listing-card-eyebrow {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-card-eyebrow {
   position: absolute;
   top: -1.4rem;
   right: 0;
@@ -785,11 +808,28 @@ body.gr-body .gr-section-h {
   gap: 0.5rem;
   pointer-events: none;
 }
-:where(#listing-grid, #dash-listings-cards) .gr-listing-card-eyebrow > * {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-card-eyebrow > * {
   pointer-events: auto;
 }
 
-:where(#listing-grid, #dash-listings-cards) .gr-listing-recency {
+/* Marketplace: tuck the recency label inside the card's top-right
+   corner instead of floating it above the border, where it read as
+   detached from its card. The card's top padding grows to clear it,
+   and the track no longer needs headroom for it. */
+#listing-grid .gr-listing-card {
+  padding-top: 2.1rem;
+}
+
+#listing-grid .gr-listing-card-eyebrow {
+  top: 0.95rem;
+  right: 1.25rem;
+}
+
+#listing-grid .gr-marketplace-section__track {
+  padding-top: 0.5rem;
+}
+
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-recency {
   font-family: var(--font-body);
   font-size: var(--type-eyebrow);
   font-weight: 700;
@@ -800,7 +840,7 @@ body.gr-body .gr-section-h {
   pointer-events: none;
 }
 
-:where(#listing-grid, #dash-listings-cards) .gr-listing-recency::before {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-recency::before {
   content: "";
   display: inline-block;
   width: 6px;
@@ -811,15 +851,43 @@ body.gr-body .gr-section-h {
   vertical-align: 1px;
 }
 
-:where(#listing-grid, #dash-listings-cards) .gr-listing-recency--stale::before {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-recency--stale::before {
   background: var(--fo-text-3);
+}
+
+/* Locked listings stay public but take no new offers. Warm accent marks
+   them as not-actionable without reading as an error. */
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-recency--locked {
+  color: var(--fo-accent-warm);
+}
+
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-recency--locked::before {
+  background: var(--fo-accent-warm);
+}
+
+/* "Sample" pill on example listings (marketplace.js SAMPLE_OWNER_IDS).
+   Takes the recency slot, one step larger than eyebrow type so it
+   reads at a glance. The pill is taller than the recency text, so
+   sample cards get extra top padding to keep it clear of the title.
+   Solid accent fill with --fo-accent-on text, like the trust badges:
+   accent text on --fo-accent-soft was too low-contrast on dark cards. */
+#listing-grid .gr-listing-card--sample {
+  padding-top: 3.2rem;
+}
+
+#listing-grid .gr-listing-sample {
+  font-size: var(--type-meta);
+  letter-spacing: 0.02em;
+  padding: 0.3rem 0.75rem;
+  background: var(--fo-accent);
+  color: var(--fo-accent-on);
 }
 
 /* Title ─ one tranche below the original v2 mockup. Uses the
    `--type-h1` token (section-H1 scale) so the card title stays
    token-aligned with the rest of the system. 2-line clamp keeps the
    card height bounded for sentence-length titles. */
-:where(#listing-grid, #dash-listings-cards) .gr-listing-title {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-title {
   font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--type-h2);
@@ -839,7 +907,7 @@ body.gr-body .gr-section-h {
 /* Identity row ─ 96px avatar tile | meta stack (biz / budget /
    contract). Meta sits to the right of the avatar so the visual
    identity (tile) and textual identity (name + money) share a band. */
-:where(#listing-grid, #dash-listings-cards) .gr-listing-card-head {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-card-head {
   display: grid;
   grid-template-columns: 96px minmax(0, 1fr);
   gap: 1rem;
@@ -848,7 +916,7 @@ body.gr-body .gr-section-h {
   border-bottom: 0;
 }
 
-:where(#listing-grid, #dash-listings-cards) .gr-listing-logo-wrap {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-logo-wrap {
   display: inline-flex;
   flex-shrink: 0;
   position: relative;
@@ -857,8 +925,8 @@ body.gr-body .gr-section-h {
   border-right: 0;
 }
 
-:where(#listing-grid, #dash-listings-cards) .gr-listing-logo,
-:where(#listing-grid, #dash-listings-cards) .gr-listing-logo-placeholder {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-logo,
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-logo-placeholder {
   width: 96px;
   height: 96px;
   border-radius: 18px;
@@ -876,44 +944,48 @@ body.gr-body .gr-section-h {
   font-style: normal;
 }
 
-:where(#listing-grid, #dash-listings-cards) .gr-listing-logo {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-logo {
   object-fit: cover;
   background: var(--fo-surface-2);
 }
 
-:where(#listing-grid, #dash-listings-cards) .gr-listing-logo-placeholder {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-logo-placeholder {
   background: var(--fo-accent-soft);
   color: var(--fo-accent);
   text-transform: uppercase;
 }
 
-:where(#listing-grid, #dash-listings-cards) .gr-listing-card-meta {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-card-meta {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
   min-width: 0;
 }
 
-:where(#listing-grid, #dash-listings-cards) .gr-listing-biz-row {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-biz-row {
   display: flex;
   align-items: center;
   gap: 0.4rem;
   min-width: 0;
 }
 
-:where(#listing-grid, #dash-listings-cards) .gr-listing-biz-name {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-biz-name {
   margin: 0;
   font-family: var(--font-body);
   font-weight: 600;
   font-size: 0.95rem;
   color: var(--fo-text);
   letter-spacing: 0;
+  line-height: 1.25;
+  /* Two lines before clamping. One line cut most business names to a
+     single word at the 280px card width. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-:where(#listing-grid, #dash-listings-cards) .gr-listing-budget {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-budget {
   margin: 0;
   font-family: var(--font-display);
   font-size: 1.5rem;
@@ -926,7 +998,7 @@ body.gr-body .gr-section-h {
   font-style: normal;
 }
 
-:where(#listing-grid, #dash-listings-cards) .gr-listing-contract {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-contract {
   margin: 0;
   font-family: var(--font-body);
   font-size: 0.82rem;
@@ -937,7 +1009,7 @@ body.gr-body .gr-section-h {
 /* Foot ─ tags (left) | view CTA (right). The view CTA is the only
    meta affordance at this height; tags are filterable cues that read
    as "is this for me?" decoration. */
-:where(#listing-grid, #dash-listings-cards) .gr-listing-foot {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-foot {
   margin-top: 0.25rem;
   padding: 0;
   border-top: 0;
@@ -947,17 +1019,20 @@ body.gr-body .gr-section-h {
   gap: 1rem;
 }
 
-:where(#listing-grid, #dash-listings-cards) .gr-listing-tags {
+/* Tags that don't fit wrap to a second row, which the max-height
+   hides. A tag drops out whole instead of being cut mid-word. */
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-tags {
   display: flex;
-  flex-wrap: nowrap;
-  gap: 0.45rem;
+  flex-wrap: wrap;
+  gap: 1rem 0.45rem;
   align-items: center;
   margin: 0;
   min-width: 0;
+  max-height: 1.85rem;
   overflow: hidden;
 }
 
-:where(#listing-grid, #dash-listings-cards) .gr-listing-tag {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-tag {
   font-family: var(--font-body);
   font-size: 0.78rem;
   background: transparent;
@@ -972,12 +1047,12 @@ body.gr-body .gr-section-h {
   flex-shrink: 0;
 }
 
-:where(#listing-grid, #dash-listings-cards) .gr-listing-tag--more {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-tag--more {
   color: var(--fo-text-3);
   border-color: var(--fo-line);
 }
 
-:where(#listing-grid, #dash-listings-cards) .gr-listing-cta-link {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-cta-link {
   font-size: 0.82rem;
   color: var(--fo-text-2);
   font-family: var(--font-body);
@@ -986,7 +1061,7 @@ body.gr-body .gr-section-h {
   transition: color 0.18s ease, transform 0.18s ease;
 }
 
-:where(#listing-grid, #dash-listings-cards) .gr-listing-card:hover .gr-listing-cta-link {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-card:hover .gr-listing-cta-link {
   color: var(--fo-accent);
   transform: translateX(2px);
 }
@@ -994,7 +1069,7 @@ body.gr-body .gr-section-h {
 /* Summary text rendered inline so it sits in the DOM for crawlers /
    no-hover devices, but is hidden visually. The shared `.gr-listing-pop`
    element reads its content on hover. */
-:where(#listing-grid, #dash-listings-cards) .gr-listing-summary-pop {
+:where(#listing-grid, #dash-listings-cards, #fs-mk-grid) .gr-listing-summary-pop {
   display: none;
 }
 
@@ -1065,20 +1140,15 @@ body.gr-body .gr-section-h {
   }
 }
 
-/* Consultant stats panel — four metric cells in a responsive grid plus
-   a three-cell bid-pipeline strip at the foot. Sits between the
-   journey hero and the .cdash__below row. */
-.cdash-stats-panel { margin-top: 1.5rem; }
+/* Consultant offer stats — three metric cells in a responsive grid plus
+   a three-cell offer-pipeline strip at the foot. Lives in the
+   "your numbers" section on /profile.html. */
 
 .cdash-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   padding: 0.75rem 0.25rem 1rem;
-}
-
-@media (max-width: 880px) {
-  .cdash-stats { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 520px) {
@@ -1185,9 +1255,10 @@ body.gr-body .gr-section-h {
 .dash-view:has(#cdash-welcome) {
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  /* 4rem = .bza__main top + bottom padding (32px each). */
-  height: calc(100vh - 4rem);
+  /* 4rem = .bza__main top + bottom padding (32px each). A floor, not a
+     fixed height: once the stats panel joined the column, a locked
+     height squeezed the cards below into thin bars. */
+  min-height: calc(100vh - 4rem);
 }
 
 .dash-view:has(#cdash-welcome) > .bza__page-h,
@@ -1197,7 +1268,9 @@ body.gr-body .gr-section-h {
 
 .dash-view:has(#cdash-welcome) > .cdash__below {
   flex: 1 1 0;
-  min-height: 0;
+  /* Fills leftover viewport height, but never shrinks below a readable
+     card; past that the page scrolls instead. */
+  min-height: 22rem;
   /* Force the implicit row to honour the flex height instead of growing
      to the tallest column's natural content. minmax(0, 1fr) is the
      standard grid escape hatch for "don't let content set the floor". */
@@ -1215,7 +1288,13 @@ body.gr-body .gr-section-h {
    layout can scroll naturally. */
 @media (max-width: 960px) {
   .dash-view:has(#cdash-welcome) {
-    height: auto;
+    min-height: 0;
+  }
+
+  .dash-view:has(#cdash-welcome) > .cdash__below {
+    flex: 0 0 auto;
+    min-height: 0;
+    grid-template-rows: none;
   }
 }
 
@@ -1308,6 +1387,27 @@ body.gr-body .gr-section-h {
 [data-theme="light"] .cdash__notifications-section .gr-notification-card__icon {
   background: rgba(255, 255, 255, 0.16);
   color: var(--fo-accent-on);
+}
+
+/* Filter chips on the green panel: white outline, inverted when active. */
+[data-theme="light"] .cdash__notifications-section .gr-notif-filter {
+  border-color: rgba(255, 255, 255, 0.38);
+  color: rgba(255, 255, 255, 0.9);
+}
+[data-theme="light"] .cdash__notifications-section .gr-notif-filter:hover {
+  border-color: var(--fo-accent-on);
+  color: var(--fo-accent-on);
+}
+[data-theme="light"] .cdash__notifications-section .gr-notif-filter.is-active {
+  background: var(--fo-accent-on);
+  border-color: var(--fo-accent-on);
+  color: var(--fo-accent);
+}
+[data-theme="light"] .cdash__notifications-section .gr-notif-filter__count {
+  background: rgba(255, 255, 255, 0.18);
+}
+[data-theme="light"] .cdash__notifications-section .gr-notif-filter.is-active .gr-notif-filter__count {
+  background: var(--fo-accent-soft);
 }
 
 /* Empty-state copy ("no notifications yet…") also inherits white. */
@@ -1940,11 +2040,12 @@ body.gr-body .gr-section-h {
   color: var(--fo-text-3);
 }
 
-/* Listing controls — restrained, theme-coherent. Pause is reversible
-   (subtle outline). Close is destructive but communicated by placement
-   and a confirm dialog, not by a screaming red fill. */
-#ld-pause-listing-btn,
-#ld-close-listing-btn {
+/* Listing controls — restrained, theme-coherent. Lock is reversible
+   (subtle outline). Remove is heavier but communicated by placement
+   and a reason form, not by a screaming red fill. */
+#ld-lock-listing-btn,
+#ld-complete-listing-btn,
+#ld-unlist-listing-btn {
   background: transparent;
   border: 1px solid var(--fo-line-strong);
   color: var(--fo-text-2);
@@ -1952,17 +2053,18 @@ body.gr-body .gr-section-h {
   font-weight: 600;
 }
 
-#ld-pause-listing-btn:hover {
+#ld-lock-listing-btn:hover:not(:disabled),
+#ld-complete-listing-btn:hover:not(:disabled) {
   border-color: var(--fo-accent);
   color: var(--fo-accent);
   background: var(--fo-accent-soft);
   box-shadow: none;
 }
 
-#ld-close-listing-btn:hover {
+#ld-unlist-listing-btn:hover:not(:disabled) {
   border-color: var(--fo-accent-warm, #c46f44);
   color: var(--fo-accent-warm, #c46f44);
-  background: rgba(196, 111, 68, 0.08);
+  background: color-mix(in srgb, var(--fo-accent-warm) 8%, transparent);
   box-shadow: none;
 }
 
@@ -2085,7 +2187,7 @@ body.gr-body .gr-section-h {
 
 .ld-offer-msg-remove:hover {
   color: var(--fo-plan);
-  background: rgba(217, 119, 87, 0.1);
+  background: color-mix(in srgb, var(--fo-plan) 10%, transparent);
 }
 
 .ld-attachment-card {
@@ -2133,8 +2235,8 @@ body.gr-body .gr-section-h {
 }
 
 .ld-counter-banner {
-  background: rgba(232, 142, 90, 0.14);
-  border: 1px solid rgba(232, 142, 90, 0.3);
+  background: color-mix(in srgb, var(--fo-accent-warm) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fo-accent-warm) 30%, transparent);
 }
 
 .ld-counter-badge {
@@ -2700,6 +2802,31 @@ body.gr-body .gr-section-h {
   color: var(--fo-text);
 }
 
+/* Bio meta row (city · completed · joined · LinkedIn) — shared by the
+   listing consultant viewer and the settings preview-as-business modal. */
+.pf-bv__meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.35rem 0 0;
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+}
+
+.pf-bv__dot {
+  color: var(--fo-text-3);
+}
+
+.pf-bv__link {
+  color: var(--fo-accent);
+  text-decoration: none;
+}
+
+.pf-bv__link:hover {
+  text-decoration: underline;
+}
+
 .pf-bv__meta,
 .pf-bv__section-title,
 .pf-bv__portfolio-card__desc,
@@ -2743,7 +2870,7 @@ body.gr-body .gr-section-h {
 
 .pf-bv__resume-btn--danger:hover,
 .pf-bv__resume-btn--danger:focus-visible {
-  background: rgba(217, 119, 87, 0.12);
+  background: color-mix(in srgb, var(--fo-plan) 12%, transparent);
   color: var(--fo-plan);
   border-color: var(--fo-plan);
 }
@@ -4144,6 +4271,143 @@ body.gr-has-side-nav .bza__side {
   min-width: 0;
 }
 
+/* ── phone layout (≤ 768px) ────────────────────────────────────
+   mobile-nav.js injects .bza-mbar (brand + menu button) and a scrim.
+   The sidebar turns into an off-canvas drawer; content runs full
+   width with a 16px gutter. Hidden entirely above the breakpoint. */
+.bza-mbar,
+.bza-mbar__scrim {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .bza,
+  body.gr-has-side-nav .bza {
+    display: block;
+    min-height: 100vh;
+  }
+
+  .bza-mbar {
+    position: sticky;
+    top: 0;
+    z-index: 900;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    height: 56px;
+    padding: 0 16px;
+    background: var(--fo-surface);
+    border-bottom: 1px solid var(--fo-line);
+  }
+
+  .bza-mbar__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-display);
+    font-size: var(--type-h3);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--fo-text);
+    text-decoration: none;
+  }
+
+  .bza-mbar__brand img {
+    height: 22px;
+    width: auto;
+  }
+
+  .bza-mbar__toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-right: -8px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--fo-text);
+    cursor: pointer;
+  }
+
+  .bza-mbar__toggle:hover,
+  .bza-mbar__toggle:focus-visible {
+    background: var(--fo-surface-2);
+  }
+
+  .bza-mbar__toggle svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .bza__side,
+  body.gr-has-side-nav .bza__side {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 1000;
+    width: min(300px, 84vw);
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    border-radius: 0 24px 24px 0;
+    border-left: 0;
+    transform: translateX(-105%);
+    visibility: hidden;
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+                visibility 0s linear 0.28s;
+  }
+
+  .bza--nav-open .bza__side,
+  body.gr-has-side-nav .bza--nav-open .bza__side {
+    transform: none;
+    visibility: visible;
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .bza__side-toggle,
+  .bza__side-edge {
+    display: none;
+  }
+
+  .bza-mbar__scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    display: block;
+    background: rgba(8, 18, 14, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .bza--nav-open .bza-mbar__scrim {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  html.gr-nav-locked {
+    overflow: hidden;
+  }
+
+  .bza__main,
+  .bza__main.gr-shell {
+    padding: 1.25rem 16px 2.5rem;
+    width: auto;
+    max-width: none;
+  }
+}
+
+@media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+  .bza__side,
+  .bza-mbar__scrim {
+    transition: none;
+  }
+}
+
 .bza__page-h {
   display: flex;
   align-items: baseline;
@@ -4347,6 +4611,48 @@ body.gr-has-side-nav .bza__side {
   }
 }
 
+/* Profile-completion card in the owner home. The shared bucket panel is
+   ~345px tall at its default size, which is taller than the performance
+   block beside it and more than the viewport-locked column can hold on
+   shorter laptop screens, so it spilled out below the garden. Here it
+   gets a smaller bucket, tighter spacing and a capped summary so its
+   height stays close to its neighbour and no longer depends on how many
+   profile items are still missing. Scoped to the owner home only. */
+.dash-home-stats .bza__health {
+  gap: 0.6rem;
+}
+.dash-home-stats .bza__health-top {
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 0.9rem;
+  padding: 0 0 0.7rem;
+}
+.dash-home-stats .bza__health-bucket {
+  width: 92px;
+  height: 117px;
+}
+.dash-home-stats .bza__health-bucket-pct {
+  font-size: 1.7rem;
+}
+.dash-home-stats .bza__health-name {
+  font-size: var(--type-h3);
+}
+.dash-home-stats .bza__health-eyebrow {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+.dash-home-stats .bza__health-cta {
+  margin-bottom: 0;
+  padding: 0.5rem 0.8rem;
+}
+@media (max-width: 540px) {
+  .dash-home-stats .bza__health-top {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Listings panel — header sticks at the top, rows wrap scrolls.
    Flexes to take whatever vertical space remains in the column
    after the stats row claims its content height. The min-height
@@ -4399,21 +4705,62 @@ body.gr-has-side-nav .bza__side {
   overflow: hidden;
 }
 
+/* The no-scroll lock only works when the column can actually hold the
+   listings panel plus the stats row. When the stats stack into one
+   column (<= 1100px wide) or the window is short, release the lock and
+   let the page scroll instead of letting the cards spill out of the
+   column. Same rules the phone layout uses below. */
+@media (max-width: 1100px), (max-height: 700px) {
+  .dash-view--home:not([hidden]) {
+    height: auto;
+    min-height: calc(100vh - 4rem);
+  }
+  .dash-home-grid {
+    flex: 0 0 auto;
+  }
+  .dash-listings-panel {
+    flex: 0 0 auto;
+    min-height: 0;
+  }
+  .dash-listings-rows-wrap {
+    flex: 0 0 auto;
+  }
+}
+/* Above the phone breakpoint the list keeps its own scroll so a long
+   project list cannot stretch the page (and the garden beside it). */
+@media (min-width: 961px) and (max-width: 1100px), (min-width: 961px) and (max-height: 700px) {
+  .dash-listings-rows-wrap {
+    max-height: 22rem;
+  }
+}
+
 /* On narrow viewports the two columns stack and the page can scroll
    naturally — the no-scroll constraint only applies to desktop. */
 @media (max-width: 960px) {
-  .dash-view--home {
+  /* :not([hidden]) matches the specificity of the desktop lock above;
+     plain .dash-view--home lost to it, so phones kept a viewport-tall
+     view and the listings panel squeezed down to a single row. */
+  .dash-view--home:not([hidden]) {
     height: auto;
   }
   .dash-home-grid {
     grid-template-columns: 1fr;
+    flex: 0 0 auto;
   }
   .dash-listings-panel {
     flex: 0 0 auto;
-    min-height: 320px;
+    min-height: 0;
+  }
+  .dash-listings-rows-wrap {
+    flex: 0 0 auto;
+    overflow-y: visible;
   }
   #dash-garden {
     min-height: 420px;
+  }
+  .dash-page-h__side {
+    align-items: flex-start;
+    text-align: left;
   }
 }
 
@@ -5101,7 +5448,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__row-cta--complete {
-  background: rgba(232, 142, 90, 0.18);
+  background: color-mix(in srgb, var(--fo-accent-warm) 18%, transparent);
   color: var(--fo-accent-warm);
 }
 
@@ -5227,12 +5574,11 @@ body.gr-has-side-nav .bza__side {
   opacity: 0.85;
 }
 
-.bza__row-state--closed {
-  background: var(--fo-plan);
-  opacity: 0.6;
+.bza__row-state--unlisted {
+  background: var(--fo-line-strong);
 }
 
-.bza__row-state--paused {
+.bza__row-state--locked {
   background: var(--fo-do);
 }
 
@@ -5280,7 +5626,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__listing-type-pill--plan {
-  background: rgba(217, 119, 87, 0.16);
+  background: color-mix(in srgb, var(--fo-plan) 16%, transparent);
   color: var(--fo-plan);
 }
 
@@ -5304,12 +5650,12 @@ body.gr-has-side-nav .bza__side {
   color: var(--fo-text-2);
 }
 
-.bza__row-state-label--paused {
+.bza__row-state-label--locked {
   color: var(--fo-do);
 }
 
-.bza__row-state-label--closed {
-  color: var(--fo-plan);
+.bza__row-state-label--unlisted {
+  color: var(--fo-text-3);
 }
 
 .bza__row-state-label--draft {
@@ -5832,7 +6178,7 @@ body.gr-has-side-nav .bza__side {
 }
 
 .bza__health-stat:nth-child(2)::before {
-  background: linear-gradient(180deg, rgba(232, 142, 90, 0.12) 0%, transparent 70%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--fo-accent-warm) 12%, transparent) 0%, transparent 70%);
 }
 
 .bza__health-stat:nth-child(3)::before {
@@ -6530,9 +6876,15 @@ body.gr-has-side-nav .bza__side {
   }
 
   .bza__row-budget,
-  .bza__row-metric-block,
-  .bza__row-chev {
+  .bza__row-metric-block {
     grid-column: 2 / -1;
+    justify-self: start;
+  }
+
+  /* The whole row is the link; on a phone the lone chevron just
+     leaves an empty line under the budget. */
+  .bza__row-chev {
+    display: none;
   }
 }
 
@@ -6881,6 +7233,29 @@ body.gr-has-side-nav .bza__side {
 .settings-section__body--avatar .pf-file-label {
   flex: 1;
   min-width: 0;
+}
+
+/* The photo square doubles as the file picker. Reset button chrome,
+   keep the ring's border, and lift the border to accent on hover. */
+.pf-avatar-pick {
+  position: relative;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.pf-avatar-pick:hover {
+  border-color: var(--fo-accent);
+}
+.pf-avatar-pick:focus-visible {
+  outline: none;
+  border-color: var(--fo-accent);
+  box-shadow: 0 0 0 3px var(--fo-accent-soft);
+}
+/* Profile-completion header sits inside the flex-gapped health panel,
+   so the gap already spaces it from the bucket. */
+.bza__health > .bza__health-h {
+  margin-bottom: 0;
 }
 
 /* Avatar controls — file picker (empty state) or change/remove (has-avatar). */
@@ -8366,6 +8741,11 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
   justify-content: space-between;
   gap: var(--space-3);
   flex-wrap: wrap;
+}
+
+.pp-section__meta {
+  font-size: var(--type-meta);
+  color: var(--fo-text-3);
 }
 
 .pp-section__head h2 {

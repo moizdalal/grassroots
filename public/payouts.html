@@ -9,8 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
-    <link rel="stylesheet" href="/grassroots.css" />
-    <link rel="stylesheet" href="/field-office.css" />
+    <link rel="stylesheet" href="/grassroots.css?v=2" />
+    <link rel="stylesheet" href="/field-office.css?v=2" />
     <script src="/theme.js"></script>
     <script src="/cookie-banner.js" defer></script>
     <script src="/loading-overlay.js"></script>
@@ -21,7 +21,7 @@
 
       <div class="gr-page-intro">
         <h1 class="gr-title" id="po-page-title">Set up <span class="fo-title-italic">payouts</span></h1>
-        <p class="gr-subtitle" id="po-page-subtitle">Verify your identity so Grassroots can pay you when an engagement is marked complete.</p>
+        <p class="gr-subtitle" id="po-page-subtitle">Verify your identity so Grassroots can pay you when a project is marked complete.</p>
       </div>
 
       <p id="po-gate" class="gr-status" aria-live="polite">Loading…</p>
@@ -60,6 +60,17 @@
              "Add information" button is the first action the user
              sees once they land on a pending account. -->
         <section id="po-onboarding-section" hidden>
+          <!-- Reassurance sits right above Stripe's identity form. It is
+               click-to-reveal (see setupInfoPopover in payouts.js), so
+               the page stays quiet. Every claim in the popover was
+               checked against the code and Stripe's published docs:
+               keep it that way when editing the copy. -->
+          <button type="button" class="po-info" id="po-info-btn" aria-expanded="false" aria-controls="po-info-pop">
+            <span class="po-info__label">Why Stripe asks for your SSN</span>
+            <span class="po-info__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16.5"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>
+            </span>
+          </button>
           <div id="po-onboarding" class="po-onboarding"></div>
         </section>
 
@@ -148,12 +159,25 @@
           </section>
         </section>
       </div>
+
+      <!-- Popover for #po-info-btn. Fixed-position and clamped to the
+           window by payouts.js, so it is never clipped. -->
+      <div id="po-info-pop" class="po-info-pop" role="group" aria-label="Why Stripe asks for your SSN" hidden>
+        <p>Your SSN and bank details are held by Stripe, our payments provider. You type them into Stripe's secure form, so Grassroots never sees or stores your SSN or full bank account number.</p>
+        <p>Stripe is required to verify your identity before it can send you payouts. The same details are used for tax reporting.</p>
+        <p>Stripe encrypts this information, and its API never shows your SSN back to us.</p>
+        <p class="po-info-pop__links">
+          <a href="https://docs.stripe.com/security" target="_blank" rel="noopener noreferrer">How Stripe protects data</a>
+          <a href="/privacy">Our privacy policy</a>
+        </p>
+      </div>
     </main>
 
     <script type="module" src="/nav-session.js"></script>
     <script src="https://connect-js.stripe.com/v1.0/connect.js"></script>
     <script type="module" src="/payouts.js"></script>
     <script type="module" src="/side-nav.js"></script>
+    <script defer src="/onboarding-shim.js"></script>
     <script defer src="/perf-beacon.js"></script>
   </body>
 </html>

@@ -188,7 +188,7 @@ async function refreshStatus(client) {
       const pageTitle = $("po-page-title");
       const pageSub = $("po-page-subtitle");
       if (pageTitle) pageTitle.innerHTML = 'Your <span class="fo-title-italic">payouts</span>';
-      if (pageSub) pageSub.textContent = "Manage your bank, tax info, and recent transfers. Funds release to your account when engagements complete.";
+      if (pageSub) pageSub.textContent = "Manage your bank, tax info, and recent transfers. Funds release to your account when projects complete.";
       document.title = "Grassroots — your payouts";
       $("po-onboarding-section").hidden = true;
       $("po-active-section").hidden = false;
@@ -271,6 +271,62 @@ function setupCollapsibles() {
   });
 }
 
+// "Why Stripe asks for your SSN" popover. One trigger button, one
+// popover. The popover is `position: fixed` and clamped to the window so
+// it can't be clipped; it opens below the button and flips above when
+// there isn't room. Closes on Escape, outside click, or a second click.
+function setupInfoPopover() {
+  const btn = $("po-info-btn");
+  const pop = $("po-info-pop");
+  if (!btn || !pop) return;
+  const GAP = 8;
+  const EDGE = 12;
+
+  const position = () => {
+    const r = btn.getBoundingClientRect();
+    const pw = pop.offsetWidth;
+    const ph = pop.offsetHeight;
+    const vw = document.documentElement.clientWidth;
+    const vh = window.innerHeight;
+    const left = Math.max(EDGE, Math.min(r.left, vw - pw - EDGE));
+    const fitsBelow = vh - r.bottom >= ph + GAP + EDGE;
+    const fitsAbove = r.top >= ph + GAP + EDGE;
+    let top = fitsBelow || !fitsAbove ? r.bottom + GAP : r.top - ph - GAP;
+    top = Math.max(EDGE, Math.min(top, vh - ph - EDGE));
+    pop.style.left = `${Math.round(left)}px`;
+    pop.style.top = `${Math.round(top)}px`;
+  };
+  const isOpen = () => !pop.hidden;
+  const open = () => {
+    pop.hidden = false;
+    btn.setAttribute("aria-expanded", "true");
+    position();
+  };
+  const close = ({ refocus = false } = {}) => {
+    if (!isOpen()) return;
+    pop.hidden = true;
+    btn.setAttribute("aria-expanded", "false");
+    if (refocus) btn.focus();
+  };
+
+  btn.addEventListener("click", () => (isOpen() ? close() : open()));
+  document.addEventListener("click", (event) => {
+    if (!isOpen()) return;
+    if (btn.contains(event.target) || pop.contains(event.target)) return;
+    close();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !isOpen()) return;
+    // Hand focus back to the button if it was on the button or inside the popover.
+    close({ refocus: pop.contains(document.activeElement) || document.activeElement === btn });
+  });
+  // Clicks inside Stripe's iframe never reach this document; losing
+  // window focus to the iframe is the only signal we get.
+  window.addEventListener("blur", () => close());
+  window.addEventListener("resize", () => { if (isOpen()) position(); });
+  window.addEventListener("scroll", () => { if (isOpen()) position(); }, { passive: true, capture: true });
+}
+
 function startPolling(client) {
   if (pollInterval) return;
   pollInterval = setInterval(() => refreshStatus(client), 8000);
@@ -282,6 +338,9 @@ function stopPolling() {
 function mountAccountManagement() {
   if (mountedComponents.management || !stripeConnect) return;
   const mgmt = stripeConnect.create("account-management");
+  // Same one-pass rule as onboarding: when a student edits their
+  // details, also ask for anything Stripe will need later.
+  mgmt.setCollectionOptions?.({ fields: "eventually_due", futureRequirements: "include" });
   $("po-management").appendChild(mgmt);
   mountedComponents.management = true;
 }
@@ -357,12 +416,22 @@ async function init() {
       return;
     }
 
+    setupInfoPopover();
+
     let { res: sessionRes, data: sessionData } = await requestAccountSession(client);
     if (sessionRes.status === 403 && sessionData.code === "attestation_required") {
       await showAttestation(client, sessionData.attestation_version);
       ({ res: sessionRes, data: sessionData } = await requestAccountSession(client));
     }
-    if (!sessionRes.ok) throw new Error(sessionData.error || "Could not start onboarding.");
+    if (!sessionRes.ok) {
+      // The server passes Stripe's raw error text through. It is written
+      // for developers (API paths, docs links, internal ids), so keep it
+      // in the console and show the student a plain message instead.
+      console.error("[payouts] could not start payout setup:", sessionData.error || sessionRes.status);
+      const friendly = new Error("We couldn't start payout setup just now. Try again in a few minutes. If it keeps happening, contact support.");
+      friendly.isFriendly = true;
+      throw friendly;
+    }
 
     // The v1.0 script-tag SDK exposes `StripeConnect.init(...)` (sync,
     // returns the instance directly). The async `loadConnectAndInitialize`
@@ -390,10 +459,15 @@ async function init() {
     });
 
     const onboarding = stripeConnect.create("account-onboarding");
-    // Collect eventually_due fields now (full SSN/ITIN, not just the last
-    // 4) so the IRS TIN match runs at setup instead of blocking a payout
-    // mid-engagement once the consultant nears the 1099-K threshold.
-    onboarding.setCollectionOptions({ fields: "eventually_due", futureRequirements: "include" });
+    // Ask for everything Stripe will ever need in one pass, including
+    // details that are only due later (eventually_due) and upcoming rule
+    // changes. With the default (currently_due only), students finished
+    // the form and then had to come back, edit and resubmit to see the
+    // next batch of fields.
+    onboarding.setCollectionOptions({
+      fields: "eventually_due",
+      futureRequirements: "include",
+    });
     onboarding.setOnExit(() => refreshStatus(client));
     $("po-onboarding").appendChild(onboarding);
     mountedComponents.onboarding = true;
@@ -409,7 +483,7 @@ async function init() {
     // for the open tab.
     if (!status?.onboarded) startPolling(client);
   } catch (err) {
-    console.error(err);
+    if (!err.isFriendly) console.error(err);
     gate.textContent = err.message || "Could not load payouts setup.";
     gate.className = "gr-status error";
   }

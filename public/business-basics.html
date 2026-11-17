@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,follow" />
+    <title>Grassroots · Your business</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
+    <link rel="stylesheet" href="/grassroots.css?v=2" />
+    <link rel="stylesheet" href="/field-office.css?v=2" />
+    <script src="/theme.js"></script>
+    <script src="/cookie-banner.js" defer></script>
+    <link rel="stylesheet" href="/register-flow.css?v=2" />
+  </head>
+  <body class="gr-body">
+    <nav class="gr-nav" aria-label="Primary">
+      <div class="gr-nav__inner">
+        <a class="gr-nav__brand" href="/">
+          <img class="gr-nav__logo" src="/home/assets/grassroots-icon-syne.svg" width="20" height="34" alt="" />
+          <span class="gr-nav__wordmark">grassroots</span>
+        </a>
+      </div>
+    </nav>
+
+    <main class="gr-shell">
+      <div class="gr-page-intro">
+        <h1 class="gr-title">Tell us about your business</h1>
+        <p class="gr-subtitle">Students see this on your project. Next you write the brief.</p>
+      </div>
+
+      <div class="gr-card gr-auth-card">
+        <div class="reg-progress">
+          <div class="reg-progress__track" aria-hidden="true">
+            <div class="reg-progress__seg is-done"></div>
+            <div class="reg-progress__seg is-active"></div>
+          </div>
+          <span class="reg-progress__label">Step 2 of 2 · Your business</span>
+        </div>
+
+        <form id="bb-form" class="bb-form" novalidate hidden>
+          <div class="gr-field-stack">
+            <div class="gr-label">
+              <span><label for="bb-name">Business name</label></span>
+              <input type="text" id="bb-name" name="businessName" autocomplete="organization" maxlength="120" data-error-label="your business name" required />
+            </div>
+
+            <div class="gr-label" data-city-autocomplete>
+              <span><label for="bb-city-search">City</label></span>
+              <div class="reg-city-ac">
+                <input
+                  type="text"
+                  class="reg-city-search"
+                  id="bb-city-search"
+                  placeholder="Start typing your city…"
+                  autocomplete="off"
+                  autocapitalize="words"
+                  aria-describedby="bb-city-hint"
+                  required
+                />
+                <input type="hidden" class="reg-city" id="bb-city" name="city" />
+                <input type="hidden" class="reg-city-lat" id="bb-city-lat" />
+                <input type="hidden" class="reg-city-lng" id="bb-city-lng" />
+                <div class="reg-city-ac__panel" hidden>
+                  <ul class="reg-city-ac__list"></ul>
+                </div>
+              </div>
+              <span class="gr-field-hint reg-field-hint" id="bb-city-hint">Pick it from the list. Students nearby see your project first.</span>
+            </div>
+          </div>
+
+          <div class="reg-nav">
+            <div class="gr-action-spacer" aria-hidden="true"></div>
+            <button type="submit" class="gr-btn gr-btn--primary" id="bb-submit">Continue to your project</button>
+          </div>
+        </form>
+
+        <p id="status" class="gr-status" aria-live="polite">Loading…</p>
+      </div>
+    </main>
+
+    <script type="module" src="/business-basics.js"></script>
+  </body>
+</html>

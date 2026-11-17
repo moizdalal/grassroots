@@ -9,10 +9,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
-    <link rel="stylesheet" href="/grassroots.css" />
-    <link rel="stylesheet" href="/field-office.css" />
+    <link rel="stylesheet" href="/grassroots.css?v=2" />
+    <link rel="stylesheet" href="/field-office.css?v=2" />
     <link rel="stylesheet" href="/listing-analytics.css" />
-    <link rel="stylesheet" href="/garden-stem.css" />
+    <link rel="stylesheet" href="/garden-stem.css?v=2" />
     <script src="/theme.js"></script>
     <script src="/cookie-banner.js" defer></script>
     <script src="/loading-overlay.js"></script>
@@ -45,7 +45,7 @@
             </span>
             <span class="bza__nav-label">Home</span>
           </button>
-          <button type="button" class="bza__nav-item" data-view="listings" title="My listings">
+          <button type="button" class="bza__nav-item" data-view="listings" title="My projects">
             <span class="bza__nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="4" width="18" height="16" rx="2"/>
@@ -54,7 +54,7 @@
                 <line x1="7" y1="17" x2="13" y2="17"/>
               </svg>
             </span>
-            <span class="bza__nav-label">My listings</span>
+            <span class="bza__nav-label">My projects</span>
             <span class="bza__nav-badge" id="dash-listings-badge" hidden></span>
           </button>
           <a href="/inbox.html" class="bza__nav-item" title="Inbox">
@@ -100,14 +100,14 @@
                above the dark-mode toggle. margin-top: auto on .bza__post
                pushes it + everything below it (dark-mode, foot) to the
                bottom of the flex column. -->
-          <a href="/create-listing.html" class="bza__post" title="Post a listing">
+          <a href="/create-listing.html" class="bza__post" title="Post a project">
             <span class="bza__nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"/>
                 <line x1="5" y1="12" x2="19" y2="12"/>
               </svg>
             </span>
-            <span class="bza__nav-label">Post a listing</span>
+            <span class="bza__nav-label">Post a project</span>
           </a>
 
           <!-- Dark-mode toggle: sits just below the post CTA. -->
@@ -121,7 +121,7 @@
           </label>
 
           <div class="bza__side-foot">
-            <a class="bza__user" id="dash-user-card" href="/settings.html#personal" title="Open profile settings">
+            <a class="bza__user" id="dash-user-card" href="/profile.html" title="Open your profile">
               <span class="bza__user-avatar" id="dash-user-avatar"></span>
               <span class="bza__user-meta">
                 <span class="bza__user-name" id="dash-user-name">Your account</span>
@@ -157,7 +157,7 @@
           <section class="dash-view dash-view--home" data-view="dashboard">
             <div class="bza__page-h dash-page-h">
               <div class="dash-page-h__main">
-                <h1 id="dash-welcome">Welcome back.</h1>
+                <h1 id="dash-welcome">Welcome back</h1>
               </div>
               <div class="dash-page-h__side">
                 <span class="dash-page-date" id="dash-page-date"></span>
@@ -174,14 +174,14 @@
               <div class="dash-home-col dash-home-col--main">
                 <div class="bza__panel dash-listings-panel">
                   <div class="bza__panel-h">
-                    <span class="bza__panel-h-title"><strong>Your listings</strong> · <span id="dash-listings-count">0</span> total</span>
+                    <span class="bza__panel-h-title"><strong>Your projects</strong> · <span id="dash-listings-count">0</span> total</span>
                     <div class="bza__panel-h-tabs" id="dash-listings-tabs">
                       <button type="button" class="active" data-state="all">All <span data-count="all">0</span></button>
                       <button type="button" data-state="draft"><span class="bza__tab-dot" style="background:var(--fo-draft)"></span>Drafts <span data-count="draft">0</span></button>
                       <button type="button" data-state="open"><span class="bza__tab-dot" style="background:var(--fo-accent)"></span>Live <span data-count="open">0</span></button>
                       <button type="button" data-state="hired"><span class="bza__tab-dot" style="background:var(--fo-accent-warm)"></span>In progress <span data-count="hired">0</span></button>
-                      <button type="button" data-state="paused"><span class="bza__tab-dot" style="background:var(--fo-text-3)"></span>Paused <span data-count="paused">0</span></button>
-                      <button type="button" data-state="closed"><span class="bza__tab-dot" style="background:var(--fo-status-closed)"></span>Closed <span data-count="closed">0</span></button>
+                      <button type="button" data-state="locked"><span class="bza__tab-dot" style="background:var(--fo-text-3)"></span>Locked <span data-count="locked">0</span></button>
+                      <button type="button" data-state="past"><span class="bza__tab-dot" style="background:var(--fo-text-2)"></span>Past <span data-count="past">0</span></button>
                     </div>
                   </div>
                   <div class="dash-listings-rows-wrap">
@@ -195,7 +195,7 @@
                       <span class="gr-pill">Strategy</span>
                       <span class="gr-pill">Operations</span>
                     </div>
-                    <a href="/create-listing.html" class="gr-btn gr-btn--primary">Post a listing</a>
+                    <a href="/create-listing.html" class="gr-btn gr-btn--primary">Post a project</a>
                   </div>
                 </div>
 
@@ -230,7 +230,7 @@
                and managing the full set. -->
           <section class="dash-view dash-view--my-listings" data-view="listings" hidden>
             <div class="bza__page-h">
-              <h1>My listings</h1>
+              <h1>My projects</h1>
               <span class="bza__page-h-meta" id="dash-listings-meta">Browse, search, and manage everything you've posted.</span>
             </div>
 
@@ -273,13 +273,13 @@
                 </button>
               </li>
               <li>
-                <button type="button" class="ml-legend-chip" data-state="paused" aria-pressed="false">
-                  <span class="ml-legend__dot" style="background:var(--fo-text-3)"></span>Paused
+                <button type="button" class="ml-legend-chip" data-state="locked" aria-pressed="false">
+                  <span class="ml-legend__dot" style="background:var(--fo-text-3)"></span>Locked
                 </button>
               </li>
               <li>
-                <button type="button" class="ml-legend-chip" data-state="closed" aria-pressed="false">
-                  <span class="ml-legend__dot" style="background:var(--fo-status-closed)"></span>Closed
+                <button type="button" class="ml-legend-chip" data-state="past" aria-pressed="false">
+                  <span class="ml-legend__dot" style="background:var(--fo-text-2)"></span>Past
                 </button>
               </li>
             </ul>
@@ -297,7 +297,7 @@
             </div>
             <div class="bza__panel">
               <div id="dash-engagements-rows"></div>
-              <p id="dash-engagements-empty" class="gr-empty-state" hidden>No active engagements.</p>
+              <p id="dash-engagements-empty" class="gr-empty-state" hidden>No projects in progress.</p>
             </div>
           </section>
 
@@ -305,7 +305,7 @@
           <section class="dash-view" data-view="archive" hidden>
             <div class="bza__page-h">
               <h1>Past hires</h1>
-              <span class="bza__page-h-meta">Closed listings and completed engagements.</span>
+              <span class="bza__page-h-meta">Closed listings and completed projects.</span>
             </div>
             <div class="bza__panel">
               <div id="dash-archive-rows"></div>
@@ -321,6 +321,7 @@
     <script type="module" src="/dashboard.js"></script>
 
     <script defer src="/suggestion-box.js"></script>
+    <script type="module" src="/mobile-nav.js"></script>
     <script defer src="/perf-beacon.js"></script>
   </body>
 </html>

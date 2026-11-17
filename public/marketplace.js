@@ -15,7 +15,7 @@ const listingGrid = document.getElementById("listing-grid");
 const listingsStatus = document.getElementById("listings-status");
 
 const LISTING_SELECT =
-  "id, owner_id, title, category, problem_summary, details, budget_cents, contract_type, turnaround_days, lat, lng, created_at, profiles!listings_owner_id_fkey ( full_name, role, avatar_path )";
+  "id, owner_id, title, category, problem_summary, details, budget_cents, contract_type, turnaround_days, status, lat, lng, created_at, profiles!listings_owner_id_fkey ( full_name, role, avatar_path )";
 
 const SORT_KEY = "grassroots_marketplace_sort";
 
@@ -25,10 +25,32 @@ const SORT_KEY = "grassroots_marketplace_sort";
 // constant; everything downstream reads it.
 const LOCAL_RADIUS_MILES = 50;
 
+// How many listings the "Featured" row shows. Featured = the open
+// listings with the fewest offers, so overlooked work surfaces before
+// the category rows.
+const FEATURED_COUNT = 5;
+
+// Fictitious "Sample" owners whose listings are examples of a
+// well-scoped post, not real work. Their accounts have no password and
+// a .invalid email. Cards from these owners get a "Sample" pill and
+// sort after real listings in Featured.
+const SAMPLE_OWNER_IDS = new Set([
+  "5a3b1e00-0000-4000-8000-00000000aa01", // Wilhelmina Sample · Copperline Hardware
+  "5a3b1e00-0000-4000-8000-00000000aa02", // Barnaby Sample · Muddy Paws Grooming Co.
+  "5a3b1e00-0000-4000-8000-00000000aa03", // Rosalind Sample · Spoke & Sprocket Bike Works
+  "5a3b1e00-0000-4000-8000-00000000aa04", // Teodoro Sample · La Esquina Taqueria
+]);
+
+function isSample(row) {
+  return SAMPLE_OWNER_IDS.has(row.owner_id);
+}
+
 let allRows = [];
 let bizMap = {};
 // owner_id → badge summary (null = new business). null map = RPC unavailable.
 let badgeMap = null;
+// listing id → offer count. null map = RPC unavailable; Featured is skipped.
+let offerCounts = null;
 let consultantCity = null; // { lat, lng } once the session is resolved.
 let _client = null;
 
@@ -72,19 +94,40 @@ function parseDetails(row) {
    to be small-business owners — that's the side we're actively
    trying to grow) and a quieter consultant-application link for the
    minority of visitors who would join the supply side. Reading the
-   user's intent is impossible client-side, so we surface both. */
-function renderGuestBanner() {
+   user's intent is impossible client-side, so we surface both.
+
+   The sub line depends on what's on the page: "real" when at least one
+   real open listing exists, "sample" when every listing is a Sample
+   example (or there are none), and "pending" while listings load. */
+function guestBannerSub(mode) {
+  if (mode === "real") {
+    return `This is real, live work small businesses are paying students to do. Start by
+          <a href="/register.html?role=owner">posting your own project</a>, or
+          <a href="/for-students">apply to join as a student</a>.`;
+  }
+  if (mode === "sample") {
+    return `These are example projects that show what a good post looks like.
+          <a href="/register.html?role=owner">Post the first real project</a> in your town, or
+          <a href="/for-students">apply to join as a student</a>.`;
+  }
+  return `Start by <a href="/register.html?role=owner">posting your own project</a>, or
+          <a href="/for-students">apply to join as a student</a>.`;
+}
+
+let guestBannerMode = null; // null until the banner is rendered.
+let rowsBannerMode = null; // "real" | "sample" once listings load.
+
+function renderGuestBanner(mode = rowsBannerMode || "pending") {
   const host = document.getElementById("guest-banner-slot");
   if (!host) return;
+  guestBannerMode = mode;
   host.hidden = false;
   host.innerHTML = `
     <div class="gr-guest-banner" role="region" aria-label="Guest welcome">
       <div class="gr-guest-banner__copy">
         <p class="gr-guest-banner__title">Browsing as a guest</p>
-        <p class="gr-guest-banner__sub">
-          This is real, live work small businesses are paying students to do. Start by
-          <a href="/register.html?role=owner">posting your own project</a>, or
-          <a href="/home/for-students.html">apply to join as a student consultant</a>.
+        <p class="gr-guest-banner__sub" id="guest-banner-sub">
+          ${guestBannerSub(mode)}
         </p>
       </div>
       <div class="gr-guest-banner__actions">
@@ -141,14 +184,52 @@ async function loadConsultantCity(client, session) {
   }
 }
 
+// Open listings plus locked ones (public, no new offers). Locked rows
+// sort after open rows so they never crowd out live opportunities.
+// Completed listings stay off the feed until a past-projects view exists.
 async function fetchOpenListings(client) {
   const { data, error } = await client
     .from("listings")
     .select(LISTING_SELECT)
-    .eq("status", "open")
+    .in("status", ["open", "locked"])
     .order("created_at", { ascending: false });
 
+  if (data) data.sort((a, b) => (a.status === "locked") - (b.status === "locked"));
   return { data, error };
+}
+
+async function loadOfferCounts(client, listingIds) {
+  if (!listingIds.length) return new Map();
+  const { data, error } = await client.rpc("get_listing_offer_counts", { target_listing_ids: listingIds });
+  if (error) {
+    console.warn("offer counts:", error.message || error);
+    return null;
+  }
+  return new Map((data || []).map((r) => [r.listing_id, r.offer_count]));
+}
+
+// Swap the guest banner's sub line once listings are known. No-op when
+// the banner isn't on the page (signed-in members).
+function updateGuestBannerForRows(rows) {
+  const hasReal = rows.some((r) => !isSample(r) && r.status === "open");
+  const mode = hasReal ? "real" : "sample";
+  rowsBannerMode = mode;
+  if (guestBannerMode === null || mode === guestBannerMode) return;
+  guestBannerMode = mode;
+  const sub = document.getElementById("guest-banner-sub");
+  if (sub) sub.innerHTML = guestBannerSub(mode);
+}
+
+// Real listings before samples, then fewest offers first. Ties go to
+// the older listing, since it has waited longer for attention.
+function pickFeatured(rows) {
+  if (!offerCounts) return [];
+  return [...rows]
+    .sort((a, b) =>
+      isSample(a) - isSample(b)
+      || (offerCounts.get(a.id) ?? 0) - (offerCounts.get(b.id) ?? 0)
+      || new Date(a.created_at) - new Date(b.created_at))
+    .slice(0, FEATURED_COUNT);
 }
 
 function renderResultCount(filteredCount, totalCount) {
@@ -159,7 +240,7 @@ function renderResultCount(filteredCount, totalCount) {
     return;
   }
   if (filteredCount === totalCount) {
-    host.textContent = `${totalCount} ${totalCount === 1 ? "opportunity" : "opportunities"}`;
+    host.textContent = `${totalCount} ${totalCount === 1 ? "project" : "projects"}`;
   } else {
     host.textContent = `Showing ${filteredCount} of ${totalCount}`;
   }
@@ -250,8 +331,15 @@ function renderCard(row, client) {
     ? `<p class="gr-listing-contract">${escapeHtml(capFirst(contractType))}</p>`
     : "";
 
-  const recency = formatRecency(row.created_at);
-  const recencyHtml = recency
+  // Samples swap the recency label for a "Sample" pill, and drop the
+  // business badges, which would describe a business that isn't real.
+  const sample = isSample(row);
+  const recency = sample ? null : formatRecency(row.created_at);
+  const recencyHtml = sample
+    ? `<span class="gr-pill gr-pill--live gr-pill--no-dot gr-listing-sample">Sample</span>`
+    : row.status === "locked"
+    ? `<span class="gr-listing-recency gr-listing-recency--locked">Locked · not taking offers</span>`
+    : recency
     ? `<span class="gr-listing-recency${recency.stale ? " gr-listing-recency--stale" : ""}">${escapeHtml(recency.label)}</span>`
     : "";
 
@@ -269,7 +357,8 @@ function renderCard(row, client) {
   // tile with a meta stack (biz / budget / contract) on its right,
   // foot carries tags on the left and the view CTA on the right.
   const card = document.createElement("a");
-  card.className = "gr-listing-card";
+  card.className = sample ? "gr-listing-card gr-listing-card--sample" : "gr-listing-card";
+  card.dataset.ownerId = row.owner_id;
   // withGuestParam appends ?guest=1 when the viewer is in guest mode
   // so the listing detail recognises them even if the link is opened
   // in a new tab (which would otherwise lose the sessionStorage flag).
@@ -283,7 +372,7 @@ function renderCard(row, client) {
       <div class="gr-listing-card-meta">
         <div class="gr-listing-biz-row">
           <p class="gr-listing-biz-name">${escapeHtml(businessName)}</p>
-          ${badgeMap ? renderBadgeIcons(badgeMap.get(row.owner_id)) : ""}
+          ${badgeMap && !sample ? renderBadgeIcons(badgeMap.get(row.owner_id)) : ""}
         </div>
         ${budgetHtml}
         ${contractHtml}
@@ -339,6 +428,7 @@ const HAS_HOVER = typeof window.matchMedia === "function"
 
 let hoverPop = null;
 let hoverTimer = null;
+let hoverCard = null;
 
 function ensureHoverPop() {
   if (hoverPop) return hoverPop;
@@ -349,22 +439,98 @@ function ensureHoverPop() {
   return hoverPop;
 }
 
+/* Keep the popover fully inside the window. It sits beside the card
+   (right first, then left) with its top lined up with the card's, and
+   slides up or down as needed so it never crosses the top or bottom
+   edge. Only when neither side has room (a narrow window) does it go
+   under or over the card instead. */
+const POP_GAP = 10;      // space between card and popover
+const POP_EDGE = 8;      // minimum space to the window edge
+const POP_SIDE_MAX = 360;
+const POP_SIDE_MIN = 240;
+
+function clampNum(value, min, max) {
+  return Math.max(min, Math.min(value, max));
+}
+
+function positionHoverPop(card) {
+  const pop = hoverPop;
+  if (!pop) return;
+  const vw = document.documentElement.clientWidth;
+  const vh = window.innerHeight;
+  const rect = card.getBoundingClientRect();
+  // Card scrolled out of view: nothing to point at.
+  if (rect.bottom <= 0 || rect.top >= vh || rect.right <= 0 || rect.left >= vw) {
+    hideHoverPop();
+    return;
+  }
+
+  const roomRight = vw - POP_EDGE - (rect.right + POP_GAP);
+  const roomLeft = rect.left - POP_GAP - POP_EDGE;
+  let side = "";
+  if (roomRight >= POP_SIDE_MAX) side = "right";
+  else if (roomLeft >= POP_SIDE_MAX) side = "left";
+  else if (Math.max(roomRight, roomLeft) >= POP_SIDE_MIN) side = roomRight >= roomLeft ? "right" : "left";
+
+  pop.style.maxHeight = `${Math.max(0, vh - POP_EDGE * 2)}px`;
+  pop.style.overflow = "hidden";
+
+  let left;
+  let top;
+  if (side) {
+    const width = Math.min(POP_SIDE_MAX, side === "right" ? roomRight : roomLeft);
+    pop.style.width = `${width}px`;
+    const height = pop.offsetHeight;
+    left = side === "right" ? rect.right + POP_GAP : rect.left - POP_GAP - width;
+    top = rect.top;
+    top = clampNum(top, POP_EDGE, Math.max(POP_EDGE, vh - POP_EDGE - height));
+  } else {
+    const width = Math.min(rect.width, 480, vw - POP_EDGE * 2);
+    pop.style.width = `${width}px`;
+    const height = pop.offsetHeight;
+    left = clampNum(rect.left, POP_EDGE, Math.max(POP_EDGE, vw - POP_EDGE - width));
+    const below = rect.bottom + POP_GAP;
+    const above = rect.top - POP_GAP - height;
+    if (below + height <= vh - POP_EDGE) top = below;
+    else if (above >= POP_EDGE) top = above;
+    else top = clampNum(below, POP_EDGE, Math.max(POP_EDGE, vh - POP_EDGE - height));
+  }
+  pop.style.left = `${Math.round(left)}px`;
+  pop.style.top = `${Math.round(top)}px`;
+}
+
 function showHoverPop(card) {
   const summary = card.querySelector("[data-summary]")?.textContent;
   if (!summary) return;
   const pop = ensureHoverPop();
   pop.textContent = summary;
-  // Position once content is set so the popover knows its own width.
+  hoverCard = card;
+  // Position once content is set so the popover knows its own size.
   pop.classList.add("is-visible");
-  const rect = card.getBoundingClientRect();
-  pop.style.left = `${rect.left}px`;
-  pop.style.top = `${rect.bottom + 8}px`;
-  pop.style.width = `${rect.width}px`;
+  positionHoverPop(card);
 }
 
 function hideHoverPop() {
+  hoverCard = null;
   if (!hoverPop) return;
   hoverPop.classList.remove("is-visible");
+}
+
+// The popover is pinned to the window, so follow the card when the page
+// or a card row scrolls, or the window is resized, while it is showing.
+let hoverRaf = 0;
+function trackHoverPop() {
+  if (!hoverCard || hoverRaf) return;
+  hoverRaf = requestAnimationFrame(() => {
+    hoverRaf = 0;
+    if (!hoverCard) return;
+    if (!hoverCard.isConnected) hideHoverPop();
+    else positionHoverPop(hoverCard);
+  });
+}
+if (HAS_HOVER) {
+  window.addEventListener("scroll", trackHoverPop, { passive: true, capture: true });
+  window.addEventListener("resize", trackHoverPop, { passive: true });
 }
 
 function wireHoverPopover(scope) {
@@ -381,14 +547,42 @@ function wireHoverPopover(scope) {
   });
 }
 
-function renderListings(rows, client) {
+// Badges load after the cards paint. Drop their icons into the cards
+// already on the page; later renders read badgeMap directly.
+function patchBadgesIntoCards() {
+  if (!badgeMap) return;
+  listingGrid.querySelectorAll(".gr-listing-card:not(.gr-listing-card--sample)").forEach((card) => {
+    const bizRow = card.querySelector(".gr-listing-biz-row");
+    if (!bizRow || bizRow.querySelector(".gr-listing-biz-name ~ *")) return;
+    const html = renderBadgeIcons(badgeMap.get(card.dataset.ownerId));
+    if (html) bizRow.insertAdjacentHTML("beforeend", html);
+  });
+}
+
+function renderListings(rows, client, { preferCategory = "" } = {}) {
   listingGrid.innerHTML = "";
   hideHoverPop();
 
   if (!rows.length) {
     listingGrid.innerHTML =
-      '<p class="gr-empty-state">No open opportunities yet. Once business owners post needs, they\'ll show up here.</p>';
+      '<p class="gr-empty-state">No open projects yet. When businesses post one, it shows up here.</p>';
     return;
+  }
+
+  // Each listing shows once: the first row that claims it (Featured,
+  // then Local) keeps it, and the rest go under a single category row.
+  const placed = new Set();
+  const featuredRows = pickFeatured(rows);
+  featuredRows.forEach((row) => placed.add(row.id));
+  if (featuredRows.length) {
+    listingGrid.appendChild(
+      renderSection({
+        title: "Featured",
+        subtitle: "Projects with the fewest offers so far",
+        rows: featuredRows,
+        client,
+      })
+    );
   }
 
   // "Local" bucket — listings within LOCAL_RADIUS_MILES of the
@@ -398,12 +592,14 @@ function renderListings(rows, client) {
   // pending for old listings) are silently skipped.
   if (consultantCity) {
     const localRows = rows.filter((row) => {
+      if (placed.has(row.id)) return false;
       const lat = Number(row.lat);
       const lng = Number(row.lng);
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
       return haversineMiles(consultantCity.lat, consultantCity.lng, lat, lng)
         <= LOCAL_RADIUS_MILES;
     });
+    localRows.forEach((row) => placed.add(row.id));
     if (localRows.length) {
       listingGrid.appendChild(
         renderSection({
@@ -416,11 +612,13 @@ function renderListings(rows, client) {
     }
   }
 
-  // By tag — bucket every row by each of its categories. A row can
-  // appear in multiple tag rows (one per category). Order by bucket size desc.
+  // By tag: each remaining row goes under its first category, or under
+  // the filtered category when a category filter is on. Rows still show
+  // every tag on the card. Order by bucket size desc.
   const byTag = new Map();
   const untagged = [];
   for (const row of rows) {
+    if (placed.has(row.id)) continue;
     const cats = row.category
       ? row.category.split(",").map((c) => c.trim()).filter(Boolean)
       : [];
@@ -428,10 +626,9 @@ function renderListings(rows, client) {
       untagged.push(row);
       continue;
     }
-    for (const c of cats) {
-      if (!byTag.has(c)) byTag.set(c, []);
-      byTag.get(c).push(row);
-    }
+    const c = preferCategory && cats.includes(preferCategory) ? preferCategory : cats[0];
+    if (!byTag.has(c)) byTag.set(c, []);
+    byTag.get(c).push(row);
   }
   const sorted = [...byTag.entries()].sort((a, b) => b[1].length - a[1].length);
   for (const [tag, list] of sorted) {
@@ -553,7 +750,7 @@ function applyFilters() {
   });
 
   renderResultCount(sorted.length, allRows.length);
-  renderListings(sorted, _client);
+  renderListings(sorted, _client, { preferCategory: catFilter });
 }
 
 function setupFilterListeners() {
@@ -601,17 +798,22 @@ async function refreshListings(client) {
   }
 
   allRows = rows || [];
+  updateGuestBannerForRows(allRows);
 
-  // Fetch business profiles
+  // The three follow-up queries run in parallel. Cards paint once names
+  // (shown on every card) and offer counts (they pick the Featured row)
+  // are in; badges are small icons, so they fill in after first paint.
   const ownerIds = [...new Set(allRows.map(r => r.owner_id))];
+  let badgesPromise = null;
   if (ownerIds.length) {
-    const [{ data: bizProfiles }, badges] = await Promise.all([
+    badgesPromise = loadBusinessBadges(client, ownerIds).catch(() => null);
+    const [{ data: bizProfiles }, counts] = await Promise.all([
       client.from("business_profiles").select("user_id, business_name").in("user_id", ownerIds),
-      loadBusinessBadges(client, ownerIds),
+      loadOfferCounts(client, allRows.map(r => r.id)),
     ]);
     bizMap = {};
     (bizProfiles || []).forEach(b => { bizMap[b.user_id] = b; });
-    badgeMap = badges;
+    offerCounts = counts;
   }
 
   listingsStatus.textContent = "";
@@ -619,6 +821,11 @@ async function refreshListings(client) {
   renderResultCount(allRows.length, allRows.length);
   renderListings(allRows, client);
   setupFilterListeners();
+
+  if (badgesPromise) {
+    badgeMap = await badgesPromise;
+    patchBadgesIntoCards();
+  }
 }
 
 async function init() {

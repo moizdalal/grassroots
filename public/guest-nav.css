@@ -10,10 +10,19 @@
    only need to give the body a little top-padding compensation when
    the page didn't expect a top bar (the marketplace and listing
    pages were designed for a side-nav layout). */
+/* .gr-body reserves 4.5rem at the top for the signed-in app chrome.
+   The guest bar sits in the page flow instead, so drop that reserve
+   and the shell's top margin; otherwise the bar floats 72px down and
+   the content starts ~120px below it. */
+.gr-guest-body {
+  padding-top: 0;
+}
+
 .gr-guest-body > main {
   /* Tighter top padding than the marketing pages — the guest is
      here to browse listings, not read a landing hero, so we want
      the listing grid to start close to the nav. */
+  margin-top: 0;
   padding-top: 1.5rem;
 }
 

@@ -23,14 +23,14 @@ Consultants and business owners are both expected to keep work inside what was a
 - **Out-of-platform payments**: don't route payments outside Grassroots. It skips the payment hold, refunds, and tax reporting, and it ends accounts.
 - **Side-channel solicitation**: for 12 months after you meet someone on Grassroots, don't move paid work with them off-platform. See [section 11 of the terms](/terms.html#non-circumvention).
 
-If either side feels the scope is being abused, contact us — we'll mediate or unwind the engagement.
+If either side feels the scope is being abused, contact us — we'll mediate or unwind the project.
 
 ## Refunds
 
 This is the same policy as [section 7 of the terms](/terms.html#refunds). If anything here differs, the terms win.
 
-1. **Within 24 hours (one-time jobs):** cancel from the engagement page for a full refund. This only works while the payment is still held.
-2. **After 24 hours, before release:** report a problem from the engagement page during your 14-day review, or email [moiz@grassroots-marketplace.com](mailto:moiz@grassroots-marketplace.com) with the bid ID. This is also the only route for proposal fees, service fees, and retainer periods. The payment locks while we review. We then decide one of three things:
+1. **Within 24 hours (one-time jobs):** cancel from the project page for a full refund. This only works while the payment is still held.
+2. **After 24 hours, before release:** report a problem from the project page during your 14-day review, or email [moiz@grassroots-marketplace.com](mailto:moiz@grassroots-marketplace.com) with the bid ID. This is also the only route for proposal fees, service fees, and retainer periods. The payment locks while we review. We then decide one of three things:
    - **The work meets scope:** it's released to the consultant.
    - **It falls short but can be fixed:** the consultant has 5 days to redo it once, or give the money back. A give-back refunds you minus card-processing fees. No answer in 5 days counts as a give-back.
    - **Scope was breached:** you get a full refund. The consultant gets nothing.
@@ -64,7 +64,7 @@ What we store:
 - Account info (name, email, phone, role)
 - Listings, bids, messages, reviews
 - Payment metadata via Stripe (we don't see card numbers)
-- Profile content you upload (photo, resume, portfolio)
+- Profile content you upload (photo, resume, work samples)
 
 What we don't:
 - Card or bank details (Stripe holds these)

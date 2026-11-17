@@ -1,13 +1,20 @@
-/* garden.css — the "your garden" section on /profile.html. Bloomed
-   engagements the consultant has dragged in from the journey panel
-   on the dashboard. Plants in the bed are absolutely positioned and
-   freely drag-to-slide along the x-axis; a butterfly and a bee
-   wander overhead and randomly land on flowers. */
+/* garden.css — the "your garden" section on /profile.html: one flower
+   per finished engagement, planted automatically. Plants in the bed
+   are absolutely positioned and freely drag-to-slide along the x-axis;
+   bees wander overhead and randomly land on flowers.
+
+   Backdrops: `.pp-garden--bg-meadow` is the live sky + hills (drawn by
+   garden.js). The four simple directions at the bottom of this file
+   (paper, notebook, horizon, shelf) are CSS only and are previewed on
+   /garden-directions.html. */
 
 .pp-garden {
   --garden-plant-w: 130px;
   --garden-plant-h: 208px;
   --garden-bed-h: 340px;
+  /* Distance from the bottom of the bed up to the soil line under the
+     plants. garden.js keeps it in step with the plant size. */
+  --garden-ground: 51px;
   position: relative;
   padding: 1.25rem 1.25rem 1rem;
   border: 1px solid var(--fo-line);
@@ -39,6 +46,12 @@
   font-size: var(--type-meta);
   color: var(--fo-text-3);
 }
+.pp-garden__copy a {
+  color: var(--fo-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+.pp-garden__copy a:hover { text-decoration: underline; }
 
 /* ── garden bed: positioned canvas for plants + pollinators ────── */
 /* The bed itself is just a frame; the visual backdrop (sky + hills +
@@ -129,34 +142,16 @@
   display: block;
 }
 
-.pp-garden__plant-remove {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 1px solid var(--fo-line);
-  background: var(--fo-surface);
-  color: var(--fo-text-3);
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.18s ease, color 0.18s ease, border-color 0.18s ease;
-  z-index: 3;
+/* A flower the consultant just arrived for, from the "flower planted"
+   notification: a soft accent halo that fades on its own. */
+.pp-garden__plant.is-new .pp-garden__plant-canvas {
+  animation: pp-garden__new-flower 2s ease-in-out 3;
+  border-radius: 12px;
 }
-.pp-garden__plant:hover .pp-garden__plant-remove,
-.pp-garden__plant-remove:focus-visible {
-  opacity: 1;
+@keyframes pp-garden__new-flower {
+  0%, 100% { background: transparent; }
+  50%      { background: color-mix(in srgb, var(--fo-accent) 16%, transparent); }
 }
-.pp-garden__plant-remove:hover {
-  color: var(--fo-plan);
-  border-color: var(--fo-plan);
-}
-.pp-garden__plant-remove svg { width: 12px; height: 12px; }
 
 .pp-garden__plant-meta {
   display: flex;
@@ -181,6 +176,10 @@
   font-weight: 600;
   color: var(--fo-text-2);
 }
+/* Crowded bed (many flowers, or a phone): drop the avatar and centre
+   the two-line name tag under each plant. */
+.pp-garden--compact .pp-garden__plant-avatar { display: none; }
+.pp-garden--compact .pp-garden__plant-text { text-align: center; }
 .pp-garden__plant-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .pp-garden__plant-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .pp-garden__plant-biz {
@@ -419,5 +418,84 @@
     animation: none;
   }
   .pp-garden__star { transition: none; }
+  .pp-garden__plant.is-new .pp-garden__plant-canvas { animation: none; }
+}
+
+/* ══ simple backdrop directions ═════════════════════════════════
+   Previewed on /garden-directions.html; pass `background` to
+   mountGarden() to use one. All four are calm, low-detail and built
+   from theme tokens only, so the flowers and bees stay the subject in
+   every theme. Each draws on `.pp-garden__bed::before`, behind the
+   plants (z-index 1) and bees (z-index 10). */
+.pp-garden.pp-garden:not(.pp-garden--bg-meadow) {
+  background: var(--fo-surface);
+}
+:where(.pp-garden:not(.pp-garden--bg-meadow)) .pp-garden__bed::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* 1 · Paper — plain card, one soft ground line. */
+.pp-garden--bg-paper .pp-garden__bed::before {
+  inset: auto 0 var(--garden-ground) 0;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--fo-line-strong) 8%,
+    var(--fo-line-strong) 92%,
+    transparent 100%
+  );
+}
+
+/* 2 · Field notebook — dot grid plot with a ruled baseline. */
+.pp-garden--bg-notebook .pp-garden__bed {
+  border: 1px solid var(--fo-line);
+  background: var(--fo-bg);
+}
+.pp-garden--bg-notebook .pp-garden__bed::before {
+  background:
+    linear-gradient(var(--fo-line-strong), var(--fo-line-strong))
+      0 calc(100% - var(--garden-ground)) / 100% 1px no-repeat,
+    radial-gradient(circle, var(--fo-line-strong) 1px, transparent 1.4px)
+      10px 10px / 20px 20px;
+  /* Dots stop at the baseline so the labels below sit on clean paper. */
+  -webkit-mask-image: linear-gradient(#000, #000);
+  mask-image: linear-gradient(#000, #000);
+  -webkit-mask-size: 100% calc(100% - var(--garden-ground) + 1px);
+  mask-size: 100% calc(100% - var(--garden-ground) + 1px);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* 3 · Horizon — a soft wash of accent that gathers at the ground. */
+.pp-garden--bg-horizon .pp-garden__bed::before {
+  bottom: var(--garden-ground);
+  border-radius: 12px 12px 0 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--fo-accent) 45%, transparent);
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--fo-accent) 5%, transparent) 45%,
+    color-mix(in srgb, var(--fo-accent) 20%, transparent) 100%
+  );
+}
+
+/* 4 · Specimen shelf — a framed card with the flowers standing on a
+   shelf, name tags below like a pressed-flower collection. */
+.pp-garden--bg-shelf .pp-garden__bed {
+  border: 1px solid var(--fo-line-strong);
+  background: var(--fo-surface-2);
+  box-shadow: inset 0 0 0 5px var(--fo-surface-2), inset 0 0 0 6px var(--fo-line);
+}
+.pp-garden--bg-shelf .pp-garden__bed::before {
+  inset: auto 6px 6px 6px;
+  height: calc(var(--garden-ground) - 6px);
+  border-top: 3px solid var(--fo-line-strong);
+  background: var(--fo-surface);
 }
 

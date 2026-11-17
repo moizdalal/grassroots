@@ -17,7 +17,8 @@ const {
   stableHash,
   createPaymentIntentOnce,
 } = require("./lib/stripe-compat");
-const { sendEmail } = require("./lib/email");
+const { sendEmail, setSendLogger } = require("./lib/email");
+const { buildNotificationEmail, buildApplicationReceivedEmail } = require("./lib/notification-emails");
 const { schoolMatchesEmail } = require("./lib/schools");
 const {
   normalizeEmail,
@@ -33,6 +34,8 @@ const crypto = require("crypto");
 // data-export requests, suggestion submissions). Overridable per-env so we
 // don't accidentally hit a real inbox from staging.
 const PRIVACY_ADMIN_EMAIL = (process.env.PRIVACY_ADMIN_EMAIL || "moiz@grassroots-marketplace.com").trim();
+// Where student applicants send questions (shown in their confirmation email).
+const APPLICATIONS_CONTACT_EMAIL = "moiz@grassroots-marketplace.com";
 
 const app = express();
 
@@ -156,6 +159,31 @@ const supabase = hasSupabaseAdminConfig
     })
   : null;
 
+// Record every Resend attempt for the admin Emails tab and the per-user
+// email history in the admin Users drawer (recipient + subject, no body).
+if (supabase) {
+  setSendLogger(async ({ event, status, httpStatus, resendId, error, to, subject }) => {
+    const row = {
+      event: String(event || "other").slice(0, 64),
+      status,
+      http_status: httpStatus ?? null,
+      environment: process.env.VERCEL_ENV || "development",
+      resend_id: resendId || null,
+      error: error || null,
+      to_email: to ? String(to).toLowerCase() : null,
+      subject: subject || null,
+    };
+    let { error: dbError } = await supabase.from("email_log").insert(row);
+    // Before add_email_log_recipient.sql is applied the two columns don't
+    // exist yet; fall back to the old row shape so volume logging keeps working.
+    if (dbError && /to_email|subject|schema cache/i.test(dbError.message || "")) {
+      const { to_email: _t, subject: _s, ...legacy } = row;
+      ({ error: dbError } = await supabase.from("email_log").insert(legacy));
+    }
+    if (dbError) console.warn("[email_log] insert failed:", dbError.message);
+  });
+}
+
 const { syncInstagramProfileAvatar } = require("./lib/instagram-profile-pic");
 
 const upload = multer({
@@ -264,7 +292,8 @@ function alertOps(kind, details) {
 }
 
 // Server-side notification insert (service role). Never throws.
-async function notifyUser(userId, { type, title, body, link }) {
+// Pass `email: { event, data, key }` to also email the user (see emailUser).
+async function notifyUser(userId, { type, title, body, link, email }) {
   if (!userId || !supabase) return;
   try {
     const { error } = await supabase
@@ -274,6 +303,87 @@ async function notifyUser(userId, { type, title, body, link }) {
   } catch (err) {
     console.warn("[notify] insert failed:", err.message);
   }
+  if (email) await emailUser(userId, email.event, { link, ...email.data }, { key: email.key });
+}
+
+function emailBaseUrl() {
+  return (envTrim("APP_URL") || PLATFORM_URL).replace(/\/$/, "");
+}
+
+/* Email one user about an engagement event. The server builds the subject
+   and body from lib/notification-emails.js; `key` makes the send
+   idempotent for 24h at Resend (retries and double clicks send once).
+   Never throws. */
+async function emailUser(userId, event, data, { key, keyEvent } = {}) {
+  if (!userId || !supabase) return;
+  try {
+    const { data: found, error } = await supabase.auth.admin.getUserById(userId);
+    const to = found?.user?.email;
+    if (error || !to) {
+      console.warn("[email] no address for user", userId, error?.message || "");
+      return;
+    }
+    const msg = buildNotificationEmail(event, { ...(await emailNames(data)), ...data }, emailBaseUrl());
+    if (!msg) return;
+    await sendEmail({
+      to,
+      subject: msg.subject,
+      html: msg.html,
+      text: msg.text,
+      idempotencyKey: key ? `${keyEvent || event}:${key}` : undefined,
+      tags: [{ name: "event", value: event }],
+    });
+  } catch (err) {
+    console.warn("[email] emailUser failed", event, err?.message || err);
+  }
+}
+
+// The consultant's and business's names for email copy. Never throws; the
+// copy falls back to "the consultant" / "the business" when one is missing.
+async function emailNames(data) {
+  if (!data?.bidId || (data.consultantName && data.businessName)) return {};
+  try {
+    const { data: bid } = await supabase
+      .from("bids").select("consultant_id, listing_id").eq("id", data.bidId).maybeSingle();
+    if (!bid) return {};
+    const { data: listing } = await supabase
+      .from("listings").select("owner_id").eq("id", bid.listing_id).maybeSingle();
+    const ownerId = listing?.owner_id || null;
+    const [consultant, owner, business] = await Promise.all([
+      supabase.from("profiles").select("full_name").eq("id", bid.consultant_id).maybeSingle(),
+      ownerId ? supabase.from("profiles").select("full_name").eq("id", ownerId).maybeSingle() : { data: null },
+      ownerId ? supabase.from("business_profiles").select("business_name").eq("user_id", ownerId).maybeSingle() : { data: null },
+    ]);
+    return {
+      consultantName: consultant.data?.full_name || null,
+      businessName: business.data?.business_name || owner.data?.full_name || null,
+    };
+  } catch (err) {
+    console.warn("[email] name lookup failed", err?.message || err);
+    return {};
+  }
+}
+
+// To the consultant once their offer is accepted (and paid, if it has a price).
+async function emailOfferAccepted(bidId, amountCents) {
+  const ctx = await releaseContext(bidId);
+  if (!ctx) return;
+  await emailUser(ctx.consultantId, "offer_accepted", {
+    title: ctx.title, bidId, amountCents,
+  }, { key: bidId });
+}
+
+// To both sides once held money moves to the consultant. Skips $0 holds.
+// grossCents = what the business paid (offer + business fee); offerCents =
+// the agreed offer. The business email shows what it paid; the consultant
+// email shows the offer, their 10% fee and their payout.
+async function emailPaymentReleased(bidId, { grossCents, offerCents, payoutCents, key, link, auto = false }) {
+  if (!(Number(grossCents) > 0)) return;
+  const ctx = await releaseContext(bidId);
+  if (!ctx) return;
+  const base = { title: ctx.title, bidId, link, payoutCents: payoutCents ?? grossCents, auto };
+  await emailUser(ctx.ownerId, "payment_released_business", { ...base, amountCents: grossCents }, { key });
+  await emailUser(ctx.consultantId, "payment_released_consultant", { ...base, amountCents: offerCents ?? grossCents }, { key });
 }
 
 async function onConnectAccountUpdated(account) {
@@ -492,11 +602,12 @@ async function onRetainerInvoicePaid(invoice) {
 
   const periodIndex = subRow.periods_billed; // 0-based; first period is 0.
 
-  // Per-period fee breakdown: the offer is fee_cents, which is also what
-  // the business pays (all-in). Stripe processing and the platform fee
-  // both come out of the consultant's payout.
+  // Per-period fee breakdown. The offer is fee_cents; the business paid
+  // the offer plus the business fee at the rate on the day this invoice
+  // was created. The consultant gets the offer minus 10%.
   const offerCents = Number(subRow.fee_cents) || invoice.amount_paid;
-  const breakdown = fees.computeFees(offerCents);
+  const billedAtMs = Number(invoice.created) ? Number(invoice.created) * 1000 : Date.now();
+  const breakdown = retainerPeriodFees(offerCents, invoice.amount_paid, billedAtMs, subRow.bid_id);
 
   const { error: insertErr } = await supabase.from("bid_phase_payments").insert({
     bid_id: subRow.bid_id,
@@ -511,6 +622,7 @@ async function onRetainerInvoicePaid(invoice) {
     period_end_at: invoicePeriodEnd(invoice),
     stripe_fee_cents: breakdown.stripeFeeCents,
     platform_fee_cents: breakdown.platformFeeCents,
+    business_fee_cents: breakdown.businessFeeCents,
     consultant_payout_cents: breakdown.consultantPayoutCents,
   });
   if (insertErr) {
@@ -530,6 +642,16 @@ async function onRetainerInvoicePaid(invoice) {
     .eq("periods_billed", periodIndex);
   if (bumpErr) alertOps("retainer_periods_billed_not_bumped", { sub_id: subRow.id, period_index: periodIndex, error: bumpErr.message });
 
+  // The launch rate ends on a fixed date. If the next invoice lands on or
+  // after it, move the subscription to the list-rate price now, so that
+  // period bills at 10%. Failure here is retried by the daily cron.
+  const nextBillMs = Date.parse(invoicePeriodEnd(invoice) || "") || null;
+  if (nextBillMs) {
+    syncRetainerPrice(subscriptionId, offerCents, nextBillMs).catch((err) =>
+      alertOps("retainer_price_sync_failed", { subscription: subscriptionId, error: err.message })
+    );
+  }
+
   // Auto-release path: owner has opted in to release each period as it
   // bills. A failure (e.g. consultant payouts disabled) leaves the row
   // "held" and the owner can release manually later.
@@ -539,6 +661,90 @@ async function onRetainerInvoicePaid(invoice) {
       console.warn("[stripe webhook] auto-release failed:", result.error);
     }
   }
+}
+
+// Fees for one retainer period. Normally the invoice amount matches the
+// business total for the day it was billed. If it doesn't (a price that
+// wasn't moved to the list rate in time), what the business actually paid
+// is the truth: the business fee is that amount minus the offer. The
+// consultant's 10% never depends on it.
+function retainerPeriodFees(offerCents, amountPaidCents, billedAtMs, bidId) {
+  const breakdown = fees.computeFees(offerCents, { at: billedAtMs });
+  const paid = Number(amountPaidCents);
+  if (Number.isInteger(paid) && paid > 0 && paid !== breakdown.businessTotalCents) {
+    alertOps("retainer_invoice_amount_mismatch", { bid_id: bidId, paid, expected: breakdown.businessTotalCents });
+    const businessFee = Math.max(0, paid - breakdown.amountCents);
+    return {
+      ...breakdown,
+      businessFeeCents: businessFee,
+      businessTotalCents: breakdown.amountCents + businessFee,
+      businessFeeDiscounted: businessFee < breakdown.businessFeeFullCents,
+      stripeFeeCents: fees.estimateStripeFeeCents(breakdown.amountCents + businessFee),
+    };
+  }
+  return breakdown;
+}
+
+// Keep a retainer's Stripe price at the business total for the date its
+// next invoice is created. Prices can't be edited, so this makes a new one
+// and swaps it in with no proration. Only the business fee changes; the
+// offer (fee_cents) and the consultant's payout stay the same.
+// nextBillMs defaults to the subscription's current period end.
+async function syncRetainerPrice(subscriptionId, offerCents, nextBillMs = null) {
+  if (!stripe || !subscriptionId || !(Number(offerCents) > 0)) return { changed: false };
+  const sub = await stripe.subscriptions.retrieve(subscriptionId);
+  if (!sub || ["canceled", "incomplete_expired"].includes(sub.status)) return { changed: false };
+  const item = sub.items?.data?.[0];
+  if (!item?.price) return { changed: false };
+  // Newer Stripe API versions keep the period on the item.
+  const periodEnd = Number(sub.current_period_end ?? item.current_period_end) || 0;
+  const billMs = nextBillMs ?? (periodEnd ? periodEnd * 1000 : null);
+  if (!billMs) return { changed: false };
+  // Never bill past the agreed end; nothing left to reprice.
+  if (sub.cancel_at && billMs >= Number(sub.cancel_at) * 1000) return { changed: false };
+  const target = fees.businessTotalCents(offerCents, billMs);
+  if (Number(item.price.unit_amount) === target) return { changed: false };
+  const key = idemKey("retainer-price-sync", subscriptionId, item.id, target);
+  const price = await stripe.prices.create({
+    product: idOf(item.price.product),
+    currency: "usd",
+    unit_amount: target,
+    recurring: {
+      interval: item.price.recurring?.interval,
+      interval_count: item.price.recurring?.interval_count || 1,
+    },
+    metadata: { ...(item.price.metadata || {}), offer_cents: String(offerCents) },
+  }, { idempotencyKey: `${key}:price` });
+  await stripe.subscriptions.update(subscriptionId, {
+    items: [{ id: item.id, price: price.id }],
+    proration_behavior: "none",
+  }, { idempotencyKey: `${key}:subscription` });
+  return { changed: true, unit_amount: target };
+}
+
+// Daily backstop for the end of the launch rate: around the cutoff, make
+// sure every live retainer's next invoice is priced for the day it bills.
+// Outside that window it does nothing, so it costs no Stripe calls.
+const RETAINER_PRICE_SYNC_WINDOW_MS = 100 * 86400000;
+async function syncRetainerPricesAroundLaunchEnd(nowMs = Date.now()) {
+  if (!supabase || !stripe) return { checked: 0, changed: 0 };
+  if (Math.abs(nowMs - fees.LAUNCH_ENDS_AT_MS) > RETAINER_PRICE_SYNC_WINDOW_MS) return { checked: 0, changed: 0 };
+  const { data: subs, error } = await supabase
+    .from("retainer_subscriptions")
+    .select("id, bid_id, fee_cents, stripe_subscription_id, status")
+    .in("status", ["active", "pending"])
+    .not("stripe_subscription_id", "is", null);
+  if (error) throw new Error(`Retainer price scan failed: ${error.message}`);
+  let changed = 0;
+  for (const row of subs || []) {
+    try {
+      const r = await syncRetainerPrice(row.stripe_subscription_id, Number(row.fee_cents));
+      if (r.changed) changed += 1;
+    } catch (err) {
+      alertOps("retainer_price_sync_failed", { subscription: row.stripe_subscription_id, error: err.message });
+    }
+  }
+  return { checked: (subs || []).length, changed };
 }
 
 // End of the service period an invoice paid for (the subscription line's
@@ -620,7 +826,7 @@ const CONFIRMABLE_PAYMENT_STATUSES = ["unpaid", "authorizing", "failed"];
 
 function intentMismatch(intent, reason, extra = {}) {
   alertOps("payment_intent_mismatch", { payment_intent: intent.id, reason, ...extra });
-  return { ok: false, mismatch: true, error: "This payment doesn't match the engagement. Contact support." };
+  return { ok: false, mismatch: true, error: "This payment doesn't match the project. Contact support." };
 }
 
 async function confirmStandardBidPayment(intent, { awaitDefaultPm = false } = {}) {
@@ -676,6 +882,7 @@ async function confirmStandardBidPayment(intent, { awaitDefaultPm = false } = {}
     .select("id");
   if (updErr) throw new Error(`Bid confirm failed: ${updErr.message}`);
   if (!flipped?.length) return { ok: true, alreadyConfirmed: true, bidId };
+  await emailOfferAccepted(bidId, bid.payment_amount_cents);
 
   // Promote the just-used payment method to the customer's default so any
   // future subscription (e.g., retainer continuation) can bill it without
@@ -697,12 +904,11 @@ async function confirmStandardBidPayment(intent, { awaitDefaultPm = false } = {}
   return { ok: true, bidId };
 }
 
-// Gross the business was charged for a phase row. All-in pricing: the
-// offer is the charge, and the platform fee comes out of it. Rows from the
-// old offer-plus-fee model all have platform_fee_cents = 0 (it was waived),
-// so this holds for them too.
+// Gross the business was charged for a phase row: the offer plus the
+// business fee stored when the charge was created. Rows from the all-in
+// model have no business fee (0 or NULL), so the offer was the charge.
 function phaseRowGross(row) {
-  return Number(row.amount_cents || 0);
+  return Number(row.amount_cents || 0) + Number(row.business_fee_cents || 0);
 }
 
 async function confirmProposalBatchPayment(intent) {
@@ -712,7 +918,7 @@ async function confirmProposalBatchPayment(intent) {
   const ownerId = intent.metadata?.owner_id;
   const { data: rows, error: rowsErr } = await supabase
     .from("bid_phase_payments")
-    .select("id, bid_id, status, amount_cents, platform_fee_cents")
+    .select("id, bid_id, status, amount_cents, platform_fee_cents, business_fee_cents")
     .eq("payment_intent_id", intent.id)
     .eq("phase", "proposal");
   if (rowsErr) throw new Error(`Proposal rows lookup failed: ${rowsErr.message}`);
@@ -743,12 +949,16 @@ async function confirmProposalBatchPayment(intent) {
     .in("status", CONFIRMABLE_PAYMENT_STATUSES);
   if (phaseUpdErr) throw new Error(`Proposal rows confirm failed: ${phaseUpdErr.message}`);
 
-  const { error: bidUpdErr } = await supabase
+  const { data: acceptedBids, error: bidUpdErr } = await supabase
     .from("bids")
     .update({ status: "accepted", accepted_at: now })
     .in("id", bidIds)
-    .neq("status", "accepted");
+    .neq("status", "accepted")
+    .select("id");
   if (bidUpdErr) throw new Error(`Proposal bids accept failed: ${bidUpdErr.message}`);
+  for (const { id } of acceptedBids || []) {
+    await emailOfferAccepted(id, rows.find((r) => r.bid_id === id)?.amount_cents);
+  }
 
   return { ok: true, bidIds };
 }
@@ -759,7 +969,7 @@ async function confirmServicePayment(intent) {
   }
   const { data: row, error: rowErr } = await supabase
     .from("bid_phase_payments")
-    .select("id, bid_id, status, amount_cents, platform_fee_cents")
+    .select("id, bid_id, status, amount_cents, platform_fee_cents, business_fee_cents")
     .eq("payment_intent_id", intent.id)
     .eq("phase", "service")
     .maybeSingle();
@@ -1108,6 +1318,136 @@ app.get("/api/public-config", (_req, res) => {
     supabaseAnonKey: SUPABASE_ANON_KEY,
     stripePublishableKey: STRIPE_PUBLISHABLE_KEY || null,
   });
+});
+
+// Student applications from /for-students. Consultant signup is invite-only,
+// so each application is saved to student_applications, emailed to the
+// admin (who replies with an invite), and the student gets a confirmation.
+// It sits above the /api Supabase gate so the admin email still goes out if
+// the database is down. The student only sees success once the application
+// is recorded somewhere: saved, or the admin email went out.
+const APPLICATION_LIMIT = 5;
+const APPLICATION_WINDOW_MS = 10 * 60 * 1000;
+const applicationHits = new Map();
+
+// Best-effort per-instance cap, so a bot can't burn the daily Resend quota
+// that transactional emails depend on.
+function applicationRateLimited(ip) {
+  const now = Date.now();
+  for (const [key, hit] of applicationHits) {
+    if (now > hit.resetAt) applicationHits.delete(key);
+  }
+  const hit = applicationHits.get(ip) || { count: 0, resetAt: now + APPLICATION_WINDOW_MS };
+  hit.count += 1;
+  applicationHits.set(ip, hit);
+  return hit.count > APPLICATION_LIMIT;
+}
+
+app.post("/api/student-application", async (req, res) => {
+  const body = req.body || {};
+  const line = (value, max) => String(value ?? "").replace(/\s+/g, " ").trim().slice(0, max);
+
+  // Honeypot: people never see this field, so pretend it worked.
+  if (line(body.website, 200)) return res.json({ ok: true });
+
+  const ip = String(req.get("x-forwarded-for") || req.ip || "").split(",")[0].trim();
+  if (applicationRateLimited(ip)) {
+    return res.status(429).json({ error: "Too many attempts. Please try again in a few minutes." });
+  }
+
+  const name = line(body.name, 120);
+  const school = line(body.school, 160);
+  const email = line(body.email, 200).toLowerCase();
+  const city = line(body.city, 120);
+  const link = line(body.link, 500);
+  const major = line(body.major, 160);
+  // Extra degrees: second major, minor, master's or specialization.
+  const EXTRA_TYPES = ["Second major", "Minor", "Master's", "Specialization"];
+  const extras = (Array.isArray(body.extras) ? body.extras : [])
+    .slice(0, 4)
+    .map((e) => ({ type: EXTRA_TYPES.includes(e?.type) ? e.type : null, name: line(e?.name, 160) }))
+    .filter((e) => e.type && e.name);
+  const project = String(body.project ?? "").trim().slice(0, 2000);
+  if (!name || !school || !email || !city || !major || !project) {
+    return res.status(400).json({ error: "Please fill in every field." });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.edu$/.test(email)) {
+    return res.status(400).json({ error: "Please use your .edu email." });
+  }
+
+  const dedupeKey = crypto.createHash("sha256").update(`${email}\n${project}`).digest("hex");
+
+  // 1. Save it. A resubmit of the same application hits the unique
+  //    dedupe_key and counts as already saved.
+  let saved = false;
+  let applicationId = null;
+  if (supabase) {
+    const { data: row, error } = await supabase
+      .from("student_applications")
+      .insert({ name, school, email, city, major, extras, link: link || null, project, dedupe_key: dedupeKey })
+      .select("id")
+      .single();
+    if (!error) {
+      saved = true;
+      applicationId = row.id;
+    } else if (error.code === "23505") {
+      saved = true;
+    } else {
+      console.warn("[student-application] save failed", error.message);
+    }
+  }
+
+  // 2. Tell the admin.
+  const result = await sendEmail({
+    to: PRIVACY_ADMIN_EMAIL,
+    subject: `[grassroots] student application — ${name}, ${school}`,
+    replyTo: email,
+    text:
+      `A student applied to join Grassroots.\n\n` +
+      `Name:   ${name}\n` +
+      `School: ${school}\n` +
+      `Email:  ${email}\n` +
+      `City:   ${city}\n` +
+      `Major:  ${major}\n` +
+      extras.map((e) => `${e.type}: ${e.name}\n`).join("") +
+      `Link:   ${link || "none given"}\n\n` +
+      `A past project they're proud of:\n${project}\n\n` +
+      `Reply to this email to reach them. Applicants join through a consultant invite link.` +
+      (saved ? "" : `\n\nNote: this application was NOT saved to the database. This email is the only copy.`),
+    idempotencyKey: `student-application:${dedupeKey}`,
+    tags: [{ name: "event", value: "student_application" }],
+  });
+  const adminSent = result.sent || result.reason === "duplicate";
+
+  if (!saved && !adminSent) {
+    console.warn("[student-application] not recorded", result.reason || result.status);
+    return res.status(503).json({
+      error: `We couldn't send your application. Please email ${APPLICATIONS_CONTACT_EMAIL} instead.`,
+    });
+  }
+
+  // 3. Confirm to the student. Best-effort: the application is already
+  //    recorded, so a failed confirmation doesn't fail the request.
+  const confirmation = buildApplicationReceivedEmail({ name, baseUrl: emailBaseUrl() });
+  const sent = await sendEmail({
+    to: email,
+    subject: confirmation.subject,
+    html: confirmation.html,
+    text: confirmation.text,
+    replyTo: APPLICATIONS_CONTACT_EMAIL,
+    idempotencyKey: `student-application-received:${dedupeKey}`,
+    tags: [{ name: "event", value: "student_application_received" }],
+  });
+  if (sent.sent && applicationId) {
+    await supabase
+      .from("student_applications")
+      .update({ confirmation_sent_at: new Date().toISOString() })
+      .eq("id", applicationId);
+  } else if (!sent.sent && sent.reason !== "duplicate") {
+    console.warn("[student-application] confirmation not sent", sent.reason || sent.status);
+  }
+
+  res.json({ ok: true });
 });
 
 app.use("/api", (req, res, next) => {
@@ -1642,6 +1982,8 @@ app.post("/api/register", upload.single("resume"), async (req, res) => {
       await attachInviteUser(supabase, inviteId, userId);
     }
 
+    await emailUser(userId, role === "consultant" ? "welcome_consultant" : "welcome_business", { fullName }, { key: userId });
+
     return res.status(201).json({
       message: "Registration complete.",
       userId,
@@ -1721,6 +2063,8 @@ app.post("/api/oauth-complete", express.json(), async (req, res) => {
     await supabase.auth.admin.updateUserById(userId, {
       user_metadata: { full_name: fullName, role },
     });
+
+    await emailUser(userId, "welcome_business", { fullName }, { key: userId });
 
     return res.status(201).json({ message: "Profile created.", userId, role });
   } catch (error) {
@@ -2132,19 +2476,39 @@ async function ensureConsultantStripeAccount(viewerId) {
     return profile;
   }
 
-  const account = await stripe.accounts.create({
-    type: "custom",
-    // US-only: 1099-K reporting needs a US TIN, and the attestation above
-    // already limits consultants to US persons.
-    country: "US",
-    capabilities: {
-      transfers: { requested: true },
-      card_payments: { requested: true },
+  // Stripe stopped accepting new v1 `type: "custom"` accounts, so new
+  // payout accounts are created with Accounts v2. The settings match the
+  // old Custom account: no Stripe dashboard for the student (they use our
+  // embedded components), Grassroots collects fees and covers losses, and
+  // the same two capabilities (card_payments + transfers). Every other
+  // call (account sessions, accounts.retrieve/update, transfers, the
+  // account.updated webhook) keeps using v1 endpoints, which accept v2
+  // account IDs and return the v1 shape. Accounts created before this
+  // change are untouched. Tested against test mode 2026-11-16.
+  const { data: authData } = await supabase.auth.admin.getUserById(viewerId);
+  const contactEmail = authData?.user?.email;
+  if (!contactEmail) throw new Error("Your account has no email address on file.");
+
+  const account = await stripe.v2.core.accounts.create({
+    contact_email: contactEmail,
+    display_name: profile.full_name || undefined,
+    identity: { country: "US", entity_type: "individual" },
+    dashboard: "none",
+    defaults: {
+      responsibilities: { fees_collector: "application", losses_collector: "application" },
     },
-    business_type: "individual",
-    business_profile: CONSULTANT_BUSINESS_PROFILE,
+    configuration: {
+      merchant: { capabilities: { card_payments: { requested: true } } },
+      recipient: { capabilities: { stripe_balance: { stripe_transfers: { requested: true } } } },
+    },
     metadata: { grassroots_user_id: viewerId },
-  }, { idempotencyKey: idemKey("account", viewerId) });
+  }, { idempotencyKey: idemKey("account-v2", viewerId) });
+
+  // business_profile (MCC + platform URL) is set through the v1 endpoint,
+  // the same way the backfill above does it.
+  await stripe.accounts.update(account.id, {
+    business_profile: CONSULTANT_BUSINESS_PROFILE,
+  });
 
   await supabase
     .from("profiles")
@@ -2228,10 +2592,25 @@ app.post("/api/stripe/account-session", async (req, res) => {
     const profile = await ensureConsultantStripeAccount(viewer.id);
     const accountSession = await stripe.accountSessions.create({
       account: profile.stripe_account_id,
+      // disable_stripe_user_authentication: the student is already
+      // signed in to Grassroots (checked above), so Stripe skips its own
+      // sign-in pop-up (phone + code) and the form renders inline on
+      // /payouts.html. Allowed because these accounts have no Stripe
+      // dashboard and Grassroots collects requirements and covers losses.
+      // Bank details are still collected in the form.
       components: {
-        account_onboarding: { enabled: true },
-        account_management: { enabled: true },
-        payouts: { enabled: true },
+        account_onboarding: {
+          enabled: true,
+          features: { disable_stripe_user_authentication: true, external_account_collection: true },
+        },
+        account_management: {
+          enabled: true,
+          features: { disable_stripe_user_authentication: true, external_account_collection: true },
+        },
+        payouts: {
+          enabled: true,
+          features: { disable_stripe_user_authentication: true, external_account_collection: true },
+        },
         // Lets consultants download the 1099-K Stripe files for them.
         documents: { enabled: true },
       },
@@ -2395,8 +2774,9 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
       return res.status(400).json({ error: "Bid amount is invalid for payment." });
     }
 
-    // All-in pricing: the business is charged the offer. The platform
-    // and Stripe fees come out of the consultant payout.
+    // The business is charged the offer plus the business fee (5% launch
+    // rate before March 1, 2027, then 10%). The consultant gets the offer
+    // minus 10%. Both are locked in here and stored on the bid.
     const feeBreakdown = fees.computeFees(offerAmount);
     const amount = feeBreakdown.businessTotalCents;
 
@@ -2458,8 +2838,8 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
     }
     // Fee breakdown was computed above off the offer amount and used to
     // derive what we charge the business. release-funds re-uses the
-    // stored consultant payout figure (offer - stripe fee) as the
-    // authoritative number to transfer.
+    // stored consultant payout figure (offer - 10%) as the authoritative
+    // number to transfer.
 
     if (!intent) {
       // Escrow: no `transfer_data.destination` and no `on_behalf_of`, so the
@@ -2495,6 +2875,7 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
           payment_amount_cents: amount,
           stripe_fee_cents: feeBreakdown.stripeFeeCents,
           platform_fee_cents: feeBreakdown.platformFeeCents,
+          business_fee_cents: feeBreakdown.businessFeeCents,
           consultant_payout_cents: feeBreakdown.consultantPayoutCents,
         })
         .eq("id", bidId)
@@ -2511,7 +2892,7 @@ app.post("/api/stripe/payment-intent", async (req, res) => {
       client_secret: intent.client_secret,
       amount,
       currency: "usd",
-      title: bid.listings?.title || "engagement",
+      title: bid.listings?.title || "project",
       fee_breakdown: feeBreakdown,
     });
   } catch (err) {
@@ -2573,6 +2954,7 @@ app.post("/api/engagement/accept-free", async (req, res) => {
       .select("id");
     if (updErr) return res.status(500).json({ error: updErr.message });
     if (!flipped?.length) return res.status(409).json({ error: "This offer changed. Reload and try again." });
+    await emailOfferAccepted(bidId, 0);
     return res.json({ ok: true });
   } catch (err) {
     return res.status(500).json({ error: err.message || "Could not accept the offer." });
@@ -2603,7 +2985,7 @@ app.post("/api/stripe/confirm-acceptance", async (req, res) => {
 
     const intent = await stripe.paymentIntents.retrieve(bid.payment_intent_id);
     if (intent.metadata?.bid_id !== bidId || intent.metadata?.owner_id !== viewer.id) {
-      return res.status(403).json({ error: "This payment doesn't belong to this engagement." });
+      return res.status(403).json({ error: "This payment doesn't belong to this project." });
     }
     // Same path the payment_intent.succeeded webhook runs; verifies amount
     // and flips authorizing → held exactly once.
@@ -2731,7 +3113,34 @@ async function releaseStandardBid(bid, { claimEq = {}, payoutCents = null } = {}
     }
   }
 
+  // The release above is done. Everything past this point is a courtesy
+  // notification and can never change the result.
+  await notifyFlowerPlanted(bid);
+
   return { ok: true, transfer_id: transferId, fundsRouted, payout_cents: payoutAmount };
+}
+
+/* Tell the consultant a finished engagement was added to the garden on
+   their profile. Called once a standard bid has been released (owner
+   release, 14-day auto-release, a support release, or a free job marked
+   complete — all go through releaseStandardBid). Notification only: it
+   reads the listing title and inserts one row, deduped per bid by the
+   link. Never throws. */
+async function notifyFlowerPlanted(bid) {
+  try {
+    if (!bid?.id || !bid.consultant_id) return;
+    const { data: listing } = await supabase
+      .from("listings").select("title").eq("id", bid.listing_id).maybeSingle();
+    const title = listing?.title || "your project";
+    await notifyOnce(bid.consultant_id, {
+      type: "flower_planted",
+      title: "A flower was planted in your garden",
+      body: `"${title}" is complete. See it in your garden.`,
+      link: `/profile.html?flower=${bid.id}#pp-garden-section`,
+    });
+  } catch (err) {
+    console.warn("[notify] flower planted failed:", err.message);
+  }
 }
 
 /* Tell the consultant an owner-initiated release went through. Same copy
@@ -2739,9 +3148,9 @@ async function releaseStandardBid(bid, { claimEq = {}, payoutCents = null } = {}
 async function notifyPaymentReleased({ bidId, consultantId, listingId, payoutCents, free = false }) {
   const { data: listing } = await supabase
     .from("listings").select("title").eq("id", listingId).maybeSingle();
-  const title = listing?.title || "your engagement";
+  const title = listing?.title || "your project";
   await notifyUser(consultantId, free
-    ? { type: "payment_released", title: "Engagement marked complete", body: `The business marked "${title}" complete.`, link: `/engagement.html?bid=${bidId}` }
+    ? { type: "payment_released", title: "Project marked complete", body: `The business marked "${title}" complete.`, link: `/engagement.html?bid=${bidId}` }
     : { type: "payment_released", title: "Payment released", body: `${dollars(payoutCents)} from "${title}" is on its way to your Stripe balance.`, link: `/engagement.html?bid=${bidId}` });
 }
 
@@ -2768,7 +3177,7 @@ app.post("/api/stripe/release-funds", async (req, res) => {
   try {
     const { data: bid, error: bidErr } = await supabase
       .from("bids")
-      .select("id, listing_id, consultant_id, payment_amount_cents, payment_status, payment_intent_id, transfer_id, stripe_fee_cents, platform_fee_cents, consultant_payout_cents")
+      .select("id, listing_id, consultant_id, payment_amount_cents, payment_status, payment_intent_id, transfer_id, stripe_fee_cents, platform_fee_cents, business_fee_cents, consultant_payout_cents")
       .eq("id", bidId)
       .maybeSingle();
     if (bidErr || !bid) return res.status(404).json({ error: "Bid not found." });
@@ -2791,6 +3200,7 @@ app.post("/api/stripe/release-funds", async (req, res) => {
 
     const result = await releaseStandardBid(bid);
     if (!result.ok) return res.status(result.status).json({ error: result.error });
+    await emailPaymentReleased(bidId, { grossCents: bid.payment_amount_cents, offerCents: offerCentsOf({ kind: "bid", row: bid }), payoutCents: result.payout_cents, key: `bid-${bidId}` });
     await notifyPaymentReleased({
       bidId, consultantId: bid.consultant_id, listingId: bid.listing_id,
       payoutCents: result.payout_cents, free: Number(bid.payment_amount_cents) === 0,
@@ -2848,14 +3258,14 @@ app.post("/api/stripe/refund-payment", async (req, res) => {
     }
     if (bid.payment_status === "released") {
       return res.status(409).json({
-        error: "Funds have already been released to the consultant. Once the work was marked complete and the review submitted, the engagement is final — refunds are not available.",
+        error: "Funds have already been released to the consultant. Once the work was marked complete and the review submitted, the project is final — refunds are not available.",
       });
     }
     if (bid.payment_status !== "held") {
       return res.status(409).json({ error: `Cannot refund: payment status is ${bid.payment_status}.` });
     }
     if (Number(bid.payment_amount_cents) === 0) {
-      return res.status(409).json({ error: "There's no payment on this engagement to refund." });
+      return res.status(409).json({ error: "There's no payment on this project to refund." });
     }
     if (!bid.payment_intent_id) {
       return res.status(400).json({ error: "No payment intent on this bid." });
@@ -2992,17 +3402,18 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
     }
 
     // Validate fees + compute the per-bid breakdown so each row stores
-    // its own (offer, stripe fee estimate, platform fee, consultant
-    // payout). The batch charge is the sum of business totals (= the sum
-    // of offers, since pricing is all-in).
+    // its own (offer, business fee, consultant fee, consultant payout).
+    // The batch charge is the sum of per-bid business totals, so it always
+    // matches the rows to the cent.
     let totalCents = 0;
+    const pricedAt = Date.now(); // one rate for the whole batch
     const bidBreakdowns = new Map();
     for (const b of bids) {
       const fee = Number(b.proposal_fee_cents);
       if (!fees.isValidOfferCents(fee)) {
         return res.status(400).json({ error: "One of the bids has an invalid proposal fee." });
       }
-      const breakdown = fees.computeFees(fee);
+      const breakdown = fees.computeFees(fee, { at: pricedAt });
       bidBreakdowns.set(b.id, breakdown);
       totalCents += breakdown.businessTotalCents;
     }
@@ -3022,15 +3433,18 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
         paid_at: now,
         stripe_fee_cents: 0,
         platform_fee_cents: 0,
+        business_fee_cents: 0,
         consultant_payout_cents: 0,
       })));
       if (freeRowsErr) return res.status(500).json({ error: freeRowsErr.message });
-      const { error: freeBidsErr } = await supabase
+      const { data: freeAccepted, error: freeBidsErr } = await supabase
         .from("bids")
         .update({ status: "accepted", accepted_at: now })
         .in("id", bidIds)
-        .neq("status", "accepted");
+        .neq("status", "accepted")
+        .select("id");
       if (freeBidsErr) return res.status(500).json({ error: freeBidsErr.message });
+      for (const { id } of freeAccepted || []) await emailOfferAccepted(id, 0);
       return res.json({ ok: true, free: true, bid_ids: bidIds });
     }
 
@@ -3097,8 +3511,9 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
 
     // Pre-create the per-bid phase payment rows so the confirm step has
     // something to flip to 'held'. amount_cents stays the offer (proposal
-    // fee); the fee columns record the breakdown so release-time can
-    // transfer just the consultant payout. If the owner abandons mid-flow,
+    // fee); business_fee_cents is what the business paid on top, and the
+    // other fee columns record the breakdown so release-time can transfer
+    // just the consultant payout. If the owner abandons mid-flow,
     // the rows stay 'authorizing' — a future cleanup webhook on
     // `payment_intent.canceled` can drop them, but for now manual review
     // is fine.
@@ -3112,6 +3527,7 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
         status: "authorizing",
         stripe_fee_cents: f.stripeFeeCents,
         platform_fee_cents: f.platformFeeCents,
+        business_fee_cents: f.businessFeeCents,
         consultant_payout_cents: f.consultantPayoutCents,
       };
     });
@@ -3127,14 +3543,17 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
     // Aggregate fee figures across the batch so the frontend can render
     // a single combined breakdown (sum of offers, sum of platform fees).
     let aggOffer = 0;
+    let aggBusinessFee = 0;
+    let aggBusinessFeeFull = 0;
     let aggPlatform = 0;
-    let aggPlatformFull = 0;
     let aggStripe = 0;
     let aggPayout = 0;
+    let businessFeeBps = fees.businessFeeBps(pricedAt);
     for (const f of bidBreakdowns.values()) {
       aggOffer += f.amountCents;
+      aggBusinessFee += f.businessFeeCents;
+      aggBusinessFeeFull += f.businessFeeFullCents;
       aggPlatform += f.platformFeeCents;
-      aggPlatformFull += f.platformFeeFullCents;
       aggStripe += f.stripeFeeCents;
       aggPayout += f.consultantPayoutCents;
     }
@@ -3147,11 +3566,15 @@ app.post("/api/stripe/phased/accept-proposals", async (req, res) => {
       bid_ids: bidIds,
       fee_breakdown: {
         amountCents: aggOffer,
+        businessFeeBps,
+        businessFeeCents: aggBusinessFee,
+        businessFeeFullCents: aggBusinessFeeFull,
+        businessFeeDiscounted: aggBusinessFee < aggBusinessFeeFull,
         businessTotalCents: totalCents,
+        launchEndsAt: new Date(fees.LAUNCH_ENDS_AT_MS).toISOString(),
+        consultantFeeBps: fees.CONSULTANT_FEE_BPS,
         stripeFeeCents: aggStripe,
         platformFeeCents: aggPlatform,
-        platformFeeFullCents: aggPlatformFull,
-        platformFeeDiscounted: aggPlatform < aggPlatformFull,
         consultantPayoutCents: aggPayout,
       },
     });
@@ -3228,7 +3651,7 @@ app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
       .eq("bid_id", bidId)
       .maybeSingle();
     if (existing && ["pending", "active"].includes(existing.status)) {
-      return res.status(409).json({ error: `Retainer already ${existing.status} for this engagement.` });
+      return res.status(409).json({ error: `Retainer already ${existing.status} for this project.` });
     }
 
     // Resolve cadence + fee. 'fixed' uses listing values; 'tentative'
@@ -3294,13 +3717,14 @@ app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
 
     // Create a Product + recurring Price tagged to this engagement so the
     // subscription has a clear lineage in the Stripe dashboard. Each
-    // period bills the offer (all-in; fees come out of the payout).
-    const perPeriodBreakdown = fees.computeFees(feeCents);
+    // period bills the offer plus the business fee for today's rate; if the
+    // launch rate ends mid-retainer, syncRetainerPrice moves it to 10%.
     // One key per (bid, prior retainer row state, terms) so a double-click
     // replays the same Product/Price/Subscription instead of billing twice.
+    const periodTotalCents = fees.businessTotalCents(feeCents);
     const startKey = idemKey(
       "retainer-start-card", bidId, existing?.id || "new", existing?.status || "-",
-      cadence, feeCents, cancelAtUnix || "open"
+      cadence, feeCents, periodTotalCents, cancelAtUnix || "open"
     );
     const product = await stripe.products.create({
       name: `retainer · ${listing.title}`,
@@ -3309,7 +3733,7 @@ app.post("/api/stripe/retainer/start-subscription", async (req, res) => {
     const price = await stripe.prices.create({
       product: product.id,
       currency: "usd",
-      unit_amount: perPeriodBreakdown.businessTotalCents,
+      unit_amount: periodTotalCents,
       recurring: CADENCE_INTERVAL[cadence],
       metadata: { bid_id: bidId, offer_cents: String(feeCents) },
     }, { idempotencyKey: `${startKey}:price` });
@@ -3425,7 +3849,7 @@ app.post("/api/stripe/retainer/offer", async (req, res) => {
       return res.status(403).json({ error: "Only the listing owner can offer a retainer." });
     }
     if (bid.payment_status !== "released") {
-      return res.status(400).json({ error: "The engagement isn't released yet — retainer offers happen after first delivery." });
+      return res.status(400).json({ error: "The project isn't released yet — retainer offers happen after first delivery." });
     }
 
     const { data: existing } = await supabase
@@ -3434,7 +3858,7 @@ app.post("/api/stripe/retainer/offer", async (req, res) => {
       .eq("bid_id", bidId)
       .maybeSingle();
     if (existing && ["offered", "pending", "active"].includes(existing.status)) {
-      return res.status(409).json({ error: `A retainer is already ${existing.status} on this engagement.` });
+      return res.status(409).json({ error: `A retainer is already ${existing.status} on this project.` });
     }
 
     const row = {
@@ -3497,7 +3921,7 @@ app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
       .select("id, status, cadence, period_count, fee_cents, offered_by, offered_at")
       .eq("bid_id", bidId)
       .maybeSingle();
-    if (!offerRow) return res.status(404).json({ error: "No retainer offer on this engagement." });
+    if (!offerRow) return res.status(404).json({ error: "No retainer offer on this project." });
     if (offerRow.status !== "offered") {
       return res.status(409).json({ error: `Offer is ${offerRow.status} — can't accept.` });
     }
@@ -3553,9 +3977,10 @@ app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
     // business can lengthen or shorten it later via update-settings.
     const cancelAtUnix = retainerCancelAt(Date.parse(acceptedAt) / 1000, offerRow.cadence, offerRow.period_count);
 
-    // Each invoice bills the offer (all-in; fees come out of the payout).
-    const perPeriodBreakdown = fees.computeFees(offerRow.fee_cents);
-    // accepted_at is fresh per claim, so a retry after a rollback gets new keys.
+    // Each invoice bills the offer plus the business fee for today's rate;
+    // if the launch rate ends mid-retainer, syncRetainerPrice moves it to
+    // 10%. accepted_at is fresh per claim, so a retry after a rollback gets
+    // new keys.
     const offerKey = idemKey("retainer-offer", offerRow.id, acceptedAt);
     let subscription;
     try {
@@ -3566,7 +3991,7 @@ app.post("/api/stripe/retainer/accept-offer", async (req, res) => {
       const price = await stripe.prices.create({
         product: product.id,
         currency: "usd",
-        unit_amount: perPeriodBreakdown.businessTotalCents,
+        unit_amount: fees.businessTotalCents(offerRow.fee_cents),
         recurring: CADENCE_INTERVAL[offerRow.cadence],
         metadata: { bid_id: bidId, offer_cents: String(offerRow.fee_cents) },
       }, { idempotencyKey: `${offerKey}:price` });
@@ -3644,7 +4069,7 @@ app.post("/api/stripe/retainer/decline-offer", async (req, res) => {
       .select("id, status")
       .eq("bid_id", bidId)
       .maybeSingle();
-    if (!offerRow) return res.status(404).json({ error: "No retainer offer on this engagement." });
+    if (!offerRow) return res.status(404).json({ error: "No retainer offer on this project." });
     if (offerRow.status !== "offered") {
       return res.status(409).json({ error: `Offer is ${offerRow.status} — can't decline.` });
     }
@@ -3704,7 +4129,7 @@ app.post("/api/stripe/retainer/cancel-subscription", async (req, res) => {
       .select("id, stripe_subscription_id, status")
       .eq("bid_id", bidId)
       .maybeSingle();
-    if (!subRow) return res.status(404).json({ error: "No retainer on this engagement." });
+    if (!subRow) return res.status(404).json({ error: "No retainer on this project." });
     if (subRow.status === "canceled") return res.json({ ok: true, alreadyCanceled: true });
 
     if (subRow.stripe_subscription_id) {
@@ -3792,7 +4217,7 @@ app.post("/api/stripe/retainer/update-settings", async (req, res) => {
       .select("id, stripe_subscription_id, auto_release, terminates_at, status, cadence, period_count, periods_billed")
       .eq("bid_id", bidId)
       .maybeSingle();
-    if (!subRow) return res.status(404).json({ error: "No retainer on this engagement." });
+    if (!subRow) return res.status(404).json({ error: "No retainer on this project." });
     if (["canceled", "completed"].includes(subRow.status)) {
       return res.status(400).json({ error: "Retainer is no longer active." });
     }
@@ -3954,7 +4379,7 @@ app.post("/api/stripe/retainer/release-period", async (req, res) => {
 
     const { data: phaseRow, error: phaseErr } = await supabase
       .from("bid_phase_payments")
-      .select("id, status, amount_cents, charge_id, consultant_payout_cents")
+      .select("id, status, amount_cents, business_fee_cents, charge_id, consultant_payout_cents")
       .eq("bid_id", bidId)
       .eq("phase", "retainer_period")
       .eq("period_index", periodIndex)
@@ -3988,6 +4413,7 @@ app.post("/api/stripe/retainer/release-period", async (req, res) => {
     });
     if (result.conflict) return res.status(409).json({ error: "This period changed while you were releasing it. Reload and try again." });
     if (!result.ok) return res.status(409).json({ error: result.error });
+    await emailPaymentReleased(bidId, { grossCents: phaseRowGross(phaseRow), offerCents: phaseRow.amount_cents, payoutCents: result.payout_cents, key: `pay-${phaseRow.id}`, link: `/engagement.html?bid=${bidId}#pay-${phaseRow.id}` });
 
     await notifyPaymentReleased({ bidId, consultantId: bid.consultant_id, listingId: bid.listing_id, payoutCents: result.payout_cents });
     return res.json({ ok: true, transfer_id: result.transfer_id });
@@ -4104,6 +4530,7 @@ app.post("/api/stripe/phased/start-service", async (req, res) => {
       status: "authorizing",
       stripe_fee_cents: feeBreakdown.stripeFeeCents,
       platform_fee_cents: feeBreakdown.platformFeeCents,
+      business_fee_cents: feeBreakdown.businessFeeCents,
       consultant_payout_cents: feeBreakdown.consultantPayoutCents,
     };
     let writeErr;
@@ -4193,7 +4620,7 @@ app.post("/api/stripe/phased/release-service", async (req, res) => {
 
     const { data: phaseRow, error: phaseErr } = await supabase
       .from("bid_phase_payments")
-      .select("id, status, amount_cents, charge_id, transfer_id, consultant_payout_cents")
+      .select("id, status, amount_cents, business_fee_cents, charge_id, transfer_id, consultant_payout_cents")
       .eq("bid_id", bidId)
       .eq("phase", "service")
       .maybeSingle();
@@ -4237,6 +4664,7 @@ app.post("/api/stripe/phased/release-service", async (req, res) => {
     });
     if (result.conflict) return res.status(409).json({ error: "This payment changed while you were releasing it. Reload and try again." });
     if (!result.ok) return res.status(409).json({ error: result.error });
+    await emailPaymentReleased(bidId, { grossCents: phaseRowGross(phaseRow), offerCents: phaseRow.amount_cents, payoutCents: result.payout_cents, key: `pay-${phaseRow.id}`, link: `/engagement.html?bid=${bidId}#pay-${phaseRow.id}` });
 
     await notifyPaymentReleased({ bidId, consultantId: bid.consultant_id, listingId: bid.listing_id, payoutCents: result.payout_cents });
     return res.json({ ok: true, transfer_id: result.transfer_id });
@@ -4432,7 +4860,7 @@ const SUPPORT_HOLD_STALE_DAYS = 14;
 const RELEASE_SCAN_LIMIT = 1000;
 const DAY_MS = 86400000;
 
-const DELIVERY_COLS = "delivered_at, delivery_note, delivery_link, changes_requested_at, changes_request_note, review_reminded_at, support_hold_at, support_hold_reason, backstop_flagged_at, refunded_cents, stripe_fee_cents, platform_fee_cents, " +
+const DELIVERY_COLS = "delivered_at, delivery_note, delivery_link, changes_requested_at, changes_request_note, review_reminded_at, support_hold_at, support_hold_reason, backstop_flagged_at, refunded_cents, stripe_fee_cents, platform_fee_cents, business_fee_cents, " +
   // add_support_outcomes.sql: reported problems + support outcomes A/B/C.
   "problem_reported_at, problem_report_note, problem_report_link, problem_report_count, support_outcome, support_outcome_at, redo_offered_at, redo_deadline_at, redo_reminded_at, redo_used, consultant_choice, consultant_choice_at, response_due_at, consultant_response_at";
 const BID_RELEASE_COLS = `id, listing_id, consultant_id, payment_amount_cents, payment_status, payment_intent_id, transfer_id, consultant_payout_cents, paid_at, released_at, ${DELIVERY_COLS}`;
@@ -4468,7 +4896,7 @@ async function releaseContext(bidId, cache) {
       bidId,
       ownerId: listing?.owner_id || null,
       consultantId: bid.consultant_id,
-      title: listing?.title || "Your engagement",
+      title: listing?.title || "Your project",
       contractType: listing?.contract_type || "standard",
       listingCadence: listing?.retainer_cadence || null,
       subCadence: sub?.cadence || null,
@@ -4621,7 +5049,7 @@ async function scanHeld(nowMs) {
     })),
     ...(rows || []).filter((r) => r.paid_at).map((r) => ({
       kind: "phase", key: `pay-${r.id}`, bidId: r.bid_id, row: r,
-      cents: r.amount_cents, payoutCents: r.consultant_payout_cents ?? r.amount_cents,
+      cents: phaseRowGross(r), payoutCents: r.consultant_payout_cents ?? phaseRowGross(r),
     })),
   ];
 }
@@ -4700,13 +5128,13 @@ async function runReleaseJob(nowMs = Date.now()) {
         summary.released.push(item.key);
         await notifyOnce(ctx.ownerId, {
           type: "auto_released",
-          title: "Engagement marked complete",
+          title: "Project marked complete",
           body: `Your 14-day review window for "${ctx.title}" ended, so Grassroots marked the work complete.`,
           link,
         });
         await notifyOnce(ctx.consultantId, {
           type: "auto_released",
-          title: "Engagement marked complete",
+          title: "Project marked complete",
           body: `The business's review window for "${ctx.title}" ended, so it's marked complete.`,
           link,
         });
@@ -4715,7 +5143,7 @@ async function runReleaseJob(nowMs = Date.now()) {
         await notifyOnce(ctx.ownerId, {
           type: "auto_released",
           title: "Payment released to your consultant",
-          body: `Your 14-day review window for "${ctx.title}" ended, so Grassroots released ${dollars(item.cents)} to the consultant.`,
+          body: `Your 14-day review window for "${ctx.title}" ended, so Grassroots released your ${dollars(item.cents)} payment to the consultant.`,
           link,
         });
         await notifyOnce(ctx.consultantId, {
@@ -4724,6 +5152,7 @@ async function runReleaseJob(nowMs = Date.now()) {
           body: `${dollars(item.payoutCents)} from "${ctx.title}" is on its way to your Stripe balance.`,
           link,
         });
+        await emailPaymentReleased(item.bidId, { grossCents: item.cents, offerCents: offerCentsOf(item), payoutCents: item.payoutCents, key: item.key, link, auto: true });
       } else if (result.disputed || result.conflict || result.partialRefund) {
         summary.skipped.push({ key: item.key, reason: result.disputed ? "disputed" : result.partialRefund ? "partial_refund" : "changed" });
       } else {
@@ -4757,8 +5186,14 @@ app.get("/api/cron/auto-release", async (req, res) => {
   if (!requireStripe(res)) return;
   try {
     const summary = await runReleaseJob();
-    console.log("[auto-release]", JSON.stringify(summary));
-    return res.json({ ok: true, ...summary });
+    let retainerPrices = null;
+    try {
+      retainerPrices = await syncRetainerPricesAroundLaunchEnd();
+    } catch (err) {
+      alertOps("retainer_price_sync_run_failed", { error: err.message });
+    }
+    console.log("[auto-release]", JSON.stringify({ ...summary, retainerPrices }));
+    return res.json({ ok: true, ...summary, retainerPrices });
   } catch (err) {
     console.error("[auto-release] run failed:", err);
     return res.status(500).json({ error: "Auto-release run failed" });
@@ -4771,17 +5206,17 @@ app.get("/api/cron/auto-release", async (req, res) => {
 // job, retainer first period) or one of its phase rows (`payment_id`).
 async function loadReleaseTarget(bidId, paymentId) {
   const ctx = await releaseContext(bidId);
-  if (!ctx) return { error: "Engagement not found.", status: 404 };
+  if (!ctx) return { error: "Project not found.", status: 404 };
   let item;
   if (paymentId) {
     const { data: row } = await supabase
       .from("bid_phase_payments").select(PHASE_RELEASE_COLS).eq("id", paymentId).eq("bid_id", bidId).maybeSingle();
     if (!row) return { error: "Payment not found.", status: 404 };
-    item = { kind: "phase", key: `pay-${row.id}`, bidId, row, cents: row.amount_cents };
+    item = { kind: "phase", key: `pay-${row.id}`, bidId, row, cents: phaseRowGross(row) };
   } else {
     const { data: row } = await supabase
       .from("bids").select(BID_RELEASE_COLS).eq("id", bidId).maybeSingle();
-    if (!row) return { error: "Engagement not found.", status: 404 };
+    if (!row) return { error: "Project not found.", status: 404 };
     if (ctx.contractType === "phased") return { error: "Pick which payment you mean.", status: 400 };
     item = { kind: "bid", key: `bid-${row.id}`, bidId, row, cents: row.payment_amount_cents };
   }
@@ -4836,6 +5271,11 @@ app.post("/api/engagement/mark-delivered", async (req, res) => {
       title: `${label === "Payment" ? "Work" : label} marked delivered`,
       body: `The consultant marked "${t.ctx.title}" delivered. Review it by ${shortDate(win.releaseAt)}. After that, Grassroots releases the payment to them.`,
       link: `/engagement.html?bid=${bidId}#${t.item.key}`,
+      email: {
+        event: "work_delivered",
+        data: { title: t.ctx.title, bidId, label, reviewByMs: win.releaseAt, free: !(Number(t.item.cents) > 0), amountCents: t.item.cents, note },
+        key: `${t.item.key}:${deliveredAt}`,
+      },
     });
     return res.json({ ok: true, delivered_at: deliveredAt, auto_release_at: new Date(win.releaseAt).toISOString() });
   } catch (err) {
@@ -4880,10 +5320,93 @@ app.post("/api/engagement/request-changes", async (req, res) => {
       title: "The business asked for changes",
       body: `${note ? `"${note.slice(0, 160)}" ` : ""}update "${t.ctx.title}", then mark it delivered again to restart the 14-day review.`,
       link: `/engagement.html?bid=${bidId}#${t.item.key}`,
+      email: {
+        event: "changes_requested",
+        data: { title: t.ctx.title, bidId, note },
+        key: `${t.item.key}:${requestedAt}`,
+      },
     });
     return res.json({ ok: true, changes_requested_at: requestedAt });
   } catch (err) {
     return res.status(500).json({ error: err.message || "Could not request changes." });
+  }
+});
+
+/* Email for events the browser writes straight to Supabase (offers,
+   counters, reviews). The caller only names the event and the bid; the
+   server checks they're the right participant, that the bid really is in
+   that state (and changed recently), then builds the email itself. The
+   idempotency key ties each send to the state change, so repeat calls
+   send once. */
+const CLIENT_EVENT_FRESH_MS = 15 * 60 * 1000;
+
+app.post("/api/notify/event", async (req, res) => {
+  const viewer = await getViewerFromRequest(req);
+  if (!viewer?.id) return res.status(401).json({ error: "Sign in required." });
+  const event = String(req.body?.event || "").trim();
+  const bidId = String(req.body?.bid_id || "").trim();
+  const listingId = String(req.body?.listing_id || "").trim();
+  if (!bidId && !(event === "offer_received" && listingId)) {
+    return res.status(400).json({ error: "bid_id required." });
+  }
+
+  try {
+    const cols = "id, listing_id, consultant_id, status, amount_cents, counter_offer_cents, counter_offer_message, counter_expires_at, counter_responded_at, counter_response_message, created_at";
+    let query = supabase.from("bids").select(cols);
+    query = bidId ? query.eq("id", bidId) : query.eq("listing_id", listingId).eq("consultant_id", viewer.id);
+    const { data: bid } = await query.maybeSingle();
+    if (!bid) return res.status(404).json({ error: "Offer not found." });
+    const { data: listing } = await supabase
+      .from("listings").select("id, owner_id, title").eq("id", bid.listing_id).maybeSingle();
+    if (!listing) return res.status(404).json({ error: "Listing not found." });
+
+    const isOwner = viewer.id === listing.owner_id;
+    const isConsultant = viewer.id === bid.consultant_id;
+    const fresh = (iso) => Boolean(iso) && Date.now() - Date.parse(iso) < CLIENT_EVENT_FRESH_MS;
+    const base = { title: listing.title || "your listing", listingId: listing.id, bidId: bid.id };
+    let to = null;
+    let data = base;
+    let key = null;
+
+    if (event === "offer_received") {
+      if (!isConsultant || !fresh(bid.created_at)) return res.status(409).json({ error: "Nothing to send." });
+      to = listing.owner_id;
+      data = { ...base, amountCents: bid.amount_cents };
+      key = bid.id;
+    } else if (event === "counter_received") {
+      if (!isOwner || bid.status !== "countered" || bid.counter_offer_cents == null) {
+        return res.status(409).json({ error: "Nothing to send." });
+      }
+      to = bid.consultant_id;
+      data = { ...base, amountCents: bid.amount_cents, counterCents: bid.counter_offer_cents, expiresAt: bid.counter_expires_at, note: bid.counter_offer_message };
+      key = `${bid.id}:${bid.counter_expires_at}`;
+    } else if (["counter_accepted", "counter_declined", "counter_rescinded"].includes(event)) {
+      // Accepting and keeping the original both leave the bid pending, so
+      // the state can't tell them apart; the shared key caps it at one email.
+      const wantStatus = event === "counter_rescinded" ? "declined" : "pending";
+      if (!isConsultant || bid.status !== wantStatus || !fresh(bid.counter_responded_at)) {
+        return res.status(409).json({ error: "Nothing to send." });
+      }
+      to = listing.owner_id;
+      data = { ...base, amountCents: bid.amount_cents, note: bid.counter_response_message };
+      key = `${bid.id}:${bid.counter_responded_at}`;
+    } else if (event === "consultant_review" || event === "business_review") {
+      const table = event === "consultant_review" ? "consultant_reviews" : "business_reviews";
+      const reviewer = event === "consultant_review" ? isOwner : isConsultant;
+      const { data: review } = await supabase.from(table).select("id, created_at").eq("bid_id", bid.id).maybeSingle();
+      if (!reviewer || !review || !fresh(review.created_at)) return res.status(409).json({ error: "Nothing to send." });
+      to = event === "consultant_review" ? bid.consultant_id : listing.owner_id;
+      key = review.id;
+    } else {
+      return res.status(400).json({ error: "Unknown event." });
+    }
+
+    const keyEvent = event.startsWith("counter_") && event !== "counter_received" ? "counter_response" : event;
+    await emailUser(to, event, data, { key, keyEvent });
+    return res.json({ ok: true });
+  } catch (err) {
+    console.warn("[notify/event] failed", event, err?.message || err);
+    return res.status(500).json({ error: "Could not send the notification." });
   }
 });
 
@@ -4894,9 +5417,9 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
   const bidId = String(req.params.bidId || "").trim();
   try {
     const ctx = await releaseContext(bidId);
-    if (!ctx) return res.status(404).json({ error: "Engagement not found." });
+    if (!ctx) return res.status(404).json({ error: "Project not found." });
     const role = viewer.id === ctx.ownerId ? "owner" : viewer.id === ctx.consultantId ? "consultant" : null;
-    if (!role) return res.status(403).json({ error: "Not your engagement." });
+    if (!role) return res.status(403).json({ error: "Not your project." });
 
     const { data: bid } = await supabase.from("bids").select(BID_RELEASE_COLS).eq("id", bidId).maybeSingle();
     const { data: rows } = await supabase.from("bid_phase_payments").select(PHASE_RELEASE_COLS).eq("bid_id", bidId);
@@ -4905,7 +5428,7 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
     const shown = (row, status) => row.paid_at && (status === "held" || status === "released" || Boolean(row.support_outcome) || /^give_back/.test(row.consultant_choice || ""));
     const items = [
       ...(bid && shown(bid, bid.payment_status) ? [{ kind: "bid", key: `bid-${bid.id}`, bidId, row: bid, cents: bid.payment_amount_cents }] : []),
-      ...(rows || []).filter((r) => shown(r, r.status)).map((r) => ({ kind: "phase", key: `pay-${r.id}`, bidId, row: r, cents: r.amount_cents })),
+      ...(rows || []).filter((r) => shown(r, r.status)).map((r) => ({ kind: "phase", key: `pay-${r.id}`, bidId, row: r, cents: phaseRowGross(r) })),
     ];
     const nowMs = Date.now();
     const iso = (ms) => (Number.isFinite(ms) ? new Date(ms).toISOString() : null);
@@ -4926,7 +5449,9 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
         payment_id: item.kind === "phase" ? row.id : null,
         kind,
         label: paymentLabel(kind, row),
-        amount_cents: item.cents,
+        // The business sees what it paid (offer + business fee); the
+        // consultant sees the offer. Their payout is in money.payout_cents.
+        amount_cents: role === "owner" ? money.gross_cents : offerCentsOf(item),
         paid_at: row.paid_at,
         delivered_at: row.delivered_at,
         delivery_note: row.delivery_note,
@@ -5002,7 +5527,7 @@ app.get("/api/engagement/:bidId/release-status", async (req, res) => {
                             the consultant's part is capped at their
                             full-release payout.
      Every support refund is in full: the business gets back exactly what
-     it paid (all-in pricing) and grassroots absorbs the card fee.
+     it paid, business fee included, and grassroots absorbs the card fee.
      After a redo, a second report allows only A, C or split.
    - There is no plain "clear hold": a hold ends by release, refund, or
      the consultant choosing to redo.
@@ -5017,19 +5542,32 @@ const SUPPORT_OUTCOMES = new Set(["meets_scope", "fixable", "scope_breached", "s
 const SYSTEM_ACTOR = { id: null, email: "system:auto-release" };
 const WAITING_ERROR = "This payment is waiting on the consultant's choice.";
 
+// The agreed offer behind a payment, without the business fee.
+function offerCentsOf(item) {
+  const row = item.row;
+  if (item.kind === "phase") return Number(row.amount_cents || 0);
+  return Math.max(0, Number(row.payment_amount_cents || 0) - Number(row.business_fee_cents || 0));
+}
+
 // Money on one held payment. gross = what the business was charged.
 function paymentMoney(item) {
   const row = item.row;
   const platformFee = Number(row.platform_fee_cents || 0);
-  // All-in pricing: the business paid exactly the offer. The card fee and
-  // the platform fee come out of the consultant's payout.
+  // gross = offer + business fee. On rows from the all-in model the
+  // business paid exactly the offer and the card fee came out of the payout.
   const gross = item.kind === "bid" ? Number(row.payment_amount_cents || 0) : phaseRowGross(row);
   const cardFee = row.stripe_fee_cents != null ? Number(row.stripe_fee_cents) : fees.estimateStripeFeeCents(gross);
   const refunded = Number(row.refunded_cents || 0);
   const remaining = Math.max(0, gross - refunded);
-  const payout = Number(row.consultant_payout_cents ?? fees.computeFees(gross).consultantPayoutCents);
+  // Legacy rows without a stored payout transfer the full charge (same as
+  // release-funds' grandfathering).
+  const payout = Number(row.consultant_payout_cents ?? gross);
+  // What grassroots keeps on a full release: the business fee and the
+  // consultant fee (or, on all-in rows, the card fee and platform fee).
+  const platformTake = Math.max(0, gross - payout);
   return {
     gross_cents: gross,
+    business_fee_cents: Number(row.business_fee_cents || 0),
     platform_fee_cents: platformFee,
     card_fee_cents: cardFee,
     refunded_cents: refunded,
@@ -5042,7 +5580,7 @@ function paymentMoney(item) {
     // Outcome C: everything still on the charge.
     full_refund_cents: remaining,
     // Partly refunded payment: what the consultant gets for the rest.
-    remainder_payout_cents: Math.max(0, Math.min(payout, remaining - cardFee - platformFee)),
+    remainder_payout_cents: Math.max(0, Math.min(payout, remaining - platformTake)),
   };
 }
 
@@ -5336,8 +5874,8 @@ async function splitHeldPayment(item, ctx, refundCents, transferCents, { claimEq
   if (refundCents + transferCents > money.remaining_cents) {
     return { ok: false, status: 400, error: `The refund and payout can't add up to more than the ${dollars(money.remaining_cents)} left on this payment.` };
   }
-  // All-in pricing: the consultant's part is capped at what a full release
-  // would pay them (the offer minus the card and platform fees).
+  // The consultant's part is capped at what a full release would pay them
+  // (the offer minus their 10% fee; on all-in rows, minus both fees).
   if (transferCents > money.remainder_payout_cents) {
     return { ok: false, status: 400, error: `The consultant's part can't be more than their ${dollars(money.remainder_payout_cents)} payout on a full release.` };
   }
@@ -5596,7 +6134,7 @@ app.post("/api/engagement/respond-to-report", async (req, res) => {
       return res.status(409).json({ error: "There's nothing to respond to on this payment." });
     }
     if (Date.now() >= Date.parse(row.response_due_at)) {
-      return res.status(409).json({ error: "The 48 hours to respond have passed. Support will decide from the engagement record." });
+      return res.status(409).json({ error: "The 48 hours to respond have passed. Support will decide from the project record." });
     }
     const nowIso = new Date().toISOString();
     const first = !row.consultant_response_at;
@@ -5661,7 +6199,7 @@ app.post("/api/admin/payments/hold", async (req, res) => {
     if (!reason) return res.status(400).json({ error: "Add a short reason for the hold. Both sides will see it." });
     const { admin, t } = got;
     if (businessCanReport(t)) {
-      return res.status(409).json({ error: "The business can report this themselves. Point them to \"Report a problem\" on the engagement page." });
+      return res.status(409).json({ error: "The business can report this themselves. Point them to \"Report a problem\" on the project page." });
     }
     const nowMs = Date.now();
     const nowIso = new Date(nowMs).toISOString();
@@ -5925,7 +6463,7 @@ async function stuckSplits() {
   ]);
   return [
     ...(bids || []).map((b) => ({ kind: "bid", key: `bid-${b.id}`, bidId: b.id, row: b, cents: b.payment_amount_cents })),
-    ...(rows || []).map((r) => ({ kind: "phase", key: `pay-${r.id}`, bidId: r.bid_id, row: r, cents: r.amount_cents })),
+    ...(rows || []).map((r) => ({ kind: "phase", key: `pay-${r.id}`, bidId: r.bid_id, row: r, cents: phaseRowGross(r) })),
   ];
 }
 
@@ -6074,6 +6612,711 @@ app.get("/api/admin/payments/audit", async (req, res) => {
     .limit(100);
   if (error) return res.status(500).json({ error: error.message });
   return res.json({ entries: data || [] });
+});
+
+/* ── admin: email volume ─────────────────────────────────────── */
+// Resend plan caps. Defaults are the free plan; set these env vars after
+// upgrading so the admin Emails tab measures against the right limits.
+const EMAIL_DAILY_LIMIT = Number(process.env.RESEND_DAILY_LIMIT) || 100;
+const EMAIL_MONTHLY_LIMIT = Number(process.env.RESEND_MONTHLY_LIMIT) || 3000;
+
+// Daily counts, month-to-date and recent failures from email_log. Days are
+// UTC, which is how Resend counts its daily quota.
+// Student applications from /for-students (saved by /api/student-application).
+// The admin reviews them here: create an invite link (marks it invited),
+// decline, or move it back to new. Nothing here emails the student; the
+// admin sends the invite link themselves.
+app.get("/api/admin/applications", async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+  const { data, error } = await supabase
+    .from("student_applications")
+    .select("id, created_at, name, school, email, city, major, extras, link, project, status, confirmation_sent_at")
+    .order("created_at", { ascending: false })
+    .limit(1000);
+  if (error) return res.status(500).json({ error: error.message });
+  res.set("Cache-Control", "no-store");
+  return res.json({ applications: data || [] });
+});
+
+app.post("/api/admin/applications/:id", express.json(), async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+  const action = String(req.body?.action || "");
+  if (!["invite", "decline", "reopen"].includes(action)) {
+    return res.status(400).json({ error: "Unknown action." });
+  }
+  const { data: application, error } = await supabase
+    .from("student_applications")
+    .select("id, email, status")
+    .eq("id", req.params.id)
+    .maybeSingle();
+  if (error) return res.status(500).json({ error: error.message });
+  if (!application) return res.status(404).json({ error: "Application not found." });
+
+  let invite = null;
+  if (action === "invite") {
+    try {
+      // Revokes any earlier unused link for this address, so the newest
+      // link is the only one that works.
+      invite = await createInvite(supabase, { email: application.email, appUrl: appOrigin(req) });
+    } catch (err) {
+      return res.status(err.status || 500).json({ error: err.message || "Could not create invite." });
+    }
+  }
+  const status = { invite: "invited", decline: "declined", reopen: "new" }[action];
+  const { error: updateError } = await supabase
+    .from("student_applications")
+    .update({ status })
+    .eq("id", application.id);
+  if (updateError) return res.status(500).json({ error: updateError.message });
+  return res.json({ ok: true, status, invite });
+});
+
+app.get("/api/admin/emails", async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+
+  const days = Math.max(7, Math.min(90, Number(req.query.days) || 30));
+  const now = new Date();
+  const todayStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const monthStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
+  const windowStart = todayStart - (days - 1) * 86400000;
+  const since = new Date(Math.min(windowStart, monthStart)).toISOString();
+
+  // Page through rows (PostgREST caps a response at 1,000).
+  const rows = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from("email_log")
+      .select("sent_at, event, status, http_status, environment, error")
+      .gte("sent_at", since)
+      .order("sent_at", { ascending: false })
+      .range(from, from + 999);
+    if (error) return res.status(500).json({ error: error.message });
+    rows.push(...(data || []));
+    if (!data || data.length < 1000 || rows.length >= 20000) break;
+  }
+
+  const dayKey = (ms) => new Date(ms).toISOString().slice(0, 10);
+  const daily = new Map();
+  for (let i = 0; i < days; i++) daily.set(dayKey(windowStart + i * 86400000), { sent: 0, failed: 0 });
+
+  let today = 0, month = 0, failedInWindow = 0, limitHits = 0;
+  const byEvent = {};
+  for (const r of rows) {
+    const t = Date.parse(r.sent_at);
+    const bucket = daily.get(dayKey(t));
+    if (r.status === "sent") {
+      if (t >= todayStart) today++;
+      if (t >= monthStart) month++;
+      if (bucket) {
+        bucket.sent++;
+        byEvent[r.event] = (byEvent[r.event] || 0) + 1;
+      }
+    } else if (r.status === "failed" && t >= windowStart) {
+      if (bucket) bucket.failed++;
+      failedInWindow++;
+      if (r.http_status === 429) limitHits++;
+    }
+  }
+
+  const series = [...daily.entries()].map(([date, v]) => ({ date, ...v }));
+  const sentInWindow = series.reduce((s, d) => s + d.sent, 0);
+  const busiest = series.reduce((m, d) => (d.sent > m.sent ? d : m), { date: null, sent: 0 });
+
+  return res.json({
+    limits: { daily: EMAIL_DAILY_LIMIT, monthly: EMAIL_MONTHLY_LIMIT },
+    today,
+    month,
+    days,
+    sent_in_window: sentInWindow,
+    failed_in_window: failedInWindow,
+    limit_hits: limitHits,
+    busiest_day: busiest.date ? busiest : null,
+    daily: series,
+    by_event: Object.entries(byEvent).map(([event, sent]) => ({ event, sent })).sort((a, b) => b.sent - a.sent),
+    recent_failures: rows
+      .filter((r) => r.status === "failed")
+      .slice(0, 20)
+      .map((r) => ({ sent_at: r.sent_at, event: r.event, http_status: r.http_status, environment: r.environment, error: r.error })),
+  });
+});
+
+/* ──────────────────────────────────────────────────────────────
+   ADMIN MARKETPLACE DATA — feeds the overview / users / engagements /
+   calendar tabs. Returns the raw rows in the shape the admin page's
+   aggregates expect; the page derives every KPI and chart from them.
+   An engagement is an accepted bid; its kickoff is the selected slot
+   on engagement_schedules.
+   ────────────────────────────────────────────────────────────── */
+
+// Page through a table (PostgREST caps a response at 1,000 rows).
+async function adminSelectAll(table, columns) {
+  const rows = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase.from(table).select(columns).range(from, from + 999);
+    if (error) throw new Error(`${table}: ${error.message}`);
+    rows.push(...(data || []));
+    if (!data || data.length < 1000 || rows.length >= 50000) break;
+  }
+  return rows;
+}
+
+// Stable avatar hue per user so colors don't shuffle between loads.
+function adminHue(id) {
+  let h = 0;
+  for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return h % 360;
+}
+
+app.get("/api/admin/marketplace", async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+
+  try {
+    const [profiles, consultantProfiles, businessProfiles, listingRows, bidRows, schedules, ratings] = await Promise.all([
+      adminSelectAll("profiles", "id, role, full_name, created_at"),
+      adminSelectAll("consultant_profiles", "user_id, school, major, city"),
+      adminSelectAll("business_profiles", "user_id, business_name, business_address"),
+      adminSelectAll("listings", "id, owner_id, title, category, contract_type, budget_cents, turnaround_days, status, created_at, business_display_name"),
+      adminSelectAll("bids", "id, listing_id, consultant_id, amount_cents, payment_amount_cents, status, payment_status, created_at, accepted_at, delivered_at, released_at"),
+      adminSelectAll("engagement_schedules", "bid_id, selected_start, status"),
+      adminSelectAll("consultant_review_summary", "consultant_id, rating_average"),
+    ]);
+
+    // Sign-in emails, so the Users tab can search and show them.
+    const emailBy = new Map();
+    for (let page = 1; page <= 50; page++) {
+      const { data: au, error: auErr } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+      if (auErr) { console.warn("[admin marketplace] listUsers failed:", auErr.message); break; }
+      for (const u of au?.users || []) emailBy.set(u.id, { email: u.email || null, last_sign_in_at: u.last_sign_in_at || null });
+      if (!au?.users || au.users.length < 1000) break;
+    }
+    const cpBy = new Map(consultantProfiles.map((r) => [r.user_id, r]));
+    const bpBy = new Map(businessProfiles.map((r) => [r.user_id, r]));
+    const ratingBy = new Map(ratings.map((r) => [r.consultant_id, r.rating_average]));
+
+    const users = profiles
+      .filter((p) => p.role === "consultant" || p.role === "business_owner")
+      .map((p) => {
+        const cp = cpBy.get(p.id) || {};
+        const bp = bpBy.get(p.id) || {};
+        const rating = ratingBy.get(p.id);
+        return {
+          id: p.id,
+          name: p.full_name || "Unnamed user",
+          email: emailBy.get(p.id)?.email || null,
+          last_sign_in_at: emailBy.get(p.id)?.last_sign_in_at || null,
+          role: p.role,
+          school: cp.school || null,
+          major: cp.major || null,
+          business_name: bp.business_name || null,
+          city: cp.city || bp.business_address || null,
+          joined_at: p.created_at,
+          rating: rating != null ? Number(rating) : null,
+          hue: adminHue(p.id),
+        };
+      });
+    const userBy = new Map(users.map((u) => [u.id, u]));
+
+    const listings = listingRows.map((l) => {
+      const owner = userBy.get(l.owner_id);
+      return {
+        id: l.id,
+        title: l.title || "Untitled listing",
+        owner_id: l.owner_id,
+        owner_name: l.business_display_name || owner?.business_name || owner?.name || "—",
+        category: l.category || null,
+        contract_type: l.contract_type || "standard",
+        budget_cents: l.budget_cents,
+        turnaround_days: l.turnaround_days,
+        status: l.status,
+        created_at: l.created_at,
+        city: owner?.city || null,
+      };
+    });
+    const listingBy = new Map(listings.map((l) => [l.id, l]));
+
+    const bids = bidRows.map((b) => ({
+      id: b.id,
+      listing_id: b.listing_id,
+      consultant_id: b.consultant_id,
+      consultant_name: userBy.get(b.consultant_id)?.name || "—",
+      amount_cents: b.payment_amount_cents ?? b.amount_cents ?? 0,
+      status: b.status,
+      payment_status: b.payment_status || "unpaid",
+      submitted_at: b.created_at,
+    }));
+
+    const kickoffBy = new Map(
+      schedules.filter((s) => s.bid_id && s.selected_start).map((s) => [s.bid_id, s.selected_start]),
+    );
+
+    const engagements = bidRows
+      .filter((b) => b.status === "accepted")
+      .map((b) => {
+        const listing = listingBy.get(b.listing_id);
+        const consultant = userBy.get(b.consultant_id);
+        const kickoff_at = kickoffBy.get(b.id) || null;
+        const stage = b.payment_status === "released" ? 5
+          : b.delivered_at ? 4
+          : kickoff_at ? 3
+          : 2;
+        return {
+          id: b.id,
+          bid_id: b.id,
+          listing_id: b.listing_id,
+          listing_title: listing?.title || "Untitled listing",
+          listing_category: listing?.category || null,
+          contract_type: listing?.contract_type || "standard",
+          consultant_id: b.consultant_id,
+          consultant_name: consultant?.name || "—",
+          consultant_school: consultant?.school || null,
+          owner_id: listing?.owner_id || null,
+          owner_name: listing?.owner_name || "—",
+          owner_city: listing?.city || null,
+          amount_cents: b.payment_amount_cents ?? b.amount_cents ?? 0,
+          stage,
+          payment_status: b.payment_status || "unpaid",
+          kickoff_at,
+          completed_at: b.delivered_at,
+          released_at: b.payment_status === "released" ? b.released_at : null,
+          created_at: b.accepted_at || b.created_at,
+        };
+      });
+
+    return res.json({ now: new Date().toISOString(), users, listings, bids, engagements });
+  } catch (err) {
+    console.error("admin marketplace:", err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+/* ──────────────────────────────────────────────────────────────
+   ADMIN USER MANAGEMENT — the Users tab drawer. One read endpoint
+   gathers a person's contact info, listings, offers, email history
+   and message threads; three write endpoints suspend, read a
+   thread, and delete.
+
+   Delete is a hard delete: profiles → auth.users is ON DELETE
+   CASCADE, so removing the auth user removes listings, offers,
+   messages and phase-payment rows with it. That would erase payment
+   records, so delete fails closed whenever money has touched the
+   account (any paid offer, phase payment or retainer). Suspend is
+   the reversible option for those accounts.
+   ────────────────────────────────────────────────────────────── */
+
+const ADMIN_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Bids this user is a party to: their own offers, plus offers on their listings.
+async function adminUserBids(userId) {
+  const { data: owned, error: lErr } = await supabase.from("listings").select("id").eq("owner_id", userId);
+  if (lErr) throw new Error(`listings: ${lErr.message}`);
+  const listingIds = (owned || []).map((l) => l.id);
+  const cols = "id, listing_id, consultant_id, amount_cents, payment_amount_cents, status, payment_status, created_at, accepted_at, delivered_at, released_at";
+  const { data: mine, error: bErr } = await supabase.from("bids").select(cols).eq("consultant_id", userId);
+  if (bErr) throw new Error(`bids: ${bErr.message}`);
+  let onMine = [];
+  if (listingIds.length) {
+    const { data, error } = await supabase.from("bids").select(cols).in("listing_id", listingIds);
+    if (error) throw new Error(`bids: ${error.message}`);
+    onMine = data || [];
+  }
+  const byId = new Map([...(mine || []), ...onMine].map((b) => [b.id, b]));
+  return [...byId.values()];
+}
+
+// Reasons a hard delete would destroy payment records. Throws on a failed
+// lookup so the caller treats "couldn't check" as "blocked".
+async function adminDeleteBlockers(userId, bids) {
+  const blockers = [];
+  const paid = bids.filter((b) => b.payment_status && b.payment_status !== "unpaid");
+  if (paid.length) blockers.push(`${paid.length} offer${paid.length === 1 ? "" : "s"} with a payment on record (${[...new Set(paid.map((b) => b.payment_status))].join(", ")})`);
+  const bidIds = bids.map((b) => b.id);
+  if (bidIds.length) {
+    const { data: phases, error: pErr } = await supabase
+      .from("bid_phase_payments").select("id, status").in("bid_id", bidIds);
+    if (pErr && !/does not exist|schema cache/i.test(pErr.message)) throw new Error(`bid_phase_payments: ${pErr.message}`);
+    const livePhases = (phases || []).filter((p) => p.status && p.status !== "pending");
+    if (livePhases.length) blockers.push(`${livePhases.length} phase payment${livePhases.length === 1 ? "" : "s"} on record`);
+    const { data: subs, error: sErr } = await supabase
+      .from("retainer_subscriptions").select("id, status, stripe_subscription_id").in("bid_id", bidIds);
+    if (sErr && !/does not exist|schema cache/i.test(sErr.message)) throw new Error(`retainer_subscriptions: ${sErr.message}`);
+    const liveSubs = (subs || []).filter((s) => s.stripe_subscription_id || s.status === "active");
+    if (liveSubs.length) blockers.push(`${liveSubs.length} retainer subscription${liveSubs.length === 1 ? "" : "s"}`);
+  }
+  return blockers;
+}
+
+app.get("/api/admin/users/:id", async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+  const userId = String(req.params.id || "");
+  if (!ADMIN_UUID_RE.test(userId)) return res.status(400).json({ error: "Bad user id." });
+
+  try {
+    const [{ data: authData, error: authErr }, profileRes, cpRes, bpRes, listingsRes] = await Promise.all([
+      supabase.auth.admin.getUserById(userId),
+      supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
+      supabase.from("consultant_profiles").select("*").eq("user_id", userId).maybeSingle(),
+      supabase.from("business_profiles").select("*").eq("user_id", userId).maybeSingle(),
+      supabase.from("listings")
+        .select("id, title, status, category, contract_type, budget_cents, created_at")
+        .eq("owner_id", userId).order("created_at", { ascending: false }),
+    ]);
+    if (authErr && !profileRes.data) return res.status(404).json({ error: "User not found." });
+    const authUser = authData?.user || null;
+    const profile = profileRes.data || null;
+    const email = (authUser?.email || "").toLowerCase();
+
+    const bids = await adminUserBids(userId);
+    const offers = bids.filter((b) => b.consultant_id === userId);
+    const offerListingIds = [...new Set(offers.map((b) => b.listing_id))];
+    let offerListings = [];
+    if (offerListingIds.length) {
+      const { data } = await supabase.from("listings").select("id, title, status").in("id", offerListingIds);
+      offerListings = data || [];
+    }
+    const offerListingBy = new Map(offerListings.map((l) => [l.id, l]));
+
+    // Email history. Rows logged before add_email_log_recipient.sql have no
+    // recipient, so a person's history starts from when it was applied.
+    let emails = [];
+    let emailsNote = null;
+    if (email) {
+      const { data, error } = await supabase
+        .from("email_log")
+        .select("sent_at, event, status, subject, error, environment")
+        .eq("to_email", email)
+        .order("sent_at", { ascending: false })
+        .limit(200);
+      if (error) emailsNote = /to_email|subject|schema cache/i.test(error.message)
+        ? "Per-person email history needs the add_email_log_recipient.sql migration."
+        : error.message;
+      else emails = data || [];
+    }
+
+    // In-app message threads, grouped by listing + the other person.
+    const { data: msgs, error: msgErr } = await supabase
+      .from("messages")
+      .select("listing_id, sender_id, recipient_id, created_at")
+      .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
+      .order("created_at", { ascending: false })
+      .limit(5000);
+    if (msgErr) throw new Error(`messages: ${msgErr.message}`);
+    const threadMap = new Map();
+    for (const m of msgs || []) {
+      const other = m.sender_id === userId ? m.recipient_id : m.sender_id;
+      const key = `${m.listing_id}:${other}`;
+      let t = threadMap.get(key);
+      if (!t) { t = { listing_id: m.listing_id, other_id: other, sent: 0, received: 0, last_at: m.created_at }; threadMap.set(key, t); }
+      if (m.sender_id === userId) t.sent++; else t.received++;
+    }
+    const threads = [...threadMap.values()];
+    const otherIds = [...new Set(threads.map((t) => t.other_id))];
+    const threadListingIds = [...new Set(threads.map((t) => t.listing_id))];
+    const [{ data: others }, { data: tListings }] = await Promise.all([
+      otherIds.length ? supabase.from("profiles").select("id, full_name").in("id", otherIds) : { data: [] },
+      threadListingIds.length ? supabase.from("listings").select("id, title").in("id", threadListingIds) : { data: [] },
+    ]);
+    const nameBy = new Map((others || []).map((p) => [p.id, p.full_name]));
+    const titleBy = new Map((tListings || []).map((l) => [l.id, l.title]));
+    for (const t of threads) {
+      t.other_name = nameBy.get(t.other_id) || "Deleted user";
+      t.listing_title = titleBy.get(t.listing_id) || "Untitled listing";
+    }
+
+    let deleteBlockers;
+    try { deleteBlockers = await adminDeleteBlockers(userId, bids); }
+    catch (e) { deleteBlockers = [`Couldn't check payment records (${e.message})`]; }
+
+    const bannedUntil = authUser?.banned_until ? Date.parse(authUser.banned_until) : 0;
+    return res.json({
+      id: userId,
+      contact: {
+        email: authUser?.email || null,
+        email_confirmed_at: authUser?.email_confirmed_at || null,
+        phone: profile?.phone_number || authUser?.phone || null,
+        linkedin_url: profile?.linkedin_url || null,
+        business_address: bpRes.data?.business_address || null,
+        website_url: bpRes.data?.website_url || null,
+        instagram_url: bpRes.data?.instagram_url || null,
+        facebook_url: bpRes.data?.facebook_url || null,
+        company_linkedin_url: bpRes.data?.company_linkedin_url || null,
+        social_links: bpRes.data?.social_links || [],
+      },
+      account: {
+        role: profile?.role || null,
+        full_name: profile?.full_name || null,
+        created_at: authUser?.created_at || profile?.created_at || null,
+        last_sign_in_at: authUser?.last_sign_in_at || null,
+        providers: authUser?.app_metadata?.providers || [],
+        suspended: bannedUntil > Date.now(),
+        deletion_requested_at: profile?.deletion_requested_at || null,
+        export_requested_at: profile?.export_requested_at || null,
+        stripe_account_id: profile?.stripe_account_id || null,
+        stripe_customer_id: profile?.stripe_customer_id || null,
+        is_admin: ADMIN_EMAILS.has(email),
+      },
+      consultant: cpRes.data ? { school: cpRes.data.school || null, major: cpRes.data.major || null, city: cpRes.data.city || null } : null,
+      business: bpRes.data ? { business_name: bpRes.data.business_name || null } : null,
+      listings: listingsRes.data || [],
+      offers: offers.map((b) => ({
+        id: b.id,
+        listing_id: b.listing_id,
+        listing_title: offerListingBy.get(b.listing_id)?.title || "Untitled listing",
+        listing_status: offerListingBy.get(b.listing_id)?.status || null,
+        amount_cents: b.payment_amount_cents ?? b.amount_cents ?? 0,
+        status: b.status,
+        payment_status: b.payment_status || "unpaid",
+        created_at: b.created_at,
+      })).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))),
+      emails,
+      emails_note: emailsNote,
+      threads: threads.sort((a, b) => String(b.last_at).localeCompare(String(a.last_at))),
+      delete_blockers: deleteBlockers,
+    });
+  } catch (err) {
+    console.error("admin user detail:", err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// One message thread (listing + the two people), oldest first.
+app.get("/api/admin/users/:id/thread", async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+  const userId = String(req.params.id || "");
+  const other = String(req.query.with || "");
+  const listingId = String(req.query.listing || "");
+  if (![userId, other, listingId].every((v) => ADMIN_UUID_RE.test(v))) return res.status(400).json({ error: "Bad id." });
+  const { data, error } = await supabase
+    .from("messages")
+    .select("id, sender_id, body, created_at")
+    .eq("listing_id", listingId)
+    .or(`and(sender_id.eq.${userId},recipient_id.eq.${other}),and(sender_id.eq.${other},recipient_id.eq.${userId})`)
+    .order("created_at", { ascending: true })
+    .limit(1000);
+  if (error) return res.status(500).json({ error: error.message });
+  console.log("[admin] thread read", JSON.stringify({ by: admin.email, user: userId, with: other, listing: listingId }));
+  return res.json({ messages: data || [] });
+});
+
+// Suspend: ban sign-in and unlist their open listings. Unsuspend lifts the
+// ban only; listings stay unlisted until the owner relists them.
+app.post("/api/admin/users/:id/suspend", express.json(), async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+  const userId = String(req.params.id || "");
+  if (!ADMIN_UUID_RE.test(userId)) return res.status(400).json({ error: "Bad user id." });
+  if (userId === admin.id) return res.status(400).json({ error: "You can't suspend your own account." });
+  const suspend = req.body?.suspend !== false;
+
+  const { error } = await supabase.auth.admin.updateUserById(userId, { ban_duration: suspend ? "876000h" : "none" });
+  if (error) return res.status(500).json({ error: error.message });
+
+  let unlisted = 0;
+  if (suspend) {
+    const { data, error: lErr } = await supabase
+      .from("listings").update({ status: "unlisted" })
+      .eq("owner_id", userId).eq("status", "open").select("id");
+    if (lErr) console.warn("[admin suspend] unlist failed:", lErr.message);
+    unlisted = data?.length || 0;
+  }
+  console.log("[admin] suspend", JSON.stringify({ by: admin.email, user: userId, suspend, unlisted }));
+  return res.json({ ok: true, suspended: suspend, unlisted });
+});
+
+// Hard delete. The admin must type the account's email to confirm, and the
+// payment-record gate is re-checked here, not trusted from the drawer.
+app.post("/api/admin/users/:id/delete", express.json(), async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+  const userId = String(req.params.id || "");
+  if (!ADMIN_UUID_RE.test(userId)) return res.status(400).json({ error: "Bad user id." });
+  if (userId === admin.id) return res.status(400).json({ error: "You can't delete your own account." });
+
+  const { data: authData, error: authErr } = await supabase.auth.admin.getUserById(userId);
+  if (authErr || !authData?.user) return res.status(404).json({ error: "User not found." });
+  const email = (authData.user.email || "").toLowerCase();
+  if (ADMIN_EMAILS.has(email)) return res.status(400).json({ error: "Admin accounts can't be deleted here." });
+  const confirm = String(req.body?.confirm || "").trim().toLowerCase();
+  if (!email || confirm !== email) return res.status(400).json({ error: "Type the account's email to confirm." });
+
+  let blockers;
+  try { blockers = await adminDeleteBlockers(userId, await adminUserBids(userId)); }
+  catch (e) { return res.status(409).json({ error: `Couldn't check payment records, so nothing was deleted. ${e.message}` }); }
+  if (blockers.length) {
+    return res.status(409).json({ error: "This account has payment records, so it can't be deleted. Suspend it instead.", blockers });
+  }
+
+  const { error: delErr } = await supabase.auth.admin.deleteUser(userId);
+  if (delErr) return res.status(500).json({ error: delErr.message });
+  console.log("[admin] delete user", JSON.stringify({ by: admin.email, user: userId, email }));
+  return res.json({ ok: true });
+});
+
+/* Bulk delete — for clearing test and debug accounts. Two steps: the
+   preview reports which selected accounts can go and why the rest can't;
+   the delete re-checks every account and requires the phrase
+   "delete N accounts", where N is the number it will actually delete. */
+const BULK_DELETE_MAX = 100;
+
+async function adminBulkCheck(ids, admin) {
+  const out = [];
+  for (const id of ids) {
+    const { data: authData } = await supabase.auth.admin.getUserById(id);
+    const user = authData?.user || null;
+    const email = (user?.email || "").toLowerCase();
+    const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", id).maybeSingle();
+    let blockers = [];
+    if (!user) blockers = ["Account not found"];
+    else if (id === admin.id) blockers = ["This is your own account"];
+    else if (ADMIN_EMAILS.has(email)) blockers = ["Admin account"];
+    else {
+      try { blockers = await adminDeleteBlockers(id, await adminUserBids(id)); }
+      catch (e) { blockers = [`Couldn't check payment records (${e.message})`]; }
+    }
+    out.push({ id, email: user?.email || null, name: profile?.full_name || null, blockers });
+  }
+  return out;
+}
+
+function bulkIds(req, res) {
+  const raw = Array.isArray(req.body?.ids) ? req.body.ids : [];
+  const ids = [...new Set(raw.map(String))];
+  if (!ids.length) { res.status(400).json({ error: "Select at least one." }); return null; }
+  if (ids.length > BULK_DELETE_MAX) { res.status(400).json({ error: `Select ${BULK_DELETE_MAX} or fewer.` }); return null; }
+  if (!ids.every((id) => ADMIN_UUID_RE.test(id))) { res.status(400).json({ error: "Bad user id." }); return null; }
+  return ids;
+}
+
+app.post("/api/admin/users/bulk-delete/preview", express.json(), async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+  const ids = bulkIds(req, res);
+  if (!ids) return;
+  const accounts = await adminBulkCheck(ids, admin);
+  return res.json({ accounts, deletable: accounts.filter((a) => !a.blockers.length).length });
+});
+
+app.post("/api/admin/users/bulk-delete", express.json(), async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+  const ids = bulkIds(req, res);
+  if (!ids) return;
+
+  const accounts = await adminBulkCheck(ids, admin);
+  const deletable = accounts.filter((a) => !a.blockers.length);
+  const phrase = `delete ${deletable.length} account${deletable.length === 1 ? "" : "s"}`;
+  const confirm = String(req.body?.confirm || "").trim().toLowerCase();
+  if (!deletable.length) return res.status(409).json({ error: "None of these accounts can be deleted.", accounts });
+  if (confirm !== phrase) {
+    return res.status(409).json({ error: `Type "${phrase}" to confirm. The list may have changed since you opened it.`, accounts });
+  }
+
+  const deleted = [];
+  const failed = [];
+  for (const a of deletable) {
+    const { error } = await supabase.auth.admin.deleteUser(a.id);
+    if (error) failed.push({ id: a.id, email: a.email, error: error.message });
+    else deleted.push(a.id);
+  }
+  console.log("[admin] bulk delete", JSON.stringify({ by: admin.email, deleted, failed: failed.map((f) => f.id), skipped: accounts.filter((a) => a.blockers.length).map((a) => a.id) }));
+  return res.json({
+    ok: true,
+    deleted,
+    failed,
+    skipped: accounts.filter((a) => a.blockers.length).map((a) => ({ id: a.id, email: a.email, reason: a.blockers.join("; ") })),
+  });
+});
+
+/* Engagement delete — an engagement is an accepted bid, so this deletes
+   the bid row (its schedule, phase rows and reviews cascade with it). The
+   listing is left as it is. Same payment gate as account delete: any bid
+   with money on record is skipped. Same two steps as bulk user delete,
+   with the phrase "delete N engagements". */
+async function adminEngagementCheck(ids) {
+  const { data: rows, error } = await supabase
+    .from("bids")
+    .select("id, listing_id, consultant_id, status, payment_status")
+    .in("id", ids);
+  if (error) throw new Error(`bids: ${error.message}`);
+  const byId = new Map((rows || []).map((b) => [b.id, b]));
+  const listingIds = [...new Set((rows || []).map((b) => b.listing_id))];
+  const { data: listings } = listingIds.length
+    ? await supabase.from("listings").select("id, title").in("id", listingIds)
+    : { data: [] };
+  const titleBy = new Map((listings || []).map((l) => [l.id, l.title]));
+  const out = [];
+  for (const id of ids) {
+    const bid = byId.get(id);
+    let blockers;
+    if (!bid) blockers = ["Project not found"];
+    else {
+      try { blockers = await adminDeleteBlockers(null, [bid]); }
+      catch (e) { blockers = [`Couldn't check payment records (${e.message})`]; }
+    }
+    out.push({ id, title: bid ? titleBy.get(bid.listing_id) || "Untitled listing" : null, status: bid?.status || null, payment_status: bid?.payment_status || null, blockers });
+  }
+  return out;
+}
+
+app.post("/api/admin/engagements/delete/preview", express.json(), async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+  const ids = bulkIds(req, res);
+  if (!ids) return;
+  try {
+    const items = await adminEngagementCheck(ids);
+    return res.json({ items, deletable: items.filter((i) => !i.blockers.length).length });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/admin/engagements/delete", express.json(), async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  if (!supabase) return res.status(503).json({ error: "DB not configured." });
+  const ids = bulkIds(req, res);
+  if (!ids) return;
+  let items;
+  try { items = await adminEngagementCheck(ids); }
+  catch (err) { return res.status(409).json({ error: `Couldn't check payment records, so nothing was deleted. ${err.message}` }); }
+  const deletable = items.filter((i) => !i.blockers.length);
+  const phrase = `delete ${deletable.length} project${deletable.length === 1 ? "" : "s"}`;
+  const confirm = String(req.body?.confirm || "").trim().toLowerCase();
+  if (!deletable.length) return res.status(409).json({ error: "None of these projects can be deleted.", items });
+  if (confirm !== phrase) {
+    return res.status(409).json({ error: `Type "${phrase}" to confirm. The list may have changed since you opened it.`, items });
+  }
+  const deleted = [];
+  const failed = [];
+  for (const it of deletable) {
+    const { error } = await supabase.from("bids").delete().eq("id", it.id);
+    if (error) failed.push({ id: it.id, title: it.title, error: error.message });
+    else deleted.push(it.id);
+  }
+  console.log("[admin] engagement delete", JSON.stringify({ by: admin.email, deleted, failed: failed.map((f) => f.id) }));
+  return res.json({
+    ok: true,
+    deleted,
+    failed,
+    skipped: items.filter((i) => i.blockers.length).map((i) => ({ id: i.id, title: i.title, reason: i.blockers.join("; ") })),
+  });
 });
 
 /* ──────────────────────────────────────────────────────────────
@@ -6333,8 +7576,8 @@ app.get("/sitemap.xml", async (_req, res) => {
   const STATIC_URLS = [
     { loc: `${origin}/`, changefreq: "weekly", priority: "1.0" },
     { loc: `${origin}/marketplace.html`, changefreq: "daily", priority: "0.9" },
-    { loc: `${origin}/home/about.html`, changefreq: "monthly", priority: "0.7" },
-    { loc: `${origin}/home/for-students.html`, changefreq: "monthly", priority: "0.7" },
+    { loc: `${origin}/about`, changefreq: "monthly", priority: "0.7" },
+    { loc: `${origin}/for-students`, changefreq: "monthly", priority: "0.7" },
     { loc: `${origin}/help.html`, changefreq: "monthly", priority: "0.6" },
     { loc: `${origin}/privacy`, changefreq: "yearly", priority: "0.3" },
     { loc: `${origin}/terms`, changefreq: "yearly", priority: "0.3" },
@@ -6396,6 +7639,21 @@ app.get("/privacy", (_req, res) => {
 app.get("/terms", (_req, res) => {
   res.sendFile("terms.html", { root: path.join(__dirname, "public") });
 });
+
+// Clean URLs for the marketing pages: /about and /for-students serve the
+// files in public/home, and the old .html addresses redirect to them so the
+// address bar never shows ".html". Mirrors the rewrites/redirects in vercel.json.
+const CLEAN_PAGES = { about: "about.html", "for-students": "for-students.html" };
+for (const [slug, file] of Object.entries(CLEAN_PAGES)) {
+  app.get(`/${slug}`, (_req, res) => {
+    res.setHeader("Cache-Control", "no-cache");
+    res.sendFile(file, { root: path.join(__dirname, "public", "home") });
+  });
+  app.get(`/home/${file}`, (req, res) => {
+    const q = req.originalUrl.indexOf("?");
+    res.redirect(301, `/${slug}${q === -1 ? "" : req.originalUrl.slice(q)}`);
+  });
+}
 
 app.use(
   express.static(path.join(__dirname, "public"), {

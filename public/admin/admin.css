@@ -120,18 +120,6 @@ body.adm-body {
   flex: 0 0 18px;
 }
 
-.adm-side__foot {
-  margin-top: auto;
-  padding-top: 1rem;
-  border-top: 1px solid var(--fo-line);
-  font-size: var(--type-meta);
-  color: var(--fo-text-3);
-}
-.adm-side__foot strong {
-  color: var(--fo-accent);
-  font-weight: 700;
-}
-
 /* main */
 .adm-main {
   padding: 1.5rem 2rem 4rem;
@@ -1132,26 +1120,6 @@ body.adm-body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-.adm-demo-banner {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--fo-accent-warm) 18%, transparent);
-  color: var(--fo-accent-warm);
-  font-size: var(--type-meta);
-  font-weight: 600;
-}
-.adm-demo-banner::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--fo-accent-warm);
-  display: inline-block;
-}
-
 /* ============================================================== */
 /*                            HEALTH                               */
 /* ============================================================== */
@@ -1386,3 +1354,181 @@ body.adm-body {
 .adm-pay-split__row .gr-label { flex: 1; min-width: 9rem; }
 .adm-pay-split__row .gr-label input { width: 100%; }
 .adm-pay-split textarea { width: 100%; }
+
+/* ============================================================== */
+/*                          EMAILS TAB                             */
+/* Usage vs the Resend plan caps. Meter turns warm at 70% of a cap. */
+.adm-kpis--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1180px) { .adm-kpis--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.adm-email-of {
+  font-family: var(--font-body);
+  font-size: var(--type-meta);
+  font-weight: 400;
+  color: var(--fo-text-3);
+}
+.adm-email-meter {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--fo-surface-2);
+  overflow: hidden;
+  margin: 0.2rem 0;
+}
+.adm-email-meter__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+.adm-email-meter__fill--good { background: var(--fo-accent); }
+.adm-email-meter__fill--warn { background: var(--fo-accent-warm); }
+
+.adm-email-bar--failed { fill: var(--fo-accent-warm); }
+.adm-email-cap {
+  stroke: var(--fo-accent-warm);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 5;
+  vector-effect: non-scaling-stroke;
+}
+.adm-email-cap__label {
+  fill: var(--fo-accent-warm);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.adm-email-events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+.adm-email-events__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: var(--type-body-sm, 0.92rem);
+  color: var(--fo-text);
+}
+.adm-email-events__n {
+  font-variant-numeric: tabular-nums;
+  color: var(--fo-text-2);
+}
+
+/* ============================================================== */
+/*                USER MANAGEMENT (users drawer)                   */
+/* ============================================================== */
+.adm-defs--wide { grid-template-columns: 1fr; }
+.adm-defs__full { grid-column: 1 / -1; }
+.adm-defs dd a { color: var(--fo-text); text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.adm-ud-mono { font-size: var(--type-meta); color: var(--fo-text-2); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.adm-ud-note { margin: 0.2rem 0 0; font-size: var(--type-meta); color: var(--fo-text-3); }
+.adm-ud-note--warn { color: var(--fo-accent-warm); }
+.adm-ud-link { text-decoration: none; color: inherit; }
+.adm-ud-thread__btn {
+  width: 100%;
+  text-align: left;
+  background: none;
+  font: inherit;
+  color: inherit;
+}
+.adm-ud-thread__btn[aria-expanded="true"] { border-color: var(--fo-line-strong); }
+.adm-ud-thread__body {
+  margin: 0.45rem 0 0.2rem;
+  padding-left: 0.6rem;
+  border-left: 2px solid var(--fo-line);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 22rem;
+  overflow-y: auto;
+}
+.adm-ud-msg__meta { font-size: var(--type-meta); color: var(--fo-text-3); }
+.adm-ud-msg__body { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--fo-text); }
+.adm-ud-msg.is-theirs .adm-ud-msg__meta { color: var(--fo-accent); }
+.adm-ud-emails {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 20rem;
+  overflow-y: auto;
+}
+.adm-ud-emails > li { padding-bottom: 0.45rem; border-bottom: 1px solid var(--fo-line); }
+.adm-ud-emails__subj { color: var(--fo-text); overflow-wrap: anywhere; }
+.adm-ud-manage { display: flex; flex-direction: column; gap: 0.6rem; }
+.adm-ud-action {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid var(--fo-line);
+  border-radius: 12px;
+}
+.adm-ud-action > div { flex: 1; min-width: 0; }
+.adm-ud-action--danger { border-color: color-mix(in srgb, var(--fo-accent-warm) 40%, transparent); }
+.adm-ud-action__title { font-weight: 600; color: var(--fo-text); }
+.adm-ud-blockers { margin: 0.35rem 0 0; padding-left: 1.1rem; font-size: var(--type-meta); color: var(--fo-text-2); }
+.adm-ud-confirm { margin-top: 0.55rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.adm-ud-confirm input { width: 100%; }
+.adm-ud-status { margin: 0; min-height: 1.2em; font-size: var(--type-meta); color: var(--fo-text-2); }
+
+/* ---------------- bulk delete (users tab) ---------------- */
+.adm-th-check, .adm-td-check { width: 2.25rem; padding-right: 0; }
+.adm-th-check input, .adm-td-check input { width: 16px; height: 16px; accent-color: var(--fo-accent); cursor: pointer; }
+.adm-tr.is-selected { background: var(--fo-surface-2); }
+.adm-bulkbar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 0.75rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--fo-line-strong);
+  border-radius: 12px;
+  font-size: var(--type-meta);
+  color: var(--fo-text);
+}
+.adm-bulkbar[hidden] { display: none; }
+.adm-bulkbar > span { flex: 1; font-weight: 600; }
+.adm-dialog {
+  width: min(32rem, calc(100vw - 32px));
+  max-height: min(80vh, 44rem);
+  padding: 0;
+  border: 1px solid var(--fo-line-strong);
+  border-radius: 16px;
+  background: var(--fo-surface, var(--fo-bg));
+  color: var(--fo-text);
+}
+.adm-dialog::backdrop { background: rgb(0 0 0 / 0.5); }
+.adm-dialog__inner { display: flex; flex-direction: column; gap: 0.75rem; padding: 1.25rem; }
+.adm-dialog__title { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: var(--type-h3); }
+.adm-dialog__lead { margin: 0; font-size: var(--type-body); color: var(--fo-text-2); }
+.adm-dialog__actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+.adm-bulk-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 14rem;
+  overflow-y: auto;
+}
+.adm-bulk-list > li { padding: 0.4rem 0.6rem; border: 1px solid var(--fo-line); border-radius: 10px; overflow-wrap: anywhere; }
+.adm-bulk-list > li .adm-ud-note { margin: 0; }
+
+/* ===== applications tab ===== */
+.adm-table tr.adm-tr.is-open td { background: var(--fo-surface-2); border-bottom: 0; }
+.adm-app-detail > td { background: var(--fo-surface-2); padding: var(--space-3, 12px) var(--space-4, 16px) var(--space-4, 16px); }
+.adm-app-kv { display: grid; gap: var(--space-3, 12px); margin: 0 0 var(--space-4, 16px); }
+.adm-app-kv dt { font-size: var(--type-meta); color: var(--fo-text-3); margin-bottom: 2px; }
+.adm-app-kv dd { margin: 0; color: var(--fo-text); max-width: 72ch; }
+.adm-app-kv a { color: var(--fo-accent); word-break: break-all; }
+.adm-app-project { white-space: pre-wrap; line-height: 1.55; }
+.adm-app-actions { display: flex; flex-wrap: wrap; gap: var(--space-2, 8px); }
+.adm-app-invite { margin: var(--space-3, 12px) 0 0; font-size: var(--type-meta); color: var(--fo-text-2); }
+.adm-app-invite code { display: inline-block; margin-top: 4px; padding: 6px 8px; border-radius: 6px; background: var(--fo-surface); border: 1px solid var(--fo-line); color: var(--fo-text); word-break: break-all; user-select: all; }
+.adm-app-late { color: var(--fo-accent-warm); }

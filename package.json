@@ -4,8 +4,9 @@
   "description": "MVP consultative gig platform registration flow with Supabase",
   "main": "server.js",
   "scripts": {
-    "build": "npm run build:contract-help",
+    "build": "npm run build:contract-help && npm run build:supabase",
     "build:contract-help": "esbuild src/contract-help.tsx --bundle --format=esm --jsx=automatic --minify --outfile=public/contract-help.js",
+    "build:supabase": "esbuild src/supabase-browser.js --bundle --format=esm --platform=browser --target=es2020 --minify --legal-comments=none --outfile=public/vendor/supabase-js.js",
     "dev": "node server.js",
     "start": "node server.js",
     "stripe:listen": "stripe listen --forward-to localhost:3000/webhooks/stripe",
@@ -28,6 +29,7 @@
     "esbuild": "^0.28.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "supabase-js-browser": "npm:@supabase/supabase-js@^2.49.1",
     "typescript": "^6.0.2"
   }
 }

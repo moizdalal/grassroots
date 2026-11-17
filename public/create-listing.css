@@ -371,7 +371,11 @@
    the slide-in animation container. */
 .cl-slides {
   position: relative;
-  overflow: hidden;
+  /* clip, not hidden: hides the slide-in's sideways nudge without
+     clipping anything vertically (hidden on one axis forces the other
+     to auto). */
+  overflow-x: clip;
+  overflow-y: visible;
   padding: 0 5px;
   margin: 0 -5px;
 }
@@ -560,9 +564,10 @@
     grid-template-columns: 1fr;
   }
 
+  /* Form first on narrow screens: the empty preview used to sit above
+     it and push the title field below the fold. */
   .cl-split__preview {
     position: static;
-    order: -1;
   }
 }
 
@@ -570,4 +575,138 @@
   .cl-slide--active {
     animation: none;
   }
+}
+
+
+/* ── Post-a-project form fixes (Nov 2026 audit) ─────────────── */
+
+/* Standard contract: title + one-line description. */
+.cl-split__form .cl-ct-title {
+  display: block;
+  font-weight: 600;
+}
+.cl-split__form .cl-ct-desc {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--type-meta);
+  font-weight: 400;
+  color: var(--fo-text-2);
+}
+
+/* "Other ways to pay" only expands now; no radio dot or Active pill. */
+.cl-split__form .ct-advanced__summary {
+  color: var(--fo-text-2);
+  font-weight: 500;
+}
+
+/* Category picker: render the list in the page flow instead of on
+   top of Budget and Turnaround, so it can't cover them or let them
+   show through. It closes on pick, Escape, and outside click. */
+.cl-split__form #cat-multiselect .ms-dropdown {
+  position: static;
+  max-height: 280px;
+  background: var(--fo-surface);
+  box-shadow: none;
+}
+.cl-split__form #cat-multiselect .ms-empty {
+  color: var(--fo-text-2);
+}
+
+/* Budget hint sits between the label and the inputs. */
+.cl-split__form .cl-budget-hint {
+  display: block;
+  margin: 0 0 var(--space-2);
+  font-size: var(--type-meta);
+  font-weight: 400;
+  color: var(--fo-text-2);
+}
+
+/* File input: themed button instead of the white native one. */
+.cl-split__form .cl-files input[type="file"] {
+  width: 100%;
+  padding: var(--space-2);
+  border: 1px dashed var(--fo-line-strong);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--fo-text-2);
+  font-family: var(--font-body);
+  font-size: var(--type-meta);
+}
+.cl-split__form .cl-files input[type="file"]::file-selector-button {
+  margin-right: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--fo-line-strong);
+  border-radius: 999px;
+  background: var(--fo-accent-soft);
+  color: var(--fo-text);
+  font-family: var(--font-body);
+  font-size: var(--type-meta);
+  font-weight: 600;
+  cursor: pointer;
+}
+.cl-split__form .cl-files input[type="file"]::file-selector-button:hover {
+  border-color: var(--fo-accent);
+}
+.cl-split__form .cl-files input[type="file"]:focus-visible {
+  outline: 2px solid var(--fo-accent);
+  outline-offset: 2px;
+}
+
+/* Inline field errors. Coral is the brandkit's error/destructive
+   token (same as the required asterisk). */
+.cl-split__form .cl-field-error {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--type-meta);
+  font-weight: 500;
+  color: var(--fo-plan);
+}
+.cl-split__form [aria-invalid="true"] {
+  border-color: var(--fo-plan);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--fo-plan) 22%, transparent);
+}
+
+/* Business name backstop, shown above the nav when it's missing. */
+.cl-split__form .cl-bizname {
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid var(--fo-accent);
+  border-radius: 12px;
+  background: var(--fo-surface-2);
+}
+:root:not([data-theme="light"]) .cl-split__form .cl-bizname {
+  background: transparent;
+}
+.cl-split__form .cl-bizname__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--type-h3);
+  color: var(--fo-text);
+}
+.cl-split__form .cl-bizname__hint {
+  margin: var(--space-1) 0 var(--space-3);
+  font-size: var(--type-meta);
+  color: var(--fo-text-2);
+}
+.cl-split__form .cl-bizname__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.cl-split__form .cl-bizname__row input {
+  flex: 1 1 14rem;
+  min-width: 0;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--fo-line-strong);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--fo-text);
+  font: inherit;
+  font-size: var(--type-body);
+}
+.cl-split__form .cl-bizname__row input:focus {
+  outline: none;
+  border-color: var(--fo-accent);
+  box-shadow: 0 0 0 3px var(--fo-accent-soft);
 }

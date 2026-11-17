@@ -4,13 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,follow" />
-    <title>Grassroots — your ratings & reviews</title>
+    <title>Grassroots — your ratings and reviews</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
-    <link rel="stylesheet" href="/grassroots.css" />
-    <link rel="stylesheet" href="/field-office.css" />
+    <link rel="stylesheet" href="/grassroots.css?v=2" />
+    <link rel="stylesheet" href="/field-office.css?v=2" />
     <script src="/theme.js"></script>
     <script src="/cookie-banner.js" defer></script>
     <script src="/loading-overlay.js"></script>
@@ -20,7 +20,7 @@
       <a href="/consultant-dashboard.html" class="ld-back">← Back</a>
 
       <div class="gr-page-intro">
-        <h1 class="gr-title">Ratings <span class="fo-title-italic">& reviews</span></h1>
+        <h1 class="gr-title">Ratings <span class="fo-title-italic">and reviews</span></h1>
         <p class="gr-subtitle">How businesses you've worked with rate you across every dimension that matters.</p>
       </div>
 
@@ -100,7 +100,7 @@
             .maybeSingle();
 
           if (profile?.role && profile.role !== "consultant") {
-            gate.textContent = "Ratings & reviews are a consultant feature.";
+            gate.textContent = "Ratings and reviews are a consultant feature.";
             gate.className = "gr-status";
             return;
           }

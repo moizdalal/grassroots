@@ -26,8 +26,8 @@
 - Post listings describing a project
 - Review incoming bids, accept / decline / counter
 - Pay at acceptance (funds route to the consultant)
-- Chat through the engagement
-- Rate the consultant when work wraps — this is required to close the engagement
+- Chat through the project
+- Rate the consultant when work wraps — this is required to close the project
 
 ## Changing your role
 

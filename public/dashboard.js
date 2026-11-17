@@ -6,6 +6,7 @@
 import { getSupabaseClient } from "/supabase-loader.js";
 import { hydrateRatings } from "/rating.js";
 import { mountDashboardNotifications } from "/dashboard-notifications.js";
+import { loadUnreadNotificationCount } from "/nav-notify.js";
 import { getInitials } from "/initials.js";
 // The analytics + garden + completed-engagement modules together add
 // ~19KB gz to the dashboard's initial JS. Both surfaces render below
@@ -51,8 +52,9 @@ const escape = (s) =>
 const STATE_LABELS = {
   open: "Live",
   hired: "In progress",
-  paused: "Paused",
-  closed: "Closed",
+  locked: "Locked",
+  completed: "Completed",
+  unlisted: "Removed",
   draft: "Draft",
 };
 
@@ -87,15 +89,22 @@ function parseBudgetRangeFromDetails(details) {
 }
 
 function listingState(row) {
-  // Map listing.status to a display state. Open = live; if any bid is accepted, that's "hired".
-  if (row.__hired) return "hired";
+  // Map listing.status to a display state. Open = live; accepted work that
+  // hasn't been paid out is "hired" whatever the listing's lock state.
   const s = (row.status || "").toLowerCase();
+  if (s === "completed" || row.__released) return "completed";
+  if (row.__hired) return "hired";
   if (s === "open") return "open";
-  if (s === "paused") return "paused";
-  if (s === "closed") return "closed";
+  if (s === "locked") return "locked";
+  if (s === "unlisted") return "unlisted";
   if (s === "draft") return "draft";
   return s || "open";
 }
+
+// Filter chips / tabs that cover more than one state. "Past" holds
+// completed projects and listings the owner removed from the marketplace.
+const LISTING_STATE_GROUPS = { past: ["completed", "unlisted"] };
+const listingStatesFor = (s) => LISTING_STATE_GROUPS[s] || [s];
 
 const HEALTH_PALETTE = [
   "var(--fo-accent)",
@@ -124,7 +133,7 @@ function profileCompleteness(profile, biz) {
   const pct = Math.round((done / total) * 100);
   const missing = fields.filter((f) => !f.filled).map((f) => f.label);
   let tierName;
-  if (pct >= 100) tierName = "complete";
+  if (pct >= 100) tierName = "Complete";
   else if (pct >= 67) tierName = "Almost there";
   else if (pct >= 34) tierName = "Needs attention";
   else tierName = "Needs love";
@@ -190,7 +199,7 @@ async function loadData(client, userId) {
       client
         .from("bids")
         .select(
-          "id, listing_id, consultant_id, amount_cents, message, status, created_at, proposal_due_at, accepted_at, profiles!bids_consultant_id_fkey ( full_name, avatar_path )"
+          "id, listing_id, consultant_id, amount_cents, message, status, payment_status, created_at, proposal_due_at, accepted_at, profiles!bids_consultant_id_fkey ( full_name, avatar_path )"
         )
         .in("listing_id", ids)
         .order("created_at", { ascending: false }),
@@ -219,7 +228,10 @@ async function loadData(client, userId) {
   // Mark hired listings
   for (const l of listings) {
     const bids = bidsByListing[l.id] || [];
-    if (bids.some((b) => b.status === "accepted")) l.__hired = true;
+    if (bids.some((b) => b.status === "accepted" && !["released", "refunded"].includes(b.payment_status))) {
+      l.__hired = true;
+    }
+    if (bids.some((b) => b.status === "accepted" && b.payment_status === "released")) l.__released = true;
     l.__bidCount = bids.length;
     l.__bids = bids;
   }
@@ -326,8 +338,12 @@ function avatarHtml(client, path, initial, klass = "bza__inbox-avatar") {
   return `<div class="${klass}">${escape(initial || "?")}</div>`;
 }
 
-function daysOpenLabel(createdAt) {
+function daysOpenLabel(createdAt, state) {
   if (!createdAt) return "";
+  // Drafts were never open — say when they were started instead.
+  if (state === "draft") return `created ${createdAgoLabel(createdAt)}`;
+  // Finished work doesn't keep counting days open.
+  if (state === "completed" || state === "unlisted") return "";
   const ms = Date.now() - new Date(createdAt).getTime();
   const days = Math.floor(ms / 86400000);
   if (days <= 0) return "Open today";
@@ -335,6 +351,15 @@ function daysOpenLabel(createdAt) {
   if (days < 30) return `${days} days open`;
   const months = Math.floor(days / 30);
   return months === 1 ? "1 month open" : `${months} months open`;
+}
+
+function createdAgoLabel(createdAt) {
+  const days = Math.floor((Date.now() - new Date(createdAt).getTime()) / 86400000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 30) return `${days} days ago`;
+  const months = Math.floor(days / 30);
+  return months === 1 ? "1 month ago" : `${months} months ago`;
 }
 
 // Compact recency for my-listings cards: today, 1d, 6d, 1w, 4w, 1m, 12m.
@@ -356,17 +381,16 @@ function shortRecency(createdAt) {
 // State → status dot. Semantic mapping:
 //   live / open       → green active (collecting bids)
 //   hired / in flight → warm orange (work happening, attention warranted)
-//   paused            → muted (calm pause)
-//   closed/cancelled  → terminal red (uses --fo-status-closed token so the
-//                       light theme doesn't collapse it into --fo-accent-warm;
-//                       see Pass 1 notes in field-office.css)
+//   locked            → muted (public, not taking offers)
+//   completed         → soft text (past project, stays public)
+//   unlisted          → line grey (removed from the marketplace)
 //   draft             → soft violet (private/owner-only)
 const STATE_DOT_COLORS = {
   open: "var(--fo-accent)",          // live — active, collecting bids
   hired: "var(--fo-accent-warm)",    // in progress — warm, work in flight
-  paused: "var(--fo-text-3)",        // paused — muted, on hold
-  closed: "var(--fo-status-closed)", // closed — terminal red
-  cancelled: "var(--fo-status-closed)",
+  locked: "var(--fo-text-3)",        // locked — muted, not taking offers
+  completed: "var(--fo-text-2)",     // completed — past project
+  unlisted: "var(--fo-line-strong)", // removed — hidden from the public
   draft: "var(--fo-draft)",          // draft — soft violet, owner-only
 };
 
@@ -374,6 +398,14 @@ function listingPrimaryAction(l, schedulesByBidId) {
   const bids = l.__bids || [];
   const accepted = bids.find((b) => b.status === "accepted");
   const state = listingState(l);
+
+  // Finished work: keep a quiet way back into the engagement, but never
+  // a to-do (a stale schedule row would otherwise ask for availability).
+  if (state === "completed") {
+    return accepted
+      ? { label: "View project page", kind: "manage", quiet: true, href: `/engagement.html?bid=${accepted.id}` }
+      : null;
+  }
 
   if (accepted) {
     const sched = schedulesByBidId?.[accepted.id];
@@ -409,6 +441,15 @@ function listingPrimaryAction(l, schedulesByBidId) {
   return null;
 }
 
+// Does this listing need the owner? Drafts to finish, plus any
+// non-quiet primary action. Drives the sidebar badge, the card
+// "Needs you" tag and the my-listings count line, so all three agree.
+function needsOwner(l, schedulesByBidId) {
+  if (listingState(l) === "draft") return true;
+  const a = listingPrimaryAction(l, schedulesByBidId);
+  return !!a && !a.quiet;
+}
+
 // A listing is "stale" when it's been live (open) for more than four
 // weeks without a hire. Same threshold the welcome line uses on the
 // owner dashboard.
@@ -432,7 +473,7 @@ function listingRowHtml(l, schedulesByBidId) {
 
   const offerCount = l.__bidCount || 0;
   const offerLabel = offerCount === 1 ? "1 offer" : `${offerCount} offers`;
-  const openLabel = daysOpenLabel(l.created_at);
+  const openLabel = daysOpenLabel(l.created_at, state);
   const stalePill = isStaleListing(l)
     ? `<span class="gr-pill gr-pill--warn gr-pill--no-dot" title="Open more than four weeks">Stale</span>`
     : "";
@@ -627,10 +668,6 @@ function mountMyListingsView(listings, schedulesByBidId) {
     budget: withActionFirst((a, b) => ownerBudgetSortValue(b) - ownerBudgetSortValue(a)),
   };
 
-  // `closed` chip filters both 'closed' and 'cancelled' states so the
-  // legend label matches what an owner thinks of as "closed."
-  const STATE_GROUPS = { closed: ["closed", "cancelled"] };
-  const groupStatesFor = (s) => STATE_GROUPS[s] || [s];
 
   const activeStates = new Set();
 
@@ -639,9 +676,9 @@ function mountMyListingsView(listings, schedulesByBidId) {
     const sortKey = sortEl?.value || "newest";
     const sorter = SORTERS[sortKey] || SORTERS.newest;
 
-    // Expand grouped chips (e.g. "closed" → ["closed", "cancelled"]).
+    // Expand grouped chips (e.g. "past" → ["completed", "unlisted"]).
     const stateMatch = activeStates.size
-      ? new Set([...activeStates].flatMap(groupStatesFor))
+      ? new Set([...activeStates].flatMap(listingStatesFor))
       : null;
 
     const filtered = listings
@@ -651,10 +688,14 @@ function mountMyListingsView(listings, schedulesByBidId) {
       .sort(sorter);
 
     if (countEl) {
+      // "N need you" mirrors the sidebar "My listings" badge, so the
+      // badge number is always visible somewhere on this view.
       const total = listings.length;
-      countEl.textContent = filtered.length === total
+      const needYou = listings.filter((l) => needsOwner(l, schedulesByBidId)).length;
+      const base = filtered.length === total
         ? `${total} listing${total === 1 ? "" : "s"}`
         : `${filtered.length} of ${total}`;
+      countEl.textContent = needYou ? `${base} · ${needYou} need${needYou === 1 ? "s" : ""} you` : base;
     }
     if (!filtered.length) {
       host.innerHTML = "";
@@ -889,11 +930,7 @@ function renderDashboard(client, data) {
   // complete, AND any unpublished drafts that need finishing. Quiet
   // actions (e.g. "manage" while waiting on the consultant) are not
   // owner-action-needed and don't count toward the badge.
-  const actionsNeededCount = listings.filter((l) => {
-    if (listingState(l) === "draft") return true;
-    const a = listingPrimaryAction(l, schedulesByBidId);
-    return !!a && !a.quiet;
-  }).length;
+  const actionsNeededCount = listings.filter((l) => needsOwner(l, schedulesByBidId)).length;
   const listingsBadge = $("dash-listings-badge");
   if (actionsNeededCount > 0) {
     listingsBadge.textContent = String(actionsNeededCount);
@@ -925,13 +962,13 @@ function renderDashboard(client, data) {
     const t = l.created_at ? Date.parse(l.created_at) : NaN;
     return Number.isFinite(t) && (now - t) > STALE_AFTER_MS;
   }).length;
-  let welcomeLine = `Welcome back, ${firstName}.`;
+  let welcomeLine = `Welcome back, ${firstName}`;
   if (newOffers > 0 && staleListings > 0) {
-    welcomeLine = `Welcome back, ${firstName}. ${newOffers} new offer${newOffers === 1 ? "" : "s"} and ${staleListings} listing${staleListings === 1 ? "" : "s"} going stale.`;
+    welcomeLine = `Welcome back, ${firstName}. ${newOffers} new offer${newOffers === 1 ? "" : "s"} and ${staleListings} listing${staleListings === 1 ? "" : "s"} going stale`;
   } else if (newOffers > 0) {
-    welcomeLine = `Welcome back, ${firstName}. ${newOffers} new offer${newOffers === 1 ? "" : "s"} to review.`;
+    welcomeLine = `Welcome back, ${firstName}. ${newOffers} new offer${newOffers === 1 ? "" : "s"} to review`;
   } else if (staleListings > 0) {
-    welcomeLine = `Welcome back, ${firstName}. ${staleListings} listing${staleListings === 1 ? "" : "s"} could use a refresh.`;
+    welcomeLine = `Welcome back, ${firstName}. ${staleListings} listing${staleListings === 1 ? "" : "s"} could use a refresh`;
   }
   $("dash-welcome").textContent = welcomeLine;
 
@@ -972,6 +1009,16 @@ function renderDashboard(client, data) {
         notifBadge.hidden = unread === 0;
       }
     });
+  } else if (data.session?.user?.id) {
+    // The owner home has no notifications panel, so the sidebar badge
+    // gets its number from a count-only query instead.
+    loadUnreadNotificationCount(client, data.session.user.id).then((unread) => {
+      const notifBadge = $("dash-notif-badge");
+      if (notifBadge) {
+        notifBadge.textContent = String(unread);
+        notifBadge.hidden = unread === 0;
+      }
+    });
   }
 
   // 3-day agenda (meetings, proposal deadlines, listing closings)
@@ -979,9 +1026,11 @@ function renderDashboard(client, data) {
   renderOwnerAgenda(agendaEvents);
 
   // listings count + tabs
-  const counts = { all: listings.length, open: 0, hired: 0, paused: 0, closed: 0, draft: 0 };
+  const counts = { all: listings.length, open: 0, hired: 0, locked: 0, past: 0, draft: 0 };
   for (const l of listings) {
-    counts[listingState(l)] = (counts[listingState(l)] || 0) + 1;
+    const state = listingState(l);
+    counts[state] = (counts[state] || 0) + 1;
+    if (LISTING_STATE_GROUPS.past.includes(state)) counts.past += 1;
   }
   $("dash-listings-count").textContent = String(listings.length);
   document.querySelectorAll("[data-count]").forEach((el) => {
@@ -1015,7 +1064,9 @@ function renderDashboard(client, data) {
       tabsHost.querySelectorAll("button").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       const state = btn.dataset.state;
-      const filtered = state === "all" ? listings : listings.filter((l) => listingState(l) === state);
+      const filtered = state === "all"
+        ? listings
+        : listings.filter((l) => listingStatesFor(state).includes(listingState(l)));
       listingsRows.innerHTML = filtered.length ? filtered.map(renderRow).join("") : `<p class="gr-empty-state" style="padding:1rem">No listings in this state.</p>`;
     });
     tabsHost.dataset.bound = "1";
@@ -1070,10 +1121,10 @@ function renderDashboard(client, data) {
     engageRows.innerHTML = inProgress.map(renderRow).join("");
   }
 
-  // archive (closed)
+  // archive (completed hires)
   const archiveRows = $("dash-archive-rows");
   const archiveEmpty = $("dash-archive-empty");
-  const archive = listings.filter((l) => listingState(l) === "closed");
+  const archive = listings.filter((l) => listingState(l) === "completed");
   if (!archive.length) {
     archiveEmpty.hidden = false;
     archiveRows.innerHTML = "";
@@ -1110,6 +1161,9 @@ function renderDashboard(client, data) {
       health.pct >= 67 ? "var(--fo-accent)" : health.pct >= 34 ? "var(--fo-do)" : "var(--fo-plan)";
 
     panel.innerHTML = `
+      <div class="bza__panel-h bza__health-h">
+        <span class="bza__panel-h-title"><strong>Profile completion</strong></span>
+      </div>
       <div class="bza__health-top">
         ${renderHealthBucket(health)}
         <div class="bza__health-summary">
