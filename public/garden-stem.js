@@ -64,8 +64,7 @@ export function mountGardenStem(container, { roots = [], interactive = true, nav
   container.innerHTML = `
     <div class="gs" data-roots="${roots.length}">
       <div class="gs__header">
-        <p class="gs__eyebrow">Your garden</p>
-        <p class="gs__title">Grow your Grassroots.</p>
+        <p class="gs__title">Grow your Grassroots</p>
       </div>
       <div class="gs__plot">
         <div class="gs__sky">${sproutSvg()}</div>

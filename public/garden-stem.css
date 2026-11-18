@@ -19,16 +19,6 @@
   text-align: center;
 }
 
-.gs__eyebrow {
-  margin: 0;
-  font-family: var(--font-body);
-  font-size: var(--type-eyebrow);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--fo-text-3);
-}
-
 .gs__title {
   margin: 0.2rem 0 0;
   font-family: var(--font-display);
@@ -386,8 +376,12 @@
 
 .gs__count {
   margin: 0;
+  /* Match the main page's body subtext (.ld-hero__sub on the landing
+     hero, .bza__row-meta on the dashboard): the body sans at a regular
+     weight, not the display serif and not bolded. */
+  font-family: var(--font-body);
   font-size: var(--type-meta);
-  font-weight: 600;
+  font-weight: 400;
   color: var(--fo-text-2);
 }
 

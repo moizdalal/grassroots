@@ -26,7 +26,7 @@ function ensureSuggestionBoxMarkup() {
           <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
         </button>
         <div id="gr-suggest-form">
-          <p class="gr-suggest-popup__title">Grassroots values and takes your feedback seriously&mdash;how can we improve?</p>
+          <p class="gr-suggest-popup__title">How can we make Grassroots better?</p>
           <textarea class="gr-suggest-popup__textarea" id="gr-suggest-input" placeholder="Your suggestion…" maxlength="1000"></textarea>
           <button class="gr-suggest-popup__submit" id="gr-suggest-submit" type="button">Submit</button>
         </div>

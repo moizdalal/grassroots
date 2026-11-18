@@ -57,14 +57,14 @@
             <span class="bza__nav-label">My projects</span>
             <span class="bza__nav-badge" id="dash-listings-badge" hidden></span>
           </button>
-          <a href="/inbox.html" class="bza__nav-item" title="Inbox">
+          <a href="/inbox.html" class="bza__nav-item" title="Conversations">
             <span class="bza__nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M22 12h-6l-2 3h-4l-2-3H2"/>
                 <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/>
               </svg>
             </span>
-            <span class="bza__nav-label">Inbox</span>
+            <span class="bza__nav-label">Conversations</span>
             <span class="bza__nav-badge" id="dash-inbox-badge" hidden></span>
           </a>
           <a href="/notifications.html" class="bza__nav-item" title="Notifications">
@@ -158,6 +158,7 @@
             <div class="bza__page-h dash-page-h">
               <div class="dash-page-h__main">
                 <h1 id="dash-welcome">Welcome back</h1>
+                <p class="bza__page-sub" id="dash-welcome-sub" hidden></p>
               </div>
               <div class="dash-page-h__side">
                 <span class="dash-page-date" id="dash-page-date"></span>
@@ -188,8 +189,8 @@
                     <div id="dash-listings-rows"></div>
                   </div>
                   <div id="dash-listings-empty" class="gr-empty-state gr-empty-state--hero" hidden>
-                    <h3 class="gr-empty-state__title">Post your first listing</h3>
-                    <p class="gr-empty-state__sub">Describe what you need help with. Students bid. You pick.</p>
+                    <h3 class="gr-empty-state__title">Post your first project</h3>
+                    <p class="gr-empty-state__sub">Describe what you need help with, and students will send offers for you to compare.</p>
                     <div class="gr-empty-state__chips">
                       <span class="gr-pill">Marketing</span>
                       <span class="gr-pill">Strategy</span>
@@ -241,7 +242,7 @@
                   id="ml-search"
                   class="ml-search-input"
                   aria-label="Search your listings"
-                  placeholder="Search your listings…"
+                  placeholder="Search your projects…"
                   autocomplete="off"
                 />
               </div>
@@ -286,7 +287,7 @@
 
             <p id="ml-result-count" class="ml-result-count"></p>
             <div id="dash-listings-cards" class="ml-card-grid"></div>
-            <p id="ml-empty" class="gr-empty-state ml-empty" hidden>No listings match — try a different search or sort.</p>
+            <p id="ml-empty" class="gr-empty-state ml-empty" hidden>No projects match — try a different search or sort.</p>
           </section>
 
           <!-- ── ENGAGEMENTS VIEW ── -->
@@ -305,7 +306,7 @@
           <section class="dash-view" data-view="archive" hidden>
             <div class="bza__page-h">
               <h1>Past hires</h1>
-              <span class="bza__page-h-meta">Closed listings and completed projects.</span>
+              <span class="bza__page-h-meta">Closed and completed projects.</span>
             </div>
             <div class="bza__panel">
               <div id="dash-archive-rows"></div>
