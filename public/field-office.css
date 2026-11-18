@@ -4435,7 +4435,7 @@ body.gr-has-side-nav .bza__side {
   align-items: flex-start;
   border-bottom: 0;
   padding-bottom: 0;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.9rem;
   gap: 1rem 1.5rem;
 }
 
@@ -4569,7 +4569,9 @@ body.gr-has-side-nav .bza__side {
   flex: 1 1 0;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1.85fr) minmax(280px, 1fr);
+  /* Main column (projects + stats) carries the primary content, so it
+     takes the larger share; the garden rail is a slim companion. */
+  grid-template-columns: minmax(0, 2fr) minmax(260px, 0.8fr);
   gap: 1.25rem;
   align-items: stretch;
 }
@@ -5400,7 +5402,7 @@ body.gr-has-side-nav .bza__side {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.65rem 0.85rem;
-  padding: 0.65rem 0.5rem;
+  padding: 0.5rem 0.5rem;
   border-bottom: 1px solid var(--fo-line);
   border-radius: 8px;
   transition: background 0.15s ease;
@@ -5592,7 +5594,7 @@ body.gr-has-side-nav .bza__side {
   color: var(--fo-text);
   margin: 0;
   letter-spacing: -0.01em;
-  line-height: 1.25;
+  line-height: 1.2;
   font-weight: 600;
   font-style: normal;
 }
@@ -5603,7 +5605,7 @@ body.gr-has-side-nav .bza__side {
   align-items: center;
   gap: 0.35rem 0.55rem;
   font-size: var(--type-meta);  color: var(--fo-text-3);
-  margin-top: 0.2rem;
+  margin-top: 0.15rem;
 }
 
 .bza__listing-type-pill {

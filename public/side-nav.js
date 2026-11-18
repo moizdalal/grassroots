@@ -57,7 +57,7 @@ function buildNavItems(role) {
       { href: "/consultant-dashboard.html", label: "Home", icon: ICONS.home, navId: "home" },
       { href: "/marketplace.html", label: "Marketplace", icon: ICONS.marketplace, navId: "marketplace" },
       { href: "/engagements.html", label: "Projects", icon: ICONS.engagements, navId: "engagements" },
-      { href: "/inbox.html", label: "Inbox", icon: ICONS.inbox, navId: "inbox" },
+      { href: "/inbox.html", label: "Conversations", icon: ICONS.inbox, navId: "inbox" },
       { href: "/notifications.html", label: "Notifications", icon: ICONS.notifications, navId: "notifications" },
       { href: "/payouts.html", label: "Payouts", icon: ICONS.payouts, navId: "payouts" },
       { href: "/training.html", label: "Training", icon: ICONS.training, navId: "training" },
@@ -68,7 +68,7 @@ function buildNavItems(role) {
   return [
     { href: "/dashboard.html", label: "Home", icon: ICONS.home, navId: "home" },
     { href: "/dashboard.html#listings", label: "My projects", icon: ICONS.listings, navId: "listings" },
-    { href: "/inbox.html", label: "Inbox", icon: ICONS.inbox, navId: "inbox" },
+    { href: "/inbox.html", label: "Conversations", icon: ICONS.inbox, navId: "inbox" },
     { href: "/notifications.html", label: "Notifications", icon: ICONS.notifications, navId: "notifications" },
   ];
 }

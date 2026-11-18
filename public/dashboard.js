@@ -589,7 +589,7 @@ function ownerListingCardHtml(l, schedulesByBidId) {
   // availability) render a link but don't count as action-needing —
   // they shouldn't pull focus or tag the card "needs you".
   const isDraft = state === "draft";
-  const ctaText = action ? action.label : isDraft ? "Finish & publish" : "Open listing";
+  const ctaText = action ? action.label : isDraft ? "Finish & publish" : "Open project";
   const ctaHref = action ? action.href : isDraft ? `/create-listing.html?draft=${l.id}` : `/listing.html?id=${l.id}`;
   const needsAction = (!!action && !action.quiet) || isDraft;
 
@@ -693,7 +693,7 @@ function mountMyListingsView(listings, schedulesByBidId) {
       const total = listings.length;
       const needYou = listings.filter((l) => needsOwner(l, schedulesByBidId)).length;
       const base = filtered.length === total
-        ? `${total} listing${total === 1 ? "" : "s"}`
+        ? `${total} project${total === 1 ? "" : "s"}`
         : `${filtered.length} of ${total}`;
       countEl.textContent = needYou ? `${base} · ${needYou} need${needYou === 1 ? "s" : ""} you` : base;
     }
@@ -935,7 +935,7 @@ function renderDashboard(client, data) {
   if (actionsNeededCount > 0) {
     listingsBadge.textContent = String(actionsNeededCount);
     listingsBadge.hidden = false;
-    listingsBadge.title = `${actionsNeededCount} listing${actionsNeededCount === 1 ? "" : "s"} need${actionsNeededCount === 1 ? "s" : ""} your attention`;
+    listingsBadge.title = `${actionsNeededCount} project${actionsNeededCount === 1 ? "" : "s"} need${actionsNeededCount === 1 ? "s" : ""} your attention`;
   }
   const inboxBadge = $("dash-inbox-badge");
   if (unreadCount > 0) {
@@ -962,15 +962,24 @@ function renderDashboard(client, data) {
     const t = l.created_at ? Date.parse(l.created_at) : NaN;
     return Number.isFinite(t) && (now - t) > STALE_AFTER_MS;
   }).length;
-  let welcomeLine = `Welcome back, ${firstName}`;
+  // Keep the h1 to a single-line greeting and carry the actionable
+  // status in a subtitle beneath it, so the header never wraps to two
+  // display lines and the home view keeps more room for project rows.
+  const greeting = `Welcome back, ${firstName}`;
+  let welcomeStatus = "";
   if (newOffers > 0 && staleListings > 0) {
-    welcomeLine = `Welcome back, ${firstName}. ${newOffers} new offer${newOffers === 1 ? "" : "s"} and ${staleListings} listing${staleListings === 1 ? "" : "s"} going stale`;
+    welcomeStatus = `${newOffers} new offer${newOffers === 1 ? "" : "s"} and ${staleListings} project${staleListings === 1 ? "" : "s"} going stale`;
   } else if (newOffers > 0) {
-    welcomeLine = `Welcome back, ${firstName}. ${newOffers} new offer${newOffers === 1 ? "" : "s"} to review`;
+    welcomeStatus = `${newOffers} new offer${newOffers === 1 ? "" : "s"} to review`;
   } else if (staleListings > 0) {
-    welcomeLine = `Welcome back, ${firstName}. ${staleListings} listing${staleListings === 1 ? "" : "s"} could use a refresh`;
+    welcomeStatus = `${staleListings} project${staleListings === 1 ? "" : "s"} could use a refresh`;
   }
-  $("dash-welcome").textContent = welcomeLine;
+  $("dash-welcome").textContent = greeting;
+  const welcomeSubEl = $("dash-welcome-sub");
+  if (welcomeSubEl) {
+    welcomeSubEl.textContent = welcomeStatus;
+    welcomeSubEl.hidden = !welcomeStatus;
+  }
 
   // Today's date — adds a small dynamic anchor to the header.
   const dateEl = $("dash-page-date");
@@ -1067,7 +1076,7 @@ function renderDashboard(client, data) {
       const filtered = state === "all"
         ? listings
         : listings.filter((l) => listingStatesFor(state).includes(listingState(l)));
-      listingsRows.innerHTML = filtered.length ? filtered.map(renderRow).join("") : `<p class="gr-empty-state" style="padding:1rem">No listings in this state.</p>`;
+      listingsRows.innerHTML = filtered.length ? filtered.map(renderRow).join("") : `<p class="gr-empty-state" style="padding:1rem">No projects in this state.</p>`;
     });
     tabsHost.dataset.bound = "1";
   }
