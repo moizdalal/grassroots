@@ -8,7 +8,7 @@ import {
   clearGuestModeIfSignedIn,
   withGuestParam,
 } from "/guest-mode.js";
-import { loadBusinessBadges, renderBadgeIcons } from "/business-badges.js";
+import { loadBusinessBadges, renderBadgeIcons, wireBadgeTips } from "/business-badges.js";
 
 const sessionSlot = document.getElementById("session-slot");
 const listingGrid = document.getElementById("listing-grid");
@@ -825,6 +825,7 @@ async function refreshListings(client) {
   if (badgesPromise) {
     badgeMap = await badgesPromise;
     patchBadgesIntoCards();
+    wireBadgeTips();
   }
 }
 

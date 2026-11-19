@@ -42,7 +42,7 @@ Same scale: half stars from 0.5 to 5, plus an optional note up to 280 characters
 | **Respect** | How was the working relationship? |
 | **Would work again** | Would you take another project with this business? |
 
-The business and the student can both read the review on the project page. It does not show on the marketplace card. Clear scope, the trust badge, uses the scope-clarity average once at least two reviews land in a 90-day window.
+The business and the student can both read the review on the project page. It does not show on the marketplace card.
 
 ## How a consultant's overall rating is computed
 

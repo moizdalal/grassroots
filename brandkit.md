@@ -178,20 +178,36 @@ Sample listings (example posts from the fictitious owners in `marketplace.js` `S
 
 ### `.gr-biz-badge` — business trust badges
 
-Earned badges for businesses, rendered by `business-badges.js` from the `get_business_badges` RPC. Rules live in `supabase/migrations/add_business_badges.sql`. Clear scope reads `business_reviews.scope_clarity` from `supabase/migrations/add_business_reviews.sql`. Nobody sets a badge by hand.
+Earned badges for businesses, rendered by `business-badges.js` from the `get_business_badges` RPC. Rules live in `supabase/migrations/replace_clear_scope_with_no_disputes.sql`, which replaced `add_business_badges.sql`. Nobody sets a badge by hand.
 
 | Badge | Earned when | Lapses |
 |---|---|---|
 | Active client | payment released in the last 90 days | yes, rolling 90 days |
 | Repeat client | paid 2+ students, or rehired one | no |
 | Quick approver | median delivered → released under 3 days, 2+ engagements | yes, rolling 90 days |
-| Clear scope | Average scope clarity of 4.0 or higher across at least 2 student reviews in the last 90 days. Fewer than 2 reviews in that window, including a business with no student reviews yet, does not earn it. There is no payment-history fallback. | yes, rolling 90 days |
+| No disputes | 3+ released payments, and no payment was ever reported as a problem or refunded, in part or in full. Card disputes at the bank aren't stored yet, so they don't count. | only if a payment is reported or refunded |
 
-- Every badge uses the same solid `--fo-accent` disc with a `--fo-accent-on` glyph. The glyph tells them apart, not color.
-- Marketplace card (`.gr-biz-badges`): icons only, right after the business name. Max 2, then `+N`. A business that has never released a payment shows a muted `New` chip.
+- Each badge has its own color, set by a `.gr-biz-badge--<icon>` modifier from the `--fo-badge-*` tokens in `field-office.css`: Active client light sage green, Repeat client saddle brown, Quick approver deep forest green, No disputes cream-white with a green glyph. Light theme deepens the sage and brown. Glyphs (`--fo-badge-*-on`) keep 3:1+ on their disc. The glyph still tells them apart for color-blind readers.
+- Discs get a faint top-left sheen and inner highlight, no colored glow. Detail pills take a 16% tint and 50% edge of the badge color; label text stays `--fo-text`. No orange: the brown is the only warm badge color.
+- Marketplace card (`.gr-biz-badges`): every earned icon (four at most), right after the business name. Never collapse to `+N`. A business that has never released a payment shows a muted `New` chip.
 - Listing detail (`.gr-biz-badge-block`): a facts line ("3 students paid · approves in ~2 days") and one `.gr-biz-badge-pill` per badge, icon + two-word label, with the full meaning in `title`.
+- On a card, the icons drop under the business name when both don't fit on one line. The name never gets squeezed.
+- Tapping an icon, `New` or a detail pill opens `.gr-biz-tip`, a small popover with the badge name and what it means (`wireBadgeTips()` in `business-badges.js`). This is the only way to read a badge on a phone, since phones have no hover. The tap never follows the card link. Another tap, scrolling or Esc closes it.
 - If the RPC fails, render nothing. Never fall back to `New`.
 - `?fakebadges=1` swaps in fixture data for previews.
+
+### `.tr-panel--slides` — training slideshow
+
+Each training module (`renderModule()` in `training.js`) is a slideshow: a cover slide with the module goal and a clickable lesson list, then one lesson per slide.
+
+- The panel is sized to the screen (`min(760px, 100dvh - 2rem)`) so a slide reads without scrolling on a laptop. A slide that still overflows scrolls inside itself, and the nav stays pinned to the bottom. On phones slides start at the top instead of centering.
+- Nav (`.tr-slide-nav`): Back · dots · Next. Dots (`.tr-dot`) are 8px with a 24px hit area. The current one stretches to 18px, and seen ones go half-accent. On phones the dots get their own row above two full-width buttons.
+- Arrow keys and a horizontal swipe move one slide. Neither works inside inputs (the fee slider) or on the quiz. The arrow keys stop on the last slide, so finishing a module is always a click.
+- The quiz is not a slideshow. It stays one scrolling form so you can look back at earlier answers before submitting.
+
+### `.gr-report-link` + report dialog
+
+`report-modal.js`. A quiet `--fo-text-3` text button with a flag glyph. It goes at the end of a profile, below a listing's content, and in the meta row of received messages. In the inbox it shows on hover or focus, and always on touch screens. The dialog reuses the `.gr-confirm-modal` card: six reasons as radios, an optional note (required for "Something else"), and a thank-you state. Never put it on the viewer's own things. Reports land in the admin Reports tab (`admin/reports.js`).
 
 ### `.gr-avatar` — universal avatar
 

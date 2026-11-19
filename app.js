@@ -7457,6 +7457,181 @@ async function loadBusinessKpis(days) {
   };
 }
 
+/* ──────────────────────────────────────────────────────────────
+   REPORTS — users flag profiles, listings and messages.
+   Table: supabase/migrations/add_reports.sql. Every write here uses the
+   service role. Until the migration is applied these endpoints answer
+   503, so pages render as they do today.
+   ────────────────────────────────────────────────────────────── */
+
+const TRUST_NOT_READY = "This isn't switched on yet. Try again soon.";
+const isMissingTable = (error) => /does not exist|schema cache/i.test(String(error?.message || ""));
+
+const REPORT_REASONS = ["scam", "off_platform", "harassment", "inappropriate", "fake", "other"];
+const REPORT_TARGETS = ["profile", "listing", "message"];
+const REPORTS_PER_DAY = 10;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Who owns the reported thing. Messages can only be reported by the
+// person they were sent to.
+async function resolveReportTarget(type, id, viewerId) {
+  if (type === "profile") {
+    const { data } = await supabase.from("profiles").select("id").eq("id", id).maybeSingle();
+    return data ? { userId: data.id } : null;
+  }
+  if (type === "listing") {
+    const { data } = await supabase.from("listings").select("owner_id").eq("id", id).maybeSingle();
+    return data ? { userId: data.owner_id } : null;
+  }
+  const { data } = await supabase.from("messages").select("sender_id, recipient_id").eq("id", id).maybeSingle();
+  if (!data || data.recipient_id !== viewerId) return null;
+  return { userId: data.sender_id };
+}
+
+app.post("/api/reports", async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: SUPABASE_ADMIN_CONFIG_ERROR });
+  const viewer = await getViewerFromRequest(req);
+  if (!viewer) return res.status(401).json({ error: "Sign in to report something." });
+  try {
+    const type = String(req.body?.targetType || "");
+    const targetId = String(req.body?.targetId || "");
+    const reason = String(req.body?.reason || "");
+    const details = String(req.body?.details || "").trim().slice(0, 1000) || null;
+    if (!REPORT_TARGETS.includes(type) || !UUID_RE.test(targetId)) {
+      return res.status(400).json({ error: "We couldn't tell what you're reporting. Reload and try again." });
+    }
+    if (!REPORT_REASONS.includes(reason)) return res.status(400).json({ error: "Pick a reason." });
+    if (reason === "other" && !details) return res.status(400).json({ error: "Tell us what happened." });
+
+    const target = await resolveReportTarget(type, targetId, viewer.id);
+    if (!target) return res.status(404).json({ error: "We couldn't find that. It may have been removed." });
+    if (target.userId === viewer.id) return res.status(400).json({ error: "You can't report yourself." });
+
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count, error: countErr } = await supabase
+      .from("reports").select("id", { count: "exact", head: true })
+      .eq("reporter_id", viewer.id).gte("created_at", dayAgo);
+    if (isMissingTable(countErr)) return res.status(503).json({ error: TRUST_NOT_READY });
+    if ((count || 0) >= REPORTS_PER_DAY) {
+      return res.status(429).json({ error: "You've sent a lot of reports today. Email support for anything urgent." });
+    }
+
+    const { error } = await supabase.from("reports").insert({
+      reporter_id: viewer.id,
+      target_type: type,
+      target_id: targetId,
+      target_user_id: target.userId,
+      reason,
+      details,
+    });
+    if (error && error.code === "23505") return res.json({ ok: true, duplicate: true });
+    if (error) throw error;
+
+    await notifyAdmins({
+      type: "report_new",
+      title: "New report",
+      body: `Someone reported a ${type} (${reason.replace(/_/g, " ")}).`,
+      link: "/admin/?tab=reports",
+    });
+    return res.json({ ok: true });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || "Server error." });
+  }
+});
+
+// Admin queue. Each report comes back with a short summary of what was
+// reported, so support can decide without opening five tabs.
+app.get("/api/admin/reports", async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  try {
+    const { data: rows, error } = await supabase
+      .from("reports").select("*").order("created_at", { ascending: false }).limit(500);
+    if (isMissingTable(error)) return res.status(503).json({ error: "Reports aren't set up yet. Apply add_reports.sql." });
+    if (error) throw error;
+
+    const ids = (type) => [...new Set(rows.filter((r) => r.target_type === type).map((r) => r.target_id))];
+    const people = [...new Set(rows.flatMap((r) => [r.reporter_id, r.target_user_id]).filter(Boolean))];
+    const [profilesRes, listingsRes, messagesRes] = await Promise.all([
+      people.length ? supabase.from("profiles").select("id, full_name, role").in("id", people) : { data: [] },
+      ids("listing").length ? supabase.from("listings").select("id, title, status").in("id", ids("listing")) : { data: [] },
+      ids("message").length ? supabase.from("messages").select("id, body, created_at, listing_id").in("id", ids("message")) : { data: [] },
+    ]);
+    const person = new Map((profilesRes.data || []).map((p) => [p.id, p]));
+    const listing = new Map((listingsRes.data || []).map((l) => [l.id, l]));
+    const message = new Map((messagesRes.data || []).map((m) => [m.id, m]));
+    const againstCount = new Map();
+    for (const r of rows) {
+      if (r.target_user_id) againstCount.set(r.target_user_id, (againstCount.get(r.target_user_id) || 0) + 1);
+    }
+
+    const reports = rows.map((r) => {
+      const target = person.get(r.target_user_id);
+      let summary = null;
+      let link = null;
+      if (r.target_type === "profile") {
+        summary = target?.full_name || null;
+        link = target?.role === "consultant" ? `/consultant-profile.html?id=${r.target_id}` : null;
+      } else if (r.target_type === "listing") {
+        const l = listing.get(r.target_id);
+        summary = l?.title || null;
+        link = `/listing.html?id=${r.target_id}`;
+      } else {
+        const m = message.get(r.target_id);
+        summary = m?.body ? String(m.body).slice(0, 400) : null;
+        link = m?.listing_id ? `/listing.html?id=${m.listing_id}` : null;
+      }
+      return {
+        id: r.id,
+        target_type: r.target_type,
+        target_id: r.target_id,
+        target_summary: summary,
+        target_link: link,
+        target_removed: summary === null,
+        reported_user: r.target_user_id
+          ? { id: r.target_user_id, name: target?.full_name || null, role: target?.role || null, report_count: againstCount.get(r.target_user_id) || 0 }
+          : null,
+        reporter: r.reporter_id ? { id: r.reporter_id, name: person.get(r.reporter_id)?.full_name || null } : null,
+        reason: r.reason,
+        details: r.details,
+        status: r.status,
+        admin_note: r.admin_note,
+        created_at: r.created_at,
+        reviewed_at: r.reviewed_at,
+      };
+    });
+    return res.json({ reports });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || "Server error." });
+  }
+});
+
+app.post("/api/admin/reports/decide", async (req, res) => {
+  const admin = await requireAdmin(req);
+  if (!admin) return res.status(403).json({ error: "Admin only." });
+  try {
+    const id = String(req.body?.id || "");
+    const status = String(req.body?.status || "");
+    const note = String(req.body?.note || "").trim().slice(0, 1000) || null;
+    if (!UUID_RE.test(id) || !["actioned", "dismissed", "open"].includes(status)) {
+      return res.status(400).json({ error: "Pick actioned, dismissed or reopen." });
+    }
+    const reopening = status === "open";
+    const { data, error } = await supabase.from("reports").update({
+      status,
+      admin_note: note,
+      reviewed_at: reopening ? null : new Date().toISOString(),
+      reviewed_by: reopening ? null : admin.id,
+    }).eq("id", id).select("id");
+    if (error?.code === "23505") return res.status(409).json({ error: "This person has a newer open report on the same thing." });
+    if (error) throw error;
+    if (!data?.length) return res.status(404).json({ error: "That report is gone." });
+    return res.json({ ok: true });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || "Server error." });
+  }
+});
+
 // Dynamic sitemap — replaces the static public/sitemap.xml so newly
 // posted open listings show up for crawlers without a manual rebuild.
 // Falls through to the static file if the admin client isn't configured.

@@ -26,8 +26,9 @@ import {
 import { showToast, showSuccess, showError, showLoading, flashToast } from "/toast.js";
 import { confirmDialog } from "/confirm-modal.js";
 import { isGuest, setGuestMode, clearGuestModeIfSignedIn } from "/guest-mode.js";
-import { loadBusinessBadges, renderBadgeBlock } from "/business-badges.js";
+import { loadBusinessBadges, renderBadgeBlock, wireBadgeTips } from "/business-badges.js";
 import { notifyEvent } from "/notify-event.js";
+import { reportLinkHtml, wireReportLinks } from "/report-modal.js";
 import {
   renderConsultantBioHtml,
   renderConsultantPastWorkHtml,
@@ -963,6 +964,7 @@ async function populateBusinessBadges(client, ownerId) {
   if (!html) return;
   host.innerHTML = html;
   host.hidden = false;
+  wireBadgeTips();
 }
 
 function populateListing(listing) {
@@ -2555,7 +2557,7 @@ function renderPitchPanel(bid) {
 function renderConsultantViewerContent(data) {
   const contentEl = document.getElementById("ld-cv-content");
   if (!contentEl) return;
-  contentEl.innerHTML = renderConsultantBioHtml(data);
+  contentEl.innerHTML = renderConsultantBioHtml(data, { reportable: true });
 }
 
 async function renderConsultantPastWorkPanel(consultantId, data) {
@@ -2736,18 +2738,18 @@ function showOwnerBids(client, session, listing, bids, educationMap = new Map())
       ? `<button type="button" class="ld-bid-card__avatar"${cvAttrs} tabindex="-1" aria-hidden="true">${avatarInner}</button>`
       : `<span class="ld-bid-card__avatar" aria-hidden="true">${avatarInner}</span>`;
 
-    // Bio — "major @ school" under the rating. Inline format on
+    // Bio — "Major at School" under the rating. Inline format on
     // purpose (not formatConsultantEducationLine, which the consultant
-    // viewer modal still uses): drops the "bachelor's in" degree
-    // prefix and lowercases both parts per the bid-card mockup spec.
+    // viewer modal still uses): drops the "Bachelor's in" degree prefix
+    // to keep the card line short.
     const education = b.education || educationMap.get(b.consultant_id) || null;
     const eduPrimary = Array.isArray(education?.educations) && education.educations[0]
       ? education.educations[0]
       : education || {};
-    const eduMajor = (eduPrimary.major || "").trim().toLowerCase();
-    const eduSchool = (eduPrimary.school || "").trim().toLowerCase();
+    const eduMajor = capFirst(String(eduPrimary.major || "").trim());
+    const eduSchool = (eduPrimary.school || "").trim();
     const eduLine = eduMajor && eduSchool
-      ? `${eduMajor} @ ${eduSchool}`
+      ? `${eduMajor} at ${eduSchool}`
       : eduMajor || eduSchool || "";
     const bioHtml = eduLine ? `<p class="ld-bid-card__bio">${escapeHtml(eduLine)}</p>` : "";
 
@@ -3380,6 +3382,14 @@ async function init() {
       // own listings are excluded inside trackListingView itself.
       trackListingView(client, listingId, uid, listing.owner_id, viewerRole);
     }
+
+    // Anyone signed in who isn't the owner can report the listing.
+    const reportWrap = document.getElementById("ld-report-wrap");
+    if (reportWrap && uid && !isOwner) {
+      reportWrap.innerHTML = reportLinkHtml({ type: "listing", id: listing.id });
+      reportWrap.hidden = false;
+    }
+    wireReportLinks(document);
 
     if (listingStatus === "unlisted" && !isOwner && !hasExistingBid) {
       gate.textContent = "This listing is no longer available from marketplace browsing.";

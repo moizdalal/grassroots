@@ -307,6 +307,8 @@ export function mountTraining(root, deps) {
     quiz: null, // { questions: [{ q, order }], answers: {} }
     result: null, // { score, total, passed, results? } from submit_training_quiz
     justDone: null, // module id whose step check should pop on next render
+    slide: 0, // 0 = module cover, 1..n = lessons
+    slideDir: "next", // which way the slide animates in
   };
   state.step = MODULES.find((m) => !state.done.includes(m.id))?.id || QUIZ_STEP;
 
@@ -382,20 +384,40 @@ export function mountTraining(root, deps) {
     stepsEl.innerHTML = items.join("");
   }
 
+  /* Each module is a slideshow: a cover slide, then one slide per lesson.
+     Back/Next, the dots, the arrow keys and a swipe all move one slide.
+     The last slide's Next marks the module complete. */
   function renderModule(m) {
     const idx = MODULES.indexOf(m);
     const done = state.done.includes(m.id);
-    const isLast = idx === MODULES.length - 1;
-    panelEl.innerHTML = `
-      <p class="tr-eyebrow tr-eyebrow--panel">Module ${idx + 1} of ${MODULES.length}</p>
-      <h2 class="tr-panel__title">${escape(m.title)}</h2>
-      <p class="tr-panel__goal">${escape(m.goal)}</p>
-      ${m.lessons
-        .map(
-          (l, li) => `
-        <section class="tr-lesson tr-reveal${l.key ? " tr-lesson--key" : ""}">
-          ${l.key ? '<p class="tr-eyebrow">Must-know habit</p>' : ""}
-          <h3 class="tr-lesson__title"><span class="tr-lesson__num">${idx + 1}.${li + 1}</span> ${escape(l.title)}</h3>
+    const isLastModule = idx === MODULES.length - 1;
+    const total = m.lessons.length + 1;
+    const s = Math.min(Math.max(state.slide, 0), total - 1);
+    state.slide = s;
+    const isLastSlide = s === total - 1;
+
+    let body;
+    if (s === 0) {
+      body = `
+        <div class="tr-slide__inner tr-slide__inner--cover tr-reveal">
+          <p class="tr-eyebrow tr-eyebrow--panel">Module ${idx + 1} of ${MODULES.length}</p>
+          <h2 class="tr-panel__title">${escape(m.title)}</h2>
+          <p class="tr-panel__goal">${escape(m.goal)}</p>
+          <ol class="tr-cover__list">
+            ${m.lessons
+              .map(
+                (l, li) => `<li><button type="button" class="tr-cover__item" data-slide="${li + 1}">
+                  <span class="tr-lesson__num">${idx + 1}.${li + 1}</span> ${escape(l.title)}</button></li>`
+              )
+              .join("")}
+          </ol>
+        </div>`;
+    } else {
+      const l = m.lessons[s - 1];
+      body = `
+        <section class="tr-slide__inner tr-lesson tr-reveal${l.key ? " tr-lesson--key" : ""}">
+          <p class="tr-slide__eyebrow">${escape(m.title)} · ${s} of ${m.lessons.length}${l.key ? ' <span class="tr-slide__key">Must-know habit</span>' : ""}</p>
+          <h3 class="tr-lesson__title"><span class="tr-lesson__num">${idx + 1}.${s}</span> ${escape(l.title)}</h3>
           ${l.intro ? `<p class="tr-lesson__intro">${escape(l.intro)}</p>` : ""}
           ${renderVisual(l.visual)}
           <ul class="tr-lesson__points">${l.points.map((p) => `<li>${escape(p)}</li>`).join("")}</ul>
@@ -407,16 +429,54 @@ export function mountTraining(root, deps) {
                 </figure>`
               : ""
           }
-        </section>`
-        )
-        .join("")}
-      <div class="tr-actions">
-        ${idx > 0 ? `<button type="button" class="gr-btn gr-btn--ghost" data-go="${MODULES[idx - 1].id}">Previous module</button>` : "<span></span>"}
-        <button type="button" class="gr-btn gr-btn--primary" data-complete="${m.id}">
-          ${done ? (isLast ? "Go to the quiz" : "Next module") : isLast ? "Mark complete and go to the quiz" : "Mark complete and continue"}
-        </button>
-      </div>
-    `;
+        </section>`;
+    }
+
+    const back =
+      s > 0
+        ? `<button type="button" class="gr-btn gr-btn--ghost tr-slide-nav__btn" data-slide="prev">Back</button>`
+        : idx > 0
+          ? `<button type="button" class="gr-btn gr-btn--ghost tr-slide-nav__btn" data-go="${MODULES[idx - 1].id}" data-go-slide="last">Previous module</button>`
+          : `<span class="tr-slide-nav__btn"></span>`;
+    const next = !isLastSlide
+      ? `<button type="button" class="gr-btn gr-btn--primary tr-slide-nav__btn" data-slide="next">${s === 0 ? "Start" : "Next"}</button>`
+      : `<button type="button" class="gr-btn gr-btn--primary tr-slide-nav__btn" data-complete="${m.id}">
+          ${done ? (isLastModule ? "Go to the quiz" : "Next module") : isLastModule ? "Finish and go to the quiz" : "Finish module"}
+        </button>`;
+    const dots = Array.from(
+      { length: total },
+      (_, i) =>
+        `<button type="button" class="tr-dot${i === s ? " is-current" : ""}${i < s ? " is-seen" : ""}" data-slide="${i}"
+          aria-label="${i === 0 ? "Module overview" : `Lesson ${i}: ${escape(m.lessons[i - 1].title)}`}" ${i === s ? 'aria-current="true"' : ""}></button>`
+    ).join("");
+
+    panelEl.classList.add("tr-panel--slides");
+    panelEl.innerHTML = `
+      <div class="tr-slide" data-dir="${state.slideDir}">${body}</div>
+      <nav class="tr-slide-nav" aria-label="Slides">
+        ${back}
+        <div class="tr-dots">${dots}</div>
+        ${next}
+      </nav>`;
+  }
+
+  function setSlide(n) {
+    const m = MODULES.find((x) => x.id === state.step);
+    if (!m) return;
+    const total = m.lessons.length + 1;
+    const target = Math.min(Math.max(n, 0), total - 1);
+    if (target === state.slide) return;
+    state.slideDir = target > state.slide ? "next" : "prev";
+    state.slide = target;
+    renderModule(m);
+    wireFeeCalculator(panelEl);
+    revealOnScroll(panelEl);
+    panelEl.focus({ preventScroll: true });
+    // Keep the whole slide on screen without jumping on every click.
+    const r = panelEl.getBoundingClientRect();
+    if (r.top < 0 || r.bottom > window.innerHeight) {
+      panelEl.scrollIntoView({ behavior: reduceMotion() ? "auto" : "smooth", block: "nearest" });
+    }
   }
 
   // The database draws the questions and opens an attempt. Answers aren't
@@ -557,6 +617,7 @@ export function mountTraining(root, deps) {
     renderSteps();
     renderProgress();
     renderLatest();
+    panelEl.classList.remove("tr-panel--slides");
     if (state.step === QUIZ_STEP) renderQuiz();
     else renderModule(MODULES.find((m) => m.id === state.step));
     wireFeeCalculator(panelEl);
@@ -564,8 +625,12 @@ export function mountTraining(root, deps) {
     state.justDone = null; // the check-mark pop plays once
   }
 
-  function goTo(step) {
+  // slide: a slide index, or "last" (Previous module lands on its last lesson).
+  function goTo(step, slide = 0) {
     state.step = step;
+    const m = MODULES.find((x) => x.id === step);
+    state.slide = slide === "last" && m ? m.lessons.length : Number(slide) || 0;
+    state.slideDir = slide === "last" ? "prev" : "next";
     render();
     panelEl.focus({ preventScroll: true });
     root.scrollIntoView({ behavior: reduceMotion() ? "auto" : "smooth", block: "start" });
@@ -618,11 +683,17 @@ export function mountTraining(root, deps) {
       goTo(stepBtn.dataset.step);
       return;
     }
+    const slideBtn = e.target.closest("[data-slide]");
+    if (slideBtn) {
+      const v = slideBtn.dataset.slide;
+      setSlide(v === "next" ? state.slide + 1 : v === "prev" ? state.slide - 1 : Number(v));
+      return;
+    }
     const go = e.target.closest("[data-go]");
     if (go) {
       state.quiz = state.result ? null : state.quiz;
       state.result = null;
-      goTo(go.dataset.go);
+      goTo(go.dataset.go, go.dataset.goSlide || 0);
       return;
     }
     const complete = e.target.closest("[data-complete]");
@@ -659,6 +730,36 @@ export function mountTraining(root, deps) {
     if (e.target.querySelector("#tr-submit")?.classList.contains("is-loading")) return;
     submitQuiz();
   });
+
+  // Arrow keys flip slides, unless you're typing or on the fee slider.
+  document.addEventListener("keydown", (e) => {
+    if (state.step === QUIZ_STEP || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.target.closest?.("input, textarea, select, [contenteditable]")) return;
+    if (document.querySelector(".gr-confirm-modal, dialog[open]")) return;
+    if (e.key === "ArrowRight") {
+      // Stops on the last slide: finishing a module stays a deliberate click.
+      e.preventDefault();
+      setSlide(state.slide + 1);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      setSlide(state.slide - 1);
+    }
+  });
+
+  // Horizontal swipe on phones.
+  let touch = null;
+  panelEl.addEventListener("touchstart", (e) => {
+    if (state.step === QUIZ_STEP || e.target.closest("input")) return (touch = null);
+    touch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }, { passive: true });
+  panelEl.addEventListener("touchend", (e) => {
+    if (!touch) return;
+    const dx = e.changedTouches[0].clientX - touch.x;
+    const dy = e.changedTouches[0].clientY - touch.y;
+    touch = null;
+    if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx) * 0.7) return;
+    setSlide(state.slide + (dx < 0 ? 1 : -1));
+  }, { passive: true });
 
   render();
   Promise.resolve(deps.loadLatest?.())
