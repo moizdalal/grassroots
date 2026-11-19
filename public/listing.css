@@ -1652,6 +1652,10 @@ body.ld-modal-open { overflow: hidden; }
 }
 
 /* --- "have a question?" button --- */
+.ld-report-wrap {
+  margin-top: 1.5rem;
+}
+
 .ld-question-wrap {
   margin-top: 2rem;
   padding-top: 1.5rem;

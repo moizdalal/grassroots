@@ -6,6 +6,7 @@
 
 import { getSupabaseClient } from "/supabase-loader.js";
 import { getInitials } from "/initials.js";
+import { reportLinkHtml, wireReportLinks } from "/report-modal.js";
 
 const $ = (id) => document.getElementById(id);
 const escape = (s) =>
@@ -344,7 +345,7 @@ function renderConversation() {
       <div class="inbox__msg${fromMe ? " is-mine" : ""}${isMatch ? " is-match" : ""}">
         ${parsed.context ? `<div class="inbox__msg-context">Re: ${escape(parsed.context)}</div>` : ""}
         <div class="inbox__msg-bubble">${escape(parsed.body || "")}</div>
-        <div class="inbox__msg-meta"><span>${escape(fmtTime(msg.created_at))}</span>${receipt}</div>
+        <div class="inbox__msg-meta"><span>${escape(fmtTime(msg.created_at))}</span>${receipt}${fromMe ? "" : reportLinkHtml({ type: "message", id: msg.id, label: "Report" })}</div>
       </div>
     `);
   }
@@ -352,6 +353,7 @@ function renderConversation() {
     html.push(`<p class="gr-empty-state">No messages yet. Write to ${escape(counterpartLabel(thread))} below.</p>`);
   }
   body.innerHTML = html.join("");
+  wireReportLinks(body);
   body.scrollTop = body.scrollHeight;
 }
 

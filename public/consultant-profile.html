@@ -64,6 +64,7 @@
       import { getSupabaseClient } from "/supabase-loader.js";
       import { renderRatingMarkup } from "/rating.js";
       import { getInitials } from "/initials.js";
+      import { reportLinkHtml, wireReportLinks } from "/report-modal.js";
 
       function escapeHtml(s) {
         return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -198,8 +199,10 @@
             ? `<img class="pf-bv__avatar" src="${escapeHtml(profile.avatar_url)}" alt="" />`
             : `<div class="pf-bv__avatar-placeholder" aria-hidden="true">${escapeHtml(getInitials(profile.full_name))}</div>`;
 
-          const major = edu.major || "";
-          const minor = edu.minor || "";
+          // Majors are typed freely; sentence-case them at render.
+          const capFirst = (s) => (s ? s[0].toUpperCase() + s.slice(1) : "");
+          const major = capFirst((edu.major || "").trim());
+          const minor = capFirst((edu.minor || "").trim());
           const school = edu.school || "";
           let eduLine = "";
           if (major || school) {
@@ -232,14 +235,15 @@
             `;
           }
 
-          document.title = `grassroots \u2014 ${profile.full_name || "consultant"}`;
+          document.title = `Grassroots \u2014 ${profile.full_name || "Consultant"}`;
 
           const rating = data.rating;
+          const isSelf = Boolean(session?.user?.id && session.user.id === profile.id);
           const dims = [
             ["Work product", rating?.work_product_quality_avg],
-            ["communication", rating?.communication_avg],
-            ["timeliness", rating?.timeliness_avg],
-            ["professionalism", rating?.professionalism_avg],
+            ["Communication", rating?.communication_avg],
+            ["Timeliness", rating?.timeliness_avg],
+            ["Professionalism", rating?.professionalism_avg],
             ["Cost value", rating?.cost_value_avg],
           ];
           const ratingBreakdown = rating?.review_count
@@ -299,8 +303,11 @@
               ${!profile.linkedin_url && !portfolioItems.length && !profile.resume_on_file && !eduLine ? `
                 <p class="pf-bv__empty">This consultant hasn't shared any public details yet.</p>
               ` : ""}
+
+              ${session && !isSelf ? `<p class="pf-bv__report">${reportLinkHtml({ type: "profile", id: profile.id })}</p>` : ""}
             </div>
           `;
+          wireReportLinks(contentEl);
 
           statusEl.textContent = "";
           contentEl.classList.remove("hidden");

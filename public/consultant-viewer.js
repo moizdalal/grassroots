@@ -8,11 +8,20 @@
 import { renderRatingMarkup } from "/rating.js";
 import { getInitials } from "/initials.js";
 import { formatUsd } from "/fees.js";
+import { reportLinkHtml } from "/report-modal.js";
 
 function escapeHtml(s) {
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 function escapeAttr(s) { return String(s ?? "").replace(/"/g, "&quot;"); }
+
+// Degrees are stored lowercase ("bachelor's"); majors are typed freely.
+// Sentence-case both at render. School names come from schools.json as
+// proper nouns, so they're left alone.
+export function capFirst(s) {
+  const t = String(s || "").trim();
+  return t ? t[0].toUpperCase() + t.slice(1) : "";
+}
 
 export function formatConsultantEducationLine(education) {
   // Prefer the structured educations array (chunk 3+); fall back to the
@@ -21,14 +30,14 @@ export function formatConsultantEducationLine(education) {
   const primary = Array.isArray(education?.educations) && education.educations[0]
     ? education.educations[0]
     : education || {};
-  const degree = (primary.degree || "").trim();
-  const major = (primary.major || "").trim();
+  const degree = capFirst(primary.degree);
+  const major = capFirst(primary.major);
   const school = (primary.school || "").trim();
-  // Format priority: "Bachelor's in marketing @ University of Florida".
+  // Format priority: "Bachelor's in Marketing at University of Florida".
   const head = degree && major
     ? `${degree} in ${major}`
     : major || degree || "";
-  if (head && school) return `${head} @ ${school}`;
+  if (head && school) return `${head} at ${school}`;
   return head || school || "";
 }
 
@@ -45,8 +54,8 @@ export function renderEducationEntriesList(education) {
   return entries
     .map((e) => {
       const parts = [];
-      if (e.degree) parts.push(escapeHtml(e.degree));
-      if (e.major) parts.push(escapeHtml(`in ${e.major}`));
+      if (e.degree) parts.push(escapeHtml(capFirst(e.degree)));
+      if (e.major) parts.push(escapeHtml(e.degree ? `in ${capFirst(e.major)}` : capFirst(e.major)));
       if (e.minor) parts.push(escapeHtml(`(minor: ${e.minor})`));
       const head = parts.join(" ");
       const school = e.school ? escapeHtml(e.school) : "";
@@ -56,7 +65,9 @@ export function renderEducationEntriesList(education) {
     .join("");
 }
 
-export function renderConsultantBioHtml({ profile, education, rating }) {
+// `reportable` adds a "Report profile" link. Off for the consultant's own
+// preview in settings.
+export function renderConsultantBioHtml({ profile, education, rating }, { reportable = false } = {}) {
   const edu = education || {};
 
   const avatarHtml = profile.avatar_url
@@ -127,6 +138,7 @@ export function renderConsultantBioHtml({ profile, education, rating }) {
       ${(!profile.linkedin_url && !eduEntriesHtml && !ratingBreakdown) ? `
         <p class="pf-bv__empty">This consultant hasn't shared any public bio details yet.</p>
       ` : ""}
+      ${reportable ? `<p class="pf-bv__report">${reportLinkHtml({ type: "profile", id: profile.id })}</p>` : ""}
     </div>
   `;
 }

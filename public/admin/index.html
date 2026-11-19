@@ -83,6 +83,13 @@
             </svg>
             <span>Payments</span>
           </button>
+          <button type="button" class="adm-nav__item" data-tab="reports">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 21V4"/>
+              <path d="M5 4h11l-2 4 2 4H5"/>
+            </svg>
+            <span>Reports</span>
+          </button>
           <button type="button" class="adm-nav__item" data-tab="calendar">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="5" width="18" height="16" rx="2"/>
@@ -312,6 +319,38 @@
                 </tr>
               </thead>
               <tbody id="adm-pay-tbody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ============ REPORTS ============ -->
+        <section class="adm-section" data-section="reports" hidden>
+          <header class="adm-page-h">
+            <div>
+              <h1 class="adm-page-h__title">Reports</h1>
+              <p class="adm-page-h__sub">Live data · profiles, listings and messages people reported · click a row to decide</p>
+            </div>
+            <span class="adm-results-count" id="adm-rep-count"></span>
+          </header>
+
+          <div class="adm-toolbar">
+            <div class="adm-chips" id="adm-rep-filters"></div>
+          </div>
+
+          <p id="adm-rep-status" class="adm-gate" hidden></p>
+          <div class="adm-table-wrap">
+            <table class="adm-table">
+              <thead>
+                <tr>
+                  <th>Reported</th>
+                  <th>Reason</th>
+                  <th>Person</th>
+                  <th>From</th>
+                  <th>Sent</th>
+                  <th>State</th>
+                </tr>
+              </thead>
+              <tbody id="adm-rep-tbody"></tbody>
             </table>
           </div>
         </section>

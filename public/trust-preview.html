@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Reports preview</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
+    <link rel="stylesheet" href="/grassroots.css?v=2" />
+    <link rel="stylesheet" href="/field-office.css?v=2" />
+    <link rel="stylesheet" href="/listing.css" />
+    <script src="/theme.js"></script>
+    <style>
+      /* Sketch page: the real components from report-modal.js and
+         consultant-viewer.js,
+         fed fixture data instead of the API. Not linked from the app. */
+      .tp-shell { max-width: 1100px; margin: 3rem auto 5rem; padding: 0 1rem; }
+      .tp-h1 { font-family: var(--font-display); font-weight: 600; font-size: 2rem; margin: 0 0 0.4rem; color: var(--fo-text); }
+      .tp-sub { margin: 0 0 2.5rem; color: var(--fo-text-2); max-width: 60ch; }
+      .tp-block { margin: 0 0 3.5rem; }
+      .tp-where { margin: 0 0 0.25rem; font-size: var(--type-eyebrow); font-weight: 700; color: var(--fo-accent); }
+      .tp-h2 { font-family: var(--font-display); font-weight: 600; font-size: 1.35rem; margin: 0 0 0.35rem; color: var(--fo-text); }
+      .tp-note { margin: 0 0 1.25rem; font-size: var(--type-meta); color: var(--fo-text-2); max-width: 70ch; }
+      .tp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem; align-items: start; }
+      .tp-frame { border: 1px solid var(--fo-line); border-radius: 14px; padding: 1.25rem; background: var(--fo-surface); }
+      :root:not([data-theme="light"]) .tp-frame { background: transparent; }
+      .tp-frame__label { margin: 0 0 0.75rem; font-size: var(--type-eyebrow); font-weight: 700; color: var(--fo-text-3); }
+      .tp-frame .settings-section { margin: 0; }
+      .tp-inbox { max-width: 560px; }
+      .tp-inbox .inbox__conv-body { max-height: none; overflow: visible; }
+    </style>
+  </head>
+  <body class="gr-body">
+    <main class="tp-shell">
+      <h1 class="tp-h1">Reports</h1>
+      <p class="tp-sub">How reporting looks on the real pages. Everything below uses the real components and stylesheets with sample data. Nothing is saved.</p>
+
+      <!-- 2. Consultant viewer -->
+      <section class="tp-block">
+        <p class="tp-where">Listing page · business clicks "View profile" · Bio tab</p>
+        <h2 class="tp-h2">Report a profile</h2>
+        <p class="tp-note">"Report profile" sits at the bottom, quiet. The same block shows on the standalone consultant profile page.</p>
+        <div style="max-width: 620px;" id="tp-bio"></div>
+      </section>
+
+      <!-- 4. Listing report -->
+      <section class="tp-block">
+        <p class="tp-where">Listing page · anyone signed in who isn't the owner · below Qualifications</p>
+        <h2 class="tp-h2">Report a listing</h2>
+        <p class="tp-note">Click it to open the real dialog. Pick "Something else" without a note to see the error.</p>
+        <div class="tp-frame" style="max-width: 620px;">
+          <details class="ld-section" open>
+            <summary class="ld-section-h">Qualifications</summary>
+            <ul class="ld-quals-list"><li>Comfortable with Instagram and Canva</li><li>Can visit the shop twice a month</li></ul>
+          </details>
+          <div class="ld-report-wrap" id="tp-listing-report"></div>
+        </div>
+      </section>
+
+      <!-- 5. Inbox -->
+      <section class="tp-block">
+        <p class="tp-where">Inbox · messages you received</p>
+        <h2 class="tp-h2">Report a message</h2>
+        <p class="tp-note">"Report" shows when you hover a received message, and always on phones. Your own messages never get it.</p>
+        <div class="tp-frame tp-inbox">
+          <div class="inbox__conv-body" id="tp-inbox"></div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module">
+      import { reportLinkHtml, openReportDialog } from "/report-modal.js";
+      import { renderConsultantBioHtml } from "/consultant-viewer.js";
+
+      const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+      // Every report link on this page opens the real dialog with a fake send.
+      document.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-report-type]");
+        if (!btn) return;
+        e.preventDefault();
+        openReportDialog({
+          type: btn.dataset.reportType,
+          id: btn.dataset.reportId,
+          send: () => new Promise((r) => setTimeout(() => r({ ok: true }), 600)),
+        });
+      });
+
+      // 2. Consultant viewer bio — the real renderer.
+      document.getElementById("tp-bio").innerHTML = renderConsultantBioHtml({
+        profile: {
+          id: "00000000-0000-4000-8000-000000000001",
+          full_name: "Maya Thompson",
+          city: "Gainesville, FL",
+          completed_count: 3,
+          member_since: "2026-08-14T00:00:00Z",
+          linkedin_url: "https://www.linkedin.com/",
+        },
+        education: { major: "Marketing", school: "University of Florida", educations: [{ degree: "bachelor's", major: "Marketing", minor: "Data analytics", school: "University of Florida" }] },
+        rating: { review_count: 3, rating_average: 4.8, work_product_quality_avg: 5, communication_avg: 4.5, timeliness_avg: 5, professionalism_avg: 5, cost_value_avg: 4.5 },
+      }, { reportable: true });
+
+      // 4. Listing report link.
+      document.getElementById("tp-listing-report").innerHTML =
+        reportLinkHtml({ type: "listing", id: "00000000-0000-4000-8000-000000000002" });
+
+      // 5. Inbox — same markup inbox.js builds.
+      const msgs = [
+        { mine: false, body: "Hi Maya, thanks for the offer. Can we talk details?", time: "10:02 AM" },
+        { mine: true, body: "Of course. I can send a content plan by Thursday.", time: "10:15 AM", receipt: "✓✓ Read" },
+        { mine: false, body: "Great. Can you text me at 352-555-0182? I'd rather pay you on Venmo and skip the fees.", time: "10:21 AM" },
+      ];
+      document.getElementById("tp-inbox").innerHTML = `<div class="inbox__day-divider">Fri, Nov 6</div>` + msgs.map((m, i) => `
+        <div class="inbox__msg${m.mine ? " is-mine" : ""}">
+          <div class="inbox__msg-bubble">${esc(m.body)}</div>
+          <div class="inbox__msg-meta"><span>${m.time}</span>${m.receipt ? `<span class="inbox__msg-receipt">${m.receipt}</span>` : ""}${m.mine ? "" : reportLinkHtml({ type: "message", id: `00000000-0000-4000-8000-00000000001${i}`, label: "Report" })}</div>
+        </div>
+      `).join("");
+    </script>
+  </body>
+</html>

@@ -3994,13 +3994,16 @@ button.gr-bid-link {
   object-fit: cover;
   display: block;
 }
+/* Figtree, not Fraunces: Fraunces' capital J drops below the baseline,
+   so initials like "JL" sat crooked in the tile. Matches the other
+   avatar initials (.pf-bv__avatar-placeholder). */
 .ld-bid-card__avatar-fallback {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 1.6rem;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: 0.02em;
   color: var(--fo-accent, var(--green-mid));
   text-transform: uppercase;
-  font-weight: 600;
   font-style: normal;
 }
 
@@ -4371,40 +4374,131 @@ button.gr-bid-link {
 .gr-pill--no-dot::before { display: none; }
 
 /* ── Business trust badges ───────────────────────────────────── */
-/* Rendered by business-badges.js. One icon shape for every badge; the
-   glyph tells them apart. Solid accent disc + --fo-accent-on glyph so
-   the 12px glyph clears contrast in every theme (accent-soft + accent
-   glyph was too faint on dark-forest). */
+/* Rendered by business-badges.js. Each badge has its own color
+   (--fo-badge-* in field-office.css): the modifier sets --bb (disc) and
+   --bb-on (glyph), and both the icon disc and the detail pill read them.
+   The disc gets a faint top-left sheen and inner highlight so it reads
+   as a little medal, not a flat dot. No colored glow. */
+.gr-biz-badge--active { --bb: var(--fo-badge-active); --bb-on: var(--fo-badge-active-on); }
+.gr-biz-badge--repeat { --bb: var(--fo-badge-repeat); --bb-on: var(--fo-badge-repeat-on); }
+.gr-biz-badge--quick  { --bb: var(--fo-badge-quick);  --bb-on: var(--fo-badge-quick-on); }
+.gr-biz-badge--shield { --bb: var(--fo-badge-shield); --bb-on: var(--fo-badge-shield-on); }
+
 .gr-biz-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.15rem;
-  height: 1.15rem;
+  width: 1.35rem;
+  height: 1.35rem;
   border-radius: 50%;
-  background: var(--fo-accent);
-  color: var(--fo-accent-on);
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.22), transparent 60%),
+    var(--bb, var(--fo-accent));
+  color: var(--bb-on, var(--fo-accent-on));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.14),
+    0 1px 2px rgba(0, 0, 0, 0.2);
   flex-shrink: 0;
+}
+
+/* The white shield disc needs an edge on white light-theme cards. */
+[data-theme="light"] .gr-biz-badge.gr-biz-badge--shield {
+  box-shadow:
+    inset 0 0 0 1px rgba(20, 32, 26, 0.18),
+    0 1px 2px rgba(20, 32, 26, 0.12);
 }
 
 .gr-biz-badge svg {
-  width: 0.7rem;
-  height: 0.7rem;
+  width: 0.8rem;
+  height: 0.8rem;
 }
 
-/* Card slot: icons only, after the business name. */
+/* Card slot: every earned icon, after the business name. */
 .gr-biz-badges {
   display: inline-flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.3rem;
   flex-shrink: 0;
 }
 
+/* Tappable (wireBadgeTips). Padding + negative margin grow the hit area
+   toward 32px without moving the 22px icon. */
 .gr-biz-badges__item {
   display: inline-flex;
+  padding: 0.3rem 0.1rem;
+  margin: -0.3rem -0.1rem;
+  transition: transform 0.15s ease;
 }
 
-.gr-biz-badges__more,
+@media (hover: hover) {
+  .gr-biz-badges__item:hover {
+    transform: translateY(-1px) scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gr-biz-badges__item { transition: none; }
+  .gr-biz-badges__item:hover { transform: none; }
+}
+
+[data-badge-tip] {
+  cursor: pointer;
+}
+
+.gr-biz-badges__new {
+  position: relative;
+}
+
+.gr-biz-badges__new::after {
+  content: "";
+  position: absolute;
+  inset: -0.45rem -0.3rem;
+}
+
+/* Popover opened by tapping a badge. Fixed to the viewport, placed by
+   business-badges.js. Above the marketplace hover summary (.gr-listing-pop). */
+.gr-biz-tip {
+  position: fixed;
+  z-index: 9300;
+  width: max-content;
+  max-width: min(260px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.7rem 0.85rem;
+  background: var(--fo-surface);
+  color: var(--fo-text);
+  border: 1px solid var(--fo-line-strong);
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+  font-family: var(--font-body);
+}
+
+.gr-biz-tip__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+}
+
+.gr-biz-tip__row .gr-biz-badge {
+  margin-top: 0.05rem;
+}
+
+.gr-biz-tip__label {
+  margin: 0;
+  font-size: var(--type-meta);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.gr-biz-tip__text {
+  margin: 0.1rem 0 0;
+  font-size: var(--type-meta);
+  line-height: 1.4;
+  color: var(--fo-text-2);
+}
+
 .gr-biz-badges__new {
   font-family: var(--font-body);
   font-size: var(--type-eyebrow);
@@ -4412,13 +4506,6 @@ button.gr-bid-link {
   color: var(--fo-text-3);
   white-space: nowrap;
   flex-shrink: 0;
-}
-
-.gr-biz-badges__more {
-  margin-left: 0.1rem;
-}
-
-.gr-biz-badges__new {
   padding: 0.05rem 0.45rem;
   border: 1px solid var(--fo-line-strong);
   border-radius: 999px;
@@ -4446,18 +4533,119 @@ button.gr-bid-link {
   list-style: none;
 }
 
+/* Pill carries its badge's color: tinted fill and edge around the disc.
+   Label text stays --fo-text so it reads in every theme. */
 .gr-biz-badge-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.2rem 0.65rem 0.2rem 0.25rem;
-  border: 1px solid var(--fo-line-strong);
+  gap: 0.45rem;
+  padding: 0.22rem 0.7rem 0.22rem 0.25rem;
+  background: color-mix(in srgb, var(--bb, var(--fo-accent)) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--bb, var(--fo-accent)) 50%, transparent);
   border-radius: 999px;
   font-family: var(--font-body);
   font-size: var(--type-eyebrow);
   font-weight: 700;
   color: var(--fo-text);
   white-space: nowrap;
+}
+
+/* The pill's disc already carries the color, so drop its outer ring. */
+.gr-biz-badge-pill .gr-biz-badge {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+/* Deep green pill on the dark themes: its own 50% edge sinks into the
+   forest surface, so borrow the sage for the outline. */
+:root:not([data-theme="light"]) .gr-biz-badge-pill.gr-biz-badge--quick {
+  border-color: color-mix(in srgb, var(--fo-badge-active) 40%, transparent);
+}
+
+/* White shield pill on light: the 16% white tint vanishes, use a line. */
+[data-theme="light"] .gr-biz-badge-pill.gr-biz-badge--shield {
+  background: var(--fo-surface);
+  border-color: color-mix(in srgb, var(--fo-badge-shield-on) 45%, transparent);
+}
+
+[data-theme="light"] .gr-biz-badge-pill .gr-biz-badge--shield {
+  box-shadow: inset 0 0 0 1px rgba(20, 32, 26, 0.18);
+}
+
+/* ── Report link + dialog ────────────────────────────────────── */
+/* report-modal.js. A quiet text button: findable, never loud. */
+.gr-report-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 32px;
+  padding: 0 0.25rem;
+  margin: 0 -0.25rem;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  font-family: var(--font-body);
+  font-size: var(--type-meta);
+  font-weight: 500;
+  color: var(--fo-text-3);
+  cursor: pointer;
+}
+
+.gr-report-link svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.gr-report-link:hover {
+  color: var(--fo-text);
+}
+
+/* Two classes so it beats .gr-confirm-modal__card, which field-office.css
+   loads after this file. */
+.gr-report-modal .gr-report-modal__card {
+  width: min(440px, calc(100vw - 32px));
+  margin: 0;
+}
+
+.gr-report-modal__reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.gr-report-modal__reason {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 36px;
+  padding: 0 0.6rem;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  color: var(--fo-text);
+  cursor: pointer;
+}
+
+.gr-report-modal__reason:hover,
+.gr-report-modal__reason:has(input:checked) {
+  background: var(--fo-accent-soft);
+}
+
+.gr-report-modal__reason input {
+  accent-color: var(--fo-accent);
+  margin: 0;
+}
+
+.gr-report-modal__details textarea {
+  resize: vertical;
+}
+
+.gr-report-modal__error {
+  margin: 0;
+  font-size: var(--type-meta);
+  font-weight: 500;
+  color: var(--fo-plan);
 }
 
 .gr-sr-only {

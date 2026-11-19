@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Reports preview — admin</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
+    <link rel="stylesheet" href="/grassroots.css?v=2" />
+    <link rel="stylesheet" href="/field-office.css" />
+    <link rel="stylesheet" href="./admin.css" />
+    <script src="/theme.js"></script>
+    <!-- Sketch page: the admin Reports tab (reports.js) with fixture
+         reports instead of /api/admin/reports. No admin gate, no API
+         calls until you press a decide button. Not linked from the app. -->
+  </head>
+  <body class="adm-body">
+    <div class="adm-layout">
+      <aside class="adm-side">
+        <a class="adm-brand" href="./reports-preview.html">
+          <img src="/home/assets/grassroots-icon-syne.svg" alt="" width="22" height="22" />
+          <div>
+            <div class="adm-brand__name">grassroots</div>
+            <div class="adm-brand__tag">Admin</div>
+          </div>
+        </a>
+        <nav class="adm-nav" aria-label="Admin sections">
+          <button type="button" class="adm-nav__item"><span>Overview</span></button>
+          <button type="button" class="adm-nav__item"><span>Users</span></button>
+          <button type="button" class="adm-nav__item"><span>Engagements</span></button>
+          <button type="button" class="adm-nav__item"><span>Payments</span></button>
+          <button type="button" class="adm-nav__item is-active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 21V4"/>
+              <path d="M5 4h11l-2 4 2 4H5"/>
+            </svg>
+            <span>Reports</span>
+          </button>
+          <button type="button" class="adm-nav__item"><span>Calendar</span></button>
+          <button type="button" class="adm-nav__item"><span>Emails</span></button>
+          <button type="button" class="adm-nav__item"><span>Health</span></button>
+        </nav>
+      </aside>
+
+      <main class="adm-main">
+        <section class="adm-section" data-section="reports">
+          <header class="adm-page-h">
+            <div>
+              <h1 class="adm-page-h__title">Reports</h1>
+              <p class="adm-page-h__sub">Live data · profiles, listings and messages people reported · click a row to decide</p>
+            </div>
+            <span class="adm-results-count" id="adm-rep-count"></span>
+          </header>
+          <div class="adm-toolbar">
+            <div class="adm-chips" id="adm-rep-filters"></div>
+          </div>
+          <p id="adm-rep-status" class="adm-gate" hidden></p>
+          <div class="adm-table-wrap">
+            <table class="adm-table">
+              <thead>
+                <tr>
+                  <th>Reported</th>
+                  <th>Reason</th>
+                  <th>Person</th>
+                  <th>From</th>
+                  <th>Sent</th>
+                  <th>State</th>
+                </tr>
+              </thead>
+              <tbody id="adm-rep-tbody"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="adm-drawer" id="adm-drawer" aria-hidden="true">
+      <div class="adm-drawer__backdrop" id="adm-drawer-backdrop"></div>
+      <div class="adm-drawer__panel" role="dialog" aria-modal="true" aria-labelledby="adm-drawer-title">
+        <header class="adm-drawer__head">
+          <h2 class="adm-drawer__title" id="adm-drawer-title">Details</h2>
+          <button type="button" class="adm-drawer__close" id="adm-drawer-close" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="6" y1="6" x2="18" y2="18"/>
+              <line x1="18" y1="6" x2="6" y2="18"/>
+            </svg>
+          </button>
+        </header>
+        <div class="adm-drawer__body" id="adm-drawer-body"></div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { renderReportsFrom, openReport } from "./reports.js";
+
+      const ago = (hours) => new Date(Date.now() - hours * 3600000).toISOString();
+      const kai = { id: "u-kai", name: "Kai's Coffee Bar", role: "business_owner", report_count: 3 };
+      const reports = [
+        { id: "r1", target_type: "message", target_summary: "Great. Can you text me at 352-555-0182? I'd rather pay you on Venmo and skip the fees.", target_link: "/listing.html?id=x", reported_user: kai, reporter: { name: "Maya Thompson" }, reason: "off_platform", details: "They want to pay outside the site.", status: "open", created_at: ago(5) },
+        { id: "r2", target_type: "listing", target_summary: "Social media help — paid in exposure", target_link: "/listing.html?id=y", reported_user: kai, reporter: { name: "Jordan Lee" }, reason: "scam", details: "Says paid but the details say no money.", status: "open", created_at: ago(30) },
+        { id: "r3", target_type: "profile", target_summary: "Alex Rivera", target_link: "/consultant-profile.html?id=z", reported_user: { id: "u-alex", name: "Alex Rivera", role: "consultant", report_count: 1 }, reporter: { name: "Bloom Florist" }, reason: "fake", details: null, status: "open", created_at: ago(70) },
+        { id: "r4", target_type: "message", target_summary: "Answer me now or I'll leave you a bad review.", target_link: null, reported_user: kai, reporter: { name: "Sam Patel" }, reason: "harassment", details: null, status: "actioned", admin_note: "Called the owner and warned them. Second strike pauses the account.", created_at: ago(200), reviewed_at: ago(150) },
+        { id: "r5", target_type: "listing", target_summary: null, target_removed: true, target_link: null, reported_user: { id: "u-q", name: "Quick Print Co", role: "business_owner", report_count: 1 }, reporter: { name: "Riley Chen" }, reason: "other", details: "Posted the same listing four times.", status: "dismissed", admin_note: "Duplicates already removed by the owner.", created_at: ago(400), reviewed_at: ago(380) },
+      ];
+      renderReportsFrom(reports);
+
+      const drawer = document.getElementById("adm-drawer");
+      const close = () => { drawer.classList.remove("is-open"); drawer.setAttribute("aria-hidden", "true"); };
+      document.getElementById("adm-drawer-close").addEventListener("click", close);
+      document.getElementById("adm-drawer-backdrop").addEventListener("click", close);
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+
+      if (location.hash === "#open") openReport("r1");
+    </script>
+  </body>
+</html>

@@ -111,6 +111,30 @@
   --fo-nav-shadow: 0 12px 32px rgba(20, 32, 26, 0.10);
 }
 
+/* Business badge colors (.gr-biz-badge--*). One per badge, all from the
+   forest-and-earth palette: light sage green, deep forest green, saddle
+   brown, and a cream-white shield. The three dark themes share these;
+   light deepens the brown and sage so the discs hold up on white cards.
+   Glyph colors (-on) keep 3:1+ against their disc. */
+:root {
+  --fo-badge-active: #7cc196;
+  --fo-badge-active-on: #10301e;
+  --fo-badge-repeat: #9a6440;
+  --fo-badge-repeat-on: #fbefe0;
+  --fo-badge-quick: #1f5c41;
+  --fo-badge-quick-on: #dff2e6;
+  --fo-badge-shield: #f6f1e4;
+  --fo-badge-shield-on: #2f7a5a;
+}
+
+[data-theme="light"] {
+  --fo-badge-active: #6cb487;
+  --fo-badge-repeat: #7a4a2b;
+  --fo-badge-quick: #1d4d36;
+  --fo-badge-quick-on: #ffffff;
+  --fo-badge-shield: #ffffff;
+}
+
 /* All themes share the same routing into the legacy grassroots.css
    tokens so existing components pick up theme colors automatically. */
 :root {
@@ -962,10 +986,13 @@ body.gr-body .gr-section-h {
   min-width: 0;
 }
 
+/* Wraps so the badge icons drop under the name when both don't fit.
+   Without it the icons squeezed long names ("Kai's Coffee…"). */
 :where(#listing-grid, #dash-listings-cards) .gr-listing-biz-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.15rem 0.4rem;
   min-width: 0;
 }
 
@@ -2795,6 +2822,10 @@ body.gr-body .gr-section-h {
 
 .pf-bv__dot {
   color: var(--fo-text-3);
+}
+
+.pf-bv__report {
+  margin: 1.25rem 0 0;
 }
 
 .pf-bv__link {
@@ -8111,6 +8142,24 @@ body.inbox-page .inbox {
   gap: 0.5rem;
   font-size: var(--type-eyebrow);  color: var(--fo-text-3);
   margin-top: 0.2rem;
+}
+
+/* Report link on received messages: shows on hover or focus with a
+   mouse, always on touch screens. */
+.inbox__msg-meta .gr-report-link {
+  margin: -0.5rem -0.25rem;
+  font-size: var(--type-eyebrow);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.inbox__msg:hover .gr-report-link,
+.inbox__msg-meta .gr-report-link:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .inbox__msg-meta .gr-report-link { opacity: 1; }
 }
 
 .inbox__msg-receipt {

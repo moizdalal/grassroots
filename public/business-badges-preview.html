@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Business badges preview</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
+    <link rel="stylesheet" href="/grassroots.css?v=2" />
+    <link rel="stylesheet" href="/field-office.css?v=2" />
+    <link rel="stylesheet" href="/listing.css" />
+    <script src="/theme.js"></script>
+    <style>
+      /* Sketch page: business-badges.js (PR #36, live since Oct 26) with
+         its own FAKE_SUMMARIES fixtures, in the same card and listing
+         markup marketplace.js and listing.js build. Not linked from the app. */
+      .bp-shell { max-width: 1100px; margin: 3rem auto 5rem; padding: 0 1rem; }
+      .bp-h1 { font-family: var(--font-display); font-weight: 600; font-size: 2rem; margin: 0 0 0.4rem; color: var(--fo-text); }
+      .bp-sub { margin: 0 0 2.5rem; color: var(--fo-text-2); max-width: 62ch; }
+      .bp-block { margin: 0 0 3.5rem; }
+      .bp-where { margin: 0 0 0.25rem; font-size: var(--type-eyebrow); font-weight: 700; color: var(--fo-accent); }
+      .bp-h2 { font-family: var(--font-display); font-weight: 600; font-size: 1.35rem; margin: 0 0 0.35rem; color: var(--fo-text); }
+      .bp-note { margin: 0 0 1.25rem; font-size: var(--type-meta); color: var(--fo-text-2); max-width: 70ch; }
+      .bp-captions { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(280px, 320px); gap: 1rem; padding: 0 0.25rem; overflow: hidden; }
+      .bp-captions .bp-label { margin: 0; }
+      .bp-label { margin: 0 0 0.5rem; font-size: var(--type-eyebrow); font-weight: 700; color: var(--fo-text-3); }
+      .bp-bios { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; align-items: start; }
+      .bp-bios .ld-bio { margin: 0; }
+      .bp-table { width: 100%; border-collapse: collapse; font-size: var(--type-meta); color: var(--fo-text-2); }
+      .bp-table th, .bp-table td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--fo-line); vertical-align: top; }
+      .bp-table th { color: var(--fo-text-3); font-weight: 700; font-size: var(--type-eyebrow); }
+      .bp-table td:first-child { color: var(--fo-text); white-space: nowrap; }
+    </style>
+  </head>
+  <body class="gr-body">
+    <main class="bp-shell">
+      <h1 class="bp-h1">Business badges</h1>
+      <p class="bp-sub">What PR #36 shows on the site today. These use the real badge code with its built-in sample data, the same as adding ?fakebadges=1 to the marketplace URL.</p>
+
+      <section class="bp-block">
+        <p class="bp-where">Marketplace · listing cards</p>
+        <h2 class="bp-h2">Icons after the business name</h2>
+        <p class="bp-note">Every earned badge, each in its own color. A business that has never released a payment shows "New". Tap an icon or "New" to see what it means.</p>
+        <div id="listing-grid"><section class="gr-marketplace-section"><div class="gr-marketplace-section__track" id="bp-cards"></div></section></div>
+        <div class="bp-captions" id="bp-captions"></div>
+      </section>
+
+      <section class="bp-block">
+        <p class="bp-where">Listing page · About the business</p>
+        <h2 class="bp-h2">Facts line and labeled badges</h2>
+        <p class="bp-note">Under the business name: a short facts line, then one pill per badge. Tap a pill for what it means.</p>
+        <div class="bp-bios" id="bp-bios"></div>
+      </section>
+
+      <section class="bp-block">
+        <p class="bp-where">Rules · supabase/migrations/add_business_badges.sql</p>
+        <h2 class="bp-h2">How each badge is earned</h2>
+        <p class="bp-note">Every badge comes from payment history or student reviews. Nobody sets one by hand.</p>
+        <table class="bp-table" id="bp-rules"></table>
+      </section>
+    </main>
+
+    <script type="module">
+      import { BADGES, renderBadgeIcons, renderBadgeBlock, wireBadgeTips } from "/business-badges.js";
+      import { getInitials } from "/initials.js";
+
+      const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+      // Same four summaries as FAKE_SUMMARIES in business-badges.js.
+      const businesses = [
+        { name: "Kai's Coffee Bar", title: "Instagram content for a new fall menu", budget: "$150 – $300", tags: ["Social media", "Photography"], when: "Posted 2d ago", label: "All four badges",
+          s: { students_paid: 3, engagements_paid: 4, median_approval_days: 1.8, active_client: true, quick_approver: true, no_disputes: true, repeat_client: true } },
+        { name: "Bloom Florist", title: "Refresh our Google Business profile", budget: "$50 – $100", tags: ["SEO"], when: "Posted 5d ago", label: "One recent payment",
+          s: { students_paid: 1, engagements_paid: 1, median_approval_days: 2.4, active_client: true, quick_approver: false, no_disputes: false, repeat_client: false } },
+        { name: "Quick Print Co", title: "Flyer design for a grand opening", budget: "$80 – $120", tags: ["Design"], when: "Posted today", label: "No payments yet",
+          s: null },
+        { name: "Swamp Records", title: "Email newsletter setup", budget: "$100 – $200", tags: ["Email", "Marketing"], when: "Posted 1w ago", label: "Past client, quiet lately",
+          s: { students_paid: 2, engagements_paid: 2, median_approval_days: 6.5, active_client: false, quick_approver: false, no_disputes: false, repeat_client: true } },
+      ];
+
+      // Marketplace cards — same markup marketplace.js builds.
+      document.getElementById("bp-cards").innerHTML = businesses.map((b) => `
+          <a class="gr-listing-card" href="#" onclick="return false">
+            <div class="gr-listing-card-eyebrow"><span class="gr-listing-recency">${esc(b.when)}</span></div>
+            <h2 class="gr-listing-title">${esc(b.title)}</h2>
+            <div class="gr-listing-card-head">
+              <div class="gr-listing-logo-wrap"><div class="gr-listing-logo-placeholder">${esc(getInitials(b.name))}</div></div>
+              <div class="gr-listing-card-meta">
+                <div class="gr-listing-biz-row">
+                  <p class="gr-listing-biz-name">${esc(b.name)}</p>
+                  ${renderBadgeIcons(b.s)}
+                </div>
+                <p class="gr-listing-budget">${esc(b.budget)}</p>
+              </div>
+            </div>
+            <div class="gr-listing-foot">
+              <div class="gr-listing-tags">${b.tags.map((t) => `<span class="gr-listing-tag">${esc(t)}</span>`).join("")}</div>
+              <span class="gr-listing-cta-link">View →</span>
+            </div>
+          </a>
+      `).join("");
+      document.getElementById("bp-captions").innerHTML = businesses.map((b) => `<p class="bp-label">${esc(b.label)}</p>`).join("");
+
+      // Listing bio — same markup as listing.html's About the business.
+      document.getElementById("bp-bios").innerHTML = businesses.slice(0, 3).map((b) => `
+        <div>
+          <p class="bp-label">${esc(b.label)}</p>
+          <section class="ld-bio">
+            <div class="ld-bio__column">
+              <div class="ld-bio__body">
+                <h2 class="ld-bio__name">${esc(b.name)}</h2>
+                <div class="ld-bio__badges">${renderBadgeBlock(b.s)}</div>
+                <p class="ld-bio__about">A family shop near campus. We post new work every week.</p>
+              </div>
+            </div>
+          </section>
+        </div>
+      `).join("");
+
+      wireBadgeTips();
+
+      const rules = {
+        active_client: ["Released a payment in the last 90 days", "Yes, after 90 days without one"],
+        repeat_client: ["Paid 2+ different students, or rehired one", "No"],
+        quick_approver: ["Usually approves delivered work in under 3 days (2+ jobs in 90 days)", "Yes, rolling 90 days"],
+        no_disputes: ["3+ paid projects, none ever reported or refunded", "Only if a payment is reported or refunded"],
+      };
+      document.getElementById("bp-rules").innerHTML = `
+        <tr><th>Badge</th><th>Earned when</th><th>Lapses</th></tr>
+        ${BADGES.map((b) => `<tr><td>${renderBadgeIcons({ [b.key]: true }, { max: 1 })} ${esc(b.label)}</td><td>${esc(rules[b.key][0])}</td><td>${esc(rules[b.key][1])}</td></tr>`).join("")}
+      `;
+    </script>
+  </body>
+</html>
