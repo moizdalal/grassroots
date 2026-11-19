@@ -33,7 +33,7 @@ export const QUIZ_LENGTH = 10;
 export const MODULES = [
   {
     id: "before",
-    title: "Before the engagement",
+    title: "Before the project",
     goal: "Show up prepared, price honestly and take on work you can do well.",
     lessons: [
       {
@@ -86,9 +86,9 @@ export const MODULES = [
         title: "How pricing works",
         visual: "fee-calculator",
         points: [
-          "The business pays exactly your offer, with nothing added on their side.",
-          "Fees come out of your payout: card processing (2.9% + $0.30) and the platform fee.",
-          "The platform fee is 10% of the part of your offer above $10, or 5% during launch.",
+          "Your platform fee is a flat 10% of your offer, and it comes out of your payout.",
+          "Grassroots covers card processing, so it never comes out of your payout.",
+          "The business pays its own platform fee on top of your offer, which doesn't change your take-home.",
           "The offer screen shows how much you'll take home before you send it.",
           "Paid offers start at $10, and you can also send a $0 offer if you want to do the work for free.",
           "You can price the work as a one-time job, in phases (a proposal fee, then a service fee) or as a retainer.",
@@ -189,7 +189,7 @@ export const MODULES = [
   },
   {
     id: "during",
-    title: "During the engagement",
+    title: "During the project",
     goal: "Keep the client in the loop, keep the scope clear and keep things moving.",
     lessons: [
       {
@@ -223,7 +223,7 @@ export const MODULES = [
         points: [
           "At kickoff, agree on how often you'll send updates, how fast you'll reply and who you should contact.",
           "Send updates on schedule even when there isn't much to report, since “On track for Friday” still counts.",
-          "Keep your conversations in the engagement's message thread so there's a record.",
+          "Keep your conversations in the project's message thread so there's a record.",
         ],
         example: {
           label: "Try saying at kickoff",
@@ -353,8 +353,8 @@ export const MODULES = [
         },
         points: [
           "Reviews can't be edited, and a negative review isn't removed just because it's negative.",
-          "Your rating and the number of engagements you complete move you up the stage ladder, from seedling to sequoia.",
-          "Ask for a review every time you finish an engagement.",
+          "Your rating and the number of projects you complete move you up the stage ladder, from seedling to sequoia.",
+          "Ask for a review every time you finish a project.",
         ],
       },
       {
@@ -372,7 +372,7 @@ export const MODULES = [
   {
     id: "trust",
     title: "Professionalism and trust",
-    goal: "These rules apply before, during and after every engagement.",
+    goal: "These rules apply before, during and after every project.",
     lessons: [
       {
         title: "Keep everything on Grassroots",
@@ -397,9 +397,9 @@ export const MODULES = [
         title: "Confidentiality",
         points: [
           "Treat client data, logins, numbers and customer lists as private.",
-          "Only use them for the engagement, and return or delete them when it ends or when the client asks (Terms section 13).",
-          "This lasts for 2 years after the engagement, and forever for trade secrets and customer data.",
-          "Ask the client before you put their work in your portfolio.",
+          "Only use them for the project, and return or delete them when it ends or when the client asks (Terms section 13).",
+          "This lasts for 2 years after the project, and forever for trade secrets and customer data.",
+          "Ask the client before you put their work on your resume.",
         ],
       },
       {

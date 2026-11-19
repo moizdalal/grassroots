@@ -128,7 +128,7 @@ export async function convertListingToDraft(client, listingId) {
   }
   if (await hasAcceptedBid(client, listingId)) {
     throw new ListingOperationError(
-      "This listing has an accepted offer — unpublishing it would strand an active engagement.",
+      "This listing has an accepted offer — unpublishing it would strand work in progress.",
       { code: "has_engagement" }
     );
   }

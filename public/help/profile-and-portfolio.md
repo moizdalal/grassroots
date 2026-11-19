@@ -7,7 +7,7 @@
 **Settings → personal** (`/settings.html#personal`) for your photo, name, and contact links.
 **Settings → professional** (`/settings.html#professional`) for your role-specific fields (education, resume, past work, or business + social profiles).
 
-Every field saves through stripe-free Supabase storage. File uploads (photo, resume, portfolio) are scoped to your account — no one else can read them unless you flip them public.
+Every field saves through stripe-free Supabase storage. File uploads (photo, resume, work samples) are scoped to your account — no one else can read them unless you flip them public.
 
 ## Profile photo
 
@@ -41,7 +41,7 @@ Upload a single PDF, max 5 MB. Once uploaded:
 
 If you turn off public, the resume is private — even your own bids won't surface it to owners.
 
-## Past experience / portfolio (consultants only)
+## Past experience / work samples (consultants only)
 
 Upload work samples: PDFs, docs, slides, images, videos. Up to 25 MB each, no fixed limit on count.
 
@@ -71,7 +71,7 @@ Each social platform is opt-in — toggle it on and paste the link.
 | LinkedIn URL | Public if set |
 | Education | Public if set |
 | Resume | Private — flip toggle to share |
-| Portfolio items | Private per-item — toggle each |
+| Work samples | Private per-item — toggle each |
 | Business name, website, about | Public |
 | Email, phone | Private (account use only) |
 
@@ -82,5 +82,5 @@ A link at the top of the settings → professional tab lets you see your own pro
 ## FAQ
 
 - **Why is my photo a green circle?** You haven't uploaded one — that's the placeholder. It shows your initials in your role's accent color.
-- **Can I make individual portfolio items public/private?** Yes, each item has its own toggle.
+- **Can I make individual work samples public/private?** Yes, each item has its own toggle.
 - **Does removing the resume affect past bids?** The bid record stays. Owners who already received your resume keep their access; new viewers don't see it.

@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="/grassroots.css?v=2" />
     <link rel="stylesheet" href="/field-office.css?v=2" />
     <link rel="stylesheet" href="/plant-animations.css" />
-    <link rel="stylesheet" href="/garden.css" />
+    <link rel="stylesheet" href="/garden.css?v=4" />
     <script src="/theme.js"></script>
     <script src="/cookie-banner.js" defer></script>
     <script src="/loading-overlay.js"></script>
@@ -57,7 +57,7 @@
               </span>
             </div>
             <div class="pp-metric" role="listitem">
-              <span class="pp-metric__label">Engagements</span>
+              <span class="pp-metric__label">Projects</span>
               <span class="pp-metric__row">
                 <span class="pp-metric__value" id="pp-metric-engagements">0</span>
                 <span class="pp-metric__sub">Completed</span>
@@ -112,10 +112,10 @@
           </div>
         </section>
 
-        <!-- Consultant-only: garden (bloomed engagements moved here
-             from the dashboard journey). Lives above progression so
-             a consultant who's debating the seedling progression can
-             see their actual harvested wins first. -->
+        <!-- Consultant-only: garden. One flower per finished
+             engagement, planted automatically when the payout is
+             released (garden.js). The "flower planted" notification
+             links here: /profile.html?flower=<bid>#pp-garden-section. -->
         <section class="pp-section pp-section--garden hidden" id="pp-garden-section">
           <div class="pp-garden" id="pp-garden"></div>
         </section>
@@ -128,7 +128,7 @@
         <!-- Consultant-only: reviews & ratings summary -->
         <section class="pp-section pp-section--reviews hidden" id="pp-reviews-section">
           <header class="pp-section__head">
-            <h2>Ratings <span class="fo-title-italic">& reviews</span></h2>
+            <h2>Ratings <span class="fo-title-italic">and reviews</span></h2>
             <a class="gr-btn gr-btn--ghost gr-btn--sm" href="/my-reviews.html">See all reviews →</a>
           </header>
 

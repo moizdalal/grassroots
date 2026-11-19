@@ -668,6 +668,92 @@
           justify-content: center;
         }
       }
+      /* ── hero question: "Need <rotating thing>? A student wants to help." ──
+         Always two lines, phones too. Sized to the text column so the longest
+         rotating word still fits on one line on laptops. */
+      .ld-hero__title--ask .ld-hero__title-line { display: block; }
+      @media (min-width: 901px) {
+        .ld-hero__grid > :first-child { container-type: inline-size; }
+        .ld-hero__title--ask { font-size: min(clamp(2.3rem, 5.5vw, 4.3rem), calc(12cqi - 18px)); }
+        .ld-hero__title--ask .ld-hero__title-line { white-space: nowrap; }
+      }
+      /* the "?" lives inside the rotating span so it never wraps on its own */
+      .ld-hero__rot { display: inline-block; transition: opacity .28s ease, transform .28s ease; }
+      .ld-hero__rot.is-out { opacity: 0; transform: translateY(-.28em); }
+      .ld-hero__rot.is-in  { opacity: 0; transform: translateY(.28em); transition: none; }
+      .ld-hero__title--ask ~ .ld-hero__sub { max-width: 40ch; }
+
+      /* ── "start here" note: handwritten, arrow aimed at the middle of
+         "Post a project". --cx = button center from the note's left edge
+         (set by the script at the bottom of index.html). Wide screens: it
+         drops below both buttons with a long arrow to fill the space under
+         the hero copy. Phones: short arrow, one line. */
+      .ld-start {
+        --cx: 5.3rem;
+        /* Handwriting is allowed only here (see brandkit: Typography). */
+        --font-hand: "Caveat", var(--font-body), cursive;
+        order: 1; flex-basis: 100%;
+        position: relative; height: 142px; margin: calc(-1 * var(--space-3) + .5rem) 0 0; padding: 0;
+        font: 600 1.8rem/1 var(--font-hand); color: var(--fo-accent-warm);
+      }
+      .ld-start__arrow { position: absolute; top: 0; left: calc(var(--cx) - 8px); width: 60px; height: 128px; }
+      .ld-start__arrow path, .ld-start__up path { stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+      .ld-start__up { display: none; }
+      .ld-start__text { position: absolute; left: calc(var(--cx) + 56px); top: 104px; white-space: nowrap; transform: rotate(-3deg); transform-origin: left center; }
+      @media (max-width: 900px) {
+        .ld-start { height: 60px; font-size: 1.35rem; }
+        .ld-start__arrow { left: calc(var(--cx) - 4.4px); width: 33px; height: 55px; }
+        .ld-start__text { left: calc(var(--cx) + 32px); top: 38px; }
+      }
+      @media (max-width: 480px) { .ld-start { font-size: 1.2rem; } }
+      /* stacked buttons: sit straight under "Post a project", centered */
+      @media (max-width: 420px) {
+        .ld-start { order: 0; height: auto; margin: -.35rem 0 .1rem; display: flex; flex-direction: column; align-items: center; gap: .1rem; font-size: 1.3rem; }
+        .ld-start__arrow { display: none; }
+        .ld-start__up { display: block; width: 18px; height: 28px; }
+        .ld-start__text { position: static; transform: rotate(-2deg); }
+      }
+
+      /* ── you bring / they bring ─────────────────────────────── */
+      .ld-bring { padding: clamp(var(--space-5), 5vw, var(--space-7)) 0; }
+      .ld-bring__row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: clamp(1rem, 2.5vw, 2rem); align-items: stretch; }
+      @media (max-width: 820px) { .ld-bring__row { grid-template-columns: 1fr; } }
+      .ld-bring__card {
+        --pad: clamp(1.25rem, 2.5vw, 2rem);
+        border: 1px solid var(--fo-line-strong); border-radius: 22px; background: var(--fo-surface);
+        padding: var(--pad); height: 100%; overflow: hidden; color: var(--fo-text);
+      }
+      .ld-bring__card--student { background: var(--fo-accent); border-color: transparent; color: var(--fo-accent-on); }
+      .ld-bring__art {
+        margin: calc(-1 * var(--pad)) calc(-1 * var(--pad)) 1.25rem; height: 190px;
+        border-bottom: 1px solid var(--fo-line-strong);
+        background: color-mix(in srgb, var(--fo-text) 4%, transparent);
+      }
+      .ld-bring__card--student .ld-bring__art {
+        border-bottom-color: color-mix(in srgb, var(--fo-accent-on) 22%, transparent);
+        background: color-mix(in srgb, #000 12%, transparent);
+      }
+      .ld-bring__art svg { display: block; width: 100%; height: 100%; }
+      /* The Instagram and Facebook marks keep their real brand colors
+         (hardcoded in the SVG). See brandkit: Color, brand logos. */
+      .ld-bring__line  { fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+      .ld-bring__ghost { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-dasharray: 6 6; stroke-linecap: round; opacity: .5; }
+      .ld-bring__fill  { fill: currentColor; }
+      .ld-bring__ico   { fill: none; stroke: var(--fo-accent); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+      .ld-bring__dot   { fill: var(--fo-accent); }
+      .ld-bring__title { font: 600 1.45rem/1.15 var(--font-display); letter-spacing: -.01em; color: inherit; margin: 0 0 1rem; }
+      .ld-bring__list { list-style: none; margin: 0; padding: 0; display: grid; gap: .9rem; }
+      .ld-bring__list li { display: grid; grid-template-columns: 22px 1fr; gap: .7rem; font: 500 .98rem/1.45 var(--font-body); color: var(--fo-text-2); }
+      .ld-bring__list b { display: block; color: var(--fo-text); font-weight: 700; }
+      .ld-bring__list svg { width: 22px; height: 22px; margin-top: .1rem; color: var(--fo-accent); }
+      .ld-bring__card--student .ld-bring__list li { color: color-mix(in srgb, var(--fo-accent-on) 86%, transparent); }
+      .ld-bring__card--student .ld-bring__list b,
+      .ld-bring__card--student .ld-bring__list svg { color: var(--fo-accent-on); }
+      .ld-bring__plus {
+        align-self: center; justify-self: center; width: 52px; height: 52px; border-radius: 50%;
+        border: 1px solid var(--fo-line-strong); background: var(--fo-surface); color: var(--fo-text);
+        display: grid; place-items: center; font: 500 1.6rem/1 var(--font-body);
+      }
       .ld-hero__desktop-hint:empty { display: none; }
       /* Garden caption: "Hover" for mice, "Tap" for touch screens. */
       .ld-peek-verb--tap { display: none; }
@@ -1144,6 +1230,7 @@
         opacity: 1;
         max-height: 3em;
       }
+      .ld-hero-card.s-center .ld-hero-card__stat { max-height: 6em; }
       .ld-hero-card__head { transition: margin-bottom 0.45s ease; }
 
       /* Avatar + name colors flip smoothly as cards cross the center. */
@@ -1212,6 +1299,14 @@
         padding-top: 0.45rem;
         border-top: 1px dashed color-mix(in srgb, var(--fo-line) 80%, transparent);
       }
+      /* Example project: a small label, then the project itself in the
+         display face so it reads as the point of the card. */
+      .ld-hero-card__stat-label { display: block; opacity: 0.8; margin-bottom: 0.15rem; }
+      .ld-hero-card__project {
+        display: block; font-family: var(--font-display); font-weight: 600;
+        font-size: 1.12em; line-height: 1.2; letter-spacing: -0.005em; color: var(--fo-text);
+      }
+      .ld-hero-card.s-center .ld-hero-card__project { color: var(--fo-accent-on); }
       /* The expanded center card uses a solid accent panel — invert
          the bio text and avatar against it so contrast holds. */
       .ld-hero-card.s-center .ld-hero-card__name,
@@ -1258,6 +1353,7 @@
         opacity: 1;
         max-height: 3em;
       }
+      .ld-hero-card:not(.s-center):hover .ld-hero-card__stat { max-height: 6em; }
       .ld-hero-card:not(.s-center):hover .ld-hero-card__stat {
         padding-top: 0.45rem;
         border-top-color: color-mix(in srgb, var(--fo-line) 80%, transparent);
@@ -1300,10 +1396,13 @@
         .ld-hero-card__avatar { width: 1.8rem; height: 1.8rem; font-size: 0.78rem; }
       }
 
-      /* ── manifesto: light rounded panel, problem then solution ── */
+      /* ── manifesto: rounded panel, mission then what we do ──
+         Theme-driven: dark themes get a border-only outline (no card fill,
+         per brandkit), light gets the white card (override near the end). */
       .ld-manifesto {
         padding: clamp(var(--space-5), 5vw, var(--space-7)) 0;
-        --ld-panel-ink: #14201a;
+        --ld-panel-ink: var(--fo-text);
+        --ld-panel-key: var(--fo-accent);
       }
       .ld-manifesto__panel {
         position: relative;
@@ -1315,8 +1414,8 @@
         border-radius: 28px;
         text-align: center;
         color: var(--ld-panel-ink);
-        background: #fff;
-        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+        background: transparent;
+        border: 1px solid var(--fo-line-strong);
       }
       .ld-manifesto__lead,
       .ld-manifesto__text {
@@ -1331,11 +1430,11 @@
         text-wrap: pretty;
       }
       .ld-manifesto__lead { margin-bottom: 0.9em; }
-      /* Keywords in bold green. The panel is light in every theme, so this
-         uses a deep green fixed for contrast on it rather than --fo-accent. */
+      /* Keywords in bold brand green (--fo-accent) in every theme. On dark
+         backgrounds it clears 3:1, which is enough at this size and weight. */
       .ld-manifesto__key {
         font-weight: 700;
-        color: #1f6b47;
+        color: var(--ld-panel-key);
       }
       /* Timed reveal: JS wraps each word of the second statement and gives it
          --i; once the panel enters the viewport, .is-lit on the text fades the
@@ -1533,6 +1632,9 @@
       .ld-compare__table {
         width: 100%;
         min-width: 640px;
+        /* Fixed layout so the five check columns get equal widths
+           regardless of header text length. */
+        table-layout: fixed;
         border-collapse: separate;
         border-spacing: 0;
         font-family: var(--font-body);
@@ -1545,7 +1647,7 @@
         text-align: center;
         vertical-align: bottom;
         padding: 0 0.75rem 0.9rem;
-        width: 15%;
+        width: 12%;
       }
       .ld-compare__table thead th:first-child { width: 40%; }
       .ld-compare__table tbody th,
@@ -1583,7 +1685,7 @@
       .ld-compare__table tr.is-us > :last-child  { border-radius: 0 16px 16px 0; }
       /* Phones: drop the descriptions and tighten columns so all four fit without swiping. */
       @media (max-width: 640px) {
-        .ld-compare__table { min-width: 0; table-layout: fixed; }
+        .ld-compare__table { min-width: 0; }
         .ld-compare__table thead th { font-size: 0.68rem; padding: 0 0.2rem 0.7rem; width: auto; }
         .ld-compare__table thead th:first-child { width: 34%; }
         .ld-compare__table tbody th { padding: 0.9rem 0.4rem 0.9rem 0.8rem; }
@@ -3556,7 +3658,9 @@
 
       /* MANIFESTO: on a light page, give the panel an edge so it doesn't blend in. */
       [data-theme="light"] .ld-manifesto__panel {
+        background: var(--fo-surface);
         border: 1px solid color-mix(in srgb, var(--fo-accent) 18%, transparent);
+        box-shadow: 0 24px 60px rgba(14, 51, 36, 0.12);
       }
 
       /* section title color in light: full ink */

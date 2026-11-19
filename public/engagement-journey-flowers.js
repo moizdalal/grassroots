@@ -29,75 +29,11 @@ import { FLOWERS, STAGE_META, plantSvg } from "/flower-sketch.js";
 /*                       STAGE + STATE                            */
 /* ============================================================== */
 
-// Map (bid, listing, schedule) → integer stage 1..5. Order matters:
-// payout-released takes precedence over schedule signals (a refunded
-// engagement should *not* read as paid even if the schedule says
-// completed), and schedule signals take precedence over bid-status
-// because the schedule moves through its own lifecycle independently.
-export function detectFlowerStage(bid, _listing, schedule) {
-  if (bid?.payment_status === "released") return 5;
-  if (schedule?.status === "completed") return 4;
-  if (schedule?.status === "scheduled") return 3;
-  if (bid?.status === "accepted") return 2;
-  return 1; // pending / submitted / countered — still a seed
-}
-
-// An engagement is "premature" if it ended without the consultant
-// being paid. We treat any of these as premature:
-//   - bid was rejected / withdrawn / declined
-//   - payment was refunded
-//   - listing was completed or removed while this bid was never
-//     accepted (a locked listing can still accept pending offers)
-// A bid whose payment_status is "released" is the terminal happy
-// path — once paid, it permanently claims its species slot.
-export function isPremature(bid, listing, _schedule) {
-  if (!bid) return true;
-  if (bid.payment_status === "released") return false;
-  if (bid.payment_status === "refunded") return true;
-  if (["rejected", "withdrawn", "declined"].includes(bid.status)) return true;
-  if (["completed", "unlisted"].includes(listing?.status) && bid.status !== "accepted") return true;
-  return false;
-}
-
-// Detect what's waiting on the consultant. Used for the pulsing
-// action dot at the plant apex.
-export function detectAction(bid, listing, schedule) {
-  // Finished work never nags: once the payout is released (or the
-  // listing is completed) a stale schedule row is history, not a to-do.
-  if (bid?.payment_status === "released" || listing?.status === "completed") return null;
-  // Active owner counter awaiting the consultant's response. Takes
-  // priority over kickoff scheduling since the bid hasn't been
-  // accepted yet — there's nothing to schedule.
-  if (
-    bid?.status === "countered" &&
-    bid?.counter_offer_cents != null &&
-    !bid?.counter_responded_at
-  ) {
-    return {
-      title: "Respond to the business's counter",
-      href: `/listing.html?id=${bid.listing_id}`,
-    };
-  }
-  if (schedule?.status === "awaiting_consultant") {
-    return { title: "Pick a kickoff time", href: `/engagement.html?bid=${bid.id}` };
-  }
-  return null;
-}
-
-// Short human-readable label for the current lifecycle state — fills
-// the tooltip's status line so the user doesn't have to read the
-// plant's growth to know what's happening.
-export function detectStatus(stage, action, schedule, _listing) {
-  if (action) return action.title;
-  if (stage === 5) return "Payout received";
-  if (stage === 4) return "Work delivered, awaiting payout";
-  if (stage === 3) return "Kickoff scheduled";
-  if (stage === 2) {
-    if (schedule?.status === "awaiting_owner") return "Awaiting business availability";
-    return "Offer accepted — kickoff coming soon";
-  }
-  return "Offer submitted — awaiting business response";
-}
+// Stage, premature, action and status rules live in
+// /engagement-stage.js so the dashboard table can share them without
+// loading the flower art. Re-exported here for existing importers.
+import { detectFlowerStage, isPremature, detectAction, detectStatus } from "/engagement-stage.js";
+export { detectFlowerStage, isPremature, detectAction, detectStatus };
 
 /* ============================================================== */
 /*                       SPECIES INDEXING                          */
@@ -350,7 +286,7 @@ export function mountEngagementJourneyFlowers(container, { client, engagements, 
   function hideEngagement(eng) {
     hiddenIds.add(eng.id);
     applyFilter();
-    showToast(`Hid ${eng.counterpart || "engagement"}`, {
+    showToast(`Hid ${eng.counterpart || "project"}`, {
       duration: 2400,
       action: {
         label: "Undo",
@@ -376,7 +312,7 @@ export function mountEngagementJourneyFlowers(container, { client, engagements, 
 
 function renderEmpty() {
   return `<div class="cdash__journey-flowers-empty">
-    <p>No engagements yet — <a href="/marketplace.html" class="cdash__journey-flowers-empty-link">explore the marketplace</a> and submit a bid, and your first seed will sprout here.</p>
+    <p>No projects yet — <a href="/marketplace.html" class="cdash__journey-flowers-empty-link">explore the marketplace</a> and submit a bid, and your first seed will sprout here.</p>
   </div>`;
 }
 
@@ -480,7 +416,7 @@ function renderPlantColumn(eng, idx, speciesByBidId, unreadMap = new Map(), link
         <span class="cdash__journey-flowers-plant-avatar">${avatarMarkup}</span>
         <div class="cdash__journey-flowers-plant-text">
           <span class="cdash__journey-flowers-plant-biz">${escapeHtml(eng.counterpart || "business")}</span>
-          <span class="cdash__journey-flowers-plant-title">${escapeHtml(eng.listing?.title || "engagement")}</span>
+          <span class="cdash__journey-flowers-plant-title">${escapeHtml(eng.listing?.title || "project")}</span>
         </div>
       </div>
     </div>
@@ -527,7 +463,7 @@ function wireInteractions(container, stage, visible) {
     if (!tooltip) return;
     // Don't show a hover card while a plant is being shuffled.
     if (container.classList.contains("is-shuffling")) return;
-    titleEl.textContent = eng.listing?.title || "Engagement";
+    titleEl.textContent = eng.listing?.title || "Project";
     amountEl.textContent = fmtUSD(eng.bid?.amount_cents);
     statusEl.textContent = capFirst(eng.status);
     if (eng.action) {
@@ -597,7 +533,7 @@ function wireInteractions(container, stage, visible) {
     plantEl.setAttribute("tabindex", "0");
     plantEl.setAttribute("role", "button");
     plantEl.setAttribute("aria-label",
-      `${eng.counterpart || "business"} — ${eng.listing?.title || "engagement"} — ${fmtUSD(eng.bid?.amount_cents)} — stage ${eng.stage} of 5. Open listing.`
+      `${eng.counterpart || "business"} — ${eng.listing?.title || "project"} — ${fmtUSD(eng.bid?.amount_cents)} — stage ${eng.stage} of 5. Open listing.`
     );
   });
 

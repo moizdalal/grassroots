@@ -229,7 +229,7 @@ function renderActions(client, actionables) {
           <span class="eng-action__avatar cdash__eng-avatar gr-avatar">${avatar}</span>
           <div class="eng-action__meta">
             <span class="eng-action__title">${escape(state.action.title)}</span>
-            <span class="eng-action__sub">${escape(eng.counterpart)} · ${escape(eng.listing?.title || "engagement")}</span>
+            <span class="eng-action__sub">${escape(eng.counterpart)} · ${escape(eng.listing?.title || "project")}</span>
             <p class="eng-action__copy">${escape(state.action.copy)}</p>
           </div>
           <a class="gr-btn gr-btn--primary gr-btn--sm eng-action__cta" href="${escape(state.action.href)}">${escape(state.action.cta)} →</a>
@@ -247,8 +247,8 @@ function renderList(client, rows, view) {
     empty.hidden = false;
     empty.textContent =
       view === "past"
-        ? "No past engagements yet. Once work wraps up, completed engagements will live here."
-        : "No active engagements right now. Accepted offers will show up here.";
+        ? "No past projects yet. Once work wraps up, completed projects will live here."
+        : "No active projects right now. Accepted offers will show up here.";
     return;
   }
   empty.hidden = true;
@@ -263,7 +263,7 @@ function renderList(client, rows, view) {
           <span class="cdash__eng-avatar gr-avatar">${avatar}</span>
           <div class="cdash__eng-meta eng-row__meta">
             <span class="cdash__eng-biz">${escape(eng.counterpart)}</span>
-            <span class="cdash__eng-title">${escape(eng.listing?.title || "engagement")}</span>
+            <span class="cdash__eng-title">${escape(eng.listing?.title || "project")}</span>
             <span class="eng-row__sub">${escape(state.summary)}</span>
           </div>
           <span class="gr-pill gr-pill--${escape(state.pill)} gr-pill--no-dot eng-row__pill">${escape(state.label)}</span>
@@ -280,7 +280,7 @@ function updateCount(rows, view) {
   if (!el) return;
   const n = rows.length;
   const label = view === "past" ? "past" : "active";
-  el.textContent = `${n} ${label} engagement${n === 1 ? "" : "s"}`;
+  el.textContent = `${n} ${label} project${n === 1 ? "" : "s"}`;
 }
 
 /* ============================================================== */
@@ -396,7 +396,7 @@ async function init() {
 
     if (profile?.role !== "consultant") {
       // Owners don't have an "engagements" surface in this iteration.
-      gate.textContent = "Engagements is a consultant-only view for now.";
+      gate.textContent = "This page is for consultants only for now.";
       gate.className = "gr-status";
       return;
     }
@@ -435,7 +435,7 @@ async function init() {
     window.addEventListener("popstate", () => applyView(readViewFromUrl()));
   } catch (err) {
     console.error("engagements load failed", err);
-    gate.textContent = err?.message || "Could not load engagements.";
+    gate.textContent = err?.message || "Could not load projects.";
     gate.className = "gr-status error";
   }
 }

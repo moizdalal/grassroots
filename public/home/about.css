@@ -183,7 +183,10 @@
       .ab-hero { padding: clamp(48px, 7vw, 96px) 0 clamp(24px, 4vw, 48px); }
       .ab-hero__title {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr);
+        /* Two equal halves so the divider sits on the page's centre line
+           (the same axis as the plant below): "About" ends at it, the
+           tagline starts from it. */
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         align-items: center;
         margin: 0;
         font-family: var(--font-display);
@@ -192,6 +195,7 @@
       }
       .ab-hero__title em { font-style: normal; color: var(--fo-accent); }
       .ab-hero__word {
+        justify-self: end;
         padding-right: clamp(24px, 4vw, 56px);
         font-size: clamp(4.5rem, 13vw, 10.5rem);
         line-height: 0.9;
@@ -208,8 +212,8 @@
       }
       @media (max-width: 640px) {
         .ab-hero__title { grid-template-columns: 1fr; }
-        .ab-hero__word { padding: 0 0 0.25em; }
-        .ab-hero__line2 { padding: 0.5em 0 0; border-left: 0; border-top: 1px solid var(--fo-line); }
+        .ab-hero__word { justify-self: start; padding: 0 0 0.25em; }
+        .ab-hero__line2 { max-width: none; padding: 0.5em 0 0; border-left: 0; border-top: 1px solid var(--fo-line); }
       }
 
       /* ── basics: anatomy plate ──

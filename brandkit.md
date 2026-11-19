@@ -32,7 +32,7 @@ Two fonts, one rhythm. Loaded from Google Fonts in each page head (`Fraunces:ops
 - **Fraunces** (serif, variable weight + opsz axis) — `--font-display`. All headings (h1-h4, page/section/card titles), hero numbers, and the logo wordmark. Always weight 600, upright, never italic. Exception under trial: the training page (`training.css`) pins headings to `"opsz" 24` because the auto display cut renders thin, broken-looking f's. If it holds up, roll it out site-wide.
 - **Figtree** (sans, variable weight 300-900) — `--font-body`. Body copy, buttons, inputs, nav, labels, eyebrows.
 
-Point every `font-family` at the tokens (`var(--font-display)`, `var(--font-body)`); don't hardcode family names. `grassroots.css` also sets h1-h4 to display, 600, upright. Manrope, Inter, Syne, Caveat and JetBrains Mono are retired. For numbers that must align (amounts in tables), use Figtree with `font-variant-numeric: tabular-nums` rather than a monospace.
+Point every `font-family` at the tokens (`var(--font-display)`, `var(--font-body)`); don't hardcode family names. `grassroots.css` also sets h1-h4 to display, 600, upright. Manrope, Inter, Syne and JetBrains Mono are retired. Caveat (handwriting) is retired everywhere except one place: the "Start here if you're a business owner" note under the home hero's "Post a project" button (`.ld-start` in `public/home/index.css`, scoped as `--font-hand`). It is an annotation pointing at a button, not copy. Don't use it for headings, body text or anywhere else. For numbers that must align (amounts in tables), use Figtree with `font-variant-numeric: tabular-nums` rather than a monospace.
 
 ### Type scale tokens (defined in `:root` in `grassroots.css`)
 
@@ -110,6 +110,11 @@ Set on `<html data-theme="…">` by `theme.js` synchronously in head. Tokens def
 - Random orange that isn't `--fo-accent-warm`
 - Hardcoded warm tints like `rgba(232, 142, 90, 0.18)`. That is the dark-theme `--fo-accent-warm` value, so in light theme it turns peach/pink against the terracotta text. Derive tints from the token: `color-mix(in srgb, var(--fo-accent-warm) 18%, transparent)` (same for `--fo-plan`).
 - Any color picked from outside this token set, except for guaranteed-contrast hovers (see below)
+
+### Annotation and brand-logo exceptions (home page)
+
+- **Handwritten note** (`.ld-start`): `--fo-accent-warm` is pending/warn only, with one exception: the hand-drawn "Start here" note and arrow under the home hero button. It is a pointer, not a status, and it must not carry meaning anywhere else.
+- **Brand logos** (`.ld-bring` on the home page): the Instagram and Facebook marks in the "What a student brings" card keep their real colors (Facebook `#1877F2`, Instagram's gradient) so they read at a glance. Use real brand colors only for real third-party logos, never for our own UI.
 
 ### Guaranteed-contrast exception
 
@@ -272,6 +277,22 @@ Inline, dismissible note rendered by `desktop-hint.js` into the first `[data-des
 The headline of the consultant offer viewer (`listing.html`): two side-by-side `.ld-cv__deal-item` boxes, **Offer** (amount, `--type-h2`, `--fo-accent`) and **Timeline** (days, `--type-h2`, `--fo-text`). Labels are `--type-eyebrow` uppercase in `--fo-text-3`. Border-only in dark themes; `--fo-surface-2` fill in light only. The pitch message never goes here — it lives in the default **Pitch** tab with its supporting files (`.ld-cv__file` rows, same border-only rule).
 
 Bio tab order is fixed: header (name, degree line, `.pf-bv__meta-row` with city · completed projects · joined · short `LinkedIn ↗` link) → education → ratings last. Never print a full URL in the meta row.
+
+### `.gr-onb-*` — walkthrough (spotlight + movable card)
+
+The first-run tour (`onboarding.js`, `onboarding.css`; pages load it through `/onboarding-shim.js`). The page dims and `.gr-onb-spot` highlights the current element; the overlay never blocks clicks, so dropdowns, dialogs and file pickers keep working. The card (`.gr-onb-tooltip`) has a `.gr-onb-grip` labelled "Drag to move" and can be moved by mouse, touch or arrow keys. Every step carries one `.gr-onb-status` marker: "Your turn", "Your turn · optional", "Done" or "Just a look". The primary button reads "Skip for now" until the step's action is done, then "Next". Copy is full sentences, casual but professional, and never states fee numbers. A page that a tour step points at must load the shim, or the step is skipped. The old vine is retired; don't bring it back.
+
+### `.dash-notifications-filters` — notification filter chips
+
+One shared chip row for both roles, on the dashboard panel and `/notifications.html`: All, Offers, Engagements, Payouts (consultant) or Payments (business), Meetings, Reviews. Sentence case. The type-to-chip mapping lives in `dashboard-notifications.js`; a new notification type must be added there or it only shows under All.
+
+### `.po-info` + `.po-info-pop` — click-to-reveal explainer
+
+A quiet text button with an "i" icon that opens a fixed-position popover clamped to the window (`payouts.js` `setupInfoPopover`). Use this pattern for reassurance or explainer copy instead of always-visible text. Every claim in the payouts popover was checked against the code and Stripe's docs; re-check before editing.
+
+### Consultant engagements table and the garden
+
+The consultant dashboard lists engagements in a plain table (`#cdash-engagements-panel`, tabs All / Offers sent / In progress / Past), matching the business side; on phones each row stacks into a card. Stage rules are shared in `engagement-stage.js`. The garden lives only on the profile (`garden.js`, `garden.css`): one flower per engagement whose payout was released, planted automatically, with a `flower_planted` notification linking to `/profile.html?flower=<bid>#pp-garden-section`. Background options under review are in `public/garden-directions.html` (noindex, not linked).
 
 ---
 

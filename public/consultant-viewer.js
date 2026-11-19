@@ -167,10 +167,10 @@ export function renderConsultantPastWorkHtml(engagements, portfolio) {
   if (engagements?.length) {
     sections.push(`
       <div class="ld-cv__work-section">
-        <p class="ld-cv__work-section-title">Past engagements</p>
+        <p class="ld-cv__work-section-title">Past projects</p>
         <div class="ld-cv__work-list">
           ${engagements.map((eng) => {
-            const title = eng.listings?.title || "engagement";
+            const title = eng.listings?.title || "project";
             const scope = eng.listings?.problem_summary || "";
             const amount = eng.amount_cents != null ? formatUsd(eng.amount_cents) : "";
             return `
@@ -213,7 +213,7 @@ export function renderConsultantPastWorkHtml(engagements, portfolio) {
 
   return sections.length
     ? sections.join("")
-    : `<p class="ld-cv__panel-empty">No past engagements or shared files yet.</p>`;
+    : `<p class="ld-cv__panel-empty">No past projects or shared files yet.</p>`;
 }
 
 export const RESUME_HIDDEN_HTML = `<p class="ld-cv__panel-empty">This consultant has not made a resume publicly visible.</p>`;

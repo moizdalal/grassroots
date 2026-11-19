@@ -1,6 +1,6 @@
 # questions for counsel (not published)
 
-Questions that belong in the legal review but shouldn't appear on a public page. The `[counsel: …]` notes in `/terms` and `/privacy` cover the rest.
+Questions that belong in the legal review but shouldn't appear on a public page. The notes that used to sit inline on `/terms` as `[counsel: …]` markers were removed from the live page on 2026-11-10 and kept in a local counsel-review doc. Never put counsel notes back on a public page.
 
 ## free engagements (consultant-only feature)
 

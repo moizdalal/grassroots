@@ -281,11 +281,11 @@ async function openPayment(key) {
       </div>
       <div class="adm-drawer-amount">${usd(p.amount_cents)}</div>
     </div>
-    <h3 class="adm-section-h">Engagement</h3>
+    <h3 class="adm-section-h">Project</h3>
     ${kv([
       ["Business", esc(p.owner.name || p.owner.id)],
       ["Consultant", esc(p.consultant.name || p.consultant.id)],
-      ["Engagement", link(p.engagement_link, "Open the engagement page")],
+      ["Project", link(p.engagement_link, "Open the project page")],
       ["Charged", `${day(p.paid_at)} · held ${p.days_held} days`],
       ["Delivered", p.delivered_at ? day(p.delivered_at) : "Not yet"],
       ["Delivery note", quote(p.delivery_note)],
@@ -317,7 +317,8 @@ async function openPayment(key) {
     <h3 class="adm-section-h">Money</h3>
     ${kv([
       ["Charged", usd(m.gross_cents)],
-      ["Platform fee (from the payout)", usd(m.platform_fee_cents)],
+      ["Business fee (on top of the offer)", m.business_fee_cents ? usd(m.business_fee_cents) : null],
+      ["Consultant fee (from the payout)", usd(m.platform_fee_cents)],
       ["Card fee Grassroots absorbs on a refund", m.card_fee_absorbed_cents != null ? `${usd(m.card_fee_absorbed_cents)}${m.card_fee_source === "estimate" ? " (estimate)" : ""}` : null],
       ["Why it's not 2.9% + 30¢", esc(m.card_fee_note)],
       ["Refunded so far", m.refunded_cents ? usd(m.refunded_cents) : null],

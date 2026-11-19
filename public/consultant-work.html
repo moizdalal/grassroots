@@ -28,13 +28,13 @@
 
         <div class="cp-placeholder" id="cw-placeholder">
           <span class="cp-empty-tag">Work in progress</span>
-          <h2>Past work portfolio coming soon</h2>
+          <h2>Past work page coming soon</h2>
           <p>A full case-study page is on the roadmap. For now, here's what this consultant has shared.</p>
         </div>
 
         <div id="cw-portfolio-card" class="bza__panel" hidden>
           <div class="bza__panel-h">
-            <span class="bza__panel-h-title"><strong>Portfolio</strong> · <span id="cw-count">0</span> items</span>
+            <span class="bza__panel-h-title"><strong>Work samples</strong> · <span id="cw-count">0</span> items</span>
           </div>
           <div id="cw-portfolio-list" style="display:grid;gap:0.8rem;padding:0.75rem 0"></div>
         </div>
@@ -155,7 +155,7 @@
           }
 
           $("cw-sub").textContent = items.length
-            ? `${items.length} portfolio ${items.length === 1 ? "item" : "items"}`
+            ? `${items.length} work ${items.length === 1 ? "sample" : "samples"}`
             : "Limited details available — placeholder while the full page is in progress.";
 
           gate.hidden = true;

@@ -1,6 +1,6 @@
 # Listings
 
-> A listing is a business owner's description of work they want done. It sits in the marketplace, collects bids, and eventually becomes one (or zero) engagements.
+> A listing is a business owner's description of work they want done. It sits in the marketplace, collects bids, and turns into a project once the business accepts an offer (or it closes without one).
 
 ## Creating a listing
 
@@ -26,14 +26,14 @@ Once posted, your listing is **open** and visible to all consultants.
 | `completed` | Work paid out — shown as a past project | Everyone |
 | `unlisted` | Removed from the marketplace | Only the owner + consultants who bid |
 
-A listing's state never ends an engagement. Accepted work keeps going until it's delivered and paid out, whatever you do with the listing.
+A listing's state never ends a project. Accepted work keeps going until it's delivered and paid out, whatever you do with the listing.
 
 ## Locking
 
 Lock a listing at any time to stop new bids. Locked listings:
 - Stay public, tagged "locked" on the marketplace
 - Keep existing bids in place — you can still accept a pending one
-- Don't affect any engagement already underway
+- Don't affect any project already underway
 
 Unlock it any time to start taking bids again.
 
