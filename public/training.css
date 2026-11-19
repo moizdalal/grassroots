@@ -950,3 +950,203 @@ body.gr-body .tr-example__label {
     animation: none;
   }
 }
+
+/* ---- module slideshow (renderModule in training.js) ----
+   One lesson per slide. The panel is sized to the screen so a slide reads
+   without scrolling; a slide that still overflows scrolls inside itself,
+   and the nav stays pinned to the bottom. */
+.tr-panel--slides {
+  display: flex;
+  flex-direction: column;
+  height: min(760px, calc(100dvh - 2rem));
+  min-height: 460px;
+  padding-bottom: var(--space-4);
+}
+
+.tr-slide {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: safe center;
+  overflow-y: auto;
+  /* Room for focus rings and the key card's border at the edges. */
+  padding: 2px;
+  margin: -2px;
+}
+
+.tr-slide__inner {
+  width: 100%;
+  max-width: 82ch;
+}
+
+/* A slide is a single lesson, so drop the list-style divider and keep
+   the vertical rhythm tight enough that the longest lessons still fit. */
+.tr-panel--slides .tr-lesson {
+  padding: 0;
+  border-top: 0;
+}
+.tr-panel--slides .tr-lesson--key {
+  margin: 0;
+  padding: var(--space-4) var(--space-5);
+}
+.tr-panel--slides .tr-lesson__points {
+  gap: var(--space-1);
+}
+.tr-panel--slides .tr-visual {
+  margin: var(--space-3) 0;
+}
+.tr-panel--slides .tr-example {
+  margin-top: var(--space-3);
+}
+
+.tr-panel--slides .tr-lesson__title {
+  font-size: var(--type-h2, 1.6rem);
+  line-height: 1.15;
+}
+
+.tr-slide__eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+  font-size: var(--type-meta);
+  font-weight: 600;
+  color: var(--fo-text-3);
+}
+
+.tr-slide__key {
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: var(--fo-accent);
+  color: var(--fo-accent-on);
+  font-size: var(--type-eyebrow);
+}
+
+/* Slides slide in from the side they came from (tr-reveal does the motion). */
+.tr-panel--slides.tr-armed .tr-reveal:not(.is-in) {
+  transform: translateX(28px);
+}
+.tr-panel--slides.tr-armed .tr-slide[data-dir="prev"] .tr-reveal:not(.is-in) {
+  transform: translateX(-28px);
+}
+.tr-panel--slides .tr-reveal {
+  transition-duration: 0.3s;
+}
+
+/* Cover slide: the lesson list doubles as a table of contents. */
+.tr-slide__inner--cover .tr-panel__goal {
+  margin-bottom: var(--space-4);
+}
+
+.tr-cover__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tr-cover__item {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--fo-line);
+  border-radius: 10px;
+  background: none;
+  color: var(--fo-text);
+  font: inherit;
+  font-size: var(--type-meta);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.tr-cover__item:hover {
+  border-color: var(--fo-accent);
+  background: var(--fo-accent-soft);
+}
+
+/* Nav: Back · dots · Next, pinned under the slide. */
+.tr-slide-nav {
+  display: grid;
+  grid-template-columns: minmax(8rem, auto) 1fr minmax(8rem, auto);
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--fo-line);
+}
+.tr-slide-nav > :last-child {
+  justify-self: end;
+}
+
+.tr-dots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px;
+}
+
+/* 24px hit area around an 8px dot. */
+.tr-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.tr-dot::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--fo-line-strong);
+  transition: width 0.2s ease, background 0.2s ease;
+}
+.tr-dot.is-seen::before {
+  background: color-mix(in srgb, var(--fo-accent) 55%, transparent);
+}
+.tr-dot.is-current::before {
+  width: 18px;
+  background: var(--fo-accent);
+}
+.tr-dot:hover::before {
+  background: var(--fo-accent);
+}
+
+@media (max-width: 760px) {
+  .tr-panel--slides {
+    height: calc(100dvh - 1rem);
+    min-height: 420px;
+  }
+  /* Centering left a big gap above short slides on a tall phone. */
+  .tr-slide {
+    justify-content: flex-start;
+  }
+  .tr-cover__list {
+    grid-template-columns: 1fr;
+  }
+  /* Dots get their own row above the buttons. */
+  .tr-slide-nav {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: "dots dots" "back next";
+    gap: var(--space-3);
+  }
+  .tr-dots { grid-area: dots; }
+  .tr-slide-nav > :first-child { grid-area: back; }
+  .tr-slide-nav > :last-child { grid-area: next; justify-self: stretch; }
+  .tr-slide-nav .gr-btn { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tr-dot::before,
+  .tr-cover__item {
+    transition: none;
+  }
+}
