@@ -513,7 +513,9 @@
 
       /* ── hero ───────────────────────────────────────────────── */
       .ld-hero {
-        padding: clamp(var(--space-5), 6vw, var(--space-7)) 0 clamp(var(--space-6), 7vw, calc(var(--space-7) * 1.3));
+        padding-block: clamp(var(--space-5), 6vw, var(--space-7)) clamp(var(--space-6), 7vw, calc(var(--space-7) * 1.3));
+        /* Room for the .ld-shell gutter on top of 1180px, so wide screens line up as before. */
+        max-width: calc(1180px + 2 * clamp(var(--space-5), 4vw, var(--space-7)));
         position: relative;
       }
       /* Three-layer parallax cloud system — ported from the previous
@@ -1467,11 +1469,10 @@
          its roots and changed height mid-scroll. Phones stack the hero
          and scroll anyway, so the garden sizes from its width alone. */
       @media (max-width: 720px) { .ld-hero__garden { max-height: none; } }
-      /* Off-stage cards sit past the viewport edge. body's overflow-x: clip
-         doesn't stop mobile browsers widening the layout viewport, so clip here. */
-      @media (max-width: 900px) { .ld-hero { overflow-x: clip; } }
-      /* .ld-hero's padding shorthand zeroes the .ld-shell gutter. Desktop
-         gets its margin from max-width; phones need it back. */
+      /* The glow behind the demo and the cloud layers spill past the window
+         edge. body's overflow-x: clip doesn't stop browsers widening the page, so clip here. */
+      .ld-hero { overflow-x: clip; }
+      /* Phones use a fixed 16px gutter instead of the .ld-shell clamp. */
       @media (max-width: 720px) { .ld-hero { padding-inline: 16px; } }
       /* Phones: keep "Local business meets" on one line, and stack the two
          CTAs at one shared width instead of a ragged wrap. */
