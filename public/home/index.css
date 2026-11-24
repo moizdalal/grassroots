@@ -787,7 +787,6 @@
         background: color-mix(in srgb, #000 12%, transparent);
       }
       .ld-bring__art svg { display: block; width: 100%; flex: 1; min-height: 0; }
-      .ld-bring__art--before svg { opacity: .75; }
       /* says which state of the shop each picture is */
       .ld-bring__cap { margin: 0; text-align: center; font: 600 .95rem/1.2 var(--font-body); color: var(--fo-text-2); }
       .ld-bring__card--student .ld-bring__cap { color: color-mix(in srgb, var(--fo-accent-on) 88%, transparent); }
@@ -798,6 +797,15 @@
       .ld-bring__fill  { fill: currentColor; }
       .ld-bring__ico   { fill: none; stroke: var(--fo-accent); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
       .ld-bring__dot   { fill: var(--fo-accent); }
+      /* the "with a student" shop: striped awning, lit windows, an open sign,
+         sprouts on the roof and plants by the door, all in the line style */
+      .ld-bring__stripe { fill: currentColor; opacity: .28; }
+      .ld-bring__lit    { fill: #ffe08a; }
+      .ld-bring__open   { fill: var(--fo-accent); font: 700 11px/1 var(--font-body); letter-spacing: .02em; }
+      .ld-bring__sprout { fill: currentColor; }
+      .ld-bring__pot    { fill: color-mix(in srgb, currentColor 18%, transparent); }
+      .ld-bring__leaf   { fill: currentColor; }
+      .ld-bring__art--before svg { opacity: .7; }
       .ld-bring__title { font: 600 1.45rem/1.15 var(--font-display); letter-spacing: -.01em; color: inherit; margin: 0 0 1rem; }
       .ld-bring__list { list-style: none; margin: 0; padding: 0; display: grid; gap: .9rem; }
       .ld-bring__list li { display: grid; grid-template-columns: 22px 1fr; gap: .7rem; font: 500 .98rem/1.45 var(--font-body); color: var(--fo-text-2); }
