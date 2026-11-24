@@ -60,7 +60,7 @@
     <link rel="stylesheet" href="/field-office.css?v=2" />
     <link rel="stylesheet" href="/garden-stem.css?v=2" />
     <link rel="stylesheet" href="/home/nav.css?v=7" />
-    <link rel="stylesheet" href="/home/index.css?v=42" />
+    <link rel="stylesheet" href="/home/index.css?v=43" />
     <script src="/theme.js?v=2"></script>
     <script src="/home/theme-default.js?v=2"></script>
     <script>
@@ -263,7 +263,7 @@
             <div class="ld-hero__cards" id="ld-hero-cards" aria-hidden="true"></div>
             <div class="ld-hero__garden" id="ld-hero-garden" aria-hidden="true"></div>
             <p class="ld-hero__visual-caption">
-              Every business above grows a garden like this. Each root is <span class="ld-italic">a paid project</span>. <span class="ld-peek-verb--hover">Hover</span><span class="ld-peek-verb--tap">Tap</span> any to peek.
+              Every student grows roots in <span class="ld-italic">what they're good at</span>. The ones lit up match what you need. <span class="ld-hero__sample">Sample students.</span>
             </p>
           </div>
         </div>
@@ -1042,52 +1042,37 @@
         }
       }
 
-      // Mock business bios that fan + shuffle across the top of the
-      // visual — small bios of college-town businesses that use the
-      // marketplace. The fan logic below cycles them through the
-      // five slot positions; the center card is highlighted.
-      const BUSINESS_POOL = [
-        // Every card uses the same format: name, then "type · City, ST".
-        // Names and City, ST are proper nouns, so they keep their capitals.
-        // avatar = initials shown in the logo circle until real logos exist.
-        // project = an example of the kind of work a student does for them.
-        { name: "Side Street Coffee",   tagline: "Café · Gainesville, FL",         avatar: "SS", project: "Instagram, set up from scratch" },
-        { name: "North End Bikes",      tagline: "Bike shop · Athens, GA",         avatar: "NB", project: "Website and online store" },
-        { name: "Rooster & Rye",        tagline: "Bakery · Chapel Hill, NC",       avatar: "RR", project: "Facebook page and first posts" },
-        { name: "Marigold Florals",     tagline: "Florist · Columbia, SC",         avatar: "MF", project: "Inventory management app" },
-        { name: "Split / Fix Shop",     tagline: "Auto repair · Gainesville, FL",  avatar: "SF", project: "Online booking for repairs" },
-        { name: "Alma Kitchen",         tagline: "Restaurant · Tampa, FL",         avatar: "AK", project: "Logo and a new menu" },
-        { name: "Ember Tea Room",       tagline: "Tea house · Savannah, GA",       avatar: "ET", project: "Getting found on Google" },
-        { name: "Blue Line Printing",   tagline: "Print shop · Raleigh, NC",       avatar: "BL", project: "Online order form for print jobs" },
-        { name: "West Village Wines",   tagline: "Wine bar · Oxford, MS",          avatar: "WW", project: "Email newsletter, from scratch" },
-        { name: "The Spool Record Co.", tagline: "Vinyl · Auburn, AL",             avatar: "SR", project: "Online store for used vinyl" },
-        { name: "Harbor & Hide",        tagline: "Leather goods · Charleston, SC", avatar: "HH", project: "Product photos for the shop" },
-        { name: "Amber Haus Design",    tagline: "Design studio · Austin, TX",     avatar: "AH", project: "Bookkeeping spreadsheet" },
+      // Sample students that fan across the top of the visual, one for each
+      // thing the headline asks about, in the same order as its WORDS. When
+      // the headline changes, the matching student moves into the center
+      // card and the roots below become their skills; the ones that match
+      // the headline light up.
+      const STUDENT_POOL = [
+        { name: "Maya Rodriguez", tagline: "Marketing · State College",           avatar: "MR",
+          skills: ["Instagram", "Content creation", "TikTok", "Captions", "Video editing", "Canva"], match: ["Instagram", "Content creation"] },
+        { name: "Chris Thompson", tagline: "Computer science · Tech Institute",   avatar: "CT",
+          skills: ["Website setup", "Squarespace", "Wix", "Online ordering", "Shopify", "HTML and CSS"], match: ["Website setup", "Squarespace", "Wix"] },
+        { name: "Nina Ortiz",     tagline: "Information systems · State College", avatar: "NO",
+          skills: ["Shopify", "Online store", "Product listings", "Product photos", "Email marketing", "Pricing"], match: ["Shopify", "Online store", "Product listings"] },
+        { name: "Aisha Bello",    tagline: "Graphic design · State College",      avatar: "AB",
+          skills: ["Logos", "Branding", "Menu design", "Signage", "Canva", "Graphic design"], match: ["Logos", "Branding"] },
+        { name: "Leo Martin",     tagline: "Computer science · Tech Institute",   avatar: "LM",
+          skills: ["Online booking", "Calendly", "Squarespace", "Website setup", "Google listings", "Email reminders"], match: ["Online booking", "Calendly"] },
+        { name: "Grace Liu",      tagline: "Information systems · State College", avatar: "GL",
+          skills: ["Inventory tracking", "Airtable", "Spreadsheets", "Barcode labels", "Bookkeeping", "Reports"], match: ["Inventory tracking", "Airtable", "Spreadsheets"] },
       ];
-
-      // Three business-bio cards in fixed slots above the garden +
-      // brief off-screen states for entering/exiting cards. Each
-      // rotation tick moves every card one slot left:
-      //   off-right ← (new card)
-      //   right     ← center  (collapses, accent panel fades)
-      //   center    ← left? No — center comes FROM right; the old
-      //   left exits to off-left and is removed after the transition.
-      // Because each card just swaps its slot class, CSS handles the
-      // entire morph (transform, width, padding, background, content
-      // max-height) smoothly in one go. The center card always gets
-      // the accent-green panel via .s-center.
-      // Bottom line: an example project, to show the range of work students take on.
-      const CARD_STAT_LABEL = "Example project";
+      const CARD_STAT_LABEL = "Good at";
       const cardsRoot = document.getElementById("ld-hero-cards");
       const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
       const canHover = window.matchMedia?.("(hover: hover)").matches;
       if (cardsRoot) {
         function fillCard(card, B) {
+          card.dataset.name = B.name;
           card.querySelector(".ld-hero-card__avatar").textContent  = B.avatar;
           card.querySelector(".ld-hero-card__name").textContent    = B.name;
           card.querySelector(".ld-hero-card__tagline").textContent = B.tagline;
           card.querySelector(".ld-hero-card__stat-label").textContent = CARD_STAT_LABEL;
-          card.querySelector(".ld-hero-card__project").textContent    = B.project;
+          card.querySelector(".ld-hero-card__project").textContent    = B.skills.slice(0, 3).join(", ");
         }
         function makeCard(B, slotClass) {
           const el = document.createElement("div");
@@ -1109,16 +1094,18 @@
           card.classList.add(slotClass);
         }
 
-        // Seed three visible cards.
+        // Seed three visible cards: the headline starts on the first word, so
+        // the first student sits in the center.
+        const N = STUDENT_POOL.length;
         let cards = [
-          makeCard(BUSINESS_POOL[0 % BUSINESS_POOL.length], "s-left"),
-          makeCard(BUSINESS_POOL[1 % BUSINESS_POOL.length], "s-center"),
-          makeCard(BUSINESS_POOL[2 % BUSINESS_POOL.length], "s-right"),
+          makeCard(STUDENT_POOL[N - 1], "s-left"),
+          makeCard(STUDENT_POOL[0], "s-center"),
+          makeCard(STUDENT_POOL[1 % N], "s-right"),
         ];
         cards.forEach((c) => cardsRoot.appendChild(c));
-        let poolIdx = 3 % BUSINESS_POOL.length;
 
-        function rotate() {
+        // Called each time the headline moves on to word i.
+        function rotate(i) {
           // Hold still while someone is hovering a card so it doesn't slide out
           // from under them. Mouse devices only: touch browsers leave :hover
           // stuck on the last card a finger brushed while scrolling, which
@@ -1129,11 +1116,12 @@
           // and budget phones painted blank frames during flings.
           if (!heroActive() || performance.now() - lastScrollAt < 900) return;
           const [leftCard, centerCard, rightCard] = cards;
+          // A skipped turn (hover, scrolling, off screen) leaves the wrong
+          // student waiting on the right; swap them in before they move.
+          if (rightCard.dataset.name !== STUDENT_POOL[i].name) fillCard(rightCard, STUDENT_POOL[i]);
           // Spawn the new card pre-positioned off-screen right so the
           // first transition step has somewhere to animate FROM.
-          const next = BUSINESS_POOL[poolIdx % BUSINESS_POOL.length];
-          poolIdx++;
-          const newCard = makeCard(next, "s-off-right");
+          const newCard = makeCard(STUDENT_POOL[(i + 1) % N], "s-off-right");
           cardsRoot.appendChild(newCard);
 
           // Next frame: trigger the morph by changing each slot.
@@ -1153,7 +1141,74 @@
           cards = [centerCard, rightCard, newCard];
         }
 
-        if (!reduced) setInterval(rotate, 4400);
+        // The headline script announces each new word.
+        if (!reduced) document.addEventListener("ld:need", (e) => rotate(e.detail % N));
+      }
+
+      // ── Skill labels on the roots ────────────────────────────────
+      // Each root carries one of the center student's skills, and the ones
+      // that match the headline light up. Labels follow their root nodes,
+      // which sway and can be dragged, so desktop re-places them each frame
+      // while the hero is on screen; lite mode places them once.
+      if (garden) {
+        const plot = garden.querySelector(".gs__plot");
+        const nodes = [...garden.querySelectorAll(".gs__root-node")];
+        const layer = document.createElement("div");
+        layer.className = "ld-hero__skills";
+        layer.setAttribute("aria-hidden", "true");
+        const labels = nodes.map(() => {
+          const el = document.createElement("span");
+          el.className = "ld-hero__skill";
+          layer.appendChild(el);
+          return el;
+        });
+        if (plot) plot.appendChild(layer);
+        // Each label sits beside its root, on the side away from the trunk.
+        // If it would overlap another label or a root dot, it tries the
+        // other side, then moves down until it's clear.
+        const place = () => {
+          if (!plot) return;
+          const p = plot.getBoundingClientRect();
+          // The root dots count as taken space, so no label covers one.
+          const placed = nodes.map((n) => { const r = n.getBoundingClientRect(); return { x: r.left - p.left - 4, y: r.top - p.top - 4, w: r.width + 8, h: r.height + 8 }; });
+          const hits = (r) => placed.some((q) => r.x < q.x + q.w + 4 && q.x < r.x + r.w + 4 && r.y < q.y + q.h + 3 && q.y < r.y + r.h + 3);
+          const order = nodes.map((n, k) => {
+            const r = n.getBoundingClientRect();
+            return { k, x: r.left + r.width / 2 - p.left, y: r.top + r.height / 2 - p.top };
+          }).sort((a, b) => a.y - b.y);
+          for (const { k, x, y } of order) {
+            const el = labels[k];
+            const w = el.offsetWidth, h = el.offsetHeight;
+            const at = (left, dy) => ({ x: left ? x - 14 - w : x + 14, y: y - h / 2 + dy, w, h });
+            const first = x < p.width / 2;
+            let r = at(first, 0);
+            if (hits(r)) r = at(!first, 0);
+            for (let dy = 4; hits(r) && dy <= 80; dy += 4) r = at(first, dy);
+            placed.push(r);
+            el.style.transform = `translate(${Math.round(r.x)}px, ${Math.round(r.y)}px)`;
+          }
+        };
+        const show = (i) => {
+          const st = STUDENT_POOL[i % STUDENT_POOL.length];
+          layer.classList.add("is-out");
+          setTimeout(() => {
+            labels.forEach((el, k) => {
+              const skill = st.skills[k] || "";
+              el.textContent = skill;
+              el.classList.toggle("is-match", st.match.includes(skill));
+            });
+            place();
+            layer.classList.remove("is-out");
+          }, 260);
+        };
+        show(0);
+        document.addEventListener("ld:need", (e) => show(e.detail));
+        addEventListener("resize", place);
+        if (document.fonts) document.fonts.ready.then(place);
+        if (!liteHero) {
+          const follow = () => { if (heroActive()) place(); requestAnimationFrame(follow); };
+          requestAnimationFrame(follow);
+        }
       }
 
       // ── Watchdog: desktops the <head> check let through but that can't
@@ -1258,8 +1313,9 @@
     <script defer src="/perf-beacon.js"></script>
 
     <script>
-      // hero: rotate the thing the owner is missing, and aim the handwritten
-      // note's arrow at the middle of "Post a project".
+      // hero: rotate the thing the owner is missing (the student cards and
+      // root skills follow it), and aim the handwritten note's arrow at the
+      // middle of "Find students".
       (() => {
         const rot = document.getElementById("ld-hero-rot");
         const word = document.getElementById("ld-hero-rot-word");
@@ -1267,17 +1323,19 @@
         const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
         if (rot && word && !still) {
           let i = 0;
+          // Slower than before, so each student and their skills can be read.
           setInterval(() => {
             rot.classList.add("is-out");
             setTimeout(() => {
               i = (i + 1) % WORDS.length;
               word.textContent = WORDS[i];
+              document.dispatchEvent(new CustomEvent("ld:need", { detail: i }));
               rot.classList.remove("is-out");
               rot.classList.add("is-in");
               void rot.offsetWidth;
               rot.classList.remove("is-in");
             }, 280);
-          }, 2400);
+          }, 4400);
         }
         const note = document.getElementById("ld-start");
         const btn = document.querySelector(".ld-hero__ctas .ld-find__btn");

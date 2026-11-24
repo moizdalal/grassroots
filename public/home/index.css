@@ -683,6 +683,19 @@
       .ld-hero__rot.is-in  { opacity: 0; transform: translateY(.28em); transition: none; }
       .ld-hero__title--ask ~ .ld-hero__sub { max-width: 40ch; }
 
+      /* ── hero roots: the center student's skills ──
+         One label per root node, placed by the script; the ones that match
+         the headline are filled green. The garden's own hover card is about
+         paid projects, so the hero hides it. */
+      .ld-hero__garden .gs__hover { display: none; }
+      .ld-hero__skills { position: absolute; inset: 0; pointer-events: none; z-index: 7; transition: opacity 0.25s ease; }
+      .ld-hero__skills.is-out { opacity: 0; }
+      .ld-hero__skill { position: absolute; left: 0; top: 0; white-space: nowrap; padding: 4px 10px; border-radius: 999px; font-family: var(--font-body); font-size: 0.78rem; font-weight: 600; color: var(--fo-text-2); background: color-mix(in srgb, var(--fo-bg) 82%, transparent); border: 1px solid var(--fo-line-strong); transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
+      .ld-hero__skill:empty { display: none; }
+      .ld-hero__skill.is-match { background: var(--fo-accent); border-color: var(--fo-accent); color: var(--fo-accent-on); }
+      .ld-hero__sample { color: var(--fo-text-3); }
+      @media (max-width: 480px) { .ld-hero__skill { font-size: 0.7rem; padding: 3px 8px; } }
+
       /* ── hero search: what do you need help with? ──
          Replaces the two buttons. The box holds the input and the button; the
          popular searches sit under it, and posting a project is a quiet link. */
