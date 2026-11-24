@@ -715,9 +715,7 @@
       .ld-demo__chips { display: flex; flex-wrap: wrap; gap: 7px; }
       .ld-demo__chip { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--fo-line-strong); font-size: 0.86rem; color: var(--fo-text-2); }
       .ld-demo__chip.is-match { background: var(--fo-accent); border-color: var(--fo-accent); color: var(--fo-accent-on); }
-      .ld-demo__foot { display: flex; justify-content: space-between; align-items: baseline; padding-top: 12px; border-top: 1px solid var(--fo-line); font-size: 0.92rem; color: var(--fo-text-2); }
-      .ld-demo__foot b { font-family: var(--font-display); font-weight: 600; font-size: 1.35rem; color: var(--fo-accent); margin-left: 3px; }
-      :root:not([data-theme="light"]) .ld-demo__foot b { color: #5fbf8f; }
+      .ld-demo__foot { display: flex; justify-content: flex-end; padding-top: 12px; border-top: 1px solid var(--fo-line); font-size: 0.92rem; color: var(--fo-text-2); }
       .ld-demo__view { font-weight: 700; color: var(--fo-text); }
       .ld-hero__sample { color: var(--fo-text-3); }
       @media (max-width: 480px) {

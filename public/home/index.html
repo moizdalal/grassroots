@@ -59,7 +59,7 @@
     <link rel="stylesheet" href="/grassroots.css?v=2" />
     <link rel="stylesheet" href="/field-office.css?v=2" />
     <link rel="stylesheet" href="/home/nav.css?v=7" />
-    <link rel="stylesheet" href="/home/index.css?v=49" />
+    <link rel="stylesheet" href="/home/index.css?v=50" />
     <script src="/theme.js?v=2"></script>
     <script src="/home/theme-default.js?v=2"></script>
     <script>
@@ -267,7 +267,7 @@
                 <p class="ld-demo__line" id="ld-demo-line">I make Instagram and TikTok content that gets local cafes and shops noticed.</p>
                 <div class="ld-demo__label">Strengths</div>
                 <div class="ld-demo__chips" id="ld-demo-chips"></div>
-                <div class="ld-demo__foot"><span>From <b id="ld-demo-from">$150</b></span><span class="ld-demo__view">View profile →</span></div>
+                <div class="ld-demo__foot"><span class="ld-demo__view">View profile →</span></div>
               </div>
             </div>
             <p class="ld-hero__visual-caption">
@@ -808,7 +808,6 @@
           $d("ld-demo-rating").textContent = s.rating;
           $d("ld-demo-reviews").textContent = `(${s.reviews} reviews)`;
           $d("ld-demo-line").textContent = s.line;
-          $d("ld-demo-from").textContent = s.from;
           $d("ld-demo-chips").innerHTML = s.strengths
             .map((k) => `<span class="ld-demo__chip${s.match.includes(k) ? " is-match" : ""}">${k}</span>`)
             .join("");
