@@ -779,11 +779,10 @@
       // lag. Tap-to-peek on a root still works.
       // Set by the inline check in <head>.
       const liteHero = document.documentElement.classList.contains("ld-lite");
-      // Desktop hero garden: drag-to-reposition stays on so visitors can
-      // play with the roots, but clicks don't navigate (no listing
-      // page behind these fakes). The hover card still pops on hover.
+      // Hero garden: the roots hold still (no sway, no dragging) so the
+      // skill labels beside them stay put; clicks don't navigate.
       const gardenStem = garden
-        ? mountGardenStem(garden, { roots: HERO_ROOTS, interactive: !liteHero, navigateOnClick: false, animate: !liteHero })
+        ? mountGardenStem(garden, { roots: HERO_ROOTS, interactive: false, navigateOnClick: false, animate: false })
         : null;
       let freezeGrass = () => {};
       // Hero on screen and tab visible. Loops below idle when it isn't.
@@ -1048,7 +1047,7 @@
         { name: "Grace Liu",      tagline: "Information systems · State College", avatar: "GL",
           skills: ["Inventory tracking", "Airtable", "Spreadsheets", "Barcode labels", "Bookkeeping", "Reports"], match: ["Inventory tracking", "Airtable", "Spreadsheets"] },
       ];
-      const CARD_STAT_LABEL = "Good at";
+      const CARD_STAT_LABEL = "Strengths";
       const cardsRoot = document.getElementById("ld-hero-cards");
       const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
       const canHover = window.matchMedia?.("(hover: hover)").matches;
@@ -1134,9 +1133,9 @@
 
       // ── Skill labels on the roots ────────────────────────────────
       // Each root carries one of the center student's skills, and the ones
-      // that match the headline light up. Labels follow their root nodes,
-      // which sway and can be dragged, so desktop re-places them each frame
-      // while the hero is on screen; lite mode places them once.
+      // that match the headline light up. The roots hold still in the hero
+      // (no sway or dragging), so labels are placed once per student and on
+      // resize; following swaying roots made the labels hop sides.
       if (garden) {
         const plot = garden.querySelector(".gs__plot");
         const nodes = [...garden.querySelectorAll(".gs__root-node")];
@@ -1192,10 +1191,6 @@
         document.addEventListener("ld:need", (e) => show(e.detail));
         addEventListener("resize", place);
         if (document.fonts) document.fonts.ready.then(place);
-        if (!liteHero) {
-          const follow = () => { if (heroActive()) place(); requestAnimationFrame(follow); };
-          requestAnimationFrame(follow);
-        }
       }
 
       // ── Watchdog: desktops the <head> check let through but that can't
