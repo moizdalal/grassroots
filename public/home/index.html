@@ -58,9 +58,8 @@
 
     <link rel="stylesheet" href="/grassroots.css?v=2" />
     <link rel="stylesheet" href="/field-office.css?v=2" />
-    <link rel="stylesheet" href="/garden-stem.css?v=2" />
     <link rel="stylesheet" href="/home/nav.css?v=7" />
-    <link rel="stylesheet" href="/home/index.css?v=45" />
+    <link rel="stylesheet" href="/home/index.css?v=46" />
     <script src="/theme.js?v=2"></script>
     <script src="/home/theme-default.js?v=2"></script>
     <script>
@@ -246,11 +245,33 @@
         </div>
 
         <div class="ld-reveal">
-          <div class="ld-hero__visual">
-            <div class="ld-hero__cards" id="ld-hero-cards" aria-hidden="true"></div>
-            <div class="ld-hero__garden" id="ld-hero-garden" aria-hidden="true"></div>
+          <!-- what the search above does: the headline's need is typed in,
+               and the student who fits answers it. One sample student per
+               need; it changes with the headline (script at the bottom). -->
+          <div class="ld-hero__visual ld-hero__visual--find">
+            <div class="ld-demo" id="ld-demo" aria-hidden="true">
+              <div class="ld-demo__bar">
+                <svg class="ld-demo__icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <span class="ld-demo__q" id="ld-demo-q">Instagram</span>
+              </div>
+              <div class="ld-demo__card" id="ld-demo-card">
+                <div class="ld-demo__head">
+                  <span class="ld-demo__ava" id="ld-demo-ava">MR</span>
+                  <div class="ld-demo__who">
+                    <div class="ld-demo__name" id="ld-demo-name">Maya Rodriguez</div>
+                    <div class="ld-demo__school" id="ld-demo-school">Marketing · State College</div>
+                    <div class="ld-demo__rating"><span class="ld-demo__star">★</span> <b id="ld-demo-rating">4.9</b> <span id="ld-demo-reviews">(6 reviews)</span></div>
+                  </div>
+                  <span class="ld-demo__best">Best match</span>
+                </div>
+                <p class="ld-demo__line" id="ld-demo-line">I make Instagram and TikTok content that gets local cafes and shops noticed.</p>
+                <div class="ld-demo__label">Strengths</div>
+                <div class="ld-demo__chips" id="ld-demo-chips"></div>
+                <div class="ld-demo__foot"><span>From <b id="ld-demo-from">$150</b></span><span class="ld-demo__view">View profile →</span></div>
+              </div>
+            </div>
             <p class="ld-hero__visual-caption">
-              Every student grows roots in <span class="ld-italic">what they're good at</span>. The ones lit up match what you need. <span class="ld-hero__sample">Sample students.</span>
+              Search for what you need, even roughly, and the students who fit show up first. <span class="ld-hero__sample">Sample student.</span>
             </p>
           </div>
         </div>
@@ -737,482 +758,78 @@
       })();
     </script>
 
-    <!-- Hero "your garden" — mounts the dashboard's garden-stem with
-         six mock roots so the hero shows the marketplace outcome in
-         motion. The pool of listings cycles through the floating
-         hero cards over the top. -->
     <script type="module">
-      import { mountGardenStem } from "/garden-stem.js?v=7";
-
-      const HERO_ROOTS = [
-        { bidId: "hero-1", listingId: "hero-listing-1",
-          listingTitle: "Weekend bakery sales push",
-          consultantName: "Jordan Kim", amountCents: 32000,
-          releasedAt: "2026-04-12T15:30:00Z" },
-        { bidId: "hero-2", listingId: "hero-listing-2",
-          listingTitle: "Instagram content refresh",
-          consultantName: "Sam Chen", amountCents: 18000,
-          releasedAt: "2026-03-22T10:00:00Z" },
-        { bidId: "hero-3", listingId: "hero-listing-3",
-          listingTitle: "Logo + brand mark redesign",
-          consultantName: "Morgan Vasquez", amountCents: 55000,
-          releasedAt: "2026-02-14T18:00:00Z" },
-        { bidId: "hero-4", listingId: "hero-listing-4",
-          listingTitle: "Square POS migration help",
-          consultantName: "Alex Park", amountCents: 22000,
-          releasedAt: "2026-01-30T09:15:00Z" },
-        { bidId: "hero-5", listingId: "hero-listing-5",
-          listingTitle: "Press release for grand reopening",
-          consultantName: "Priya Rao", amountCents: 12500,
-          releasedAt: "2025-12-20T13:45:00Z" },
-        { bidId: "hero-6", listingId: "hero-listing-6",
-          listingTitle: "Google business profile + SEO cleanup",
-          consultantName: "Riley Alves", amountCents: 16000,
-          releasedAt: "2025-10-15T11:20:00Z" },
-      ];
-
-      const garden = document.getElementById("ld-hero-garden");
-      // Phones and tablets get a still hero: nobody drags roots or
-      // hovers grass on touch, and the per-frame loops made the page
-      // lag. Tap-to-peek on a root still works.
-      // Set by the inline check in <head>.
+      const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
       const liteHero = document.documentElement.classList.contains("ld-lite");
-      // Hero garden: the roots hold still (no sway, no dragging) so the
-      // skill labels beside them stay put; clicks don't navigate.
-      const gardenStem = garden
-        ? mountGardenStem(garden, { roots: HERO_ROOTS, interactive: false, navigateOnClick: false, animate: false })
-        : null;
-      let freezeGrass = () => {};
-      // Hero on screen and tab visible. Loops below idle when it isn't.
+      // Hero on screen and tab visible. The demo and the watchdog idle when it isn't.
       let heroInView = true;
       const heroEl = document.querySelector(".ld-hero");
       if (heroEl && "IntersectionObserver" in window) {
         new IntersectionObserver(([entry]) => { heroInView = entry.isIntersecting; }).observe(heroEl);
       }
       const heroActive = () => heroInView && !document.hidden;
-      let lastScrollAt = -Infinity;
-      window.addEventListener("scroll", () => { lastScrollAt = performance.now(); }, { passive: true });
 
-      // ── grass blades along the soil line ─────────────────────────
-      // Ported from the previous landing's interactive grass canvas,
-      // scaled down so blade heights are 8–18px (≈10–15% of sprout
-      // height). Bezier-curved blades sway on a sine + bend away from
-      // the cursor with a soft spring return.
-      if (garden) {
-        const SPROUT_GREEN = { r: 109, g: 191, b: 138 };
-        const plot = garden.querySelector(".gs__plot");
-        const earth = garden.querySelector(".gs__earth");
-        // Static grass: drawn once, no sway loop, no cursor tracking.
-        const prefersReducedHero = liteHero || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-        if (plot && earth) {
-          plot.style.position = "relative";
-          const grassCanvas = document.createElement("canvas");
-          grassCanvas.className = "ld-hero__grass";
-          grassCanvas.setAttribute("aria-hidden", "true");
-          // The canvas lives inside the earth and is pinned to its top edge
-          // in CSS, so it stays on the soil line whatever loads or resizes
-          // later. (Measuring the earth once and placing the grass from the
-          // plot's bottom left it floating when the layout shifted after.)
-          earth.appendChild(grassCanvas);
-          initHeroGrass(grassCanvas, plot, earth);
-        }
-
-        function initHeroGrass(canvas, container, earthEl) {
-          const ctx = canvas.getContext("2d");
-          if (!ctx) return;
-          const HEIGHT_PX     = 64;          // canvas drawing height — fits ~49px blades + soil-line band
-          const SOIL_LINE_H   = 8;           // matches .ld-hero__garden .gs__soil-line { height }
-          const CANVAS_OVERLAP = 2;          // canvas bottom is this many px below soil-line bottom
-          const DENSITY  = 1.0;              // blades per CSS pixel of width (down from 1.7 — fewer but cleaner)
-          const INTERACT = 90;               // cursor influence radius
-          const BLEED    = 40;               // empty canvas margin past the soil on each side, so bent blades never clip
-          let w = 0;
-          const cursor = { x: -9999, y: -9999 };
-          const blades = [];
-
-          // Soil-line wave (extracted from garden-stem.js soilLineSvg).
-          // viewBox 100×6; each segment is a quadratic bezier from p0
-          // through control point cp to p2.
-          const SOIL_SEGMENTS = [
-            { p0: [  0, 3   ], cp: [ 7, 0.6 ], p2: [ 14, 3   ] },
-            { p0: [ 14, 3   ], cp: [22, 5   ], p2: [ 30, 2.8 ] },
-            { p0: [ 30, 2.8 ], cp: [38, 0.4 ], p2: [ 46, 3.2 ] },
-            { p0: [ 46, 3.2 ], cp: [54, 5.4 ], p2: [ 62, 3   ] },
-            { p0: [ 62, 3   ], cp: [70, 0.8 ], p2: [ 78, 3.4 ] },
-            { p0: [ 78, 3.4 ], cp: [86, 5   ], p2: [ 94, 2.8 ] },
-            { p0: [ 94, 2.8 ], cp: [98, 2   ], p2: [100, 3   ] },
-          ];
-          function soilCurveY(vbX) {
-            if (vbX <= 0) return 3;
-            if (vbX >= 100) return 3;
-            for (const seg of SOIL_SEGMENTS) {
-              if (vbX >= seg.p0[0] && vbX <= seg.p2[0]) {
-                const [x0, y0] = seg.p0;
-                const [x1, y1] = seg.cp;
-                const [x2, y2] = seg.p2;
-                const a = x0 - 2 * x1 + x2;
-                const b = 2 * (x1 - x0);
-                const c = x0 - vbX;
-                let t;
-                if (Math.abs(a) < 1e-6) {
-                  t = -c / b;
-                } else {
-                  const disc = b * b - 4 * a * c;
-                  const sq = Math.sqrt(Math.max(0, disc));
-                  const t1 = (-b + sq) / (2 * a);
-                  const t2 = (-b - sq) / (2 * a);
-                  t = (t1 >= 0 && t1 <= 1) ? t1 : t2;
-                }
-                t = Math.max(0, Math.min(1, t));
-                const omt = 1 - t;
-                return omt * omt * y0 + 2 * omt * t * y1 + t * t * y2;
-              }
-            }
-            return 3;
-          }
-          // Canvas y where a blade with this x should plant its base.
-          // The wavy horizon lives in a soil-line band of SOIL_LINE_H
-          // pixels, and the canvas bottom sits CANVAS_OVERLAP below
-          // the band bottom. vbY ∈ [0,6] maps to pixels above canvas
-          // bottom linearly.
-          function bladeBaseAt(x) {
-            const vbX = ((x - BLEED) / Math.max(1, w - BLEED * 2)) * 100;
-            const vbY = soilCurveY(vbX);
-            return HEIGHT_PX - CANVAS_OVERLAP - SOIL_LINE_H + vbY * (SOIL_LINE_H / 6);
-          }
-
-          function size() {
-            const r = container.getBoundingClientRect();
-            // Render at up to 3× device pixel ratio so blade edges stay
-            // crisp on hi-DPI displays. Phones cap at 2: a 3× canvas is
-            // 2.25× the pixels for a picture that never moves.
-            const dpr = Math.min(window.devicePixelRatio || 1, liteHero ? 2 : 3);
-            // w spans the plot plus the bleed on both sides. Blades are planted only
-            // over the soil (BLEED..w-BLEED); the bleed is room for them to bend into.
-            w = Math.max(1, Math.floor(r.width)) + BLEED * 2;
-            canvas.style.setProperty("--ld-grass-bleed", BLEED + "px");
-            canvas.width  = Math.floor(w * dpr);
-            canvas.height = Math.floor(HEIGHT_PX * dpr);
-            canvas.style.width  = w + "px";
-            canvas.style.height = HEIGHT_PX + "px";
-            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = "high";
-          }
-          function positionAtSoil() {
-            // Canvas bottom sits CANVAS_OVERLAP below the earth's top edge
-            // (the soil line), so the wavy horizon is fully in view. Set in
-            // percent of the earth it lives in, so it never needs re-measuring.
-            canvas.style.bottom = `calc(100% - ${CANVAS_OVERLAP}px)`;
-          }
-          function makeBlades() {
-            blades.length = 0;
-            const soilW = w - BLEED * 2;
-            const count = Math.floor(soilW * DENSITY);
-            for (let i = 0; i < count; i++) {
-              const tall = Math.random() > 0.84;
-              // Heights are the previous 24–54 range × 0.9:
-              // most blades 22–35, tall sub-set 35–49.
-              const h = tall ? 34 + Math.random() * 14 : 22 + Math.random() * 14;
-              // Planted within the soil's width, never past its ends.
-              const x = BLEED + Math.min(soilW, Math.max(0, (i / count) * soilW + (Math.random() - 0.5) * 5));
-              const depth = Math.random();   // 0 = back, 1 = front
-              blades.push({
-                x,
-                depth,
-                // Back blades sit a hair lower so the foreground reads
-                // as standing in front of them.
-                baseY: bladeBaseAt(x) + (1 - depth) * 1.6,
-                h,
-                bw: 1.2 + depth * 1.4,        // wider for visible defined edges
-                seed: Math.random() * Math.PI * 2,
-                speed: 0.42 + Math.random() * 0.75,
-                tilt: (Math.random() - 0.5) * 0.28,
-                bend: 0,
-                bendV: 0,
-                // Brightness rises with depth, but stays well under the sprout's
-                // green so the logo carries the most attention. Per-blade jitter
-                // keeps neighbours from sharing one shade.
-                v: 0.30 + depth * 0.26 + (Math.random() - 0.5) * 0.06,
-                hueShift: (Math.random() - 0.5) * 14, // ±7 channel jitter
-              });
-            }
-            // Back-to-front so depth layering reads correctly.
-            blades.sort((a, b) => a.depth - b.depth);
-          }
-          function drawBlade(b, sway) {
-            const baseY = b.baseY;
-            const baseLean = b.tilt * 3.5 + sway * 0.24;
-            // Capped inside the bleed so a hard push can't carry the tip off the canvas.
-            const tipBend  = Math.max(-(BLEED - 6), Math.min(BLEED - 6, b.tilt * 9 + sway * 0.62 + b.bend * 3.2));
-            const tipX = b.x + tipBend;
-            const tipY = baseY - b.h;
-            const bw = b.bw;
-            ctx.beginPath();
-            ctx.moveTo(b.x - bw, baseY);
-            ctx.bezierCurveTo(
-              b.x + baseLean - bw * 0.28, baseY - b.h * 0.30,
-              tipX - bw * 0.22,           baseY - b.h * 0.70,
-              tipX,                       tipY
-            );
-            ctx.bezierCurveTo(
-              tipX + bw * 0.22,           baseY - b.h * 0.70,
-              b.x + baseLean + bw * 0.28, baseY - b.h * 0.30,
-              b.x + bw,                   baseY
-            );
-            ctx.closePath();
-            const v = b.v;
-            const r  = Math.max(8,   Math.min(255, Math.round(SPROUT_GREEN.r * v + b.hueShift * 0.6)));
-            const g  = Math.max(20,  Math.min(255, Math.round(SPROUT_GREEN.g * v + b.hueShift)));
-            const bC = Math.max(6,   Math.min(255, Math.round(SPROUT_GREEN.b * v + b.hueShift * 0.4)));
-            ctx.fillStyle = `rgb(${r}, ${g}, ${bC})`;
-            ctx.fill();
-          }
-          let frozen = false;
-          freezeGrass = () => { frozen = true; };
-          function frame(nowMs) {
-            if (!document.body.contains(canvas) || frozen) return;
-            // Off screen or tab hidden: skip the redraw, keep the loop alive.
-            if (!prefersReducedHero && !heroActive()) { requestAnimationFrame(frame); return; }
-            const t = nowMs * 0.001;
-            ctx.clearRect(0, 0, w, HEIGHT_PX);
-            const rect = canvas.getBoundingClientRect();
-            const cx = cursor.x - rect.left;
-            const cy = cursor.y - rect.top;
-            for (const b of blades) {
-              const sway = Math.sin(t * b.speed + b.seed) * 2.4;
-              const anchor = b.x + sway;
-              if (!prefersReducedHero) {
-                const dx = anchor + b.bend - cx;
-                const dy = (b.baseY - b.h / 2) - cy;
-                const d  = Math.hypot(dx, dy);
-                if (d < INTERACT) {
-                  const f = 1 - d / INTERACT;
-                  b.bendV += (dx >= 0 ? 1 : -1) * f * f * f * 0.55;
-                }
-              }
-              b.bendV += -b.bend * 0.045;
-              b.bendV *= 0.84;
-              b.bend  += b.bendV;
-              drawBlade(b, sway);
-            }
-            if (!prefersReducedHero) requestAnimationFrame(frame);
-          }
-          if (!prefersReducedHero) {
-            window.addEventListener("mousemove",  (e) => { cursor.x = e.clientX; cursor.y = e.clientY; });
-            window.addEventListener("mouseleave", () => { cursor.x = -9999; cursor.y = -9999; });
-          }
-          // Mobile browsers fire resize whenever the address bar shows or
-          // hides mid-scroll. Only a width change needs new blades; a soil
-          // line that moved just needs the canvas re-anchored, which is a
-          // style write, not a redraw.
-          let builtWidth = -1;
-          let builtEarthH = -1;
-          const rebuild = () => {
-            const width = Math.floor(container.getBoundingClientRect().width);
-            const earthH = Math.round(earthEl.getBoundingClientRect().height);
-            if (width === builtWidth) {
-              if (earthH !== builtEarthH) { builtEarthH = earthH; positionAtSoil(); }
-              return;
-            }
-            builtWidth = width;
-            builtEarthH = earthH;
-            size(); positionAtSoil(); makeBlades(); if (prefersReducedHero) frame(0);
-          };
-          window.addEventListener("resize", rebuild);
-          if (typeof ResizeObserver !== "undefined") {
-            new ResizeObserver(rebuild).observe(container);
-          }
-          rebuild();
-          if (prefersReducedHero) return;
-          requestAnimationFrame(frame);
-        }
-      }
-
-      // Sample students that fan across the top of the visual, one for each
-      // thing the headline asks about, in the same order as its WORDS. When
-      // the headline changes, the matching student moves into the center
-      // card and the roots below become their skills; the ones that match
-      // the headline light up.
-      const STUDENT_POOL = [
-        { name: "Maya Rodriguez", tagline: "Marketing · State College",           avatar: "MR",
-          skills: ["Instagram", "Content creation", "TikTok", "Captions", "Video editing", "Canva"], match: ["Instagram", "Content creation"] },
-        { name: "Chris Thompson", tagline: "Computer science · Tech Institute",   avatar: "CT",
-          skills: ["Website setup", "Squarespace", "Wix", "Online ordering", "Shopify", "HTML and CSS"], match: ["Website setup", "Squarespace", "Wix"] },
-        { name: "Nina Ortiz",     tagline: "Information systems · State College", avatar: "NO",
-          skills: ["Shopify", "Online store", "Product listings", "Product photos", "Email marketing", "Pricing"], match: ["Shopify", "Online store", "Product listings"] },
-        { name: "Aisha Bello",    tagline: "Graphic design · State College",      avatar: "AB",
-          skills: ["Logos", "Branding", "Menu design", "Signage", "Canva", "Graphic design"], match: ["Logos", "Branding"] },
-        { name: "Leo Martin",     tagline: "Computer science · Tech Institute",   avatar: "LM",
-          skills: ["Online booking", "Calendly", "Squarespace", "Website setup", "Google listings", "Email reminders"], match: ["Online booking", "Calendly"] },
-        { name: "Grace Liu",      tagline: "Information systems · State College", avatar: "GL",
-          skills: ["Inventory tracking", "Airtable", "Spreadsheets", "Barcode labels", "Bookkeeping", "Reports"], match: ["Inventory tracking", "Airtable", "Spreadsheets"] },
+      // ── Hero search demo ─────────────────────────────────────────
+      // One sample student per thing the headline asks about, in the same
+      // order as its WORDS. Every few seconds the headline, the search box
+      // and the student change together with one gentle fade. It holds
+      // while the pointer is over the demo or the hero is off screen.
+      const DEMO = [
+        { q: "Instagram", ini: "MR", color: "#b5673a", name: "Maya Rodriguez", school: "Marketing · State College", rating: "4.9", reviews: 6,
+          line: "I make Instagram and TikTok content that gets local cafes and shops noticed.", from: "$150",
+          strengths: ["Instagram", "Content creation", "TikTok", "Captions", "Canva"], match: ["Instagram", "Content creation"] },
+        { q: "A website", ini: "CT", color: "#3b6b4f", name: "Chris Thompson", school: "Computer science · Tech Institute", rating: "4.8", reviews: 5,
+          line: "Simple websites and online ordering that owners can update themselves.", from: "$250",
+          strengths: ["Website setup", "Squarespace", "Wix", "Online ordering", "Shopify"], match: ["Website setup", "Squarespace", "Wix"] },
+        { q: "An online store", ini: "NO", color: "#2a6170", name: "Nina Ortiz", school: "Information systems · State College", rating: "4.9", reviews: 4,
+          line: "I set up online stores and product listings that are easy to keep up.", from: "$200",
+          strengths: ["Shopify", "Online store", "Product listings", "Product photos", "Pricing"], match: ["Shopify", "Online store", "Product listings"] },
+        { q: "A logo", ini: "AB", color: "#b9577a", name: "Aisha Bello", school: "Graphic design · State College", rating: "4.9", reviews: 7,
+          line: "Logos, menus and signs that look like they belong to you.", from: "$90",
+          strengths: ["Logos", "Branding", "Menu design", "Signage", "Canva"], match: ["Logos", "Branding"] },
+        { q: "A booking page", ini: "LM", color: "#4f6b8a", name: "Leo Martin", school: "Computer science · Tech Institute", rating: "4.7", reviews: 3,
+          line: "I set up online booking so customers can schedule without calling.", from: "$120",
+          strengths: ["Online booking", "Calendly", "Squarespace", "Google listings", "Email reminders"], match: ["Online booking", "Calendly"] },
+        { q: "An inventory app", ini: "GL", color: "#8a6d2f", name: "Grace Liu", school: "Information systems · State College", rating: "5.0", reviews: 2,
+          line: "I build simple inventory trackers so you always know what's in stock.", from: "$180",
+          strengths: ["Inventory tracking", "Airtable", "Spreadsheets", "Barcode labels", "Reports"], match: ["Inventory tracking", "Airtable", "Spreadsheets"] },
       ];
-      const CARD_STAT_LABEL = "Strengths";
-      const cardsRoot = document.getElementById("ld-hero-cards");
-      const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-      const canHover = window.matchMedia?.("(hover: hover)").matches;
-      if (cardsRoot) {
-        function fillCard(card, B) {
-          card.dataset.name = B.name;
-          card.querySelector(".ld-hero-card__avatar").textContent  = B.avatar;
-          card.querySelector(".ld-hero-card__name").textContent    = B.name;
-          card.querySelector(".ld-hero-card__tagline").textContent = B.tagline;
-          card.querySelector(".ld-hero-card__stat-label").textContent = CARD_STAT_LABEL;
-          card.querySelector(".ld-hero-card__project").textContent    = B.skills.slice(0, 3).join(", ");
-        }
-        function makeCard(B, slotClass) {
-          const el = document.createElement("div");
-          el.className = "ld-hero-card " + slotClass;
-          el.innerHTML = `
-            <div class="ld-hero-card__head">
-              <span class="ld-hero-card__avatar"></span>
-              <div class="ld-hero-card__name-block">
-                <div class="ld-hero-card__name"></div>
-                <div class="ld-hero-card__tagline"></div>
-              </div>
-            </div>
-            <div class="ld-hero-card__stat"><span class="ld-hero-card__stat-label"></span><span class="ld-hero-card__project"></span></div>`;
-          fillCard(el, B);
-          return el;
-        }
-        function setSlot(card, slotClass) {
-          card.classList.remove("s-off-left", "s-left", "s-center", "s-right", "s-off-right");
-          card.classList.add(slotClass);
-        }
-
-        // Seed three visible cards: the headline starts on the first word, so
-        // the first student sits in the center.
-        const N = STUDENT_POOL.length;
-        let cards = [
-          makeCard(STUDENT_POOL[N - 1], "s-left"),
-          makeCard(STUDENT_POOL[0], "s-center"),
-          makeCard(STUDENT_POOL[1 % N], "s-right"),
-        ];
-        cards.forEach((c) => cardsRoot.appendChild(c));
-
-        // Moves student i into the center. Only the shared tick below calls it.
-        function rotate(i) {
-          const [leftCard, centerCard, rightCard] = cards;
-          // A skipped turn (hover, scrolling, off screen) leaves the wrong
-          // student waiting on the right; swap them in before they move.
-          if (rightCard.dataset.name !== STUDENT_POOL[i].name) fillCard(rightCard, STUDENT_POOL[i]);
-          // Spawn the new card pre-positioned off-screen right so the
-          // first transition step has somewhere to animate FROM.
-          const newCard = makeCard(STUDENT_POOL[(i + 1) % N], "s-off-right");
-          cardsRoot.appendChild(newCard);
-
-          // Next frame: trigger the morph by changing each slot.
-          //   left   → off-left (fades + slides further left)
-          //   center → left     (collapses, accent panel fades out)
-          //   right  → center   (expands, gains accent panel)
-          //   new    → right    (slides in collapsed from off-right)
-          requestAnimationFrame(() => {
-            setSlot(leftCard,   "s-off-left");
-            setSlot(centerCard, "s-left");
-            setSlot(rightCard,  "s-center");
-            setSlot(newCard,    "s-right");
-          });
-
-          // Drop the exited card after the transition settles.
-          setTimeout(() => leftCard.remove(), 900);
-          cards = [centerCard, rightCard, newCard];
-        }
-
-        // Hold still while someone is hovering a card so it doesn't slide out
-        // from under them. Mouse devices only: touch browsers leave :hover
-        // stuck on the last card a finger brushed while scrolling. No point
-        // moving anything nobody can see, and never mid-scroll: a running
-        // card transition makes the browser re-layer the page, and budget
-        // phones painted blank frames during flings.
-        window.ldHeroCanAdvance = () =>
-          !(canHover && cardsRoot.querySelector(".ld-hero-card:hover")) &&
-          heroActive() && performance.now() - lastScrollAt >= 900;
-        window.ldHeroRotate = (i) => rotate(i % N);
-      }
-
-      // ── Skill labels on the roots ────────────────────────────────
-      // Each root carries one of the center student's skills, and the ones
-      // that match the headline light up. The roots hold still in the hero
-      // (no sway or dragging), so labels are placed once per student and on
-      // resize; following swaying roots made the labels hop sides.
-      if (garden) {
-        const plot = garden.querySelector(".gs__plot");
-        const nodes = [...garden.querySelectorAll(".gs__root-node")];
-        const layer = document.createElement("div");
-        layer.className = "ld-hero__skills";
-        layer.setAttribute("aria-hidden", "true");
-        const labels = nodes.map(() => {
-          const el = document.createElement("span");
-          el.className = "ld-hero__skill";
-          layer.appendChild(el);
-          return el;
-        });
-        if (plot) plot.appendChild(layer);
-        // Each label sits beside its root, on the side away from the trunk.
-        // If it would overlap another label or a root dot, it tries the
-        // other side, then moves down until it's clear.
-        const place = () => {
-          if (!plot) return;
-          const p = plot.getBoundingClientRect();
-          // The root dots count as taken space, so no label covers one.
-          const placed = nodes.map((n) => { const r = n.getBoundingClientRect(); return { x: r.left - p.left - 4, y: r.top - p.top - 4, w: r.width + 8, h: r.height + 8 }; });
-          const hits = (r) => placed.some((q) => r.x < q.x + q.w + 4 && q.x < r.x + r.w + 4 && r.y < q.y + q.h + 3 && q.y < r.y + r.h + 3);
-          const order = nodes.map((n, k) => {
-            const r = n.getBoundingClientRect();
-            return { k, x: r.left + r.width / 2 - p.left, y: r.top + r.height / 2 - p.top };
-          }).sort((a, b) => a.y - b.y);
-          for (const { k, x, y } of order) {
-            const el = labels[k];
-            const w = el.offsetWidth, h = el.offsetHeight;
-            const at = (left, dy) => ({ x: left ? x - 14 - w : x + 14, y: y - h / 2 + dy, w, h });
-            const first = x < p.width / 2;
-            let r = at(first, 0);
-            if (hits(r)) r = at(!first, 0);
-            for (let dy = 4; hits(r) && dy <= 80; dy += 4) r = at(first, dy);
-            placed.push(r);
-            el.style.transform = `translate(${Math.round(r.x)}px, ${Math.round(r.y)}px)`;
-          }
+      const demo = document.getElementById("ld-demo");
+      if (demo) {
+        const $d = (id) => document.getElementById(id);
+        const card = $d("ld-demo-card"), q = $d("ld-demo-q");
+        const fill = (i) => {
+          const s = DEMO[i % DEMO.length];
+          q.textContent = s.q;
+          $d("ld-demo-ava").textContent = s.ini;
+          $d("ld-demo-ava").style.background = s.color;
+          $d("ld-demo-name").textContent = s.name;
+          $d("ld-demo-school").textContent = s.school;
+          $d("ld-demo-rating").textContent = s.rating;
+          $d("ld-demo-reviews").textContent = `(${s.reviews} reviews)`;
+          $d("ld-demo-line").textContent = s.line;
+          $d("ld-demo-from").textContent = s.from;
+          $d("ld-demo-chips").innerHTML = s.strengths
+            .map((k) => `<span class="ld-demo__chip${s.match.includes(k) ? " is-match" : ""}">${k}</span>`)
+            .join("");
         };
-        const show = (i) => {
-          const st = STUDENT_POOL[i % STUDENT_POOL.length];
-          layer.classList.add("is-out");
-          setTimeout(() => {
-            labels.forEach((el, k) => {
-              const skill = st.skills[k] || "";
-              el.textContent = skill;
-              el.classList.toggle("is-match", st.match.includes(skill));
-            });
-            place();
-            layer.classList.remove("is-out");
-          }, 260);
-        };
-        show(0);
-        window.ldHeroShowSkills = show;
-        addEventListener("resize", place);
-        if (document.fonts) document.fonts.ready.then(place);
-      }
-
-      // ── The hero clock ─────────────────────────────────────────────
-      // One tick moves the headline, the center student and the root skills
-      // together. If a tick is skipped (hover, scroll, off screen), all three
-      // wait, so they can never disagree.
-      if (!reduced && window.ldHeroRotate) {
-        let need = 0;
-        const total = window.ldHeroWordCount || STUDENT_POOL.length;
-        setInterval(() => {
-          if (!window.ldHeroCanAdvance()) return;
-          need = (need + 1) % total;
-          window.ldHeroWord?.(need);
-          window.ldHeroRotate(need);
-          window.ldHeroShowSkills?.(need);
-        }, 4400);
+        fill(0);
+        if (!reduced) {
+          let need = 0;
+          const hovering = () => demo.matches(":hover");
+          setInterval(() => {
+            if (!heroActive() || hovering()) return;
+            need = (need + 1) % DEMO.length;
+            window.ldHeroWord?.(need);
+            demo.classList.add("is-out");
+            setTimeout(() => { fill(need); demo.classList.remove("is-out"); }, 280);
+          }, 5000);
+        }
       }
 
       // ── Watchdog: desktops the <head> check let through but that can't
-      // keep the hero near 30fps get the lite version. Samples ~2s of
-      // on-screen frames (at least 20, so slow machines decide fast too),
-      // then decides once.
+      // keep the hero near 30fps get the lite version (still clouds and
+      // background). Samples ~2s of on-screen frames, then decides once.
       if (!liteHero) {
         const samples = [];
         let last = 0;
@@ -1222,12 +839,7 @@
           last = now;
           if (samples.length < 20 || watched < 2000) { requestAnimationFrame(watch); return; }
           samples.sort((a, b) => a - b);
-          const median = samples[samples.length >> 1];
-          if (median > 33) {
-            document.documentElement.classList.add("ld-lite");
-            gardenStem?.freeze();
-            freezeGrass();
-          }
+          if (samples[samples.length >> 1] > 33) document.documentElement.classList.add("ld-lite");
         };
         requestAnimationFrame(watch);
       }
@@ -1311,15 +923,13 @@
     <script defer src="/perf-beacon.js"></script>
 
     <script>
-      // hero: rotate the thing the owner is missing (the student cards and
-      // root skills follow it).
+      // hero: rotate the thing the owner is missing (the search demo follows it).
       (() => {
         const rot = document.getElementById("ld-hero-rot");
         const word = document.getElementById("ld-hero-rot-word");
         const WORDS = ["an Instagram", "a website", "an online store", "a logo", "a booking page", "an inventory app"];
-        // The hero's clock lives in the garden script, which calls this so
-        // the headline, the center student and the root skills always change
-        // together (and all hold while someone hovers a card or scrolls).
+        // The hero demo's clock calls this, so the headline, the search box
+        // and the sample student always change together.
         window.ldHeroWord = (i) => {
           if (!rot || !word) return;
           rot.classList.add("is-out");

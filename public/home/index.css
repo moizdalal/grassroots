@@ -683,18 +683,46 @@
       .ld-hero__rot.is-in  { opacity: 0; transform: translateY(.28em); transition: none; }
       .ld-hero__title--ask ~ .ld-hero__sub { max-width: 40ch; }
 
-      /* ── hero roots: the center student's skills ──
-         One label per root node, placed by the script; the ones that match
-         the headline are filled green. The garden's own hover card is about
-         paid projects, so the hero hides it. */
-      .ld-hero__garden .gs__hover { display: none; }
-      .ld-hero__skills { position: absolute; inset: 0; pointer-events: none; z-index: 7; transition: opacity 0.25s ease; }
-      .ld-hero__skills.is-out { opacity: 0; }
-      .ld-hero__skill { position: absolute; left: 0; top: 0; white-space: nowrap; padding: 4px 10px; border-radius: 999px; font-family: var(--font-body); font-size: 0.78rem; font-weight: 600; color: var(--fo-text-2); background: color-mix(in srgb, var(--fo-bg) 82%, transparent); border: 1px solid var(--fo-line-strong); transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
-      .ld-hero__skill:empty { display: none; }
-      .ld-hero__skill.is-match { background: var(--fo-accent); border-color: var(--fo-accent); color: var(--fo-accent-on); }
+      /* ── hero demo: a search and the student who answers it ──
+         A small app window: the search box, then one student card. It
+         fades between samples; nothing slides or pulses. */
+      .ld-hero__visual--find { max-width: 480px; justify-content: center; }
+      @media (max-width: 900px) { .ld-hero__visual.ld-hero__visual--find { aspect-ratio: auto; } }
+      .ld-demo { display: flex; flex-direction: column; gap: 14px; transition: opacity 0.28s ease, transform 0.28s ease; }
+      .ld-demo.is-out .ld-demo__card, .ld-demo.is-out .ld-demo__q { opacity: 0; transform: translateY(6px); }
+      .ld-demo__card, .ld-demo__q { transition: opacity 0.28s ease, transform 0.28s ease; }
+      .ld-demo__bar { display: flex; align-items: center; gap: 12px; height: 58px; padding: 0 22px; border-radius: 999px; border: 1.5px solid var(--fo-accent); background: var(--fo-surface); box-shadow: 0 0 0 4px var(--fo-accent-soft); font-size: 1.1rem; color: var(--fo-text); }
+      .ld-demo__icon { width: 20px; height: 20px; color: var(--fo-text-3); flex-shrink: 0; }
+      .ld-demo__q { display: inline-block; }
+      .ld-demo__q::after { content: ""; display: inline-block; width: 2px; height: 1.1em; margin-left: 3px; vertical-align: -0.18em; background: var(--fo-accent); }
+      .ld-demo__card { display: flex; flex-direction: column; gap: 14px; padding: 24px; border-radius: 22px; border: 1px solid var(--fo-line-strong); background: var(--fo-surface); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22); }
+      :root:not([data-theme="light"]) .ld-demo__card { background: var(--fo-surface-2); }
+      [data-theme="light"] .ld-demo__card { box-shadow: 0 24px 60px rgba(20, 32, 26, 0.12); }
+      .ld-demo__head { display: flex; align-items: center; gap: 14px; }
+      .ld-demo__ava { flex-shrink: 0; width: 68px; height: 68px; border-radius: 18px; display: grid; place-items: center; font-family: var(--font-display); font-weight: 600; font-size: 1.5rem; color: #fff; background: #b5673a; }
+      .ld-demo__who { min-width: 0; flex: 1; }
+      .ld-demo__name { font-family: var(--font-display); font-weight: 600; font-size: 1.35rem; line-height: 1.15; color: var(--fo-text); }
+      .ld-demo__school { font-size: 0.9rem; color: var(--fo-text-2); margin-top: 3px; }
+      .ld-demo__rating { font-size: 0.88rem; color: var(--fo-text-2); margin-top: 4px; }
+      .ld-demo__rating b { color: var(--fo-text); }
+      .ld-demo__star { color: #e8b03c; }
+      .ld-demo__best { align-self: flex-start; flex-shrink: 0; padding: 4px 11px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; color: var(--fo-accent); background: color-mix(in srgb, var(--fo-accent) 14%, transparent); }
+      :root:not([data-theme="light"]) .ld-demo__best { color: #5fbf8f; }
+      .ld-demo__line { margin: 0; font-size: 1rem; line-height: 1.5; color: var(--fo-text); }
+      .ld-demo__label { font-size: 0.88rem; font-weight: 600; color: var(--fo-text-2); margin-bottom: -6px; }
+      .ld-demo__chips { display: flex; flex-wrap: wrap; gap: 7px; }
+      .ld-demo__chip { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--fo-line-strong); font-size: 0.86rem; color: var(--fo-text-2); }
+      .ld-demo__chip.is-match { background: var(--fo-accent); border-color: var(--fo-accent); color: var(--fo-accent-on); }
+      .ld-demo__foot { display: flex; justify-content: space-between; align-items: baseline; padding-top: 12px; border-top: 1px solid var(--fo-line); font-size: 0.92rem; color: var(--fo-text-2); }
+      .ld-demo__foot b { font-family: var(--font-display); font-weight: 600; font-size: 1.35rem; color: var(--fo-accent); margin-left: 3px; }
+      :root:not([data-theme="light"]) .ld-demo__foot b { color: #5fbf8f; }
+      .ld-demo__view { font-weight: 700; color: var(--fo-text); }
       .ld-hero__sample { color: var(--fo-text-3); }
-      @media (max-width: 480px) { .ld-hero__skill { font-size: 0.7rem; padding: 3px 8px; } }
+      @media (max-width: 480px) {
+        .ld-demo__card { padding: 18px; }
+        .ld-demo__ava { width: 56px; height: 56px; font-size: 1.25rem; }
+        .ld-demo__best { display: none; }
+      }
 
       /* ── hero search: what do you need help with? ──
          Replaces the two buttons. The box holds the input and the button; the
