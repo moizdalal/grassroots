@@ -60,7 +60,7 @@
     <link rel="stylesheet" href="/field-office.css?v=2" />
     <link rel="stylesheet" href="/garden-stem.css?v=2" />
     <link rel="stylesheet" href="/home/nav.css?v=7" />
-    <link rel="stylesheet" href="/home/index.css?v=39" />
+    <link rel="stylesheet" href="/home/index.css?v=42" />
     <script src="/theme.js?v=2"></script>
     <script src="/home/theme-default.js?v=2"></script>
     <script>
@@ -209,25 +209,42 @@
             <span class="ld-hero__title-line" aria-hidden="true">A student wants to help.</span>
           </h1>
           <p class="ld-hero__sub ld-reveal">
-            Start from nothing. A local college student builds it with you, and Grassroots holds your payment until you approve the work.
+            Not sure exactly what you need? Search for it roughly, and a local college student will help you figure out the rest. Grassroots holds your payment until you approve the work.
           </p>
-          <div class="ld-hero__ctas ld-reveal">
-            <a class="gr-btn gr-btn--primary gr-btn--lg" href="/register.html?role=owner">Post a project</a>
-            <!-- handwritten pointer at "Post a project". Sits between the buttons
-                 so phones (stacked buttons) show it under the right one; CSS moves
-                 it below both buttons on wider screens. -->
-            <p class="ld-start" id="ld-start">
-              <svg class="ld-start__arrow" viewBox="0 0 60 128" fill="none" preserveAspectRatio="none" aria-hidden="true">
-                <path d="M53 120 C22 116 6 84 8 8"/>
-                <path d="M1.5 17 L8 6 L15 16.5"/>
-              </svg>
-              <svg class="ld-start__up" viewBox="0 0 24 36" fill="none" aria-hidden="true">
-                <path d="M12 33 C10 24 13 14 12 4"/>
-                <path d="M5 12 L12 3 L19 11.5"/>
-              </svg>
-              <span class="ld-start__text">Start here if you're a business owner</span>
-            </p>
-            <a class="gr-btn gr-btn--ghost gr-btn--lg" href="/marketplace.html?guest=1">See what's live</a>
+          <!-- search first: businesses describe what they need roughly and see
+               the students whose keywords match. It opens the student directory
+               sketch until the real directory exists. -->
+          <div class="ld-hero__ctas ld-hero__ctas--find ld-reveal">
+            <form class="ld-find" action="/student-profile-sketch.html" method="get" role="search">
+              <label class="ld-sr" for="ld-find-q">What do you need help with?</label>
+              <div class="ld-find__box">
+                <svg class="ld-find__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input class="ld-find__input" id="ld-find-q" name="q" type="search" placeholder="What do you need help with?" autocomplete="off" />
+                <button class="gr-btn gr-btn--primary ld-find__btn" type="submit">Find students</button>
+              </div>
+              <!-- handwritten pointer at "Find students". It sits right under
+                   the button with a short arrow, so it never crosses the text. -->
+              <p class="ld-start" id="ld-start">
+                <svg class="ld-start__arrow" viewBox="0 0 60 128" fill="none" preserveAspectRatio="none" aria-hidden="true">
+                  <path d="M53 120 C22 116 6 84 8 8"/>
+                  <path d="M1.5 17 L8 6 L15 16.5"/>
+                </svg>
+                <svg class="ld-start__up" viewBox="0 0 24 36" fill="none" aria-hidden="true">
+                  <path d="M12 33 C10 24 13 14 12 4"/>
+                  <path d="M5 12 L12 3 L19 11.5"/>
+                </svg>
+                <span class="ld-start__text">Start here if you're a business owner</span>
+              </p>
+              <div class="ld-find__try">
+                <span class="ld-find__try-label">Try</span>
+                <a class="ld-find__chip" href="/student-profile-sketch.html?q=social+media">Social media</a>
+                <a class="ld-find__chip" href="/student-profile-sketch.html?q=logos">Logos</a>
+                <a class="ld-find__chip" href="/student-profile-sketch.html?q=bookkeeping">Bookkeeping</a>
+                <a class="ld-find__chip" href="/student-profile-sketch.html?q=website">A website</a>
+                <a class="ld-find__chip" href="/student-profile-sketch.html?q=photos">Photos</a>
+              </div>
+            </form>
+            <p class="ld-find__post">Know exactly what you need? <a href="/register.html?role=owner">Post a project</a> and students will send you offers.</p>
           </div>
 
           <div class="ld-trust-row ld-reveal" aria-label="Recent activity" hidden data-placeholder="Real weekly business count and number of towns">
@@ -492,14 +509,16 @@
       </div>
     </section>
 
-    <!-- ── marketplace peek ────────────────────────────────── -->
+    <!-- ── student peek: a scrolling row of student cards ──────
+         sample profiles until real students have them; each opens the
+         directory sketch. -->
     <section class="ld-section ld-peek" aria-labelledby="ld-peek-title" data-vine-anchor="field">
       <div class="ld-shell">
         <div class="ld-section__head ld-reveal">
-          <h2 class="ld-section__title" id="ld-peek-title">What's on the field this week</h2>
-          <p class="ld-section__sub">Example listings to show how projects look. Post yours to get real bids from local students.</p>
-          <p class="ld-peek__note">* Sample listings. These businesses aren't real.</p>
-          <p class="ld-section__sub" hidden data-placeholder="Use once these listings are real">A sample of open listings from across the network. Real businesses, real budgets, real students.</p>
+          <h2 class="ld-section__title" id="ld-peek-title">Students ready to help</h2>
+          <p class="ld-section__sub">Each student shows what they're good at, what they've done and what they charge, so you can pick the one who fits.</p>
+          <p class="ld-peek__note">* Sample students. These aren't real profiles yet.</p>
+          <p class="ld-section__sub" hidden data-placeholder="Use once these profiles are real">A few of the students near you who are ready to take on a project.</p>
         </div>
       </div>
 
@@ -509,7 +528,7 @@
 
       <div class="ld-shell">
         <div class="ld-peek__cta-row">
-          <a class="gr-btn gr-btn--secondary gr-btn--lg" href="/marketplace.html?guest=1">Browse the full marketplace</a>
+          <a class="gr-btn gr-btn--secondary gr-btn--lg" href="/student-profile-sketch.html">Browse all students</a>
         </div>
       </div>
     </section>
@@ -706,16 +725,16 @@
 
     <script id="ld-peek-data" type="application/json">
       [
-        {"biz":"Side Street Coffee","logo":"SS","title":"Menu redesign + window decals","budget":"$240","contract":"One time","tags":["Design","Print"],"eyebrow":"Posted 2h ago"},
-        {"biz":"North End Bikes","logo":"NB","title":"Shopify cleanup + product photos","budget":"$450","contract":"Phased","tags":["Shopify","Photo"],"eyebrow":"Posted today"},
-        {"biz":"Rooster & Rye","logo":"RR","title":"Weekly social posts retainer","budget":"$320/mo","contract":"Retainer","tags":["Social"],"eyebrow":"Open"},
-        {"biz":"Marigold Florals","logo":"MF","title":"Brand refresh + new logo","budget":"$600","contract":"Phased","tags":["Brand","Logo"],"eyebrow":"5 bids"},
-        {"biz":"Split / Fix Shop","logo":"SF","title":"Market research for new location","budget":"$520","contract":"One time","tags":["Research"],"eyebrow":"Posted yesterday"},
-        {"biz":"Alma Kitchen","logo":"AK","title":"Site copy + photo direction","budget":"$380","contract":"One time","tags":["Copy","Photo"],"eyebrow":"8 bids"}
+        {"id":"maya","name":"Maya Rodriguez","ini":"MR","tone":1,"school":"Marketing · State College","rating":"4.9","reviews":6,"headline":"I make Instagram and TikTok content that gets local cafes and shops noticed.","from":"$150","tags":["Instagram","TikTok","Content creation"]},
+        {"id":"jordan","name":"Jordan Park","ini":"JP","tone":2,"school":"Accounting · State College","rating":"5.0","reviews":4,"headline":"I help small businesses get their books and prices in order.","from":"$120","tags":["Bookkeeping","QuickBooks","Pricing"]},
+        {"id":"aisha","name":"Aisha Bello","ini":"AB","tone":3,"school":"Graphic design · State College","rating":"4.9","reviews":7,"headline":"Logos, menus and signs that look like they belong to you.","from":"$90","tags":["Logos","Branding","Menu design"]},
+        {"id":"chris","name":"Chris Thompson","ini":"CT","tone":4,"school":"Computer science · Tech Institute","rating":"4.8","reviews":5,"headline":"Simple websites and online ordering for restaurants and shops.","from":"$250","tags":["Website setup","Shopify","Online ordering"]},
+        {"id":"sam","name":"Sam Lee","ini":"SL","tone":5,"school":"Film · State College","rating":"4.7","reviews":3,"headline":"Short videos and photos that show off what you make.","from":"$100","tags":["Short videos","Product photos","TikTok"]},
+        {"id":"priya","name":"Priya Nair","ini":"PN","tone":6,"school":"Business · State College","rating":"4.8","reviews":4,"headline":"Flyers, promotions and Google listings that bring people through the door.","from":"$90","tags":["Flyers","Promotions","Google listings"]}
       ]
     </script>
 
-    <script src="/home/landing.js?v=3" defer></script>
+    <script src="/home/landing.js?v=4" defer></script>
     <script>
       // CTA form: fake submit (no backend), show success state in-place.
       (function () {
@@ -1261,7 +1280,7 @@
           }, 2400);
         }
         const note = document.getElementById("ld-start");
-        const btn = document.querySelector(".ld-hero__ctas .gr-btn--primary");
+        const btn = document.querySelector(".ld-hero__ctas .ld-find__btn");
         const aim = () => {
           if (!note || !btn) return;
           const b = btn.getBoundingClientRect(), n = note.getBoundingClientRect();

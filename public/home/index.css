@@ -683,6 +683,45 @@
       .ld-hero__rot.is-in  { opacity: 0; transform: translateY(.28em); transition: none; }
       .ld-hero__title--ask ~ .ld-hero__sub { max-width: 40ch; }
 
+      /* ── hero search: what do you need help with? ──
+         Replaces the two buttons. The box holds the input and the button; the
+         popular searches sit under it, and posting a project is a quiet link. */
+      .ld-hero__ctas--find { flex-direction: column; flex-wrap: nowrap; align-items: stretch; max-width: 600px; gap: var(--space-2); }
+      .ld-find { display: flex; flex-direction: column; gap: 0.9rem; }
+      .ld-find__box { position: relative; display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 50px; border-radius: 999px; border: 1.5px solid var(--fo-line-strong); background: var(--fo-surface); box-shadow: 0 14px 34px rgba(0, 0, 0, 0.18); transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+      [data-theme="light"] .ld-find__box { box-shadow: 0 14px 34px rgba(20, 32, 26, 0.10); }
+      .ld-find__box:focus-within { border-color: var(--fo-accent); box-shadow: 0 0 0 4px var(--fo-accent-soft); }
+      .ld-find__icon { position: absolute; left: 20px; top: 50%; width: 20px; height: 20px; transform: translateY(-50%); color: var(--fo-text-3); }
+      .ld-find__input { flex: 1; min-width: 0; height: 48px; padding: 0; border: 0; background: transparent; color: var(--fo-text); font: inherit; font-size: 1.05rem; line-height: 48px; outline: none; -webkit-appearance: none; appearance: none; }
+      .ld-find__input::placeholder { color: var(--fo-text-3); }
+      .ld-find__input::-webkit-search-cancel-button { display: none; }
+      .ld-hero__ctas .ld-find__btn { flex-shrink: 0; padding: 0.85rem 1.5rem; }
+      .ld-find__try { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+      .ld-find__try-label { font-size: 0.92rem; color: var(--fo-text-3); margin-right: 2px; }
+      .ld-find__chip { padding: 6px 13px; border-radius: 999px; border: 1px solid var(--fo-line-strong); color: var(--fo-text-2); font-size: 0.9rem; text-decoration: none; transition: border-color 0.2s ease, color 0.2s ease; }
+      .ld-find__chip:hover, .ld-find__chip:focus-visible { border-color: var(--fo-accent); color: var(--fo-accent); }
+      .ld-find__post { order: 2; margin: 0; font-size: 0.98rem; color: var(--fo-text-2); }
+      .ld-find__post a { color: var(--fo-text); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--fo-line-strong); }
+      .ld-find__post a:hover { color: var(--fo-accent); text-decoration-color: currentColor; }
+      /* the handwritten note: a short arrow up to "Find students", the words
+         under it, both lined up with the button's middle */
+      .ld-hero__ctas--find .ld-start { order: 0; height: auto; margin: -2px 0 0; padding-right: max(0px, calc(70px - 7.5ch)); display: flex; flex-direction: column; align-items: flex-end; gap: 0.1rem; font-size: 1.45rem; }
+      .ld-hero__ctas--find .ld-start__arrow { display: none; }
+      .ld-hero__ctas--find .ld-start__up { display: block; width: 18px; height: 28px; margin-right: calc(7.5ch - 9px); }
+      .ld-hero__ctas--find .ld-start__text { position: static; transform: rotate(-2deg); }
+      @media (max-width: 720px) {
+        .ld-hero__ctas--find { margin-inline: auto; }
+        .ld-hero__ctas--find .ld-start { align-items: center; padding-right: 0; }
+        .ld-hero__ctas--find .ld-start__up { margin-right: 0; }
+        .ld-find__try, .ld-find__post { justify-content: center; text-align: center; }
+      }
+      @media (max-width: 480px) {
+        .ld-find__box { flex-direction: column; align-items: stretch; padding: 6px; border-radius: 22px; }
+        .ld-find__icon { top: 30px; }
+        .ld-find__input { padding-left: 44px; }
+        .ld-hero__ctas .ld-find__btn { width: 100%; }
+      }
+
       /* ── "start here" note: handwritten, arrow aimed at the middle of
          "Post a project". --cx = button center from the note's left edge
          (set by the script at the bottom of index.html). Wide screens: it
@@ -2639,6 +2678,28 @@
         color: var(--fo-text-2); white-space: nowrap;
       }
       .ld-peek__cta-row { display: flex; justify-content: center; margin-top: var(--space-4); }
+
+      /* student cards in the strip: photo spot, name, rating, headline,
+         keywords, starting price */
+      .ld-peek-card.ld-stu { grid-template-rows: auto 1fr auto auto; gap: 0.85rem; }
+      .ld-stu__head { display: flex; align-items: center; gap: 0.85rem; }
+      .ld-stu__ava { flex-shrink: 0; width: 64px; height: 64px; border-radius: 16px; display: grid; place-items: center; font-family: var(--font-display); font-weight: 600; font-size: 1.4rem; color: #fff; }
+      .ld-stu__ava--1 { background: #b5673a; }
+      .ld-stu__ava--2 { background: #2a6170; }
+      .ld-stu__ava--3 { background: #b9577a; }
+      .ld-stu__ava--4 { background: #3b6b4f; }
+      .ld-stu__ava--5 { background: #6b4a33; }
+      .ld-stu__ava--6 { background: #7a5a9e; }
+      .ld-stu__who { min-width: 0; }
+      .ld-stu__name { font-family: var(--font-display); font-weight: 600; font-size: 1.2rem; line-height: 1.15; margin: 0; color: var(--fo-text); }
+      .ld-stu__school { font-size: 0.86rem; color: var(--fo-text-2); margin-top: 2px; }
+      .ld-stu__rating { font-size: 0.84rem; color: var(--fo-text); margin-top: 4px; }
+      .ld-stu__rating > span:first-child { color: #e8b03c; }
+      .ld-stu__rating > span:last-child { color: var(--fo-text-2); }
+      .ld-stu__headline { margin: 0; font-size: 0.96rem; line-height: 1.5; color: var(--fo-text); }
+      .ld-stu__foot { display: flex; justify-content: space-between; align-items: baseline; padding-top: 0.75rem; border-top: 1px solid var(--fo-line); font-size: 0.9rem; color: var(--fo-text-2); }
+      .ld-stu__foot b { font-family: var(--font-display); font-weight: 600; font-size: 1.25rem; color: var(--fo-accent); margin-left: 3px; }
+      .ld-stu__view { font-weight: 700; }
 
       /* ── escrow / trust — sticky pinned scene ──────────────────
          keeps the sticky scrub + status pills + page bg + balances

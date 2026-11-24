@@ -475,6 +475,9 @@
         try { localStorage.setItem("grassroots_theme", next); } catch (_) {}
       });
       $("try").insertAdjacentHTML("beforeend", POPULAR.map((p) => `<button type="button" class="chip" data-q="${esc(p.toLowerCase())}">${esc(p)}</button>`).join(""));
+      // A search from the home page arrives as ?q=...
+      const fromHome = new URLSearchParams(location.search).get("q");
+      if (fromHome) $("q").value = fromHome;
       window.addEventListener("hashchange", route);
       route();
     </script>
