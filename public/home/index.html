@@ -59,7 +59,7 @@
     <link rel="stylesheet" href="/grassroots.css?v=2" />
     <link rel="stylesheet" href="/field-office.css?v=2" />
     <link rel="stylesheet" href="/home/nav.css?v=7" />
-    <link rel="stylesheet" href="/home/index.css?v=51" />
+    <link rel="stylesheet" href="/home/index.css?v=53" />
     <script src="/theme.js?v=2"></script>
     <script src="/home/theme-default.js?v=2"></script>
     <script>
@@ -250,10 +250,7 @@
                need; it changes with the headline (script at the bottom). -->
           <div class="ld-hero__visual ld-hero__visual--find">
             <div class="ld-demo" id="ld-demo" aria-hidden="true">
-              <div class="ld-demo__bar">
-                <svg class="ld-demo__icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                <span class="ld-demo__q" id="ld-demo-q">Instagram</span>
-              </div>
+              <p class="ld-demo__for">Best match for <b id="ld-demo-q">Instagram</b></p>
               <div class="ld-demo__card" id="ld-demo-card">
                 <div class="ld-demo__head">
                   <span class="ld-demo__ava" id="ld-demo-ava">MR</span>
@@ -262,7 +259,6 @@
                     <div class="ld-demo__school" id="ld-demo-school">Marketing · State College</div>
                     <div class="ld-demo__rating"><span class="ld-demo__star">★</span> <b id="ld-demo-rating">4.9</b> <span id="ld-demo-reviews">(6 reviews)</span></div>
                   </div>
-                  <span class="ld-demo__best">Best match</span>
                 </div>
                 <p class="ld-demo__line" id="ld-demo-line">I make Instagram and TikTok content that gets local cafes and shops noticed.</p>
                 <div class="ld-demo__label">Strengths</div>
@@ -772,9 +768,12 @@
       // ── Hero search demo ─────────────────────────────────────────
       // One sample student per thing the headline asks about, in the same
       // order as its WORDS. Every few seconds the headline changes, then a
-      // beat later the search box clears and types the new search letter by
-      // letter, and once it's typed the student card fades over. It holds
-      // while the pointer is over the demo or the hero is off screen.
+      // beat later the real search bar's hint text types that search letter
+      // by letter, and once it's typed the student card fades over. There's
+      // only one search bar, so people always know where to type. Clicking
+      // into it stops the typing and brings back the plain prompt. It all
+      // holds while someone is using the search bar, while the pointer is
+      // over the card, or while the hero is off screen.
       const DEMO = [
         { q: "Instagram", ini: "MR", color: "#b5673a", name: "Maya Rodriguez", school: "Marketing · State College", rating: "4.9", reviews: 6,
           line: "I make Instagram and TikTok content that gets local cafes and shops noticed.", from: "$150",
@@ -801,6 +800,7 @@
         const card = $d("ld-demo-card"), q = $d("ld-demo-q");
         const fill = (i) => {
           const s = DEMO[i % DEMO.length];
+          q.textContent = s.q;
           $d("ld-demo-ava").textContent = s.ini;
           $d("ld-demo-ava").style.background = s.color;
           $d("ld-demo-name").textContent = s.name;
@@ -813,28 +813,40 @@
             .join("");
         };
         fill(0);
-        q.textContent = DEMO[0].q;
+        const input = $d("ld-find-q");
+        const PROMPT = input?.placeholder || "";
+        // Someone is using the search bar: leave it alone.
+        const inUse = () => !input || document.activeElement === input || input.value !== "";
+        input?.addEventListener("focus", () => { input.placeholder = PROMPT; });
         if (!reduced) {
           let need = 0;
           const hovering = () => demo.matches(":hover");
           const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-          // Clear the old search, then type the new one with a slightly
-          // uneven rhythm so it reads like someone typing.
-          const typeSearch = async (text) => {
-            demo.classList.add("is-typing");
-            while (q.textContent.length) { q.textContent = q.textContent.slice(0, -1); await wait(32); }
+          // Clear the hint, then type the new search with a slightly uneven
+          // rhythm so it reads like someone typing. Stops the moment the
+          // search bar is clicked.
+          const typeHint = async (text) => {
+            let h = input.placeholder;
+            while (h.length) {
+              if (inUse()) return;
+              h = h.slice(0, -1); input.placeholder = h; await wait(28);
+            }
             await wait(260);
-            for (const ch of text) { q.textContent += ch; await wait(65 + Math.random() * 70); }
-            demo.classList.remove("is-typing");
+            for (const ch of text) {
+              if (inUse()) return;
+              h += ch; input.placeholder = h; await wait(65 + Math.random() * 70);
+            }
           };
           let busy = false;
           setInterval(async () => {
-            if (busy || !heroActive() || hovering()) return;
+            if (inUse() && input && input.placeholder !== PROMPT) input.placeholder = PROMPT;
+            if (busy || !heroActive() || hovering() || inUse()) return;
             busy = true;
             need = (need + 1) % DEMO.length;
             window.ldHeroWord?.(need);
             await wait(650);
-            await typeSearch(DEMO[need].q);
+            await typeHint(DEMO[need].q);
+            if (inUse()) input.placeholder = PROMPT;
             await wait(350);
             demo.classList.add("is-out");
             await wait(280);
