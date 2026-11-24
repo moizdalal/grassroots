@@ -811,7 +811,11 @@
           const grassCanvas = document.createElement("canvas");
           grassCanvas.className = "ld-hero__grass";
           grassCanvas.setAttribute("aria-hidden", "true");
-          plot.appendChild(grassCanvas);
+          // The canvas lives inside the earth and is pinned to its top edge
+          // in CSS, so it stays on the soil line whatever loads or resizes
+          // later. (Measuring the earth once and placing the grass from the
+          // plot's bottom left it floating when the layout shifted after.)
+          earth.appendChild(grassCanvas);
           initHeroGrass(grassCanvas, plot, earth);
         }
 
@@ -898,11 +902,10 @@
             ctx.imageSmoothingQuality = "high";
           }
           function positionAtSoil() {
-            // Place canvas bottom CANVAS_OVERLAP below the soil-line
-            // bottom (= earth top), so the soil-line band sits inside
-            // the canvas with the wavy horizon fully in view.
-            const eh = earthEl.getBoundingClientRect().height;
-            canvas.style.bottom = (eh - CANVAS_OVERLAP) + "px";
+            // Canvas bottom sits CANVAS_OVERLAP below the earth's top edge
+            // (the soil line), so the wavy horizon is fully in view. Set in
+            // percent of the earth it lives in, so it never needs re-measuring.
+            canvas.style.bottom = `calc(100% - ${CANVAS_OVERLAP}px)`;
           }
           function makeBlades() {
             blades.length = 0;
@@ -1090,17 +1093,8 @@
         ];
         cards.forEach((c) => cardsRoot.appendChild(c));
 
-        // Called each time the headline moves on to word i.
+        // Moves student i into the center. Only the shared tick below calls it.
         function rotate(i) {
-          // Hold still while someone is hovering a card so it doesn't slide out
-          // from under them. Mouse devices only: touch browsers leave :hover
-          // stuck on the last card a finger brushed while scrolling, which
-          // froze the carousel for good.
-          if (canHover && cardsRoot.querySelector(".ld-hero-card:hover")) return;
-          // No point morphing cards nobody can see. And never mid-scroll: a
-          // running card transition makes the browser re-layer the page,
-          // and budget phones painted blank frames during flings.
-          if (!heroActive() || performance.now() - lastScrollAt < 900) return;
           const [leftCard, centerCard, rightCard] = cards;
           // A skipped turn (hover, scrolling, off screen) leaves the wrong
           // student waiting on the right; swap them in before they move.
@@ -1127,8 +1121,16 @@
           cards = [centerCard, rightCard, newCard];
         }
 
-        // The headline script announces each new word.
-        if (!reduced) document.addEventListener("ld:need", (e) => rotate(e.detail % N));
+        // Hold still while someone is hovering a card so it doesn't slide out
+        // from under them. Mouse devices only: touch browsers leave :hover
+        // stuck on the last card a finger brushed while scrolling. No point
+        // moving anything nobody can see, and never mid-scroll: a running
+        // card transition makes the browser re-layer the page, and budget
+        // phones painted blank frames during flings.
+        window.ldHeroCanAdvance = () =>
+          !(canHover && cardsRoot.querySelector(".ld-hero-card:hover")) &&
+          heroActive() && performance.now() - lastScrollAt >= 900;
+        window.ldHeroRotate = (i) => rotate(i % N);
       }
 
       // ── Skill labels on the roots ────────────────────────────────
@@ -1188,9 +1190,25 @@
           }, 260);
         };
         show(0);
-        document.addEventListener("ld:need", (e) => show(e.detail));
+        window.ldHeroShowSkills = show;
         addEventListener("resize", place);
         if (document.fonts) document.fonts.ready.then(place);
+      }
+
+      // ── The hero clock ─────────────────────────────────────────────
+      // One tick moves the headline, the center student and the root skills
+      // together. If a tick is skipped (hover, scroll, off screen), all three
+      // wait, so they can never disagree.
+      if (!reduced && window.ldHeroRotate) {
+        let need = 0;
+        const total = window.ldHeroWordCount || STUDENT_POOL.length;
+        setInterval(() => {
+          if (!window.ldHeroCanAdvance()) return;
+          need = (need + 1) % total;
+          window.ldHeroWord?.(need);
+          window.ldHeroRotate(need);
+          window.ldHeroShowSkills?.(need);
+        }, 4400);
       }
 
       // ── Watchdog: desktops the <head> check let through but that can't
@@ -1301,23 +1319,21 @@
         const rot = document.getElementById("ld-hero-rot");
         const word = document.getElementById("ld-hero-rot-word");
         const WORDS = ["an Instagram", "a website", "an online store", "a logo", "a booking page", "an inventory app"];
-        const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
-        if (rot && word && !still) {
-          let i = 0;
-          // Slower than before, so each student and their skills can be read.
-          setInterval(() => {
-            rot.classList.add("is-out");
-            setTimeout(() => {
-              i = (i + 1) % WORDS.length;
-              word.textContent = WORDS[i];
-              document.dispatchEvent(new CustomEvent("ld:need", { detail: i }));
-              rot.classList.remove("is-out");
-              rot.classList.add("is-in");
-              void rot.offsetWidth;
-              rot.classList.remove("is-in");
-            }, 280);
-          }, 4400);
-        }
+        // The hero's clock lives in the garden script, which calls this so
+        // the headline, the center student and the root skills always change
+        // together (and all hold while someone hovers a card or scrolls).
+        window.ldHeroWord = (i) => {
+          if (!rot || !word) return;
+          rot.classList.add("is-out");
+          setTimeout(() => {
+            word.textContent = WORDS[i % WORDS.length];
+            rot.classList.remove("is-out");
+            rot.classList.add("is-in");
+            void rot.offsetWidth;
+            rot.classList.remove("is-in");
+          }, 280);
+        };
+        window.ldHeroWordCount = WORDS.length;
       })();
     </script>
   </body>
