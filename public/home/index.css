@@ -787,6 +787,7 @@
         background: color-mix(in srgb, #000 12%, transparent);
       }
       .ld-bring__art svg { display: block; width: 100%; flex: 1; min-height: 0; }
+      .ld-bring__art--before svg { opacity: .75; }
       /* says which state of the shop each picture is */
       .ld-bring__cap { margin: 0; text-align: center; font: 600 .95rem/1.2 var(--font-body); color: var(--fo-text-2); }
       .ld-bring__card--student .ld-bring__cap { color: color-mix(in srgb, var(--fo-accent-on) 88%, transparent); }
