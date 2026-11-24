@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Package builder sketch</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
+    <link rel="stylesheet" href="/grassroots.css?v=2" />
+    <link rel="stylesheet" href="/field-office.css?v=2" />
+    <script src="/theme.js"></script>
+    <style>
+      /* ============================================================
+         Sketch: a student builds their packages
+         ============================================================
+         Pick a starting example for your area, edit it, and see the
+         card businesses will see. Up to three packages. Nothing here
+         saves anywhere. */
+      body.gr-body { background: var(--fo-bg); color: var(--fo-text); font-family: var(--font-body); margin: 0; }
+      .sk { max-width: 1180px; margin: 0 auto; padding: 32px 24px 96px; }
+      .sk-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 36px; }
+      .sk-brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 600; font-size: 1.35rem; color: var(--fo-text); text-decoration: none; }
+      .sk-brand svg { width: 18px; height: 22px; }
+      .sk-theme { border: 1px solid var(--fo-line-strong); background: transparent; color: var(--fo-text); border-radius: 999px; padding: 8px 14px; font: inherit; font-size: 0.9rem; cursor: pointer; }
+      .sk-theme:hover { border-color: var(--fo-accent); }
+
+      h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(2rem, 4vw, 2.8rem); letter-spacing: -0.02em; margin: 0 0 10px; }
+      .lead { color: var(--fo-text-2); font-size: 1.05rem; line-height: 1.6; margin: 0 0 30px; max-width: 64ch; }
+
+      /* your packages: up to three slots */
+      .slots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 34px; }
+      .slot { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 16px; border: 1.5px solid var(--fo-line-strong); background: transparent; color: var(--fo-text); font: inherit; text-align: left; cursor: pointer; min-height: 74px; }
+      .slot b { font-size: 1rem; }
+      .slot span { font-size: 0.88rem; color: var(--fo-text-2); }
+      .slot.on { border-color: var(--fo-accent); box-shadow: 0 0 0 3px var(--fo-accent-soft); }
+      .slot.empty { border-style: dashed; color: var(--fo-text-2); justify-content: center; align-items: center; }
+      .slot.empty b { font-weight: 600; }
+
+      .work { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 32px; align-items: start; }
+      .panel { padding: 26px; border-radius: 22px; border: 1px solid var(--fo-line-strong); background: var(--fo-surface); }
+      :root:not([data-theme="light"]) .panel { background: transparent; }
+      .panel h2 { font-family: var(--font-display); font-weight: 600; font-size: 1.4rem; margin: 0 0 6px; }
+      .panel .sub { color: var(--fo-text-2); margin: 0 0 18px; line-height: 1.5; }
+
+      .areas { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+      .area { border: 1px solid var(--fo-line-strong); background: transparent; color: var(--fo-text-2); border-radius: 999px; padding: 7px 14px; font: inherit; font-size: 0.92rem; cursor: pointer; }
+      .area.on { background: var(--fo-accent); border-color: var(--fo-accent); color: var(--fo-accent-on); }
+      .starters { display: grid; gap: 8px; margin-bottom: 26px; }
+      .starter { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--fo-line); background: transparent; color: var(--fo-text); font: inherit; text-align: left; cursor: pointer; }
+      .starter:hover { border-color: var(--fo-accent); }
+      .starter span { color: var(--fo-text-2); font-size: 0.9rem; white-space: nowrap; }
+      .divider { border: 0; border-top: 1px solid var(--fo-line); margin: 4px 0 22px; }
+
+      .fld { display: block; margin-bottom: 16px; }
+      .fld > span { display: block; font-size: 0.92rem; font-weight: 600; color: var(--fo-text-2); margin-bottom: 6px; }
+      .fld input, .fld textarea, .fld select { width: 100%; box-sizing: border-box; border: 1.5px solid var(--fo-line-strong); border-radius: 12px; background: var(--fo-bg); color: var(--fo-text); font: inherit; padding: 11px 13px; outline: none; }
+      .fld input:focus, .fld textarea:focus, .fld select:focus { border-color: var(--fo-accent); box-shadow: 0 0 0 3px var(--fo-accent-soft); }
+      .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+      .hint { font-size: 0.86rem; color: var(--fo-text-3); margin-top: 6px; line-height: 1.45; }
+      .keep { font-size: 0.9rem; color: var(--fo-text-2); margin-top: 6px; }
+      .keep b { color: var(--fo-accent); }
+      .incl { display: grid; gap: 8px; }
+      .incl-row { display: flex; gap: 8px; }
+      .incl-row input { flex: 1; }
+      .x { flex-shrink: 0; width: 42px; border: 1.5px solid var(--fo-line-strong); border-radius: 12px; background: transparent; color: var(--fo-text-2); font: inherit; font-size: 1.1rem; cursor: pointer; }
+      .x:hover { border-color: var(--fo-accent); color: var(--fo-accent); }
+      .add { margin-top: 8px; border: 0; background: none; color: var(--fo-accent); font: inherit; font-weight: 700; cursor: pointer; padding: 4px 0; }
+      .toggle { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; font-size: 0.95rem; cursor: pointer; }
+      .toggle input { width: 18px; height: 18px; accent-color: var(--fo-accent); }
+      .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; flex-wrap: wrap; }
+      .btn { display: inline-flex; align-items: center; justify-content: center; height: 46px; padding: 0 20px; border-radius: 999px; font: inherit; font-weight: 700; font-size: 0.95rem; cursor: pointer; border: 0; }
+      .btn.primary { background: var(--fo-accent); color: var(--fo-accent-on); }
+      .btn.ghost { background: transparent; color: var(--fo-text); border: 1.5px solid var(--fo-line-strong); }
+      .btn.ghost:hover { border-color: var(--fo-accent); color: var(--fo-accent); }
+
+      /* live preview */
+      .preview { position: sticky; top: 24px; }
+      .preview-label { font-size: 0.92rem; color: var(--fo-text-2); margin: 0 0 10px; }
+      .pk { display: flex; flex-direction: column; gap: 10px; padding: 22px; border-radius: 20px; border: 1px solid var(--fo-line-strong); background: var(--fo-surface); }
+      :root:not([data-theme="light"]) .pk { background: var(--fo-surface-2); }
+      .pk h3 { font-family: var(--font-display); font-weight: 600; font-size: 1.3rem; margin: 0; line-height: 1.2; overflow-wrap: anywhere; }
+      .pk .price { font-family: var(--font-display); font-weight: 600; font-size: 1.7rem; color: var(--fo-accent); }
+      .pk .unit { font-size: 0.92rem; color: var(--fo-text-3); margin-left: 4px; }
+      .pk .time { font-size: 0.9rem; color: var(--fo-text-3); }
+      .pk .what { font-size: 0.97rem; line-height: 1.55; color: var(--fo-text-2); margin: 0; overflow-wrap: anywhere; }
+      .pk ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 7px; }
+      .pk li { display: grid; grid-template-columns: 18px 1fr; gap: 8px; font-size: 0.95rem; line-height: 1.45; overflow-wrap: anywhere; }
+      .pk li svg { width: 18px; height: 18px; margin-top: 2px; color: var(--fo-accent); }
+      .pk .fake-btn { margin-top: 6px; height: 42px; border-radius: 999px; border: 1.5px solid var(--fo-line-strong); display: grid; place-items: center; font-weight: 700; font-size: 0.93rem; }
+      .preview-note { margin: 12px 0 0; font-size: 0.88rem; color: var(--fo-text-3); line-height: 1.5; }
+      .empty-text { color: var(--fo-text-3); font-style: italic; }
+
+      .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: var(--fo-text); color: var(--fo-bg); padding: 14px 20px; border-radius: 14px; font-weight: 600; opacity: 0; transition: opacity 0.25s ease; pointer-events: none; z-index: 40; max-width: calc(100% - 40px); }
+      .toast.on { opacity: 1; }
+
+      @media (max-width: 920px) {
+        .work { grid-template-columns: 1fr; }
+        .preview { position: static; order: -1; }
+      }
+      @media (max-width: 560px) {
+        .sk { padding: 20px 16px 72px; }
+        .slots { grid-template-columns: 1fr; }
+        .row2 { grid-template-columns: 1fr; }
+        .panel { padding: 20px; }
+      }
+    </style>
+  </head>
+  <body class="gr-body">
+    <div class="sk">
+      <div class="sk-top">
+        <a class="sk-brand" href="/student-profile-sketch.html#student-maya">
+          <svg viewBox="0 0 163 275" aria-hidden="true"><path fill="#3f9a6b" transform="translate(72 130)" d="M19 10.15C19 4.54431 14.7467 0 9.5 0C4.25329 0 0 4.54431 0 10.15C7.91804 91.2467 8.44249 120.691 0 134.85C0 140.456 4.25329 145 9.5 145C14.7467 145 19 140.456 19 134.85C16.2169 71.2734 12.3479 23.288 19 10.15Z"/><path fill="#3f9a6b" transform="translate(0 65)" d="M84 87C21 71.5333 -6.5625 42.5333 1.3125 0C56.4375 3.86667 84 32.8667 84 87Z"/><path fill="#5fbf8f" transform="translate(82 0)" d="M0 147C48.6 116.053 75.6 67.0526 81 0C27 5.1579 0 54.1579 0 147Z"/></svg>
+          grassroots
+        </a>
+        <button type="button" class="sk-theme" id="theme-btn">Switch theme</button>
+      </div>
+
+      <h1>Your packages</h1>
+      <p class="lead">A package is a ready-made offer businesses can pick from your profile, so they don't have to figure out what to ask for. Start from an example for your area and make it yours. You can list up to three.</p>
+
+      <div class="slots" id="slots" role="tablist" aria-label="Your packages"></div>
+
+      <div class="work">
+        <section class="panel" aria-labelledby="ed-title">
+          <h2 id="ed-title">Start from an example</h2>
+          <p class="sub">Pick your area, then choose one to fill in the form. You can change everything after.</p>
+          <div class="areas" id="areas"></div>
+          <div class="starters" id="starters"></div>
+
+          <hr class="divider" />
+          <h2>Make it yours</h2>
+          <p class="sub">Describe it the way you'd explain it to a business owner who isn't sure what they need.</p>
+
+          <label class="fld"><span>Package name</span><input id="f-name" maxlength="40" placeholder="For example, Social media starter" /></label>
+          <div class="row2">
+            <label class="fld"><span>Price</span><input id="f-price" inputmode="numeric" placeholder="$150" />
+              <div class="keep" id="keep"></div>
+            </label>
+            <label class="fld"><span>How long it takes</span>
+              <select id="f-time">
+                <option>One afternoon</option><option>About 1 week</option><option selected>About 2 weeks</option><option>About 1 month</option>
+              </select>
+            </label>
+          </div>
+          <label class="toggle"><input type="checkbox" id="f-monthly" /> This is a monthly package, billed each month</label>
+          <label class="fld"><span>In a sentence, what do they get?</span><textarea id="f-what" rows="2" maxlength="160" placeholder="I'll plan a month of posts and make the graphics for you."></textarea>
+            <div class="hint">Write it for the owner, not for another designer.</div></label>
+          <div class="fld"><span>What's included</span>
+            <div class="incl" id="incl"></div>
+            <button type="button" class="add" id="add-incl">+ Add another item</button>
+            <div class="hint">Short and specific works best, like "8 ready-to-post graphics".</div>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn ghost" id="remove">Remove package</button>
+            <button type="button" class="btn primary" id="save">Save package</button>
+          </div>
+        </section>
+
+        <aside class="preview" aria-label="Preview">
+          <p class="preview-label">How businesses see it on your profile</p>
+          <div class="pk" id="pk"></div>
+          <p class="preview-note">Businesses can send this as an offer in one click, or ask you to adjust it first.</p>
+        </aside>
+      </div>
+    </div>
+    <div class="toast" id="toast" role="status"></div>
+
+    <script>
+      const STARTERS = {
+        "Social media": [
+          { name: "Social media starter", price: 150, time: "About 2 weeks", monthly: false, what: "I'll look at your Instagram and Facebook, plan a month of posts and make the graphics for you.", incl: ["A review of your current pages", "A month of planned posts", "8 ready-to-post graphics with captions"] },
+          { name: "Monthly social media", price: 250, time: "About 1 month", monthly: true, what: "I'll post for you every week and tell you what's working.", incl: ["12 posts a month", "Scheduled for you", "A short monthly check-in"] } ],
+        "Marketing": [
+          { name: "Google and Yelp cleanup", price: 90, time: "About 1 week", monthly: false, what: "I'll make sure people searching for you find the right hours, photos and details.", incl: ["Updated hours and description", "New photos", "Replies to recent reviews"] },
+          { name: "One promotion, start to finish", price: 140, time: "About 2 weeks", monthly: false, what: "We'll plan one promotion together, and I'll make everything for it.", incl: ["A plan for the promotion", "Printed flyers", "A social post and a customer email"] } ],
+        "Design": [
+          { name: "Logo refresh", price: 180, time: "About 2 weeks", monthly: false, what: "I'll design a new logo that fits your shop, with files for signs, print and social media.", incl: ["Three logo directions", "Two rounds of changes", "Files for print, signs and social media"] },
+          { name: "Menu redesign", price: 90, time: "About 1 week", monthly: false, what: "I'll redesign your menu so it's easier to read, ready to print and post online.", incl: ["A redesigned menu", "A print-ready file", "A version for your website"] } ],
+        "Websites": [
+          { name: "One-page website", price: 250, time: "About 2 weeks", monthly: false, what: "I'll build a simple website you can update yourself.", incl: ["Your hours, menu or products and photos", "A contact form", "A short lesson on updating it"] } ],
+        "Finance": [
+          { name: "Bookkeeping catch-up", price: 200, time: "About 1 week", monthly: false, what: "I'll sort a month of sales and receipts and show you where your money went.", incl: ["A month of records sorted", "Set up in a spreadsheet or QuickBooks", "A simple one-page summary"] },
+          { name: "Price check", price: 120, time: "About 1 week", monthly: false, what: "I'll compare your costs and prices and show you where you're losing money.", incl: ["Costs for your top 10 items", "Suggested prices", "A short walkthrough of the results"] } ],
+      };
+      const AREAS = Object.keys(STARTERS);
+      const CHECK = '<svg viewBox="0 0 22 22" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.3l3 3 6-6.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+      // two packages to start with, one slot open
+      const packs = [JSON.parse(JSON.stringify(STARTERS["Social media"][0])), JSON.parse(JSON.stringify(STARTERS["Social media"][1])), null];
+      let cur = 0, area = "Social media";
+
+      const $ = (id) => document.getElementById(id);
+      const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      const blank = () => ({ name: "", price: "", time: "About 2 weeks", monthly: false, what: "", incl: ["", ""] });
+
+      function renderSlots() {
+        $("slots").innerHTML = packs.map((p, i) => p
+          ? `<button type="button" class="slot${i === cur ? " on" : ""}" data-slot="${i}" role="tab" aria-selected="${i === cur}"><b>${esc(p.name || "Untitled package")}</b><span>${p.price ? "$" + esc(p.price) + (p.monthly ? " a month" : "") : "No price yet"} · ${esc(p.monthly ? "Ongoing" : p.time)}</span></button>`
+          : `<button type="button" class="slot empty${i === cur ? " on" : ""}" data-slot="${i}" role="tab" aria-selected="${i === cur}"><b>+ Add a package</b></button>`).join("");
+      }
+      function renderAreas() {
+        $("areas").innerHTML = AREAS.map((a) => `<button type="button" class="area${a === area ? " on" : ""}" data-area="${esc(a)}">${esc(a)}</button>`).join("");
+        $("starters").innerHTML = STARTERS[area].map((s, i) => `<button type="button" class="starter" data-start="${i}">${esc(s.name)}<span>$${s.price}${s.monthly ? " a month" : ""} · ${esc(s.monthly ? "Ongoing" : s.time)}</span></button>`).join("");
+      }
+      function fillForm() {
+        const p = packs[cur] || blank();
+        $("f-name").value = p.name; $("f-price").value = p.price ? "$" + p.price : ""; $("f-time").value = p.time;
+        $("f-monthly").checked = !!p.monthly; $("f-what").value = p.what;
+        $("incl").innerHTML = p.incl.map((t, i) => `<div class="incl-row"><input data-incl="${i}" value="${esc(t)}" maxlength="60" placeholder="Something they get" aria-label="Included item ${i + 1}"><button type="button" class="x" data-del="${i}" aria-label="Remove item">×</button></div>`).join("");
+        $("f-time").disabled = !!p.monthly;
+        renderPreview();
+      }
+      function readForm() {
+        const price = Number(String($("f-price").value).replace(/[^0-9.]/g, "")) || "";
+        return { name: $("f-name").value.trim(), price, time: $("f-time").value, monthly: $("f-monthly").checked, what: $("f-what").value.trim(), incl: [...document.querySelectorAll("[data-incl]")].map((e) => e.value) };
+      }
+      function renderPreview() {
+        const p = readForm();
+        $("f-time").disabled = p.monthly;
+        // students see only the flat 10% fee
+        $("keep").innerHTML = p.price ? `You keep <b>$${(p.price * 0.9).toFixed(p.price * 0.9 % 1 ? 2 : 0)}</b>${p.monthly ? " a month" : ""} after the 10% fee` : "";
+        const items = p.incl.filter((t) => t.trim());
+        $("pk").innerHTML = `
+          <h3>${p.name ? esc(p.name) : '<span class="empty-text">Your package name</span>'}</h3>
+          <div><span class="price">${p.price ? "$" + esc(p.price) : "$—"}</span>${p.monthly ? '<span class="unit">a month</span>' : ""}</div>
+          <div class="time">${esc(p.monthly ? "Ongoing, billed monthly" : p.time)}</div>
+          <p class="what">${p.what ? esc(p.what) : '<span class="empty-text">One sentence on what the business gets.</span>'}</p>
+          ${items.length ? `<ul>${items.map((t) => `<li>${CHECK}<span>${esc(t)}</span></li>`).join("")}</ul>` : ""}
+          <div class="fake-btn">Choose this package</div>`;
+      }
+      let tt;
+      function toast(m) { const t = $("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("on"), 3000); }
+
+      document.addEventListener("click", (e) => {
+        const slot = e.target.closest("[data-slot]");
+        if (slot) { cur = Number(slot.dataset.slot); renderSlots(); fillForm(); return; }
+        const a = e.target.closest("[data-area]");
+        if (a) { area = a.dataset.area; renderAreas(); return; }
+        const st = e.target.closest("[data-start]");
+        if (st) { packs[cur] = JSON.parse(JSON.stringify(STARTERS[area][Number(st.dataset.start)])); renderSlots(); fillForm(); toast("Example filled in. Now make it yours."); return; }
+        const del = e.target.closest("[data-del]");
+        if (del) { del.parentElement.remove(); renderPreview(); return; }
+      });
+      $("add-incl").addEventListener("click", () => {
+        const n = document.querySelectorAll("[data-incl]").length;
+        if (n >= 6) { toast("Six items is the most a package shows."); return; }
+        $("incl").insertAdjacentHTML("beforeend", `<div class="incl-row"><input data-incl="${n}" maxlength="60" placeholder="Something they get" aria-label="Included item ${n + 1}"><button type="button" class="x" data-del="${n}" aria-label="Remove item">×</button></div>`);
+        document.querySelector(`[data-incl="${n}"]`).focus();
+      });
+      document.querySelector(".panel").addEventListener("input", renderPreview);
+      $("save").addEventListener("click", () => {
+        const p = readForm();
+        if (!p.name || !p.price) { toast("Add a name and a price first."); return; }
+        if (p.price < 10) { toast("Paid packages start at $10."); return; }
+        packs[cur] = p; renderSlots(); toast("Saved. In the real site, this shows on your profile.");
+      });
+      $("remove").addEventListener("click", () => { packs[cur] = null; renderSlots(); fillForm(); toast("Package removed."); });
+      $("theme-btn").addEventListener("click", () => {
+        const next = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", next);
+        try { localStorage.setItem("grassroots_theme", next); } catch (_) {}
+      });
+      renderSlots(); renderAreas(); fillForm();
+    </script>
+  </body>
+</html>
