@@ -222,19 +222,6 @@
                 <input class="ld-find__input" id="ld-find-q" name="q" type="search" placeholder="What do you need help with?" autocomplete="off" />
                 <button class="gr-btn gr-btn--primary ld-find__btn" type="submit">Find students</button>
               </div>
-              <!-- handwritten pointer at "Find students". It sits right under
-                   the button with a short arrow, so it never crosses the text. -->
-              <p class="ld-start" id="ld-start">
-                <svg class="ld-start__arrow" viewBox="0 0 60 128" fill="none" preserveAspectRatio="none" aria-hidden="true">
-                  <path d="M53 120 C22 116 6 84 8 8"/>
-                  <path d="M1.5 17 L8 6 L15 16.5"/>
-                </svg>
-                <svg class="ld-start__up" viewBox="0 0 24 36" fill="none" aria-hidden="true">
-                  <path d="M12 33 C10 24 13 14 12 4"/>
-                  <path d="M5 12 L12 3 L19 11.5"/>
-                </svg>
-                <span class="ld-start__text">Start here if you're a business owner</span>
-              </p>
               <div class="ld-find__try">
                 <span class="ld-find__try-label">Try</span>
                 <a class="ld-find__chip" href="/student-profile-sketch.html?q=social+media">Social media</a>
@@ -1314,8 +1301,7 @@
 
     <script>
       // hero: rotate the thing the owner is missing (the student cards and
-      // root skills follow it), and aim the handwritten note's arrow at the
-      // middle of "Find students".
+      // root skills follow it).
       (() => {
         const rot = document.getElementById("ld-hero-rot");
         const word = document.getElementById("ld-hero-rot-word");
@@ -1337,16 +1323,6 @@
             }, 280);
           }, 4400);
         }
-        const note = document.getElementById("ld-start");
-        const btn = document.querySelector(".ld-hero__ctas .ld-find__btn");
-        const aim = () => {
-          if (!note || !btn) return;
-          const b = btn.getBoundingClientRect(), n = note.getBoundingClientRect();
-          note.style.setProperty("--cx", (b.left + b.width / 2 - n.left) + "px");
-        };
-        aim();
-        addEventListener("resize", aim);
-        if (document.fonts) document.fonts.ready.then(aim);
       })();
     </script>
   </body>
