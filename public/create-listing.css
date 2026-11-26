@@ -301,7 +301,7 @@
 .cl-preview__placeholder {
   color: var(--tagline-body);
   opacity: 0.5;
-  font-style: italic;
+  font-style: normal;
 }
 
 /* --- Progress Bar (mirrors register-flow.css) --- */

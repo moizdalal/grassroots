@@ -37,6 +37,7 @@
     --a-amber: #b8642f; --a-blue: #3d5f9e; --a-card-shadow: 0 10px 30px rgba(20,32,26,0.06);
   }
   * { box-sizing: border-box; }
+  em, i { font-style: normal; }
   html { overflow: hidden; background: var(--bg); }
   html, body { margin: 0; }
   body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); transform-origin: 0 0; }
@@ -83,7 +84,7 @@
   .nav-layer { position: absolute; left: 0; right: 0; top: 0; opacity: 0; }
 
   .h1 { font-family: var(--display); font-weight: 600; font-size: 38px; letter-spacing: -0.02em; margin: 0 0 6px; }
-  .h1 em { font-style: italic; color: var(--a-accent-text); }
+  .h1 em { font-style: normal; color: var(--a-accent-text); }
   .sub { color: var(--a-text-2); font-size: 17px; margin: 0 0 22px; }
   .card { background: var(--a-surface); border: 1px solid var(--a-line); border-radius: 18px; box-shadow: var(--a-card-shadow); }
   .field { margin-bottom: 18px; }
@@ -238,7 +239,7 @@
   .card-full { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; opacity: 0; }
   .card-full h1 { font-family: var(--display); font-weight: 600; font-size: 104px; letter-spacing: -0.03em; margin: 26px 0 18px; line-height: 1; }
   .card-full h1 .brandword { color: var(--accent-hi); }
-  .card-full h1 em { font-style: italic; color: var(--accent-hi); font-weight: 500; padding-right: 0.06em; }
+  .card-full h1 em { font-style: normal; color: var(--accent-hi); font-weight: 500; padding-right: 0.06em; }
   .card-full p { font-size: 34px; color: var(--text-sub); margin: 0; }
   .card-full .site { margin-top: 34px; font-size: 26px; color: var(--text); letter-spacing: 0.01em; }
   .bigbrand { display: inline-flex; align-items: center; gap: 16px; font-family: var(--display); font-weight: 600; font-size: 48px; }

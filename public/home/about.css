@@ -124,7 +124,7 @@
 
       .ab-italic {
         font-family: var(--font-display);
-        font-style: italic; font-weight: inherit;
+        font-style: normal; font-weight: inherit;
         color: var(--fo-accent);
   font-weight: 600;
   font-style: normal;
@@ -416,7 +416,7 @@
         border: 1.5px dashed color-mix(in srgb, var(--fo-accent) 45%, transparent);
         border-radius: 12px;
         background: var(--fo-accent-soft);
-        font-style: italic;
+        font-style: normal;
       }
 
       .ab-cover__colophon {
@@ -435,7 +435,7 @@
       .ab-cover__colophon-l { text-align: left; }
       .ab-cover__colophon-c {
         font-family: var(--font-display);
-        font-style: italic; font-weight: 500;
+        font-style: normal; font-weight: 500;
         font-size: 0.95rem; letter-spacing: 0;
         color: var(--fo-accent);
         text-transform: none;
@@ -464,7 +464,7 @@
   font-style: normal;
       }
       .ab-cover__title em {
-        font-style: italic;
+        font-style: normal;
         color: var(--fo-accent);
         font-weight: 500;
       }
@@ -477,7 +477,7 @@
       .ab-cover__sublede {
         margin-top: 2.4rem;
         font-family: var(--font-display);
-        font-style: italic; font-weight: 500;
+        font-style: normal; font-weight: 500;
         font-size: clamp(1.1rem, 1.5vw, 1.35rem);
         color: var(--fo-text-2);
         max-width: 50ch;
@@ -504,7 +504,7 @@
       .ab-cover__masthead-cell b {
         display: block;
         font-family: var(--font-display);
-        font-style: italic; font-weight: 500;
+        font-style: normal; font-weight: 500;
         font-size: 1rem;
         color: var(--fo-text);
         letter-spacing: 0;
@@ -550,7 +550,7 @@
       }
       .ab-toc__item-title {
         font-family: var(--font-display);
-        font-style: italic; font-weight: 500;
+        font-style: normal; font-weight: 500;
         font-size: clamp(1.1rem, 1.5vw, 1.4rem);
         color: var(--fo-text);
         text-decoration: none;
@@ -606,7 +606,7 @@
       .ab-section__marker b {
         display: block;
         font-family: var(--font-display);
-        font-style: italic; font-weight: 500;
+        font-style: normal; font-weight: 500;
         font-size: 1.3rem;
         color: var(--fo-accent);
         letter-spacing: 0;
@@ -646,7 +646,7 @@
   font-style: normal;
       }
       .ab-mission__body em {
-        font-style: italic;
+        font-style: normal;
         color: var(--fo-accent);
       }
       .ab-mission__body::first-letter {
@@ -657,7 +657,7 @@
         float: left;
         margin: 0.05em 0.12em 0 -0.02em;
         color: var(--fo-accent);
-        font-style: italic;
+        font-style: normal;
   font-weight: 600;
   font-style: normal;
       }
@@ -666,7 +666,7 @@
         margin: 3rem auto 0;
         text-align: center;
         font-family: var(--font-display);
-        font-style: italic; font-weight: 500;
+        font-style: normal; font-weight: 500;
         font-size: 1rem;
         color: var(--fo-text-3);
   font-weight: 600;
@@ -748,7 +748,7 @@
       .ab-letter__head-l b {
         display: block;
         font-family: var(--font-display);
-        font-style: italic; font-weight: 500;
+        font-style: normal; font-weight: 500;
         font-size: 1.4rem;
         color: var(--fo-accent);
         letter-spacing: 0;
@@ -792,20 +792,20 @@
         float: left;
         margin: 0.08em 0.12em 0 -0.05em;
         color: var(--fo-accent);
-        font-style: italic;
+        font-style: normal;
       }
       .ab-letter__body em {
-        font-style: italic;
+        font-style: normal;
         color: var(--fo-accent);
       }
       .ab-letter__body strong {
         font-weight: 500;
-        font-style: italic;
+        font-style: normal;
         background: linear-gradient(180deg, transparent 60%, color-mix(in srgb, var(--fo-accent) 26%, transparent) 60%);
         padding: 0 0.1em;
       }
       .ab-letter__greet {
-        font-style: italic; font-weight: 500;
+        font-style: normal; font-weight: 500;
         color: var(--fo-text-2);
         margin-bottom: 1.4rem !important;
       }
@@ -814,7 +814,7 @@
       .ab-letter__signoff {
         margin-top: 2.2rem;
         font-family: var(--font-display);
-        font-style: italic; font-weight: 500;
+        font-style: normal; font-weight: 500;
         font-size: 1.1rem;
         color: var(--fo-text-2);
   font-weight: 600;
@@ -1013,7 +1013,7 @@
   font-style: normal;
       }
       .ab-timeline__title em {
-        font-style: italic;
+        font-style: normal;
         color: var(--fo-accent);
       }
       .ab-timeline__body {
@@ -1027,7 +1027,7 @@
   font-weight: 600;
   font-style: normal;
       }
-      .ab-timeline__body em { font-style: italic; color: var(--fo-text); }
+      .ab-timeline__body em { font-style: normal; color: var(--fo-text); }
       .ab-timeline__chip {
         display: inline-block;
         margin-top: 0.8rem;
@@ -1063,7 +1063,7 @@
       }
       .ab-credo__num {
         font-family: var(--font-display);
-        font-style: italic; font-weight: 500;
+        font-style: normal; font-weight: 500;
         font-size: clamp(2rem, 4vw, 3rem);
         line-height: 0.9;
         color: var(--fo-text-3);
@@ -1085,12 +1085,12 @@
   font-style: normal;
       }
       .ab-credo__title em {
-        font-style: italic;
+        font-style: normal;
         color: var(--fo-accent);
       }
       .ab-credo__body {
         font-family: var(--font-display);
-        font-weight: 400; font-style: italic;
+        font-weight: 400; font-style: normal;
         font-size: 1rem;
         line-height: 1.55;
         color: var(--fo-text-2);
@@ -1161,7 +1161,7 @@
       body.gr-body .ab-press__masthead { text-transform: uppercase; }
       .ab-press__clip blockquote {
         font-family: var(--font-display);
-        font-style: italic; font-weight: 500;
+        font-style: normal; font-weight: 500;
         font-size: clamp(1.05rem, 1.5vw, 1.2rem);
         line-height: 1.35;
         margin: 0 0 0.8rem;
@@ -1181,7 +1181,7 @@
       .ab-press__clip--big blockquote { font-size: 1.5rem; }
       .ab-press__pull {
         font-family: var(--font-display);
-        font-style: italic; font-weight: 500;
+        font-style: normal; font-weight: 500;
         font-size: clamp(2rem, 4vw, 3rem);
         line-height: 1.05;
         color: var(--fo-accent);
@@ -1223,7 +1223,7 @@
       }
       .ab-numbers__big sup {
         font-size: 0.42em;
-        font-style: italic;
+        font-style: normal;
         color: var(--fo-accent);
         font-weight: 500;
         vertical-align: 0.7em;
@@ -1231,7 +1231,7 @@
       }
       .ab-numbers__big sub {
         font-size: 0.45em;
-        font-style: italic;
+        font-style: normal;
         color: var(--fo-accent);
         font-weight: 500;
         vertical-align: 0;
@@ -1293,7 +1293,7 @@
         position: relative;
         display: grid; place-items: center;
         font-family: var(--font-display);
-        font-weight: 500; font-style: italic;
+        font-weight: 500; font-style: normal;
         font-size: 2.4rem;
         color: rgba(255,255,255,0.85);
         overflow: hidden;
@@ -1329,7 +1329,7 @@
       .ab-team__bio {
         font-family: var(--font-display);
         font-weight: 400;
-        font-style: italic;
+        font-style: normal;
         font-size: 0.95rem;
         line-height: 1.4;
         color: var(--fo-text-2);
@@ -1369,10 +1369,10 @@
   font-weight: 600;
   font-style: normal;
       }
-      .ab-contact__title em { font-style: italic; color: var(--fo-accent); }
+      .ab-contact__title em { font-style: normal; color: var(--fo-accent); }
       .ab-contact__sub {
         font-family: var(--font-display);
-        font-style: italic; font-weight: 400;
+        font-style: normal; font-weight: 400;
         font-size: clamp(1.05rem, 1.4vw, 1.2rem);
         color: var(--fo-text-2);
         line-height: 1.5;
@@ -1422,7 +1422,7 @@
   font-weight: 600;
   font-style: normal;
       }
-      .ab-channel__line em { font-style: italic; color: var(--fo-accent); }
+      .ab-channel__line em { font-style: normal; color: var(--fo-accent); }
       .ab-channel__arrow {
         width: 32px; height: 32px; border-radius: 50%;
         background: var(--fo-accent-soft);
@@ -1478,7 +1478,7 @@
       }
       body.gr-body .ab-letter-form__head { text-transform: uppercase; }
       .ab-letter-form__head em {
-        font-style: italic; font-weight: 500;
+        font-style: normal; font-weight: 500;
         color: #2f7a5a;
         text-transform: none;
         letter-spacing: -0.01em;
@@ -1529,7 +1529,7 @@
       .ab-letter-form__select:focus { border-bottom-color: #2f7a5a; }
       .ab-letter-form__signoff {
         margin-top: 1.6rem;
-        font-style: italic;
+        font-style: normal;
         font-size: 1.1rem;
       }
       .ab-letter-form__submit {
@@ -1568,7 +1568,7 @@
         border-radius: 4px;
         display: grid; place-items: center;
         font-family: var(--font-display);
-        font-style: italic; font-weight: 500;
+        font-style: normal; font-weight: 500;
         font-size: 0.78rem;
         color: #faf6ec;
         text-align: center;

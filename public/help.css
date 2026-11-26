@@ -97,7 +97,7 @@
   margin: 0;
   font-size: var(--type-meta);
   color: var(--fo-text-3);
-  font-style: italic;
+  font-style: normal;
 }
 
 /* ── Article body (right column) ─────────────────────────────── */
@@ -193,7 +193,7 @@
   color: var(--fo-text);
   border-radius: 0 10px 10px 0;
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: var(--type-body);
   font-weight: 600;
   font-style: normal;

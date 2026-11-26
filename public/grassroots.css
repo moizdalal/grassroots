@@ -144,6 +144,10 @@ img.gr-listing-logo {
   box-sizing: border-box;
 }
 
+/* No slanted text anywhere: emphasis and accent words stay upright,
+   the green color is the emphasis (see brandkit.md, Typography). */
+em, i, cite, dfn, var, address { font-style: normal; }
+
 /* --- Body --- */
 .gr-body {
   margin: 0;
@@ -500,7 +504,7 @@ html:has(> body > .gr-nav) {
   font-size: 0.85em;
   font-weight: 500;
   color: var(--fo-text-3, var(--tagline-body));
-  font-style: italic;
+  font-style: normal;
 }
 .gr-optional::before { content: "("; }
 .gr-optional::after { content: ")"; }
@@ -748,7 +752,7 @@ html:has(> body > .gr-nav) {
   padding: 0.4rem 0.55rem;
   font-size: var(--type-meta);
   color: var(--fo-text-3, var(--tagline-body));
-  font-style: italic;
+  font-style: normal;
 }
 
 /* --- Portfolio Section ---
@@ -1120,7 +1124,7 @@ html:has(> body > .gr-nav) {
 
 .pf-bv__empty {
   font-size: var(--type-meta);  color: var(--tagline-body);
-  font-style: italic;
+  font-style: normal;
 }
 
 .pf-resume-viewer {
@@ -4312,7 +4316,7 @@ button.gr-bid-link {
   padding: 0.55rem 0.7rem;
   border-radius: 8px;
   background: var(--fo-surface-2, rgba(45, 106, 79, 0.04));
-  font-size: var(--type-meta);  font-style: italic;
+  font-size: var(--type-meta);  font-style: normal;
   line-height: 1.45;
   color: var(--fo-text-2, var(--muted));
   white-space: pre-wrap;
@@ -4557,7 +4561,7 @@ button.gr-bid-link {
 
 .gr-rating--empty {
   color: var(--fo-text-3, var(--tagline-body));
-  font-style: italic;
+  font-style: normal;
 }
 
 .gr-rating--empty .gr-rating__stars {

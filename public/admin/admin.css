@@ -674,7 +674,7 @@ body.adm-body {
 .adm-table-empty {
   text-align: center;
   color: var(--fo-text-3);
-  font-style: italic;
+  font-style: normal;
   padding: 2rem 1rem;
 }
 
@@ -1109,7 +1109,7 @@ body.adm-body {
 
 .adm-muted {
   color: var(--fo-text-3);
-  font-style: italic;
+  font-style: normal;
   font-size: var(--type-meta);
   margin: 0.5rem 0;
 }
@@ -1233,7 +1233,7 @@ body.adm-body {
    yet (fresh table, no perf samples in the window). */
 .adm-empty {
   color: var(--fo-text-3);
-  font-style: italic;
+  font-style: normal;
   padding: 1rem 0.5rem;
   text-align: center;
 }
