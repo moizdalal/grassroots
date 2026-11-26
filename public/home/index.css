@@ -1466,6 +1466,18 @@
       /* The glow behind the demo and the cloud layers spill past the window
          edge. body's overflow-x: clip doesn't stop browsers widening the page, so clip here. */
       .ld-hero { overflow-x: clip; }
+      /* Laptops and up: the hero fills the screen below the nav, content
+         centered, so the next section never peeks in at the bottom.
+         --ld-nav-h is measured by the script at the bottom of the page. */
+      @media (min-width: 901px) {
+        .ld-hero {
+          min-height: calc(100svh - var(--ld-nav-h, 72px));
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+        .ld-hero > .ld-hero__grid { width: 100%; }
+      }
       /* Phones use a fixed 16px gutter instead of the .ld-shell clamp. */
       @media (max-width: 720px) { .ld-hero { padding-inline: 16px; } }
       /* Phones: keep "Local business meets" on one line, and stack the two
@@ -1506,8 +1518,17 @@
         border-radius: 28px;
         text-align: center;
         color: var(--ld-panel-ink);
-        background: transparent;
-        border: 1px solid var(--fo-line-strong);
+        /* Dark themes: a green-tinted panel with a glow at the top and a faint
+           green edge, so the mission stands out from the page (a brandkit
+           exception, see "Cards"). Light keeps the white card (override near
+           the end). */
+        background:
+          radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--fo-accent) 26%, transparent), transparent 70%),
+          color-mix(in srgb, var(--fo-accent) 9%, var(--fo-bg));
+        border: 1px solid color-mix(in srgb, var(--fo-accent) 32%, transparent);
+        box-shadow:
+          inset 0 1px 0 color-mix(in srgb, var(--fo-text) 8%, transparent),
+          0 30px 80px rgba(0, 0, 0, 0.35);
       }
       /* "Our mission" heading at the top of the panel, in the same style as
          the About page headings: display serif, last word in brand green. */
