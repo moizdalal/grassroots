@@ -1509,6 +1509,18 @@
         background: transparent;
         border: 1px solid var(--fo-line-strong);
       }
+      /* "Our mission" heading at the top of the panel, in the same style as
+         the About page headings: display serif, last word in brand green. */
+      .ld-manifesto__title {
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: clamp(1.9rem, 3.4vw, 3rem);
+        line-height: 1.06;
+        letter-spacing: -0.02em;
+        color: var(--ld-panel-ink);
+        margin: 0 0 0.7em;
+      }
+      .ld-manifesto__title-key { color: var(--ld-panel-key); }
       .ld-manifesto__lead,
       .ld-manifesto__text {
         font-family: var(--font-body);
