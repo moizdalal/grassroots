@@ -380,7 +380,7 @@ body.gr-body .gr-section-h {
 .gr-status {
   color: var(--fo-text-3);
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-weight: 600;
   font-style: normal;
 }
@@ -405,7 +405,7 @@ body.gr-body .gr-section-h {
   border-radius: 10px;
   padding: 0.85rem 1rem;
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: var(--type-body);  line-height: 1.4;
   font-weight: 600;
   font-style: normal;
@@ -704,7 +704,7 @@ body.gr-body .gr-section-h {
   background: var(--fo-surface);
   color: var(--fo-text-3);
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: var(--type-body);  text-align: center;
   font-weight: 600;
   font-style: normal;
@@ -990,7 +990,7 @@ body.gr-body .gr-section-h {
   font-family: var(--font-display);
   font-size: 1.5rem;
   font-weight: 600;
-  font-style: italic;
+  font-style: normal;
   color: var(--fo-accent);
   letter-spacing: -0.01em;
   line-height: 1.05;
@@ -1119,7 +1119,7 @@ body.gr-body .gr-section-h {
 .gr-listing-cta {
   font-size: var(--type-meta);  color: var(--fo-accent);
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-weight: 600;
   font-style: normal;
 }
@@ -1458,7 +1458,7 @@ body.gr-body .gr-section-h {
   padding: 1.5rem 1rem;
   text-align: center;
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   color: var(--fo-accent);
   display: flex;
   align-items: center;
@@ -1593,7 +1593,7 @@ body.gr-body .gr-section-h {
 
 .cdash__eng-amount {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-weight: 700;
   color: var(--fo-accent);
   font-size: var(--type-h3);
@@ -1678,7 +1678,7 @@ body.gr-body .gr-section-h {
 
 /* italic accent in display headlines */
 .fo-title-italic {
-  font-style: italic;
+  font-style: normal;
   color: var(--fo-accent);
 }
 
@@ -1812,7 +1812,7 @@ body.gr-body .gr-section-h {
   color: var(--fo-text-3);
   text-decoration: none;
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-weight: 600;
   font-style: normal;
 }
@@ -2116,7 +2116,7 @@ body.gr-body .gr-section-h {
 
 .ld-bid-existing__message {
   font-size: var(--type-body);  color: var(--fo-text-3);
-  font-style: italic;
+  font-style: normal;
   white-space: pre-wrap;
 }
 
@@ -3522,7 +3522,7 @@ body.gr-has-side-nav .bza__side {
   gap: 0.5rem;
   padding: 2rem 1rem !important;
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: var(--type-h3);  color: var(--fo-accent);
   font-weight: 600;
   font-style: normal;
@@ -4470,7 +4470,7 @@ body.gr-has-side-nav .bza__side {
 
 .dash-page-date {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: var(--type-body);  color: var(--fo-accent);
   letter-spacing: 0.01em;
   font-weight: 600;
@@ -5166,7 +5166,7 @@ body.gr-has-side-nav .bza__side {
 
 .dash-agenda-day__rel {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: var(--type-meta);  color: var(--fo-accent);
   font-weight: 600;
   font-style: normal;
@@ -5174,7 +5174,7 @@ body.gr-has-side-nav .bza__side {
 
 .dash-agenda-empty {
   margin: 0;
-  font-size: var(--type-meta);  font-style: italic;
+  font-size: var(--type-meta);  font-style: normal;
   color: var(--fo-text-3);
 }
 
@@ -5260,7 +5260,7 @@ body.gr-has-side-nav .bza__side {
 .bza__page-h-meta {
   font-size: var(--type-meta);  color: var(--fo-text-3);
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-weight: 600;
   font-style: normal;
 }
@@ -5762,7 +5762,7 @@ body.gr-has-side-nav .bza__side {
 .bza__inbox-listing {
   font-size: var(--type-eyebrow);  color: var(--fo-text-3);
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   margin-bottom: 0.1rem;
   font-weight: 600;
   font-style: normal;
@@ -5872,7 +5872,7 @@ body.gr-has-side-nav .bza__side {
   display: block;
   margin-top: 0.55rem;
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: var(--type-meta);  color: var(--fo-accent);
   text-decoration: none;
   font-weight: 600;
@@ -5892,7 +5892,7 @@ body.gr-has-side-nav .bza__side {
 
 .bza__health-loading {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   color: var(--fo-text-3);
   margin: 0.5rem 0;
   text-align: center;
@@ -6302,7 +6302,7 @@ body.gr-has-side-nav .bza__side {
   font-size: var(--type-meta);  color: var(--fo-text-3);
   text-decoration: none;
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   margin-bottom: 1rem;
   display: inline-block;
   font-weight: 600;
@@ -6697,7 +6697,7 @@ body.gr-has-side-nav .bza__side {
   font-size: var(--type-body);  color: var(--fo-text);
   line-height: 1.55;
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-weight: 600;
   font-style: normal;
 }
@@ -6764,7 +6764,7 @@ body.gr-has-side-nav .bza__side {
   font-size: var(--type-eyebrow);  color: var(--fo-text-3);
   white-space: nowrap;
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-weight: 600;
   font-style: normal;
 }
@@ -6830,7 +6830,7 @@ body.gr-has-side-nav .bza__side {
   text-align: center;
   color: var(--fo-text-2);
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-weight: 600;
   font-style: normal;
 }
@@ -7928,7 +7928,7 @@ body.inbox-page .inbox {
 .inbox__thread-listing {
   font-size: var(--type-eyebrow);  color: var(--fo-text-3);
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -7959,7 +7959,7 @@ body.inbox-page .inbox {
   text-align: center;
   color: var(--fo-text-3);
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   margin: 0;
   font-weight: 600;
   font-style: normal;
@@ -8106,7 +8106,7 @@ body.inbox-page .inbox {
 
 .inbox__conv-listing {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   color: var(--fo-accent);
   text-decoration: none;
   font-size: var(--type-meta);
@@ -8167,7 +8167,7 @@ body.inbox-page .inbox {
 
 .inbox__msg-context {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: var(--type-eyebrow);  color: var(--fo-text-3);
   margin-bottom: 0.2rem;
   font-weight: 600;
@@ -8503,7 +8503,7 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
   margin: 0;
   font-size: var(--type-meta);
   color: var(--fo-text-3);
-  font-style: italic;
+  font-style: normal;
 }
 
 .mr-card__quote {
@@ -8511,7 +8511,7 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
   padding: 0.55rem 0 0.55rem 0.85rem;
   border-left: 3px solid var(--fo-accent);
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: 1rem;
   line-height: 1.55;
   color: var(--fo-text);
@@ -8523,7 +8523,7 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
   margin: 0;
   font-size: var(--type-meta);
   color: var(--fo-text-3);
-  font-style: italic;
+  font-style: normal;
 }
 
 .mr-card__dims {
@@ -8846,7 +8846,7 @@ body.gr-has-side-nav .bza__main:has(.dash-view--inbox:not([hidden])) {
   border-left: 2px solid var(--fo-accent-soft);
   font-family: var(--font-display);
   font-size: var(--type-body);
-  font-style: italic;
+  font-style: normal;
   line-height: 1.55;
   color: var(--fo-text);
   font-weight: 600;

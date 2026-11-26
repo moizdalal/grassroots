@@ -53,7 +53,7 @@
 .ch-option__lede {
   margin: 0;
   font-size: var(--type-body);
-  font-style: italic;
+  font-style: normal;
   color: var(--fo-text-2);
   line-height: 1.45;
 }

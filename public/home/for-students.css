@@ -140,7 +140,7 @@
 
       .fs-italic {
         font-family: var(--font-display);
-        font-style: italic;
+        font-style: normal;
         font-weight: inherit;
         color: var(--fo-accent);
         font-weight: 600;
@@ -364,7 +364,7 @@
         font-weight: 600;
         font-style: normal;
       }
-      .fs-mk__head em { font-style: italic; color: var(--fo-accent); }
+      .fs-mk__head em { font-style: normal; color: var(--fo-accent); }
       .fs-mk__head span { display: block; margin-top: 4px; font-size: 14px; color: var(--fo-text-2); }
       .fs-mk__filters { display: flex; gap: 10px; margin: 18px 0 20px; }
       .fs-mk__filters span {
@@ -1269,7 +1269,7 @@
       }
       .fs-refer__counter-num {
         font-family: var(--font-display);
-        font-style: italic; font-weight: 500;
+        font-style: normal; font-weight: 500;
         font-size: clamp(5rem, 9vw, 7.5rem);
         line-height: 0.85;
         color: var(--fo-accent-on);
@@ -1322,7 +1322,7 @@
       .fs-refer__slot.is-filled .fs-refer__slot-num { color: var(--fo-accent); }
       .fs-refer__slot-state {
         font-family: var(--font-display);
-        font-style: italic; font-weight: 500;
+        font-style: normal; font-weight: 500;
         font-size: 1rem;
         color: var(--fo-accent-on);
         line-height: 1.1;
@@ -1471,7 +1471,7 @@
       .fs-payout__work { color: var(--fo-text-2); font-size: 0.88rem; }
       .fs-payout__amt {
         font-family: var(--font-display);
-        font-style: italic; font-weight: 600;
+        font-style: normal; font-weight: 600;
         font-size: 1.2rem;
         color: var(--fo-accent);
         font-weight: 600;
@@ -1517,7 +1517,7 @@
       }
       .fs-quote__mark {
         font-family: var(--font-display);
-        font-style: italic;
+        font-style: normal;
         font-size: 4rem;
         line-height: 0.5;
         color: var(--fo-accent);
@@ -1537,7 +1537,7 @@
         font-style: normal;
       }
       .fs-quote__body em {
-        font-style: italic;
+        font-style: normal;
         color: var(--fo-accent);
       }
       .fs-quote__by {
@@ -1570,7 +1570,7 @@
       .fs-quote__earn {
         margin-left: auto;
         font-family: var(--font-display);
-        font-style: italic; font-weight: 600;
+        font-style: normal; font-weight: 600;
         font-size: 1.1rem;
         color: var(--fo-accent);
         font-weight: 600;

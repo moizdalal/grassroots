@@ -56,11 +56,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&family=Caveat:wght@600&display=swap" />
 
-    <link rel="stylesheet" href="/grassroots.css?v=2" />
-    <link rel="stylesheet" href="/field-office.css?v=2" />
-    <link rel="stylesheet" href="/garden-stem.css?v=2" />
+    <link rel="stylesheet" href="/grassroots.css?v=3" />
+    <link rel="stylesheet" href="/field-office.css?v=3" />
     <link rel="stylesheet" href="/home/nav.css?v=7" />
-    <link rel="stylesheet" href="/home/index.css?v=39" />
+    <link rel="stylesheet" href="/home/index.css?v=59" />
     <script src="/theme.js?v=2"></script>
     <script src="/home/theme-default.js?v=2"></script>
     <script>
@@ -209,25 +208,29 @@
             <span class="ld-hero__title-line" aria-hidden="true">A student wants to help.</span>
           </h1>
           <p class="ld-hero__sub ld-reveal">
-            Start from nothing. A local college student builds it with you, and Grassroots holds your payment until you approve the work.
+            Not sure exactly what you need? Search for it roughly, and a local college student will help you figure out the rest.
           </p>
-          <div class="ld-hero__ctas ld-reveal">
-            <a class="gr-btn gr-btn--primary gr-btn--lg" href="/register.html?role=owner">Post a project</a>
-            <!-- handwritten pointer at "Post a project". Sits between the buttons
-                 so phones (stacked buttons) show it under the right one; CSS moves
-                 it below both buttons on wider screens. -->
-            <p class="ld-start" id="ld-start">
-              <svg class="ld-start__arrow" viewBox="0 0 60 128" fill="none" preserveAspectRatio="none" aria-hidden="true">
-                <path d="M53 120 C22 116 6 84 8 8"/>
-                <path d="M1.5 17 L8 6 L15 16.5"/>
-              </svg>
-              <svg class="ld-start__up" viewBox="0 0 24 36" fill="none" aria-hidden="true">
-                <path d="M12 33 C10 24 13 14 12 4"/>
-                <path d="M5 12 L12 3 L19 11.5"/>
-              </svg>
-              <span class="ld-start__text">Start here if you're a business owner</span>
-            </p>
-            <a class="gr-btn gr-btn--ghost gr-btn--lg" href="/marketplace.html?guest=1">See what's live</a>
+          <!-- search first: businesses describe what they need roughly and see
+               the students whose keywords match. It opens the student directory
+               sketch until the real directory exists. -->
+          <div class="ld-hero__ctas ld-hero__ctas--find ld-reveal">
+            <form class="ld-find" action="/student-profile-sketch.html" method="get" role="search">
+              <label class="ld-sr" for="ld-find-q">What do you need help with?</label>
+              <div class="ld-find__box">
+                <svg class="ld-find__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input class="ld-find__input" id="ld-find-q" name="q" type="search" placeholder="What do you need help with?" autocomplete="off" />
+                <button class="gr-btn gr-btn--primary ld-find__btn" type="submit">Find students</button>
+              </div>
+              <div class="ld-find__try">
+                <span class="ld-find__try-label">Try</span>
+                <a class="ld-find__chip" href="/student-profile-sketch.html?q=social+media">Social media</a>
+                <a class="ld-find__chip" href="/student-profile-sketch.html?q=logos">Logos</a>
+                <a class="ld-find__chip" href="/student-profile-sketch.html?q=bookkeeping">Bookkeeping</a>
+                <a class="ld-find__chip" href="/student-profile-sketch.html?q=website">A website</a>
+                <a class="ld-find__chip" href="/student-profile-sketch.html?q=photos">Photos</a>
+              </div>
+            </form>
+            <p class="ld-find__post">Know exactly what you need? <a href="/register.html?role=owner">Post a project</a> and students will send you offers.</p>
           </div>
 
           <div class="ld-trust-row ld-reveal" aria-label="Recent activity" hidden data-placeholder="Real weekly business count and number of towns">
@@ -242,56 +245,43 @@
         </div>
 
         <div class="ld-reveal">
-          <div class="ld-hero__visual">
-            <div class="ld-hero__cards" id="ld-hero-cards" aria-hidden="true"></div>
-            <div class="ld-hero__garden" id="ld-hero-garden" aria-hidden="true"></div>
+          <!-- what the search above does: the headline's need is typed in,
+               and the student who fits answers it. One sample student per
+               need; it changes with the headline (script at the bottom). -->
+          <div class="ld-hero__visual ld-hero__visual--find">
+            <div class="ld-demo" id="ld-demo" aria-hidden="true">
+              <p class="ld-demo__for">Best match for <b id="ld-demo-q">Instagram</b></p>
+              <div class="ld-demo__card" id="ld-demo-card">
+                <div class="ld-demo__head">
+                  <span class="ld-demo__ava" id="ld-demo-ava">MR</span>
+                  <div class="ld-demo__who">
+                    <div class="ld-demo__name" id="ld-demo-name">Maya Rodriguez</div>
+                    <div class="ld-demo__school" id="ld-demo-school">Marketing · State College</div>
+                    <div class="ld-demo__rating"><span class="ld-demo__star">★</span> <b id="ld-demo-rating">4.9</b> <span id="ld-demo-reviews">(6 reviews)</span></div>
+                  </div>
+                </div>
+                <p class="ld-demo__line" id="ld-demo-line">I make Instagram and TikTok content that gets local cafes and shops noticed.</p>
+                <div class="ld-demo__label">Strengths</div>
+                <div class="ld-demo__chips" id="ld-demo-chips"></div>
+                <div class="ld-demo__foot"><span class="ld-demo__view">View profile →</span></div>
+              </div>
+            </div>
             <p class="ld-hero__visual-caption">
-              Every business above grows a garden like this. Each root is <span class="ld-italic">a paid project</span>. <span class="ld-peek-verb--hover">Hover</span><span class="ld-peek-verb--tap">Tap</span> any to peek.
+              Search for what you need, even roughly, and the students who fit show up first. <span class="ld-hero__sample">Sample student.</span>
             </p>
           </div>
         </div>
       </div>
     </header>
 
-    <!-- ── you bring / they bring ───────────────────────────────
-         for owners starting from nothing: the left card is everything they
-         need (an empty storefront), the right card is what a student adds. -->
-    <section class="ld-bring" aria-labelledby="ld-bring-title">
-      <div class="ld-shell">
-        <div class="ld-section__head ld-reveal">
-          <h2 class="ld-section__title" id="ld-bring-title">You bring the business. A student brings the rest.</h2>
-        </div>
-        <div class="ld-bring__row ld-reveal">
-          <div class="ld-bring__card">
-            <div class="ld-bring__art" aria-hidden="true"><svg viewBox="0 0 308 164"><rect class="ld-bring__ghost" x="119" y="20" width="70" height="18" rx="5"/><path class="ld-bring__line" d="M100 72 L112 46 H196 L208 72 Z"/><path class="ld-bring__line" d="M124 46 L119 72 M142 46 L140 72 M166 46 L168 72 M184 46 L189 72"/><rect class="ld-bring__line" x="106" y="72" width="96" height="68"/><rect class="ld-bring__line" x="142" y="98" width="24" height="42"/><rect class="ld-bring__line" x="114" y="88" width="20" height="22"/><rect class="ld-bring__line" x="174" y="88" width="20" height="22"/><line class="ld-bring__line" x1="24" y1="140" x2="284" y2="140"/><circle class="ld-bring__ghost" cx="52" cy="54" r="17"/><circle class="ld-bring__ghost" cx="52" cy="106" r="17"/><circle class="ld-bring__ghost" cx="256" cy="54" r="17"/><circle class="ld-bring__ghost" cx="256" cy="106" r="17"/></svg></div>
-            <h3 class="ld-bring__title">All you need</h3>
-            <ul class="ld-bring__list">
-              <li><svg viewBox="0 0 22 22" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.3l3 3 6-6.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>A business</b>Any size, any stage.</span></li>
-              <li><svg viewBox="0 0 22 22" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.3l3 3 6-6.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>Something you wish you had</b>A few sentences is plenty.</span></li>
-              <li><svg viewBox="0 0 22 22" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.3l3 3 6-6.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>Five minutes</b>Posting is free.</span></li>
-            </ul>
-          </div>
-          <span class="ld-bring__plus" aria-hidden="true">+</span>
-          <div class="ld-bring__card ld-bring__card--student">
-            <div class="ld-bring__art" aria-hidden="true"><svg viewBox="0 0 308 164"><rect class="ld-bring__fill" x="119" y="20" width="70" height="18" rx="5"/><path class="ld-bring__line" d="M100 72 L112 46 H196 L208 72 Z"/><path class="ld-bring__line" d="M124 46 L119 72 M142 46 L140 72 M166 46 L168 72 M184 46 L189 72"/><rect class="ld-bring__line" x="106" y="72" width="96" height="68"/><rect class="ld-bring__line" x="142" y="98" width="24" height="42"/><rect class="ld-bring__line" x="114" y="88" width="20" height="22"/><rect class="ld-bring__line" x="174" y="88" width="20" height="22"/><line class="ld-bring__line" x1="24" y1="140" x2="284" y2="140"/><circle class="ld-bring__fill" cx="52" cy="54" r="17"/><g class="ld-bring__ico" transform="translate(52 54)"><rect x="-9" y="-7.5" width="18" height="15" rx="2.6"/><line x1="-9" y1="-3" x2="9" y2="-3"/><path d="M-4 1.5 H4 M-4 4.5 H1.5"/></g><circle class="ld-bring__dot" cx="45.6" cy="48.6" r="0.9"/><circle class="ld-bring__dot" cx="48.4" cy="48.6" r="0.9"/><defs><radialGradient id="ld-bring-ig" cx="0.3" cy="1.07" r="1.3"><stop offset="0" stop-color="#FDF497"/><stop offset="0.05" stop-color="#FDF497"/><stop offset="0.45" stop-color="#FD5949"/><stop offset="0.6" stop-color="#D6249F"/><stop offset="0.9" stop-color="#285AEB"/></radialGradient></defs><rect x="35" y="89" width="34" height="34" rx="9.5" fill="url(#ld-bring-ig)"/><g fill="none" stroke="#fff" stroke-width="2.4"><rect x="42" y="96" width="20" height="20" rx="6"/><circle cx="52" cy="106" r="4.8"/></g><circle cx="57.4" cy="100.6" r="1.4" fill="#fff"/><circle cx="256" cy="54" r="16.6" fill="#fff"/><path fill="#1877F2" transform="translate(239 37) scale(1.4167)" d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z"/><circle class="ld-bring__fill" cx="256" cy="106" r="17"/><g class="ld-bring__ico" transform="translate(256 106)"><path d="M0 -9 V9 M5 -5 C3.5 -7 -5 -7.5 -5 -3 C-5 1 5 -1 5 3.5 C5 7.5 -3.5 7.5 -5.5 5"/></g></svg></div>
-            <h3 class="ld-bring__title">What a student brings</h3>
-            <ul class="ld-bring__list">
-              <li><svg viewBox="0 0 22 22" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.3l3 3 6-6.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>They know the tools</b>They grew up on the apps you're trying to figure out.</span></li>
-              <li><svg viewBox="0 0 22 22" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.3l3 3 6-6.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>They want to help</b>Your project goes on their resume, so they show up.</span></li>
-              <li><svg viewBox="0 0 22 22" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.3l3 3 6-6.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>They're priced for a small business</b>You pay the price you agree to, held until you approve the work.</span></li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- ── manifesto ──────────────────────────────────────────
          a rounded panel with two statements: the mission hook, then
          what grassroots does about it. themed: outline in dark, card in
          light. the second statement's words fill in as you scroll (initialized at the bottom of <body>). -->
-    <section class="ld-manifesto" id="ld-manifesto" aria-label="Why we built this">
+    <section class="ld-manifesto" id="ld-manifesto" aria-labelledby="ld-manifesto-title">
       <div class="ld-shell">
         <div class="ld-manifesto__panel">
+          <h2 class="ld-manifesto__title" id="ld-manifesto-title">Our <span class="ld-manifesto__title-key">mission</span></h2>
           <p class="ld-manifesto__lead">Your local community is full of talent. Most of it is still in school.</p>
           <p class="ld-manifesto__text" id="ld-manifesto-text">We started Grassroots to give that talent somewhere to go. Local businesses get <strong class="ld-manifesto__key">a helping hand</strong> with everything from social media to software development, and students get <strong class="ld-manifesto__key">experience that’s hard to find in a classroom</strong>, working for the community they’re becoming part of.</p>
         </div>
@@ -307,6 +297,20 @@
           <h2 class="ld-section__title" id="ld-how-title">How it works</h2>
         </div>
 
+        <!-- Step-by-step animation of the walkthrough (laptops and up). Each
+             step plays once and waits for Next. Phones and screen readers get
+             the step cards below instead. -->
+        <div class="ld-tour" id="ld-tour">
+          <div class="ld-tour__frame">
+            <iframe id="ld-tour-frame" src="/home/how-it-works-tour.html" title="How Grassroots works, step by step" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+          </div>
+          <div class="ld-tour__bar">
+            <button type="button" class="gr-btn gr-btn--ghost ld-tour__btn" id="ld-tour-back" disabled>← Back</button>
+            <p class="ld-tour__label" id="ld-tour-label">Step 1 of 4: <b>Search for what you need</b></p>
+            <button type="button" class="gr-btn gr-btn--primary ld-tour__btn" id="ld-tour-next">Next →</button>
+          </div>
+        </div>
+
         <ol class="ld-grow__row">
           <li class="ld-grow__step" style="--i: 0">
             <div class="ld-grow__art" aria-hidden="true">
@@ -317,8 +321,8 @@
               </svg>
             </div>
             <div class="ld-grow__card">
-              <h3 class="ld-grow__title">Post a project</h3>
-              <p class="ld-grow__body">A local business writes a short brief: what they need, a budget range, and a timeline. It takes about five minutes, and posting is free.</p>
+              <h3 class="ld-grow__title">Search for what you need</h3>
+              <p class="ld-grow__body">A local business types what it needs help with, even roughly, like social media or a website. Students whose strengths match show up first.</p>
             </div>
           </li>
 
@@ -335,8 +339,8 @@
               </svg>
             </div>
             <div class="ld-grow__card">
-              <h3 class="ld-grow__title">Students bid</h3>
-              <p class="ld-grow__body">College students nearby read the brief and send a short pitch with their price and plan. The business compares bids at its own pace.</p>
+              <h3 class="ld-grow__title">Message a student</h3>
+              <p class="ld-grow__body">The business looks at a student's strengths, packages and past work, then sends a message. The student asks a few questions and helps figure out what's needed.</p>
             </div>
           </li>
 
@@ -353,8 +357,8 @@
               </svg>
             </div>
             <div class="ld-grow__card">
-              <h3 class="ld-grow__title">Pick a bid</h3>
-              <p class="ld-grow__body">The business picks the student who fits best and funds the project. Grassroots holds the payment, processed by Stripe, until the work is done.</p>
+              <h3 class="ld-grow__title">Pick an offer</h3>
+              <p class="ld-grow__body">The student sends a few offers, from their packages or a plan built for the business. Once the business picks one, Grassroots holds the payment, processed by Stripe, until the work is done.</p>
             </div>
           </li>
 
@@ -376,11 +380,46 @@
               </svg>
             </div>
             <div class="ld-grow__card">
-              <h3 class="ld-grow__title">Approve and get paid</h3>
-              <p class="ld-grow__body">The student delivers the work and makes revisions if needed. Once the business approves it, the student gets paid and both sides leave a review.</p>
+              <h3 class="ld-grow__title">Approve the work</h3>
+              <p class="ld-grow__body">The student delivers the work and makes changes if needed. Once the business approves it, the student gets paid and both sides leave a review.</p>
             </div>
           </li>
         </ol>
+      </div>
+    </section>
+
+    <!-- ── you bring / they bring ───────────────────────────────
+         a before and after of one shop: today it's plain, with nothing online
+         (dashed spots) and a blank sign; with a student it's open and growing,
+         with its website, social pages and payments filled in, lit windows,
+         a striped awning, plants by the door and sprouts on the roof. The arrow runs from one to the other. Payment details
+         live in the section below. -->
+    <section class="ld-bring" aria-labelledby="ld-bring-title">
+      <div class="ld-shell">
+        <div class="ld-section__head ld-reveal">
+          <h2 class="ld-section__title" id="ld-bring-title">Bring a rough idea, and a student brings the rest</h2>
+        </div>
+        <div class="ld-bring__row ld-reveal">
+          <div class="ld-bring__card">
+            <div class="ld-bring__art ld-bring__art--before" aria-hidden="true"><svg viewBox="0 0 308 164"><rect class="ld-bring__ghost" x="119" y="20" width="70" height="18" rx="5"/><path class="ld-bring__line" d="M100 72 L112 46 H196 L208 72 Z"/><path class="ld-bring__line" d="M124 46 L119 72 M142 46 L140 72 M166 46 L168 72 M184 46 L189 72"/><rect class="ld-bring__line" x="106" y="72" width="96" height="68"/><rect class="ld-bring__line" x="142" y="98" width="24" height="42"/><rect class="ld-bring__line" x="114" y="88" width="20" height="22"/><rect class="ld-bring__line" x="174" y="88" width="20" height="22"/><line class="ld-bring__line" x1="24" y1="140" x2="284" y2="140"/><circle class="ld-bring__ghost" cx="52" cy="54" r="17"/><circle class="ld-bring__ghost" cx="52" cy="106" r="17"/><circle class="ld-bring__ghost" cx="256" cy="54" r="17"/><circle class="ld-bring__ghost" cx="256" cy="106" r="17"/></svg><p class="ld-bring__cap">Your shop today</p></div>
+            <h3 class="ld-bring__title">All you need</h3>
+            <ul class="ld-bring__list">
+              <li><svg viewBox="0 0 22 22" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.3l3 3 6-6.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>A business</b>Any size, any stage.</span></li>
+              <li><svg viewBox="0 0 22 22" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.3l3 3 6-6.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>A rough idea</b>Something like social media or a website is enough, and you don't need the details.</span></li>
+              <li><svg viewBox="0 0 22 22" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.3l3 3 6-6.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>A few minutes</b>Searching for students is free, and so is posting a project.</span></li>
+            </ul>
+          </div>
+          <span class="ld-bring__arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <div class="ld-bring__card ld-bring__card--student">
+            <div class="ld-bring__art" aria-hidden="true"><svg viewBox="0 0 308 164"><rect class="ld-bring__fill" x="119" y="20" width="70" height="18" rx="5"/><text class="ld-bring__open" x="154" y="32.5" text-anchor="middle">Open</text><path class="ld-bring__stripe" d="M112 46 H124 L119 72 H100 Z"/><path class="ld-bring__stripe" d="M142 46 H166 L168 72 H140 Z"/><path class="ld-bring__stripe" d="M184 46 H196 L208 72 H189 Z"/><path class="ld-bring__line" d="M100 72 L112 46 H196 L208 72 Z"/><path class="ld-bring__line" d="M124 46 L119 72 M142 46 L140 72 M166 46 L168 72 M184 46 L189 72"/><rect class="ld-bring__line" x="106" y="72" width="96" height="68"/><rect class="ld-bring__line" x="142" y="98" width="24" height="42"/><rect class="ld-bring__lit" x="114" y="88" width="20" height="22"/><rect class="ld-bring__lit" x="174" y="88" width="20" height="22"/><rect class="ld-bring__line" x="114" y="88" width="20" height="22"/><rect class="ld-bring__line" x="174" y="88" width="20" height="22"/><line class="ld-bring__line" x1="24" y1="140" x2="284" y2="140"/><circle class="ld-bring__fill" cx="52" cy="54" r="17"/><g class="ld-bring__ico" transform="translate(52 54)"><rect x="-9" y="-7.5" width="18" height="15" rx="2.6"/><line x1="-9" y1="-3" x2="9" y2="-3"/><path d="M-4 1.5 H4 M-4 4.5 H1.5"/></g><circle class="ld-bring__dot" cx="45.6" cy="48.6" r="0.9"/><circle class="ld-bring__dot" cx="48.4" cy="48.6" r="0.9"/><defs><radialGradient id="ld-bring-ig" cx="0.3" cy="1.07" r="1.3"><stop offset="0" stop-color="#FDF497"/><stop offset="0.05" stop-color="#FDF497"/><stop offset="0.45" stop-color="#FD5949"/><stop offset="0.6" stop-color="#D6249F"/><stop offset="0.9" stop-color="#285AEB"/></radialGradient></defs><rect x="35" y="89" width="34" height="34" rx="9.5" fill="url(#ld-bring-ig)"/><g fill="none" stroke="#fff" stroke-width="2.4"><rect x="42" y="96" width="20" height="20" rx="6"/><circle cx="52" cy="106" r="4.8"/></g><circle cx="57.4" cy="100.6" r="1.4" fill="#fff"/><circle cx="256" cy="54" r="16.6" fill="#fff"/><path fill="#1877F2" transform="translate(239 37) scale(1.4167)" d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z"/><circle class="ld-bring__fill" cx="256" cy="106" r="17"/><g class="ld-bring__ico" transform="translate(256 106)"><path d="M0 -9 V9 M5 -5 C3.5 -7 -5 -7.5 -5 -3 C-5 1 5 -1 5 3.5 C5 7.5 -3.5 7.5 -5.5 5"/></g><g class="ld-bring__sprout" transform="translate(99 20) scale(0.094)"><path transform="translate(72 130)" d="M19 10.15C19 4.54 14.75 0 9.5 0C4.25 0 0 4.54 0 10.15C7.92 91.25 8.44 120.69 0 134.85C0 140.46 4.25 145 9.5 145C14.75 145 19 140.46 19 134.85C16.22 71.27 12.35 23.29 19 10.15Z"/><path transform="translate(0 65)" d="M84 87C21 71.53 -6.56 42.53 1.31 0C56.44 3.87 84 32.87 84 87Z"/><path transform="translate(82 0)" d="M0 147C48.6 116.05 75.6 67.05 81 0C27 5.16 0 54.16 0 147Z"/></g><g class="ld-bring__sprout" transform="translate(193 20) scale(0.094)"><path transform="translate(72 130)" d="M19 10.15C19 4.54 14.75 0 9.5 0C4.25 0 0 4.54 0 10.15C7.92 91.25 8.44 120.69 0 134.85C0 140.46 4.25 145 9.5 145C14.75 145 19 140.46 19 134.85C16.22 71.27 12.35 23.29 19 10.15Z"/><path transform="translate(0 65)" d="M84 87C21 71.53 -6.56 42.53 1.31 0C56.44 3.87 84 32.87 84 87Z"/><path transform="translate(82 0)" d="M0 147C48.6 116.05 75.6 67.05 81 0C27 5.16 0 54.16 0 147Z"/></g><path class="ld-bring__line ld-bring__pot" d="M123 129 H135 L133.5 140 H124.5 Z"/><path class="ld-bring__leaf" d="M129 129 C124 125 122 120 123 115 C128 117 130 122 129 129 Z"/><path class="ld-bring__leaf" d="M129 129 C134 125 136 120 135 115 C130 117 128 122 129 129 Z"/><path class="ld-bring__line ld-bring__pot" d="M173 129 H185 L183.5 140 H174.5 Z"/><path class="ld-bring__leaf" d="M179 129 C174 125 172 120 173 115 C178 117 180 122 179 129 Z"/><path class="ld-bring__leaf" d="M179 129 C184 125 186 120 185 115 C180 117 178 122 179 129 Z"/></svg><p class="ld-bring__cap">Your shop with a student</p></div>
+            <h3 class="ld-bring__title">What a student brings</h3>
+            <ul class="ld-bring__list">
+              <li><svg viewBox="0 0 22 22" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.3l3 3 6-6.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>They know the tools</b>They grew up on the apps you're trying to figure out.</span></li>
+              <li><svg viewBox="0 0 22 22" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.3l3 3 6-6.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>They help you figure it out</b>They look at your business with you and suggest where to start.</span></li>
+              <li><svg viewBox="0 0 22 22" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.3l3 3 6-6.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>You can see who fits</b>Every student shows their strengths, past projects and reviews before you reach out.</span></li>
+            </ul>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -492,14 +531,16 @@
       </div>
     </section>
 
-    <!-- ── marketplace peek ────────────────────────────────── -->
+    <!-- ── student peek: a scrolling row of student cards ──────
+         sample profiles until real students have them; each opens the
+         directory sketch. -->
     <section class="ld-section ld-peek" aria-labelledby="ld-peek-title" data-vine-anchor="field">
       <div class="ld-shell">
         <div class="ld-section__head ld-reveal">
-          <h2 class="ld-section__title" id="ld-peek-title">What's on the field this week</h2>
-          <p class="ld-section__sub">Example listings to show how projects look. Post yours to get real bids from local students.</p>
-          <p class="ld-peek__note">* Sample listings. These businesses aren't real.</p>
-          <p class="ld-section__sub" hidden data-placeholder="Use once these listings are real">A sample of open listings from across the network. Real businesses, real budgets, real students.</p>
+          <h2 class="ld-section__title" id="ld-peek-title">Students ready to help</h2>
+          <p class="ld-section__sub">Each student shows what they're good at, what they've done and what they charge, so you can pick the one who fits.</p>
+          <p class="ld-peek__note">* Sample students. These aren't real profiles yet.</p>
+          <p class="ld-section__sub" hidden data-placeholder="Use once these profiles are real">A few of the students near you who are ready to take on a project.</p>
         </div>
       </div>
 
@@ -509,7 +550,7 @@
 
       <div class="ld-shell">
         <div class="ld-peek__cta-row">
-          <a class="gr-btn gr-btn--secondary gr-btn--lg" href="/marketplace.html?guest=1">Browse the full marketplace</a>
+          <a class="gr-btn gr-btn--secondary gr-btn--lg" href="/student-profile-sketch.html">Browse all students</a>
         </div>
       </div>
     </section>
@@ -623,11 +664,6 @@
               <summary>Are taxes and 1099s handled?</summary>
               <p class="ld-faq__answer">Payouts go to students through Stripe. Grassroots issues tax forms to students where the law requires it. You'll get a clean year end summary of what you paid through the platform for your own books.</p>
             </details>
-            <details>
-              <summary>What cities are you in?</summary>
-              <p class="ld-faq__answer">Grassroots is opening town by town. New towns open as students and businesses there join.</p>
-              <p class="ld-faq__answer" hidden data-placeholder="Real number of towns and states">We launched in 14 college towns across Florida, Georgia, and the Carolinas. New towns open as students and businesses there join.</p>
-            </details>
           </div>
         </div>
       </div>
@@ -706,16 +742,16 @@
 
     <script id="ld-peek-data" type="application/json">
       [
-        {"biz":"Side Street Coffee","logo":"SS","title":"Menu redesign + window decals","budget":"$240","contract":"One time","tags":["Design","Print"],"eyebrow":"Posted 2h ago"},
-        {"biz":"North End Bikes","logo":"NB","title":"Shopify cleanup + product photos","budget":"$450","contract":"Phased","tags":["Shopify","Photo"],"eyebrow":"Posted today"},
-        {"biz":"Rooster & Rye","logo":"RR","title":"Weekly social posts retainer","budget":"$320/mo","contract":"Retainer","tags":["Social"],"eyebrow":"Open"},
-        {"biz":"Marigold Florals","logo":"MF","title":"Brand refresh + new logo","budget":"$600","contract":"Phased","tags":["Brand","Logo"],"eyebrow":"5 bids"},
-        {"biz":"Split / Fix Shop","logo":"SF","title":"Market research for new location","budget":"$520","contract":"One time","tags":["Research"],"eyebrow":"Posted yesterday"},
-        {"biz":"Alma Kitchen","logo":"AK","title":"Site copy + photo direction","budget":"$380","contract":"One time","tags":["Copy","Photo"],"eyebrow":"8 bids"}
+        {"id":"maya","name":"Maya Rodriguez","ini":"MR","tone":1,"school":"Marketing · State College","rating":"4.9","reviews":6,"headline":"I make Instagram and TikTok content that gets local cafes and shops noticed.","from":"$150","tags":["Instagram","TikTok","Content creation"]},
+        {"id":"jordan","name":"Jordan Park","ini":"JP","tone":2,"school":"Accounting · State College","rating":"5.0","reviews":4,"headline":"I help small businesses get their books and prices in order.","from":"$120","tags":["Bookkeeping","QuickBooks","Pricing"]},
+        {"id":"aisha","name":"Aisha Bello","ini":"AB","tone":3,"school":"Graphic design · State College","rating":"4.9","reviews":7,"headline":"Logos, menus and signs that look like they belong to you.","from":"$90","tags":["Logos","Branding","Menu design"]},
+        {"id":"chris","name":"Chris Thompson","ini":"CT","tone":4,"school":"Computer science · Tech Institute","rating":"4.8","reviews":5,"headline":"Simple websites and online ordering for restaurants and shops.","from":"$250","tags":["Website setup","Shopify","Online ordering"]},
+        {"id":"sam","name":"Sam Lee","ini":"SL","tone":5,"school":"Film · State College","rating":"4.7","reviews":3,"headline":"Short videos and photos that show off what you make.","from":"$100","tags":["Short videos","Product photos","TikTok"]},
+        {"id":"priya","name":"Priya Nair","ini":"PN","tone":6,"school":"Business · State College","rating":"4.8","reviews":4,"headline":"Flyers, promotions and Google listings that bring people through the door.","from":"$90","tags":["Flyers","Promotions","Google listings"]}
       ]
     </script>
 
-    <script src="/home/landing.js?v=3" defer></script>
+    <script src="/home/landing.js?v=4" defer></script>
     <script>
       // CTA form: fake submit (no backend), show success state in-place.
       (function () {
@@ -733,414 +769,117 @@
       })();
     </script>
 
-    <!-- Hero "your garden" — mounts the dashboard's garden-stem with
-         six mock roots so the hero shows the marketplace outcome in
-         motion. The pool of listings cycles through the floating
-         hero cards over the top. -->
     <script type="module">
-      import { mountGardenStem } from "/garden-stem.js?v=7";
-
-      const HERO_ROOTS = [
-        { bidId: "hero-1", listingId: "hero-listing-1",
-          listingTitle: "Weekend bakery sales push",
-          consultantName: "Jordan Kim", amountCents: 32000,
-          releasedAt: "2026-04-12T15:30:00Z" },
-        { bidId: "hero-2", listingId: "hero-listing-2",
-          listingTitle: "Instagram content refresh",
-          consultantName: "Sam Chen", amountCents: 18000,
-          releasedAt: "2026-03-22T10:00:00Z" },
-        { bidId: "hero-3", listingId: "hero-listing-3",
-          listingTitle: "Logo + brand mark redesign",
-          consultantName: "Morgan Vasquez", amountCents: 55000,
-          releasedAt: "2026-02-14T18:00:00Z" },
-        { bidId: "hero-4", listingId: "hero-listing-4",
-          listingTitle: "Square POS migration help",
-          consultantName: "Alex Park", amountCents: 22000,
-          releasedAt: "2026-01-30T09:15:00Z" },
-        { bidId: "hero-5", listingId: "hero-listing-5",
-          listingTitle: "Press release for grand reopening",
-          consultantName: "Priya Rao", amountCents: 12500,
-          releasedAt: "2025-12-20T13:45:00Z" },
-        { bidId: "hero-6", listingId: "hero-listing-6",
-          listingTitle: "Google business profile + SEO cleanup",
-          consultantName: "Riley Alves", amountCents: 16000,
-          releasedAt: "2025-10-15T11:20:00Z" },
-      ];
-
-      const garden = document.getElementById("ld-hero-garden");
-      // Phones and tablets get a still hero: nobody drags roots or
-      // hovers grass on touch, and the per-frame loops made the page
-      // lag. Tap-to-peek on a root still works.
-      // Set by the inline check in <head>.
+      const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
       const liteHero = document.documentElement.classList.contains("ld-lite");
-      // Desktop hero garden: drag-to-reposition stays on so visitors can
-      // play with the roots, but clicks don't navigate (no listing
-      // page behind these fakes). The hover card still pops on hover.
-      const gardenStem = garden
-        ? mountGardenStem(garden, { roots: HERO_ROOTS, interactive: !liteHero, navigateOnClick: false, animate: !liteHero })
-        : null;
-      let freezeGrass = () => {};
-      // Hero on screen and tab visible. Loops below idle when it isn't.
+      // Hero on screen and tab visible. The demo and the watchdog idle when it isn't.
       let heroInView = true;
       const heroEl = document.querySelector(".ld-hero");
       if (heroEl && "IntersectionObserver" in window) {
         new IntersectionObserver(([entry]) => { heroInView = entry.isIntersecting; }).observe(heroEl);
       }
       const heroActive = () => heroInView && !document.hidden;
-      let lastScrollAt = -Infinity;
-      window.addEventListener("scroll", () => { lastScrollAt = performance.now(); }, { passive: true });
+      // The hero fills the screen below the nav (see .ld-hero in index.css).
+      const navEl = document.querySelector(".ld-nav");
+      const setNavH = () => { if (navEl) document.documentElement.style.setProperty("--ld-nav-h", navEl.offsetHeight + "px"); };
+      setNavH();
+      window.addEventListener("resize", setNavH);
 
-      // ── grass blades along the soil line ─────────────────────────
-      // Ported from the previous landing's interactive grass canvas,
-      // scaled down so blade heights are 8–18px (≈10–15% of sprout
-      // height). Bezier-curved blades sway on a sine + bend away from
-      // the cursor with a soft spring return.
-      if (garden) {
-        const SPROUT_GREEN = { r: 109, g: 191, b: 138 };
-        const plot = garden.querySelector(".gs__plot");
-        const earth = garden.querySelector(".gs__earth");
-        // Static grass: drawn once, no sway loop, no cursor tracking.
-        const prefersReducedHero = liteHero || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-        if (plot && earth) {
-          plot.style.position = "relative";
-          const grassCanvas = document.createElement("canvas");
-          grassCanvas.className = "ld-hero__grass";
-          grassCanvas.setAttribute("aria-hidden", "true");
-          plot.appendChild(grassCanvas);
-          initHeroGrass(grassCanvas, plot, earth);
-        }
-
-        function initHeroGrass(canvas, container, earthEl) {
-          const ctx = canvas.getContext("2d");
-          if (!ctx) return;
-          const HEIGHT_PX     = 64;          // canvas drawing height — fits ~49px blades + soil-line band
-          const SOIL_LINE_H   = 8;           // matches .ld-hero__garden .gs__soil-line { height }
-          const CANVAS_OVERLAP = 2;          // canvas bottom is this many px below soil-line bottom
-          const DENSITY  = 1.0;              // blades per CSS pixel of width (down from 1.7 — fewer but cleaner)
-          const INTERACT = 90;               // cursor influence radius
-          const BLEED    = 40;               // empty canvas margin past the soil on each side, so bent blades never clip
-          let w = 0;
-          const cursor = { x: -9999, y: -9999 };
-          const blades = [];
-
-          // Soil-line wave (extracted from garden-stem.js soilLineSvg).
-          // viewBox 100×6; each segment is a quadratic bezier from p0
-          // through control point cp to p2.
-          const SOIL_SEGMENTS = [
-            { p0: [  0, 3   ], cp: [ 7, 0.6 ], p2: [ 14, 3   ] },
-            { p0: [ 14, 3   ], cp: [22, 5   ], p2: [ 30, 2.8 ] },
-            { p0: [ 30, 2.8 ], cp: [38, 0.4 ], p2: [ 46, 3.2 ] },
-            { p0: [ 46, 3.2 ], cp: [54, 5.4 ], p2: [ 62, 3   ] },
-            { p0: [ 62, 3   ], cp: [70, 0.8 ], p2: [ 78, 3.4 ] },
-            { p0: [ 78, 3.4 ], cp: [86, 5   ], p2: [ 94, 2.8 ] },
-            { p0: [ 94, 2.8 ], cp: [98, 2   ], p2: [100, 3   ] },
-          ];
-          function soilCurveY(vbX) {
-            if (vbX <= 0) return 3;
-            if (vbX >= 100) return 3;
-            for (const seg of SOIL_SEGMENTS) {
-              if (vbX >= seg.p0[0] && vbX <= seg.p2[0]) {
-                const [x0, y0] = seg.p0;
-                const [x1, y1] = seg.cp;
-                const [x2, y2] = seg.p2;
-                const a = x0 - 2 * x1 + x2;
-                const b = 2 * (x1 - x0);
-                const c = x0 - vbX;
-                let t;
-                if (Math.abs(a) < 1e-6) {
-                  t = -c / b;
-                } else {
-                  const disc = b * b - 4 * a * c;
-                  const sq = Math.sqrt(Math.max(0, disc));
-                  const t1 = (-b + sq) / (2 * a);
-                  const t2 = (-b - sq) / (2 * a);
-                  t = (t1 >= 0 && t1 <= 1) ? t1 : t2;
-                }
-                t = Math.max(0, Math.min(1, t));
-                const omt = 1 - t;
-                return omt * omt * y0 + 2 * omt * t * y1 + t * t * y2;
-              }
-            }
-            return 3;
-          }
-          // Canvas y where a blade with this x should plant its base.
-          // The wavy horizon lives in a soil-line band of SOIL_LINE_H
-          // pixels, and the canvas bottom sits CANVAS_OVERLAP below
-          // the band bottom. vbY ∈ [0,6] maps to pixels above canvas
-          // bottom linearly.
-          function bladeBaseAt(x) {
-            const vbX = ((x - BLEED) / Math.max(1, w - BLEED * 2)) * 100;
-            const vbY = soilCurveY(vbX);
-            return HEIGHT_PX - CANVAS_OVERLAP - SOIL_LINE_H + vbY * (SOIL_LINE_H / 6);
-          }
-
-          function size() {
-            const r = container.getBoundingClientRect();
-            // Render at up to 3× device pixel ratio so blade edges stay
-            // crisp on hi-DPI displays. Phones cap at 2: a 3× canvas is
-            // 2.25× the pixels for a picture that never moves.
-            const dpr = Math.min(window.devicePixelRatio || 1, liteHero ? 2 : 3);
-            // w spans the plot plus the bleed on both sides. Blades are planted only
-            // over the soil (BLEED..w-BLEED); the bleed is room for them to bend into.
-            w = Math.max(1, Math.floor(r.width)) + BLEED * 2;
-            canvas.style.setProperty("--ld-grass-bleed", BLEED + "px");
-            canvas.width  = Math.floor(w * dpr);
-            canvas.height = Math.floor(HEIGHT_PX * dpr);
-            canvas.style.width  = w + "px";
-            canvas.style.height = HEIGHT_PX + "px";
-            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = "high";
-          }
-          function positionAtSoil() {
-            // Place canvas bottom CANVAS_OVERLAP below the soil-line
-            // bottom (= earth top), so the soil-line band sits inside
-            // the canvas with the wavy horizon fully in view.
-            const eh = earthEl.getBoundingClientRect().height;
-            canvas.style.bottom = (eh - CANVAS_OVERLAP) + "px";
-          }
-          function makeBlades() {
-            blades.length = 0;
-            const soilW = w - BLEED * 2;
-            const count = Math.floor(soilW * DENSITY);
-            for (let i = 0; i < count; i++) {
-              const tall = Math.random() > 0.84;
-              // Heights are the previous 24–54 range × 0.9:
-              // most blades 22–35, tall sub-set 35–49.
-              const h = tall ? 34 + Math.random() * 14 : 22 + Math.random() * 14;
-              // Planted within the soil's width, never past its ends.
-              const x = BLEED + Math.min(soilW, Math.max(0, (i / count) * soilW + (Math.random() - 0.5) * 5));
-              const depth = Math.random();   // 0 = back, 1 = front
-              blades.push({
-                x,
-                depth,
-                // Back blades sit a hair lower so the foreground reads
-                // as standing in front of them.
-                baseY: bladeBaseAt(x) + (1 - depth) * 1.6,
-                h,
-                bw: 1.2 + depth * 1.4,        // wider for visible defined edges
-                seed: Math.random() * Math.PI * 2,
-                speed: 0.42 + Math.random() * 0.75,
-                tilt: (Math.random() - 0.5) * 0.28,
-                bend: 0,
-                bendV: 0,
-                // Brightness rises with depth, but stays well under the sprout's
-                // green so the logo carries the most attention. Per-blade jitter
-                // keeps neighbours from sharing one shade.
-                v: 0.30 + depth * 0.26 + (Math.random() - 0.5) * 0.06,
-                hueShift: (Math.random() - 0.5) * 14, // ±7 channel jitter
-              });
-            }
-            // Back-to-front so depth layering reads correctly.
-            blades.sort((a, b) => a.depth - b.depth);
-          }
-          function drawBlade(b, sway) {
-            const baseY = b.baseY;
-            const baseLean = b.tilt * 3.5 + sway * 0.24;
-            // Capped inside the bleed so a hard push can't carry the tip off the canvas.
-            const tipBend  = Math.max(-(BLEED - 6), Math.min(BLEED - 6, b.tilt * 9 + sway * 0.62 + b.bend * 3.2));
-            const tipX = b.x + tipBend;
-            const tipY = baseY - b.h;
-            const bw = b.bw;
-            ctx.beginPath();
-            ctx.moveTo(b.x - bw, baseY);
-            ctx.bezierCurveTo(
-              b.x + baseLean - bw * 0.28, baseY - b.h * 0.30,
-              tipX - bw * 0.22,           baseY - b.h * 0.70,
-              tipX,                       tipY
-            );
-            ctx.bezierCurveTo(
-              tipX + bw * 0.22,           baseY - b.h * 0.70,
-              b.x + baseLean + bw * 0.28, baseY - b.h * 0.30,
-              b.x + bw,                   baseY
-            );
-            ctx.closePath();
-            const v = b.v;
-            const r  = Math.max(8,   Math.min(255, Math.round(SPROUT_GREEN.r * v + b.hueShift * 0.6)));
-            const g  = Math.max(20,  Math.min(255, Math.round(SPROUT_GREEN.g * v + b.hueShift)));
-            const bC = Math.max(6,   Math.min(255, Math.round(SPROUT_GREEN.b * v + b.hueShift * 0.4)));
-            ctx.fillStyle = `rgb(${r}, ${g}, ${bC})`;
-            ctx.fill();
-          }
-          let frozen = false;
-          freezeGrass = () => { frozen = true; };
-          function frame(nowMs) {
-            if (!document.body.contains(canvas) || frozen) return;
-            // Off screen or tab hidden: skip the redraw, keep the loop alive.
-            if (!prefersReducedHero && !heroActive()) { requestAnimationFrame(frame); return; }
-            const t = nowMs * 0.001;
-            ctx.clearRect(0, 0, w, HEIGHT_PX);
-            const rect = canvas.getBoundingClientRect();
-            const cx = cursor.x - rect.left;
-            const cy = cursor.y - rect.top;
-            for (const b of blades) {
-              const sway = Math.sin(t * b.speed + b.seed) * 2.4;
-              const anchor = b.x + sway;
-              if (!prefersReducedHero) {
-                const dx = anchor + b.bend - cx;
-                const dy = (b.baseY - b.h / 2) - cy;
-                const d  = Math.hypot(dx, dy);
-                if (d < INTERACT) {
-                  const f = 1 - d / INTERACT;
-                  b.bendV += (dx >= 0 ? 1 : -1) * f * f * f * 0.55;
-                }
-              }
-              b.bendV += -b.bend * 0.045;
-              b.bendV *= 0.84;
-              b.bend  += b.bendV;
-              drawBlade(b, sway);
-            }
-            if (!prefersReducedHero) requestAnimationFrame(frame);
-          }
-          if (!prefersReducedHero) {
-            window.addEventListener("mousemove",  (e) => { cursor.x = e.clientX; cursor.y = e.clientY; });
-            window.addEventListener("mouseleave", () => { cursor.x = -9999; cursor.y = -9999; });
-          }
-          // Mobile browsers fire resize whenever the address bar shows or
-          // hides mid-scroll. Only a width change needs new blades; a soil
-          // line that moved just needs the canvas re-anchored, which is a
-          // style write, not a redraw.
-          let builtWidth = -1;
-          let builtEarthH = -1;
-          const rebuild = () => {
-            const width = Math.floor(container.getBoundingClientRect().width);
-            const earthH = Math.round(earthEl.getBoundingClientRect().height);
-            if (width === builtWidth) {
-              if (earthH !== builtEarthH) { builtEarthH = earthH; positionAtSoil(); }
-              return;
-            }
-            builtWidth = width;
-            builtEarthH = earthH;
-            size(); positionAtSoil(); makeBlades(); if (prefersReducedHero) frame(0);
-          };
-          window.addEventListener("resize", rebuild);
-          if (typeof ResizeObserver !== "undefined") {
-            new ResizeObserver(rebuild).observe(container);
-          }
-          rebuild();
-          if (prefersReducedHero) return;
-          requestAnimationFrame(frame);
-        }
-      }
-
-      // Mock business bios that fan + shuffle across the top of the
-      // visual — small bios of college-town businesses that use the
-      // marketplace. The fan logic below cycles them through the
-      // five slot positions; the center card is highlighted.
-      const BUSINESS_POOL = [
-        // Every card uses the same format: name, then "type · City, ST".
-        // Names and City, ST are proper nouns, so they keep their capitals.
-        // avatar = initials shown in the logo circle until real logos exist.
-        // project = an example of the kind of work a student does for them.
-        { name: "Side Street Coffee",   tagline: "Café · Gainesville, FL",         avatar: "SS", project: "Instagram, set up from scratch" },
-        { name: "North End Bikes",      tagline: "Bike shop · Athens, GA",         avatar: "NB", project: "Website and online store" },
-        { name: "Rooster & Rye",        tagline: "Bakery · Chapel Hill, NC",       avatar: "RR", project: "Facebook page and first posts" },
-        { name: "Marigold Florals",     tagline: "Florist · Columbia, SC",         avatar: "MF", project: "Inventory management app" },
-        { name: "Split / Fix Shop",     tagline: "Auto repair · Gainesville, FL",  avatar: "SF", project: "Online booking for repairs" },
-        { name: "Alma Kitchen",         tagline: "Restaurant · Tampa, FL",         avatar: "AK", project: "Logo and a new menu" },
-        { name: "Ember Tea Room",       tagline: "Tea house · Savannah, GA",       avatar: "ET", project: "Getting found on Google" },
-        { name: "Blue Line Printing",   tagline: "Print shop · Raleigh, NC",       avatar: "BL", project: "Online order form for print jobs" },
-        { name: "West Village Wines",   tagline: "Wine bar · Oxford, MS",          avatar: "WW", project: "Email newsletter, from scratch" },
-        { name: "The Spool Record Co.", tagline: "Vinyl · Auburn, AL",             avatar: "SR", project: "Online store for used vinyl" },
-        { name: "Harbor & Hide",        tagline: "Leather goods · Charleston, SC", avatar: "HH", project: "Product photos for the shop" },
-        { name: "Amber Haus Design",    tagline: "Design studio · Austin, TX",     avatar: "AH", project: "Bookkeeping spreadsheet" },
+      // ── Hero search demo ─────────────────────────────────────────
+      // One sample student per thing the headline asks about, in the same
+      // order as its WORDS. Every few seconds the headline changes, then a
+      // beat later the real search bar's hint text types that search letter
+      // by letter, and once it's typed the student card fades over. There's
+      // only one search bar, so people always know where to type. Clicking
+      // into it stops the typing and brings back the plain prompt. It all
+      // holds while someone is using the search bar, while the pointer is
+      // over the card, or while the hero is off screen.
+      const DEMO = [
+        { q: "Instagram", ini: "MR", color: "#b5673a", name: "Maya Rodriguez", school: "Marketing · State College", rating: "4.9", reviews: 6,
+          line: "I make Instagram and TikTok content that gets local cafes and shops noticed.", from: "$150",
+          strengths: ["Instagram", "Content creation", "TikTok", "Captions", "Canva"], match: ["Instagram", "Content creation"] },
+        { q: "A website", ini: "CT", color: "#3b6b4f", name: "Chris Thompson", school: "Computer science · Tech Institute", rating: "4.8", reviews: 5,
+          line: "Simple websites and online ordering that owners can update themselves.", from: "$250",
+          strengths: ["Website setup", "Squarespace", "Wix", "Online ordering", "Shopify"], match: ["Website setup", "Squarespace", "Wix"] },
+        { q: "An online store", ini: "NO", color: "#2a6170", name: "Nina Ortiz", school: "Information systems · State College", rating: "4.9", reviews: 4,
+          line: "I set up online stores and product listings that are easy to keep up.", from: "$200",
+          strengths: ["Shopify", "Online store", "Product listings", "Product photos", "Pricing"], match: ["Shopify", "Online store", "Product listings"] },
+        { q: "A logo", ini: "AB", color: "#b9577a", name: "Aisha Bello", school: "Graphic design · State College", rating: "4.9", reviews: 7,
+          line: "Logos, menus and signs that look like they belong to you.", from: "$90",
+          strengths: ["Logos", "Branding", "Menu design", "Signage", "Canva"], match: ["Logos", "Branding"] },
+        { q: "A booking page", ini: "LM", color: "#4f6b8a", name: "Leo Martin", school: "Computer science · Tech Institute", rating: "4.7", reviews: 3,
+          line: "I set up online booking so customers can schedule without calling.", from: "$120",
+          strengths: ["Online booking", "Calendly", "Squarespace", "Google listings", "Email reminders"], match: ["Online booking", "Calendly"] },
+        { q: "An inventory app", ini: "GL", color: "#8a6d2f", name: "Grace Liu", school: "Information systems · State College", rating: "5.0", reviews: 2,
+          line: "I build simple inventory trackers so you always know what's in stock.", from: "$180",
+          strengths: ["Inventory tracking", "Airtable", "Spreadsheets", "Barcode labels", "Reports"], match: ["Inventory tracking", "Airtable", "Spreadsheets"] },
       ];
-
-      // Three business-bio cards in fixed slots above the garden +
-      // brief off-screen states for entering/exiting cards. Each
-      // rotation tick moves every card one slot left:
-      //   off-right ← (new card)
-      //   right     ← center  (collapses, accent panel fades)
-      //   center    ← left? No — center comes FROM right; the old
-      //   left exits to off-left and is removed after the transition.
-      // Because each card just swaps its slot class, CSS handles the
-      // entire morph (transform, width, padding, background, content
-      // max-height) smoothly in one go. The center card always gets
-      // the accent-green panel via .s-center.
-      // Bottom line: an example project, to show the range of work students take on.
-      const CARD_STAT_LABEL = "Example project";
-      const cardsRoot = document.getElementById("ld-hero-cards");
-      const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-      const canHover = window.matchMedia?.("(hover: hover)").matches;
-      if (cardsRoot) {
-        function fillCard(card, B) {
-          card.querySelector(".ld-hero-card__avatar").textContent  = B.avatar;
-          card.querySelector(".ld-hero-card__name").textContent    = B.name;
-          card.querySelector(".ld-hero-card__tagline").textContent = B.tagline;
-          card.querySelector(".ld-hero-card__stat-label").textContent = CARD_STAT_LABEL;
-          card.querySelector(".ld-hero-card__project").textContent    = B.project;
+      const demo = document.getElementById("ld-demo");
+      if (demo) {
+        const $d = (id) => document.getElementById(id);
+        const card = $d("ld-demo-card"), q = $d("ld-demo-q");
+        const fill = (i) => {
+          const s = DEMO[i % DEMO.length];
+          q.textContent = s.q;
+          $d("ld-demo-ava").textContent = s.ini;
+          $d("ld-demo-ava").style.background = s.color;
+          $d("ld-demo-name").textContent = s.name;
+          $d("ld-demo-school").textContent = s.school;
+          $d("ld-demo-rating").textContent = s.rating;
+          $d("ld-demo-reviews").textContent = `(${s.reviews} reviews)`;
+          $d("ld-demo-line").textContent = s.line;
+          $d("ld-demo-chips").innerHTML = s.strengths
+            .map((k) => `<span class="ld-demo__chip${s.match.includes(k) ? " is-match" : ""}">${k}</span>`)
+            .join("");
+        };
+        fill(0);
+        const input = $d("ld-find-q");
+        const PROMPT = input?.placeholder || "";
+        // Someone is using the search bar: leave it alone.
+        const inUse = () => !input || document.activeElement === input || input.value !== "";
+        input?.addEventListener("focus", () => { input.placeholder = PROMPT; });
+        if (!reduced) {
+          let need = 0;
+          const hovering = () => demo.matches(":hover");
+          const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+          // Clear the hint, then type the new search with a slightly uneven
+          // rhythm so it reads like someone typing. Stops the moment the
+          // search bar is clicked.
+          const typeHint = async (text) => {
+            let h = input.placeholder;
+            while (h.length) {
+              if (inUse()) return;
+              h = h.slice(0, -1); input.placeholder = h; await wait(28);
+            }
+            await wait(260);
+            for (const ch of text) {
+              if (inUse()) return;
+              h += ch; input.placeholder = h; await wait(65 + Math.random() * 70);
+            }
+          };
+          let busy = false;
+          setInterval(async () => {
+            if (inUse() && input && input.placeholder !== PROMPT) input.placeholder = PROMPT;
+            if (busy || !heroActive() || hovering() || inUse()) return;
+            busy = true;
+            need = (need + 1) % DEMO.length;
+            window.ldHeroWord?.(need);
+            await wait(650);
+            await typeHint(DEMO[need].q);
+            if (inUse()) input.placeholder = PROMPT;
+            await wait(350);
+            demo.classList.add("is-out");
+            await wait(280);
+            fill(need);
+            demo.classList.remove("is-out");
+            busy = false;
+          }, 5000);
         }
-        function makeCard(B, slotClass) {
-          const el = document.createElement("div");
-          el.className = "ld-hero-card " + slotClass;
-          el.innerHTML = `
-            <div class="ld-hero-card__head">
-              <span class="ld-hero-card__avatar"></span>
-              <div class="ld-hero-card__name-block">
-                <div class="ld-hero-card__name"></div>
-                <div class="ld-hero-card__tagline"></div>
-              </div>
-            </div>
-            <div class="ld-hero-card__stat"><span class="ld-hero-card__stat-label"></span><span class="ld-hero-card__project"></span></div>`;
-          fillCard(el, B);
-          return el;
-        }
-        function setSlot(card, slotClass) {
-          card.classList.remove("s-off-left", "s-left", "s-center", "s-right", "s-off-right");
-          card.classList.add(slotClass);
-        }
-
-        // Seed three visible cards.
-        let cards = [
-          makeCard(BUSINESS_POOL[0 % BUSINESS_POOL.length], "s-left"),
-          makeCard(BUSINESS_POOL[1 % BUSINESS_POOL.length], "s-center"),
-          makeCard(BUSINESS_POOL[2 % BUSINESS_POOL.length], "s-right"),
-        ];
-        cards.forEach((c) => cardsRoot.appendChild(c));
-        let poolIdx = 3 % BUSINESS_POOL.length;
-
-        function rotate() {
-          // Hold still while someone is hovering a card so it doesn't slide out
-          // from under them. Mouse devices only: touch browsers leave :hover
-          // stuck on the last card a finger brushed while scrolling, which
-          // froze the carousel for good.
-          if (canHover && cardsRoot.querySelector(".ld-hero-card:hover")) return;
-          // No point morphing cards nobody can see. And never mid-scroll: a
-          // running card transition makes the browser re-layer the page,
-          // and budget phones painted blank frames during flings.
-          if (!heroActive() || performance.now() - lastScrollAt < 900) return;
-          const [leftCard, centerCard, rightCard] = cards;
-          // Spawn the new card pre-positioned off-screen right so the
-          // first transition step has somewhere to animate FROM.
-          const next = BUSINESS_POOL[poolIdx % BUSINESS_POOL.length];
-          poolIdx++;
-          const newCard = makeCard(next, "s-off-right");
-          cardsRoot.appendChild(newCard);
-
-          // Next frame: trigger the morph by changing each slot.
-          //   left   → off-left (fades + slides further left)
-          //   center → left     (collapses, accent panel fades out)
-          //   right  → center   (expands, gains accent panel)
-          //   new    → right    (slides in collapsed from off-right)
-          requestAnimationFrame(() => {
-            setSlot(leftCard,   "s-off-left");
-            setSlot(centerCard, "s-left");
-            setSlot(rightCard,  "s-center");
-            setSlot(newCard,    "s-right");
-          });
-
-          // Drop the exited card after the transition settles.
-          setTimeout(() => leftCard.remove(), 900);
-          cards = [centerCard, rightCard, newCard];
-        }
-
-        if (!reduced) setInterval(rotate, 4400);
       }
 
       // ── Watchdog: desktops the <head> check let through but that can't
-      // keep the hero near 30fps get the lite version. Samples ~2s of
-      // on-screen frames (at least 20, so slow machines decide fast too),
-      // then decides once.
+      // keep the hero near 30fps get the lite version (still clouds and
+      // background). Samples ~2s of on-screen frames, then decides once.
       if (!liteHero) {
         const samples = [];
         let last = 0;
@@ -1150,12 +889,7 @@
           last = now;
           if (samples.length < 20 || watched < 2000) { requestAnimationFrame(watch); return; }
           samples.sort((a, b) => a - b);
-          const median = samples[samples.length >> 1];
-          if (median > 33) {
-            document.documentElement.classList.add("ld-lite");
-            gardenStem?.freeze();
-            freezeGrass();
-          }
+          if (samples[samples.length >> 1] > 33) document.documentElement.classList.add("ld-lite");
         };
         requestAnimationFrame(watch);
       }
@@ -1163,6 +897,38 @@
       // ── How it works: each growth stage row fades up once as it scrolls in ──
       // Rows only start hidden after this runs ("is-armed"), so they still
       // show if scripts fail; reduced motion skips the effect entirely.
+      // ── How it works animation: Back and Next step through it. It plays
+      // only while on screen and follows the site theme.
+      const tourFrame = document.getElementById("ld-tour-frame");
+      if (tourFrame) {
+        const NAMES = ["Search for what you need", "Message a student", "Pick an offer", "Approve the work"];
+        const back = document.getElementById("ld-tour-back");
+        const next = document.getElementById("ld-tour-next");
+        const label = document.getElementById("ld-tour-label");
+        const themeOf = () => document.documentElement.dataset.theme === "light" ? "light" : "dark";
+        let tour = null, state = { step: 0, done: false };
+        const update = (s) => {
+          state = s;
+          label.innerHTML = `Step ${s.step + 1} of 4: <b>${NAMES[s.step]}</b>`;
+          back.disabled = s.step === 0;
+          next.textContent = s.step === 3 ? "Watch again" : "Next →";
+        };
+        const tourIO = "IntersectionObserver" in window
+          ? new IntersectionObserver(([e]) => tour?.setVisible(e.isIntersecting), { threshold: 0.35 })
+          : null;
+        const hook = () => {
+          tour = tourFrame.contentWindow?.tour;
+          if (!tour) return;
+          tour.onchange = update;
+          tour.setTheme(themeOf());
+          if (tourIO) tourIO.observe(tourFrame); else tour.setVisible(true);
+        };
+        if (tourFrame.contentWindow?.tour) hook(); else tourFrame.addEventListener("load", hook);
+        next.addEventListener("click", () => tour?.go(state.step === 3 ? 0 : state.step + 1));
+        back.addEventListener("click", () => tour?.go(state.step - 1));
+        new MutationObserver(() => tour?.setTheme(themeOf())).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+      }
+
       const grow = document.getElementById("how-it-works");
       if (grow && grow.classList.contains("ld-grow") && !reduced && "IntersectionObserver" in window) {
         grow.classList.add("is-armed");
@@ -1239,37 +1005,25 @@
     <script defer src="/perf-beacon.js"></script>
 
     <script>
-      // hero: rotate the thing the owner is missing, and aim the handwritten
-      // note's arrow at the middle of "Post a project".
+      // hero: rotate the thing the owner is missing (the search demo follows it).
       (() => {
         const rot = document.getElementById("ld-hero-rot");
         const word = document.getElementById("ld-hero-rot-word");
         const WORDS = ["an Instagram", "a website", "an online store", "a logo", "a booking page", "an inventory app"];
-        const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
-        if (rot && word && !still) {
-          let i = 0;
-          setInterval(() => {
-            rot.classList.add("is-out");
-            setTimeout(() => {
-              i = (i + 1) % WORDS.length;
-              word.textContent = WORDS[i];
-              rot.classList.remove("is-out");
-              rot.classList.add("is-in");
-              void rot.offsetWidth;
-              rot.classList.remove("is-in");
-            }, 280);
-          }, 2400);
-        }
-        const note = document.getElementById("ld-start");
-        const btn = document.querySelector(".ld-hero__ctas .gr-btn--primary");
-        const aim = () => {
-          if (!note || !btn) return;
-          const b = btn.getBoundingClientRect(), n = note.getBoundingClientRect();
-          note.style.setProperty("--cx", (b.left + b.width / 2 - n.left) + "px");
+        // The hero demo's clock calls this, so the headline, the search box
+        // and the sample student always change together.
+        window.ldHeroWord = (i) => {
+          if (!rot || !word) return;
+          rot.classList.add("is-out");
+          setTimeout(() => {
+            word.textContent = WORDS[i % WORDS.length];
+            rot.classList.remove("is-out");
+            rot.classList.add("is-in");
+            void rot.offsetWidth;
+            rot.classList.remove("is-in");
+          }, 280);
         };
-        aim();
-        addEventListener("resize", aim);
-        if (document.fonts) document.fonts.ready.then(aim);
+        window.ldHeroWordCount = WORDS.length;
       })();
     </script>
   </body>

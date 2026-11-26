@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Student cards and profile sketch</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
+    <link rel="stylesheet" href="/grassroots.css?v=3" />
+    <link rel="stylesheet" href="/field-office.css?v=3" />
+    <script src="/theme.js"></script>
+    <style>
+      /* ============================================================
+         Sketch: businesses find students
+         ============================================================
+         A bank of student cards with keyword search (students whose
+         keywords match the search rise to the top), and the full
+         profile a card opens. Sample students only; nothing here
+         talks to the database. */
+      body.gr-body { background: var(--fo-bg); color: var(--fo-text); font-family: var(--font-body); margin: 0; }
+      .sk { max-width: 1160px; margin: 0 auto; padding: 32px 24px 96px; }
+      .sk-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 40px; }
+      .sk-brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 600; font-size: 1.35rem; color: var(--fo-text); text-decoration: none; }
+      .sk-brand svg { width: 18px; height: 22px; }
+      .sk-theme { border: 1px solid var(--fo-line-strong); background: transparent; color: var(--fo-text); border-radius: 999px; padding: 8px 14px; font: inherit; font-size: 0.9rem; cursor: pointer; }
+      .sk-theme:hover { border-color: var(--fo-accent); }
+
+      /* ── directory ─────────────────────────────── */
+      .dir-title { font-family: var(--font-display); font-weight: 600; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -0.02em; margin: 0 0 10px; }
+      .dir-title em { font-style: normal; color: var(--fo-accent); }
+      .dir-sub { color: var(--fo-text-2); font-size: 1.05rem; line-height: 1.55; margin: 0 0 28px; max-width: 60ch; }
+      .search { position: relative; max-width: 720px; }
+      .search svg { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; color: var(--fo-text-3); }
+      .search input { width: 100%; box-sizing: border-box; height: 56px; border-radius: 999px; border: 1.5px solid var(--fo-line-strong); background: var(--fo-surface); color: var(--fo-text); font: inherit; font-size: 1.05rem; padding: 0 20px 0 50px; outline: none; }
+      .search input:focus { border-color: var(--fo-accent); box-shadow: 0 0 0 4px var(--fo-accent-soft); }
+      .try { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0 34px; color: var(--fo-text-3); font-size: 0.92rem; }
+      .chip { border: 1px solid var(--fo-line-strong); background: transparent; color: var(--fo-text-2); border-radius: 999px; padding: 6px 13px; font: inherit; font-size: 0.88rem; cursor: pointer; }
+      .chip:hover, .chip.on { border-color: var(--fo-accent); color: var(--fo-accent); }
+      .result-line { color: var(--fo-text-2); font-size: 0.95rem; margin: 0 0 16px; min-height: 1.4em; }
+      .result-line b { color: var(--fo-text); }
+
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+      .card { position: relative; display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 20px; border: 1px solid var(--fo-line-strong); background: var(--fo-surface); cursor: pointer; text-align: left; font: inherit; color: inherit; transition: transform 0.18s ease, border-color 0.18s ease, opacity 0.2s ease; }
+      :root:not([data-theme="light"]) .card { background: transparent; }
+      .card:hover { transform: translateY(-3px); border-color: var(--fo-accent); }
+      .card:focus-visible { outline: 2px solid var(--fo-accent); outline-offset: 3px; }
+      .card.miss { opacity: 0.45; }
+      .card-head { display: flex; gap: 14px; align-items: center; }
+      .ava { flex-shrink: 0; display: grid; place-items: center; border-radius: 18px; font-family: var(--font-display); font-weight: 600; color: #fff; }
+      .ava.sm { width: 72px; height: 72px; font-size: 1.5rem; }
+      .ava.lg { width: 132px; height: 132px; font-size: 2.6rem; border-radius: 28px; }
+      .who { min-width: 0; }
+      .name { font-family: var(--font-display); font-weight: 600; font-size: 1.3rem; line-height: 1.15; margin: 0; }
+      .school { color: var(--fo-text-2); font-size: 0.92rem; margin-top: 3px; }
+      .rating { display: flex; align-items: center; gap: 5px; font-size: 0.88rem; color: var(--fo-text-2); margin-top: 6px; }
+      .rating b { color: var(--fo-text); }
+      .rating .star { color: #e8b03c; }
+      .new-tag { font-size: 0.8rem; color: var(--fo-text-2); border: 1px solid var(--fo-line-strong); border-radius: 999px; padding: 2px 9px; }
+      .headline { font-size: 1rem; line-height: 1.5; margin: 0; color: var(--fo-text); }
+      .kws { display: flex; flex-wrap: wrap; gap: 6px; }
+      .kw { font-size: 0.82rem; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--fo-line-strong); color: var(--fo-text-2); }
+      .kw.hit { background: var(--fo-accent); border-color: var(--fo-accent); color: var(--fo-accent-on); }
+      .card-foot { display: flex; align-items: baseline; justify-content: space-between; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--fo-line); }
+      .from { font-size: 0.9rem; color: var(--fo-text-2); }
+      .from b { font-family: var(--font-display); font-weight: 600; font-size: 1.35rem; color: var(--fo-accent); margin-left: 4px; }
+      .view { font-weight: 700; font-size: 0.92rem; color: var(--fo-text-2); }
+      .match { font-weight: 700; color: var(--fo-accent); }
+
+      /* ── profile ───────────────────────────────── */
+      .back { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; color: var(--fo-text-2); font: inherit; font-size: 0.95rem; cursor: pointer; padding: 0; margin-bottom: 26px; }
+      .back:hover { color: var(--fo-accent); }
+      .prof { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 36px; align-items: start; }
+      .prof-hero { display: flex; gap: 26px; align-items: center; margin-bottom: 34px; }
+      .prof-name { font-family: var(--font-display); font-weight: 600; font-size: clamp(2rem, 4vw, 2.8rem); letter-spacing: -0.02em; margin: 0; line-height: 1.05; }
+      .prof-school { color: var(--fo-text-2); font-size: 1.05rem; margin-top: 6px; }
+      .prof-headline { font-size: 1.15rem; line-height: 1.5; margin: 14px 0 0; max-width: 46ch; }
+      .sec { margin-top: 40px; }
+      .sec h2 { font-family: var(--font-display); font-weight: 600; font-size: 1.55rem; letter-spacing: -0.01em; margin: 0 0 14px; }
+      .sec p { line-height: 1.65; color: var(--fo-text-2); margin: 0 0 12px; max-width: 64ch; }
+      .pk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+      .pk { display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: 18px; border: 1px solid var(--fo-line-strong); background: var(--fo-surface); }
+      :root:not([data-theme="light"]) .pk { background: transparent; }
+      .pk h3 { font-family: var(--font-display); font-weight: 600; font-size: 1.15rem; margin: 0; }
+      .pk .price { font-family: var(--font-display); font-weight: 600; font-size: 1.5rem; color: var(--fo-accent); }
+      .pk .time { font-size: 0.88rem; color: var(--fo-text-3); }
+      .pk p { font-size: 0.95rem; margin: 0; line-height: 1.55; color: var(--fo-text-2); }
+      .pk button { margin-top: auto; }
+      .proj { display: grid; gap: 14px; }
+      .proj-item { display: flex; gap: 16px; padding: 18px; border-radius: 16px; border: 1px solid var(--fo-line); }
+      .proj-tile { width: 56px; height: 56px; border-radius: 14px; flex-shrink: 0; display: grid; place-items: center; font-weight: 800; font-size: 0.9rem; }
+      .proj-item h3 { font-size: 1.02rem; margin: 0 0 3px; }
+      .proj-item .for { font-size: 0.88rem; color: var(--fo-text-3); margin-bottom: 6px; }
+      .proj-item p { font-size: 0.95rem; margin: 0; }
+      .res { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 10px 20px; font-size: 0.97rem; }
+      .res dt { color: var(--fo-text-3); }
+      .res dd { margin: 0; line-height: 1.55; }
+      .res-dl { margin-top: 16px; }
+      .rev { padding: 18px 0; border-top: 1px solid var(--fo-line); }
+      .rev:first-of-type { border-top: 0; padding-top: 0; }
+      .rev q { display: block; font-size: 1.02rem; line-height: 1.6; color: var(--fo-text); quotes: "\201C" "\201D"; }
+      .rev .by { font-size: 0.9rem; color: var(--fo-text-3); margin-top: 8px; }
+      .side { position: sticky; top: 24px; display: flex; flex-direction: column; gap: 14px; padding: 24px; border-radius: 22px; border: 1px solid var(--fo-line-strong); background: var(--fo-surface); }
+      :root:not([data-theme="light"]) .side { background: transparent; }
+      .side .from b { font-size: 1.8rem; }
+      .side-row { display: flex; justify-content: space-between; font-size: 0.93rem; color: var(--fo-text-2); }
+      .side-row b { color: var(--fo-text); font-weight: 600; }
+      .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 50px; padding: 0 22px; border-radius: 999px; font: inherit; font-weight: 700; font-size: 1rem; cursor: pointer; border: 0; }
+      .btn.primary { background: var(--fo-accent); color: var(--fo-accent-on); }
+      .btn.primary:hover { filter: brightness(1.08); }
+      .btn.ghost { background: transparent; color: var(--fo-text); border: 1.5px solid var(--fo-line-strong); }
+      .btn.ghost:hover { border-color: var(--fo-accent); color: var(--fo-accent); }
+      .btn.sm { height: 42px; font-size: 0.93rem; }
+      .side .kws { margin-top: 2px; }
+
+      /* ── offer dialog ──────────────────────────── */
+      .ov { position: fixed; inset: 0; background: rgba(10, 14, 12, 0.55); display: none; place-items: center; padding: 20px; z-index: 30; }
+      .ov.open { display: grid; }
+      .dlg { width: min(560px, 100%); max-height: calc(100vh - 40px); overflow: auto; background: var(--fo-surface); color: var(--fo-text); border-radius: 22px; padding: 28px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35); }
+      :root:not([data-theme="light"]) .dlg { background: var(--fo-surface-2); }
+      .dlg h2 { font-family: var(--font-display); font-weight: 600; font-size: 1.6rem; margin: 0 0 6px; }
+      .dlg .lead { color: var(--fo-text-2); margin: 0 0 20px; line-height: 1.5; }
+      .opt { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border: 1.5px solid var(--fo-line-strong); border-radius: 14px; margin-bottom: 10px; cursor: pointer; }
+      .opt.on { border-color: var(--fo-accent); box-shadow: 0 0 0 3px var(--fo-accent-soft); }
+      .opt input { margin-top: 4px; accent-color: var(--fo-accent); }
+      .opt b { display: block; }
+      .opt span { color: var(--fo-text-2); font-size: 0.92rem; }
+      .fld { display: block; margin-top: 14px; }
+      .fld span { display: block; font-size: 0.92rem; color: var(--fo-text-2); margin-bottom: 6px; }
+      .fld input, .fld textarea { width: 100%; box-sizing: border-box; border: 1.5px solid var(--fo-line-strong); border-radius: 12px; background: var(--fo-bg); color: var(--fo-text); font: inherit; padding: 12px 14px; }
+      .fld textarea { min-height: 96px; resize: vertical; }
+      .dlg-foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+      .note { margin-top: 14px; font-size: 0.88rem; color: var(--fo-text-3); line-height: 1.5; }
+      .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: var(--fo-text); color: var(--fo-bg); padding: 14px 20px; border-radius: 14px; font-weight: 600; opacity: 0; transition: opacity 0.25s ease; pointer-events: none; z-index: 40; max-width: calc(100% - 40px); }
+      .toast.on { opacity: 1; }
+
+      [hidden] { display: none !important; }
+      @media (max-width: 900px) {
+        .prof { grid-template-columns: 1fr; }
+        .side { position: static; order: -1; }
+      }
+      @media (max-width: 560px) {
+        .sk { padding: 20px 16px 72px; }
+        .prof-hero { flex-direction: column; align-items: flex-start; gap: 16px; }
+        .ava.lg { width: 104px; height: 104px; font-size: 2rem; }
+        .res { grid-template-columns: 1fr; gap: 2px; }
+        .res dd { margin-bottom: 10px; }
+        .grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body class="gr-body">
+    <div class="sk">
+      <div class="sk-top">
+        <a class="sk-brand" href="#" data-home>
+          <svg viewBox="0 0 163 275" aria-hidden="true"><path fill="#3f9a6b" transform="translate(72 130)" d="M19 10.15C19 4.54431 14.7467 0 9.5 0C4.25329 0 0 4.54431 0 10.15C7.91804 91.2467 8.44249 120.691 0 134.85C0 140.456 4.25329 145 9.5 145C14.7467 145 19 140.456 19 134.85C16.2169 71.2734 12.3479 23.288 19 10.15Z"/><path fill="#3f9a6b" transform="translate(0 65)" d="M84 87C21 71.5333 -6.5625 42.5333 1.3125 0C56.4375 3.86667 84 32.8667 84 87Z"/><path fill="#5fbf8f" transform="translate(82 0)" d="M0 147C48.6 116.053 75.6 67.0526 81 0C27 5.1579 0 54.1579 0 147Z"/></svg>
+          grassroots
+        </a>
+        <button type="button" class="sk-theme" id="theme-btn">Switch theme</button>
+      </div>
+
+      <!-- directory -->
+      <main id="dir">
+        <h1 class="dir-title">Find the right <em>student</em> for your business</h1>
+        <p class="dir-sub">Search for what you need help with, even if you only know it roughly. Students whose skills match rise to the top.</p>
+        <label class="search">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input id="q" type="search" placeholder="Try social media, logos, bookkeeping or a website" autocomplete="off" aria-label="Search students by what you need help with" />
+        </label>
+        <div class="try" id="try"><span>Popular searches</span></div>
+        <p class="result-line" id="result-line" aria-live="polite"></p>
+        <div class="grid" id="grid"></div>
+      </main>
+
+      <!-- profile -->
+      <main id="prof" hidden></main>
+    </div>
+
+    <!-- offer dialog -->
+    <div class="ov" id="ov" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
+      <form class="dlg" id="dlg">
+        <h2 id="dlg-title"></h2>
+        <p class="lead" id="dlg-lead"></p>
+        <div id="dlg-opts"></div>
+        <div id="dlg-custom" hidden>
+          <label class="fld"><span>What do you need help with?</span><textarea id="dlg-need" placeholder="A few sentences is plenty, even if you're not sure exactly what you need."></textarea></label>
+        </div>
+        <label class="fld"><span>Your offer</span><input id="dlg-price" inputmode="decimal" /></label>
+        <label class="fld"><span>A note for the student</span><textarea id="dlg-msg" placeholder="Tell them a little about your business."></textarea></label>
+        <p class="note">The student can accept, suggest a different price, or decline. You only pay once they accept, and Grassroots holds the payment until you approve the work.</p>
+        <div class="dlg-foot">
+          <button type="button" class="btn ghost sm" id="dlg-cancel">Cancel</button>
+          <button type="submit" class="btn primary sm">Send offer</button>
+        </div>
+      </form>
+    </div>
+    <div class="toast" id="toast" role="status"></div>
+
+    <script>
+      // ── sample students ───────────────────────────────────
+      const STUDENTS = [
+        { id: "maya", name: "Maya Rodriguez", school: "State College", major: "Marketing, junior", color: "#b5673a", rating: 4.9, reviews: 6, projects: 6,
+          headline: "I make Instagram and TikTok content that gets local cafes and shops noticed.",
+          keywords: ["Instagram", "TikTok", "Content creation", "Video editing", "Captions", "Post scheduling", "Canva"],
+          about: ["I've run social media for two student organizations and a family restaurant, and I love helping small places look as good online as they are in person.", "I usually start by looking at what you already post, then plan a month of content that fits how you talk to your customers."],
+          packages: [
+            { name: "Social media starter", price: 150, unit: "", time: "About 2 weeks", what: "A review of your Instagram and Facebook, a month of planned posts, and 8 ready-to-post graphics with captions." },
+            { name: "Monthly social media", price: 250, unit: "a month", time: "Ongoing", what: "12 posts a month, scheduled for you, plus a short note on what's working." } ],
+          work: [
+            { title: "Holiday menu launch", for: "Side Street Coffee", tile: "SS", result: "Planned and shot 10 posts for the holiday menu. Their Instagram followers grew from 900 to 1,400 over the month." },
+            { title: "Weekly TikTok series", for: "Rooster & Rye bakery", tile: "RR", result: "Filmed a weekly \"how it's made\" video. Two of them passed 20,000 views." } ],
+          resume: [["Education", "State College, marketing, expected May 2027"], ["Experience", "Social media lead, Student Marketing Association (2025 to now). Social media intern, Casa Luna Restaurant (summer 2025)."], ["Skills", "Instagram, TikTok, Canva, CapCut, Later"]],
+          reviewsList: [{ q: "Maya figured out what we needed before we did. Our posts finally look like us.", by: "Owner, Side Street Coffee" }, { q: "Fast, organized and full of ideas. We kept her on for a second month.", by: "Owner, Rooster & Rye" }] },
+        { id: "jordan", name: "Jordan Park", school: "State College", major: "Accounting, senior", color: "#2a6170", rating: 5.0, reviews: 4, projects: 4,
+          headline: "I help small businesses get their books and prices in order.",
+          keywords: ["Bookkeeping", "QuickBooks", "Budgeting", "Pricing", "Spreadsheets", "Invoices"],
+          about: ["I'm finishing an accounting degree and I've done bookkeeping for my family's shop since high school.", "Most owners I work with just want to know where their money goes. I make that clear without the jargon."],
+          packages: [
+            { name: "Bookkeeping catch-up", price: 200, unit: "", time: "About 1 week", what: "A month of receipts and sales sorted into a spreadsheet or QuickBooks, with a simple summary of what came in and went out." },
+            { name: "Price check", price: 120, unit: "", time: "About 1 week", what: "I look at your costs and prices for your top 10 items and show you where you're losing money." } ],
+          work: [
+            { title: "QuickBooks setup", for: "North End Bikes", tile: "NB", result: "Moved two years of paper records into QuickBooks and set up monthly reports." },
+            { title: "Menu pricing review", for: "Alma Kitchen", tile: "AK", result: "Found three dishes priced below cost. The owner raised them and kept the regulars." } ],
+          resume: [["Education", "State College, accounting, expected December 2026"], ["Experience", "Bookkeeper, Park Family Market (2019 to now). Tax volunteer, VITA program (2025)."], ["Skills", "QuickBooks, Excel, Google Sheets"]],
+          reviewsList: [{ q: "For the first time I actually understand my numbers.", by: "Owner, North End Bikes" }] },
+        { id: "chris", name: "Chris Thompson", school: "Tech Institute", major: "Computer science, junior", color: "#3b6b4f", rating: 4.8, reviews: 5, projects: 5,
+          headline: "Simple websites and online ordering for restaurants and shops.",
+          keywords: ["Website setup", "Shopify", "Squarespace", "Online ordering", "Wix"],
+          about: ["I build websites that owners can update themselves, so you're never stuck waiting on me.", "I've set up online ordering for three restaurants and moved two shops onto Shopify."],
+          packages: [
+            { name: "One-page website", price: 250, unit: "", time: "About 2 weeks", what: "A clean one-page site with your hours, menu or products, photos and a contact form, on Squarespace or Wix." },
+            { name: "Online ordering setup", price: 300, unit: "", time: "About 2 weeks", what: "Online ordering connected to your website, with your full menu and pickup times." } ],
+          work: [
+            { title: "Shopify store", for: "Harbor & Hide leather goods", tile: "HH", result: "Built a 40-product store. Online sales went from zero to about 15 orders a week." },
+            { title: "Online ordering", for: "Alma Kitchen", tile: "AK", result: "Set up pickup ordering that now handles about a third of their lunch orders." } ],
+          resume: [["Education", "Tech Institute, computer science, expected May 2027"], ["Experience", "Web developer, campus IT help desk (2024 to now)."], ["Skills", "Shopify, Squarespace, Wix, HTML and CSS"]],
+          reviewsList: [{ q: "Chris made the whole thing painless, and I can change the menu myself now.", by: "Owner, Alma Kitchen" }] },
+        { id: "aisha", name: "Aisha Bello", school: "State College", major: "Graphic design, senior", color: "#b9577a", rating: 4.9, reviews: 7, projects: 7,
+          headline: "Logos, menus and signs that look like they belong to you.",
+          keywords: ["Logos", "Branding", "Menu design", "Graphic design", "Canva", "Signage"],
+          about: ["I design brands for small businesses that have outgrown the logo a cousin made in 2012.", "I'll ask about your story and your customers first, then show you a few directions before we pick one."],
+          packages: [
+            { name: "Logo refresh", price: 180, unit: "", time: "About 2 weeks", what: "Three logo directions, two rounds of changes, and files for print, signs and social media." },
+            { name: "Menu redesign", price: 90, unit: "", time: "About 1 week", what: "Your menu redesigned to be easier to read, ready to print and to post online." } ],
+          work: [
+            { title: "Full rebrand", for: "Marigold Florals", tile: "MF", result: "New logo, colors and storefront sign. The owner says new customers mention the sign." },
+            { title: "Menu redesign", for: "Side Street Coffee", tile: "SS", result: "Cut the menu from two pages to one and added the seasonal drinks." } ],
+          resume: [["Education", "State College, graphic design, expected May 2026"], ["Experience", "Designer, campus print shop (2023 to now). Freelance logos for 9 local clients."], ["Skills", "Illustrator, Photoshop, Figma, Canva"]],
+          reviewsList: [{ q: "She got our shop's personality on the first try.", by: "Owner, Marigold Florals" }, { q: "Our menu is so much easier to read now.", by: "Owner, Side Street Coffee" }] },
+        { id: "sam", name: "Sam Lee", school: "State College", major: "Film, sophomore", color: "#6b4a33", rating: 4.7, reviews: 3, projects: 3,
+          headline: "Short videos and photos that show off what you make.",
+          keywords: ["Short videos", "Product photos", "Food photos", "Video editing", "TikTok"],
+          about: ["I'm a film student who loves shooting food and handmade things.", "I bring my own camera and lights, so all you need to do is keep doing what you do."],
+          packages: [
+            { name: "Photo day", price: 100, unit: "", time: "One afternoon", what: "Two hours of photos of your products or food, with 20 edited photos for your website and social media." },
+            { name: "Three short videos", price: 160, unit: "", time: "About 1 week", what: "Three edited videos under a minute each, made for Instagram and TikTok." } ],
+          work: [
+            { title: "Product photos", for: "Harbor & Hide leather goods", tile: "HH", result: "Shot 40 products on white and in use for their new Shopify store." },
+            { title: "Bakery videos", for: "Rooster & Rye", tile: "RR", result: "Three behind-the-counter videos for their opening week." } ],
+          resume: [["Education", "State College, film, expected May 2028"], ["Experience", "Camera assistant on four student films. Photographer for the campus newspaper."], ["Skills", "Sony cameras, Lightroom, Premiere Pro"]],
+          reviewsList: [{ q: "The photos made our products look like they cost twice as much.", by: "Owner, Harbor & Hide" }] },
+        { id: "priya", name: "Priya Nair", school: "State College", major: "Business, junior", color: "#7a5a9e", rating: 4.8, reviews: 4, projects: 4,
+          headline: "Flyers, promotions and Google listings that bring people through the door.",
+          keywords: ["Flyers", "Promotions", "Google and Yelp listings", "Email marketing", "Events"],
+          about: ["I help businesses get found. That usually means fixing your Google listing first, then running one good promotion.", "I've planned events and promotions for campus groups with hundreds of members."],
+          packages: [
+            { name: "Google and Yelp cleanup", price: 90, unit: "", time: "About 1 week", what: "Updated hours, photos and description, and replies to your recent reviews." },
+            { name: "One promotion, start to finish", price: 140, unit: "", time: "About 2 weeks", what: "A promotion planned with you, with flyers, a social post and an email to your customers." } ],
+          work: [
+            { title: "Google listing fix", for: "Ember Tea Room", tile: "ET", result: "Fixed wrong hours and added photos. Calls from Google went up by about half in a month." },
+            { title: "Grand reopening", for: "North End Bikes", tile: "NB", result: "Planned the reopening event and flyers. About 120 people came." } ],
+          resume: [["Education", "State College, business, expected May 2027"], ["Experience", "Events chair, Business Student Council (2025 to now). Sales associate, Target (2023 to 2025)."], ["Skills", "Google Business Profile, Mailchimp, Canva"]],
+          reviewsList: [{ q: "Priya fixed things we didn't even know were broken.", by: "Owner, Ember Tea Room" }] },
+        { id: "marcus", name: "Marcus Green", school: "Tech Institute", major: "Communications, senior", color: "#4f6b8a", rating: 4.6, reviews: 5, projects: 5,
+          headline: "I run your social media so you can run your business.",
+          keywords: ["Instagram", "Facebook", "Post scheduling", "Captions", "Content creation", "Email marketing"],
+          about: ["Most owners I meet know they should post more but never have time. That's the part I take off your plate.", "I send you a plan each month to approve, then I post and answer comments."],
+          packages: [
+            { name: "Monthly social media", price: 250, unit: "a month", time: "Ongoing", what: "12 posts a month on Instagram and Facebook, comment replies, and a monthly check-in." } ],
+          work: [
+            { title: "Monthly accounts", for: "West Village Wines", tile: "WW", result: "Six months of posting. Their event nights now sell out from Instagram alone." } ],
+          resume: [["Education", "Tech Institute, communications, expected May 2026"], ["Experience", "Social media manager, campus radio (2024 to now)."], ["Skills", "Meta Business Suite, Later, Canva"]],
+          reviewsList: [{ q: "I haven't thought about Instagram in months, and it's never looked better.", by: "Owner, West Village Wines" }] },
+        { id: "elena", name: "Elena Cruz", school: "State College", major: "Finance, sophomore", color: "#8a6d2f", rating: null, reviews: 0, projects: 0,
+          headline: "Budgets and spreadsheets that make your numbers easy to read.",
+          keywords: ["Budgeting", "Spreadsheets", "Pricing", "Invoices", "Bookkeeping"],
+          about: ["I'm new to Grassroots and looking for my first projects, so I'm keeping my prices low while I build reviews.", "I like turning messy numbers into one clear page an owner can actually use."],
+          packages: [
+            { name: "Simple monthly budget", price: 60, unit: "", time: "About 1 week", what: "A budget spreadsheet set up around your real costs, with a page that shows where your money goes." } ],
+          work: [],
+          resume: [["Education", "State College, finance, expected May 2028"], ["Experience", "Treasurer, Finance Club (2025 to now)."], ["Skills", "Excel, Google Sheets"]],
+          reviewsList: [] },
+      ];
+
+      const POPULAR = ["Social media", "Logos", "Bookkeeping", "Website", "Photos", "Google listings"];
+      // A search word also finds these keywords. Areas map to all of their keywords.
+      const ALIASES = {
+        "social media": ["Instagram", "TikTok", "Facebook", "Content creation", "Captions", "Post scheduling"],
+        "social": ["Instagram", "TikTok", "Facebook", "Content creation", "Captions", "Post scheduling"],
+        "insta": ["Instagram"], "ig": ["Instagram"], "tik tok": ["TikTok"],
+        "marketing": ["Flyers", "Promotions", "Email marketing", "Google and Yelp listings", "Events", "Content creation"],
+        "books": ["Bookkeeping"], "accounting": ["Bookkeeping", "QuickBooks", "Invoices"], "finance": ["Bookkeeping", "QuickBooks", "Budgeting", "Pricing", "Spreadsheets", "Invoices"],
+        "money": ["Bookkeeping", "Budgeting", "Pricing"], "taxes": ["Bookkeeping"],
+        "website": ["Website setup", "Squarespace", "Wix", "Shopify"], "web": ["Website setup"], "site": ["Website setup"], "online store": ["Shopify", "Online ordering"],
+        "logo": ["Logos"], "brand": ["Branding", "Logos"], "design": ["Graphic design", "Logos", "Menu design", "Branding"], "menu": ["Menu design"],
+        "photos": ["Product photos", "Food photos"], "photo": ["Product photos", "Food photos"], "pictures": ["Product photos", "Food photos"],
+        "video": ["Short videos", "Video editing"], "videos": ["Short videos", "Video editing"],
+        "google": ["Google and Yelp listings"], "yelp": ["Google and Yelp listings"], "reviews": ["Google and Yelp listings"], "google listings": ["Google and Yelp listings"],
+        "email": ["Email marketing"], "newsletter": ["Email marketing"], "event": ["Events"], "sign": ["Signage"], "signs": ["Signage"],
+      };
+
+      const $ = (id) => document.getElementById(id);
+      const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      const usd = (n) => "$" + n.toLocaleString("en-US");
+      const initials = (n) => n.split(" ").map((w) => w[0]).join("").slice(0, 2);
+
+      // Which of a student's keywords a search matches.
+      function hits(student, query) {
+        const q = query.trim().toLowerCase();
+        if (!q) return [];
+        const terms = [q, ...q.split(/[,\s]+/).filter((t) => t.length > 1)];
+        const wanted = new Set();
+        for (const t of terms) {
+          (ALIASES[t] || []).forEach((k) => wanted.add(k.toLowerCase()));
+          student.keywords.forEach((k) => { if (k.toLowerCase().includes(t)) wanted.add(k.toLowerCase()); });
+        }
+        return student.keywords.filter((k) => wanted.has(k.toLowerCase()));
+      }
+
+      function ratingHtml(s) {
+        return s.rating == null
+          ? '<span class="new-tag">New to Grassroots</span>'
+          : `<span class="star" aria-hidden="true">★</span><b>${s.rating.toFixed(1)}</b><span>(${s.reviews} ${s.reviews === 1 ? "review" : "reviews"})</span>`;
+      }
+      const fromPrice = (s) => Math.min(...s.packages.map((p) => p.price));
+
+      // ── directory ─────────────────────────────────────────
+      function renderDir() {
+        const q = $("q").value;
+        const scored = STUDENTS.map((s) => ({ s, h: hits(s, q) }));
+        const searching = q.trim().length > 0;
+        scored.sort((a, b) => b.h.length - a.h.length || (b.s.rating || 0) - (a.s.rating || 0) || b.s.projects - a.s.projects);
+        const matches = scored.filter((x) => x.h.length).length;
+        $("result-line").innerHTML = searching
+          ? (matches ? `<b>${matches} ${matches === 1 ? "student matches" : "students match"}</b> "${esc(q.trim())}", shown first.` : `No students match "${esc(q.trim())}" yet. Try a broader word like social media or marketing.`)
+          : `<b>${STUDENTS.length} students</b> near campus.`;
+        $("grid").innerHTML = scored.map(({ s, h }) => {
+          const shown = [...h, ...s.keywords.filter((k) => !h.includes(k))].slice(0, 4);
+          return `<button type="button" class="card${searching && !h.length ? " miss" : ""}" data-id="${s.id}" aria-label="Open ${esc(s.name)}'s profile">
+            <div class="card-head">
+              <div class="ava sm" style="background:${s.color}" aria-hidden="true">${initials(s.name)}</div>
+              <div class="who"><p class="name">${esc(s.name)}</p><div class="school">${esc(s.major)} · ${esc(s.school)}</div><div class="rating">${ratingHtml(s)}${searching && h.length ? `<span>·</span><span class="match">${h.length} ${h.length === 1 ? "match" : "matches"}</span>` : ""}</div></div>
+            </div>
+            <p class="headline">${esc(s.headline)}</p>
+            <div class="kws">${shown.map((k) => `<span class="kw${h.includes(k) ? " hit" : ""}">${esc(k)}</span>`).join("")}</div>
+            <div class="card-foot"><span class="from">From<b>${usd(fromPrice(s))}</b></span><span class="view">View profile →</span></div>
+          </button>`;
+        }).join("");
+      }
+
+      // ── profile ───────────────────────────────────────────
+      function renderProfile(s) {
+        const q = $("q").value;
+        const h = hits(s, q);
+        $("prof").innerHTML = `
+          <button type="button" class="back" data-home>← Back to students</button>
+          <div class="prof">
+            <div>
+              <div class="prof-hero">
+                <div class="ava lg" style="background:${s.color}" aria-hidden="true">${initials(s.name)}</div>
+                <div>
+                  <h1 class="prof-name">${esc(s.name)}</h1>
+                  <div class="prof-school">${esc(s.major)} · ${esc(s.school)}</div>
+                  <div class="rating">${ratingHtml(s)}${s.projects ? `<span>· ${s.projects} projects on Grassroots</span>` : ""}</div>
+                  <p class="prof-headline">${esc(s.headline)}</p>
+                </div>
+              </div>
+
+              <section class="sec"><h2>About me</h2>${s.about.map((p) => `<p>${esc(p)}</p>`).join("")}</section>
+
+              <section class="sec"><h2>Packages</h2>
+                <p>Pick one to send ${esc(s.name.split(" ")[0])} an offer, or write your own.</p>
+                <div class="pk-grid">${s.packages.map((p, i) => `
+                  <div class="pk"><h3>${esc(p.name)}</h3>
+                    <div><span class="price">${usd(p.price)}</span>${p.unit ? ` <span class="time">${esc(p.unit)}</span>` : ""}</div>
+                    <div class="time">${esc(p.time)}</div>
+                    <p>${esc(p.what)}</p>
+                    <button type="button" class="btn ghost sm" data-offer="${i}">Choose this package</button>
+                  </div>`).join("")}</div>
+              </section>
+
+              <section class="sec"><h2>Past projects</h2>${s.work.length ? `<div class="proj">${s.work.map((w) => `
+                <div class="proj-item"><div class="proj-tile" style="background:color-mix(in srgb, ${s.color} 18%, transparent);color:${s.color}">${esc(w.tile)}</div>
+                  <div><h3>${esc(w.title)}</h3><div class="for">${esc(w.for)}</div><p>${esc(w.result)}</p></div></div>`).join("")}</div>`
+                : `<p>${esc(s.name.split(" ")[0])} is new to Grassroots, so their first projects will show here.</p>`}
+              </section>
+
+              <section class="sec"><h2>Resume</h2>
+                <dl class="res">${s.resume.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>
+                <button type="button" class="btn ghost sm res-dl" data-toast="In the real site, this downloads ${esc(s.name.split(" ")[0])}'s resume as a PDF.">Download resume</button>
+              </section>
+
+              <section class="sec"><h2>Reviews</h2>${s.reviewsList.length ? s.reviewsList.map((r) => `<div class="rev"><q>${esc(r.q)}</q><div class="by">${esc(r.by)}</div></div>`).join("") : `<p>No reviews yet.</p>`}</section>
+            </div>
+
+            <aside class="side" aria-label="Hire ${esc(s.name)}">
+              <span class="from">Packages from<b>${usd(fromPrice(s))}</b></span>
+              <button type="button" class="btn primary" data-offer="-1">Send an offer</button>
+              <button type="button" class="btn ghost" data-toast="In the real site, this opens a message to ${esc(s.name.split(" ")[0])}.">Message ${esc(s.name.split(" ")[0])}</button>
+              <div class="side-row"><span>Usually replies</span><b>Within a day</b></div>
+              <div class="side-row"><span>Available</span><b>About 10 hours a week</b></div>
+              <div>
+                <div class="side-row" style="margin-bottom:8px"><span>Good at</span></div>
+                <div class="kws">${s.keywords.map((k) => `<span class="kw${h.includes(k) ? " hit" : ""}">${esc(k)}</span>`).join("")}</div>
+              </div>
+            </aside>
+          </div>`;
+      }
+
+      // ── offer dialog ──────────────────────────────────────
+      let current = null, choice = -1;
+      function openOffer(s, pick) {
+        current = s; choice = pick;
+        const first = s.name.split(" ")[0];
+        $("dlg-title").textContent = `Send ${first} an offer`;
+        $("dlg-lead").textContent = `Choose one of ${first}'s packages or describe what you need in your own words.`;
+        $("dlg-opts").innerHTML = [...s.packages.map((p, i) => ({ i, title: p.name, sub: usd(p.price) + (p.unit ? " " + p.unit : "") + " · " + p.time })), { i: -1, title: "Something else", sub: "Describe what you need and name your price." }]
+          .map((o) => `<label class="opt" data-i="${o.i}"><input type="radio" name="pk" value="${o.i}"><div><b>${esc(o.title)}</b><span>${esc(o.sub)}</span></div></label>`).join("");
+        pickOption(pick);
+        $("ov").classList.add("open");
+      }
+      function pickOption(i) {
+        choice = i;
+        document.querySelectorAll(".opt").forEach((el) => { const on = Number(el.dataset.i) === i; el.classList.toggle("on", on); el.querySelector("input").checked = on; });
+        $("dlg-custom").hidden = i !== -1;
+        $("dlg-price").value = i === -1 ? "" : usd(current.packages[i].price);
+        $("dlg-price").placeholder = i === -1 ? "$0" : "";
+      }
+      function closeOffer() { $("ov").classList.remove("open"); }
+      let toastTimer;
+      function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("on"), 3200); }
+
+      // ── routing: #student-<id> shows a profile ─────────────
+      function route() {
+        const m = location.hash.match(/^#student-(\w+)/);
+        const s = m && STUDENTS.find((x) => x.id === m[1]);
+        $("dir").hidden = !!s;
+        $("prof").hidden = !s;
+        if (s) { renderProfile(s); window.scrollTo(0, 0); } else renderDir();
+      }
+
+      document.addEventListener("click", (e) => {
+        const card = e.target.closest(".card");
+        if (card) { location.hash = "student-" + card.dataset.id; return; }
+        if (e.target.closest("[data-home]")) { e.preventDefault(); location.hash = ""; return; }
+        const offer = e.target.closest("[data-offer]");
+        if (offer) { const s = STUDENTS.find((x) => location.hash === "#student-" + x.id); openOffer(s, Number(offer.dataset.offer)); return; }
+        const t = e.target.closest("[data-toast]");
+        if (t) { toast(t.dataset.toast); return; }
+        const opt = e.target.closest(".opt");
+        if (opt) { pickOption(Number(opt.dataset.i)); return; }
+        const chip = e.target.closest(".chip");
+        if (chip) { $("q").value = chip.dataset.q; renderDir(); document.querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", c === chip)); }
+        if (e.target === $("ov")) closeOffer();
+      });
+      $("q").addEventListener("input", () => { document.querySelectorAll(".chip").forEach((c) => c.classList.remove("on")); renderDir(); });
+      $("dlg-cancel").addEventListener("click", closeOffer);
+      $("dlg").addEventListener("submit", (e) => { e.preventDefault(); closeOffer(); toast(`In the real site, ${current.name.split(" ")[0]} gets your offer and can accept, counter or decline.`); });
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeOffer(); });
+      $("theme-btn").addEventListener("click", () => {
+        const next = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", next);
+        try { localStorage.setItem("grassroots_theme", next); } catch (_) {}
+      });
+      $("try").insertAdjacentHTML("beforeend", POPULAR.map((p) => `<button type="button" class="chip" data-q="${esc(p.toLowerCase())}">${esc(p)}</button>`).join(""));
+      // A search from the home page arrives as ?q=...
+      const fromHome = new URLSearchParams(location.search).get("q");
+      if (fromHome) $("q").value = fromHome;
+      window.addEventListener("hashchange", route);
+      route();
+    </script>
+  </body>
+</html>

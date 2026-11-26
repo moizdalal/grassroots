@@ -547,7 +547,7 @@ body.ld-modal-open { overflow: hidden; }
   margin: 0;
   font-size: var(--type-meta);
   color: var(--fo-text-2, var(--muted));
-  font-style: italic;
+  font-style: normal;
   line-height: 1.5;
 }
 .ld-counter-response__deadline {
@@ -1182,7 +1182,7 @@ body.ld-modal-open { overflow: hidden; }
   margin: 0 0 0.9rem;
   font-family: var(--font-body);
   font-size: var(--type-meta);
-  font-style: italic;
+  font-style: normal;
   color: var(--fo-text-3, rgba(241, 232, 211, 0.6));
   line-height: 1.4;
 }

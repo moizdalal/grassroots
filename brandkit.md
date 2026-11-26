@@ -30,6 +30,7 @@ Warm-direct. Sentence case, second person, ~10-word sentences, no exclamation po
 Two fonts, one rhythm. Loaded from Google Fonts in each page head (`Fraunces:opsz,wght@9..144,400..700` and `Figtree:ital,wght@0,300..900;1,300..900`).
 
 - **Fraunces** (serif, variable weight + opsz axis) — `--font-display`. All headings (h1-h4, page/section/card titles), hero numbers, and the logo wordmark. Always weight 600, upright, never italic. Exception under trial: the training page (`training.css`) pins headings to `"opsz" 24` because the auto display cut renders thin, broken-looking f's. If it holds up, roll it out site-wide.
+- **No slanted text anywhere.** Accent words in headings (like "Find the right **student**") are upright and only change color to brand green. Quotes, hints, dates and empty states are upright too. `grassroots.css` resets `em`, `i` and `cite` to upright, so use color or weight for emphasis, never italic.
 - **Figtree** (sans, variable weight 300-900) — `--font-body`. Body copy, buttons, inputs, nav, labels, eyebrows.
 
 Point every `font-family` at the tokens (`var(--font-display)`, `var(--font-body)`); don't hardcode family names. `grassroots.css` also sets h1-h4 to display, 600, upright. Manrope, Inter, Syne and JetBrains Mono are retired. Caveat (handwriting) is retired everywhere except one place: the "Start here if you're a business owner" note under the home hero's "Post a project" button (`.ld-start` in `public/home/index.css`, scoped as `--font-hand`). It is an annotation pointing at a button, not copy. Don't use it for headings, body text or anywhere else. For numbers that must align (amounts in tables), use Figtree with `font-variant-numeric: tabular-nums` rather than a monospace.
@@ -152,6 +153,8 @@ Pattern for scoping a card's fill to light theme only:
 ```
 
 Applies to any container the team would call a "card", "panel", "callout", or "tile" — including `.bza__panel`, `.eng-list`, `.eng-actions`, `.gr-card`, and any new component you add.
+
+**Exception — home page mission panel.** `.ld-manifesto__panel` (the "Our mission" panel in `public/home/index.css`) uses a soft green-tinted fill with a glow at the top and a faint green edge in the dark themes, because it's a single large statement rather than a card in a set, and the outline-only version read as an empty box. Light mode keeps the white card.
 
 **Exception — home page listing cards.** `.ld-peek-card` (the "what's on the field this week" marquee in `public/home/index.css`) keeps a solid fill in every theme: `var(--fo-surface)` in light, `var(--fo-surface-2)` in the dark themes. The marquee scrolls over the dotted page background, and transparent cards let the dots and glow show through the text. Dark themes use `--fo-surface-2` because `--fo-surface` is too close to `--fo-bg` to read as solid. Don't extend this to other cards without a similar reason.
 

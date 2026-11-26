@@ -475,14 +475,14 @@ a.reg-role-card--apply:visited {
   padding-top: 0.5rem;
   border-top: 1px solid var(--fo-line, var(--card-border));
   color: var(--fo-text-3, var(--tagline-body));
-  font-style: italic;
+  font-style: normal;
 }
 
 .reg-edu-school-ac__empty {
   padding: 0.4rem 0.55rem;
   color: var(--fo-text-3, var(--tagline-body));
   font-size: var(--type-meta);
-  font-style: italic;
+  font-style: normal;
 }
 
 .reg-edu-school-other-wrap {

@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<title>How it works</title>
+<meta name="robots" content="noindex" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:wght@400..800&display=block" />
+<style>
+  :root {
+    --bg: #191b20; --text: #ece7da; --text-2: #a8a89e; --accent: #2f7a5a; --accent-hi: #5fbf8f;
+    /* the app inside the browser window uses the light theme */
+    --a-bg: #f5f1e6; --a-surface: #ffffff; --a-surface-2: #faf6ec; --a-text: #14201a; --a-text-2: #4a5650;
+    --a-text-3: #767f78; --a-line: rgba(20,32,26,0.10); --a-line-strong: rgba(20,32,26,0.18); --a-accent: #2f7a5a;
+    --display: "Fraunces", Georgia, serif; --body: "Figtree", system-ui, sans-serif;
+  }
+  /* dark: the site's charcoal dark theme, inside and out */
+  html[data-theme="dark"] {
+    --bg: #191b20; --text: #ece7da; --text-2: #a8a89e; --text-sub: #c9c7bb; --accent-hi: #5fbf8f;
+    --glow-green: rgba(47,122,90,0.28); --glow-warm: rgba(232,142,90,0.10); --dot-line: rgba(236,231,218,0.18);
+    --win-shadow: 0 40px 120px rgba(0,0,0,0.55), 0 0 0 1px rgba(236,231,218,0.10);
+    --a-bg: #15161a; --a-surface: #1d1e22; --a-surface-2: #25262c; --a-text: #ece7da; --a-text-2: #a8a89e;
+    --a-text-3: #7c7c74; --a-line: rgba(236,231,218,0.08); --a-line-strong: rgba(236,231,218,0.16);
+    --a-accent-text: #5fbf8f; --a-btn: #ece7da; --a-btn-fg: #14201a; --a-toast-check: #2f7a5a;
+    --a-scrim: rgba(0,0,0,0.55); --a-star-off: #3a3b41; --a-overlay: rgba(21,22,26,0.985);
+    --a-amber: #f0a36f; --a-blue: #93b3ec; --a-card-shadow: none;
+  }
+  /* light: the site's cream light theme with its warm wash */
+  html[data-theme="light"] {
+    --bg: #f5f1e6; --text: #14201a; --text-2: #4a5650; --text-sub: #4a5650; --accent-hi: #2f7a5a;
+    --glow-green: rgba(47,122,90,0.16); --glow-warm: rgba(232,142,90,0.22); --dot-line: rgba(20,32,26,0.20);
+    --win-shadow: 0 40px 100px rgba(20,32,26,0.18), 0 0 0 1px rgba(20,32,26,0.10);
+    --a-bg: #f5f1e6; --a-surface: #ffffff; --a-surface-2: #faf6ec; --a-text: #14201a; --a-text-2: #4a5650;
+    --a-text-3: #767f78; --a-line: rgba(20,32,26,0.10); --a-line-strong: rgba(20,32,26,0.18);
+    --a-accent-text: #2f7a5a; --a-btn: #14201a; --a-btn-fg: #ffffff; --a-toast-check: #5fbf8f;
+    --a-scrim: rgba(20,32,26,0.45); --a-star-off: #e6dfcf; --a-overlay: rgba(245,241,230,0.985);
+    --a-amber: #b8642f; --a-blue: #3d5f9e; --a-card-shadow: 0 10px 30px rgba(20,32,26,0.06);
+  }
+  * { box-sizing: border-box; }
+  em, i { font-style: normal; }
+  html { overflow: hidden; background: var(--bg); }
+  html, body { margin: 0; }
+  body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); transform-origin: 0 0; }
+  #intro, #outro { display: none; }
+  .dot { cursor: pointer; }
+  body { font-family: var(--body); color: var(--text); position: relative; }
+  .glow { position: absolute; inset: 0; background:
+      radial-gradient(1000px 760px at 74% 55%, var(--glow-green), transparent 70%),
+      radial-gradient(800px 640px at 10% 16%, var(--glow-warm), transparent 70%); }
+
+  /* left column: plant, title, caption, step dots */
+  .side { position: absolute; left: 120px; top: 0; width: 560px; height: 1080px; }
+  .step { position: absolute; left: 0; top: 250px; width: 560px; opacity: 0; }
+  .step svg { width: 150px; height: 162px; overflow: visible; display: block; margin-bottom: 26px; }
+  .step h2 { font-family: var(--display); font-weight: 600; font-size: 64px; line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 22px; }
+  .step p { font-size: 29px; line-height: 1.45; color: var(--text-2); margin: 0; }
+  .dots { position: absolute; left: 0; top: 880px; display: flex; gap: 14px; opacity: 0; }
+  .dot { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 19px;
+         border: 2px solid var(--dot-line); color: var(--text-2); }
+  .dot.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .dot.done { border-color: var(--accent); color: var(--accent-hi); }
+  .soil { stroke: #6b4a33; stroke-width: 3; stroke-linecap: round; }
+  .seed { fill: #8a6a4a; } .root { stroke: #c9905c; stroke-width: 2; fill: none; stroke-linecap: round; }
+  .stem, .sepal { stroke: #3f9a6b; stroke-width: 3; fill: none; stroke-linecap: round; } .sepal { stroke-width: 2.5; }
+  .leaf { fill: #5fbf8f; } .leaf--deep { fill: #3f9a6b; } .bud { fill: #dc94aa; }
+  .petal { fill: #f8c8d6; } .petal--shade { fill: #dc94aa; } .center { fill: #e8b03c; }
+
+  /* browser window */
+  .win { position: absolute; left: 740px; top: 110px; width: 1060px; height: 860px; border-radius: 18px; overflow: hidden;
+         background: var(--a-bg); box-shadow: var(--win-shadow); opacity: 0; }
+  .bar { height: 54px; background: #24262b; display: flex; align-items: center; gap: 18px; padding: 0 20px; }
+  .lights { display: flex; gap: 8px; } .lights i { width: 13px; height: 13px; border-radius: 50%; background: #4a4c52; display: block; }
+  .url { flex: 1; height: 32px; border-radius: 16px; background: #17181c; color: #a8a89e; font-size: 16px; display: flex; align-items: center; padding: 0 16px; }
+  .url b { color: #ece7da; font-weight: 500; }
+  .app { position: absolute; left: 0; top: 54px; right: 0; bottom: 0; color: var(--a-text); }
+  .nav { height: 64px; display: flex; align-items: center; padding: 0 34px; border-bottom: 1px solid var(--a-line); background: var(--a-surface); }
+  .brand { display: flex; align-items: center; gap: 9px; font-family: var(--display); font-weight: 600; font-size: 24px; letter-spacing: -0.01em; }
+  .brand svg { width: 20px; height: 22px; }
+  .navlinks { margin-left: auto; display: flex; align-items: center; gap: 26px; font-size: 16px; color: var(--a-text-2); }
+  .navlinks b { color: var(--a-text); font-weight: 700; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 700; color: #fff; background: var(--a-accent); }
+  .avatar.biz { background: #b06b3e; }
+  .scene { position: absolute; left: 0; right: 0; top: 64px; bottom: 0; opacity: 0; padding: 34px 40px; }
+  .nav-layer { position: absolute; left: 0; right: 0; top: 0; opacity: 0; }
+
+  .h1 { font-family: var(--display); font-weight: 600; font-size: 38px; letter-spacing: -0.02em; margin: 0 0 6px; }
+  .h1 em { font-style: normal; color: var(--a-accent-text); }
+  .sub { color: var(--a-text-2); font-size: 17px; margin: 0 0 22px; }
+  .card { background: var(--a-surface); border: 1px solid var(--a-line); border-radius: 18px; box-shadow: var(--a-card-shadow); }
+  .field { margin-bottom: 18px; }
+  .label { font-size: 15px; font-weight: 600; color: var(--a-text-2); margin-bottom: 7px; }
+  .input { min-height: 50px; border: 1.5px solid var(--a-line-strong); border-radius: 12px; padding: 13px 15px; font-size: 18px; background: var(--a-surface-2); line-height: 1.4; }
+  .input.tall { min-height: 92px; }
+  #f-card { white-space: pre; }
+  .input.focus { border-color: var(--a-accent); box-shadow: 0 0 0 4px rgba(47,122,90,0.14); }
+  .ph { color: var(--a-text-3); }
+  .caret { display: inline-block; width: 2px; height: 1.1em; background: var(--a-accent); vertical-align: -0.15em; margin-left: 1px; }
+  .chips { display: flex; gap: 10px; flex-wrap: wrap; }
+  .chip { padding: 9px 16px; border-radius: 999px; border: 1.5px solid var(--a-line-strong); font-size: 16px; font-weight: 600; color: var(--a-text-2); background: var(--a-surface); }
+  .chip.on { background: var(--a-accent); border-color: var(--a-accent); color: #fff; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 52px; padding: 0 26px; border-radius: 999px;
+         background: var(--a-btn); color: var(--a-btn-fg); font-weight: 700; font-size: 17px; }
+  .btn.green { background: var(--a-accent); }
+  .btn.ghost { background: transparent; color: var(--a-text); border: 1.5px solid var(--a-line-strong); }
+  .btn.sm { height: 42px; padding: 0 20px; font-size: 15px; }
+  .btn.press { transform: scale(0.96); }
+  .muted { color: var(--a-text-3); }
+  .pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 13px; border-radius: 999px; font-size: 14px; font-weight: 700; }
+  .pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .pill.green { background: rgba(47,122,90,0.16); color: var(--a-accent-text); }
+  .pill.amber { background: rgba(232,142,90,0.18); color: var(--a-amber); }
+  .pill.blue { background: rgba(70,110,180,0.16); color: var(--a-blue); }
+  .toast { position: absolute; left: 50%; bottom: 34px; transform: translateX(-50%); background: var(--a-btn); color: var(--a-btn-fg); border-radius: 14px;
+           padding: 15px 22px; font-size: 17px; font-weight: 600; display: flex; gap: 10px; align-items: center; opacity: 0; white-space: nowrap; }
+  .toast i { color: var(--a-toast-check); font-style: normal; }
+  .logo-tile { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; font-weight: 800; font-size: 15px; color: #b06b3e; background: #f6e3d5; flex-shrink: 0; }
+
+  .navlinks .cur { color: var(--a-text); font-weight: 700; }
+  .avatar.biz { background: #6b4a33; }
+  .avatar.maya { background: #b5673a; }
+  .sc { font-size: 14px; color: var(--a-text-3); }
+  .rt { font-size: 14px; color: var(--a-text-2); margin-top: 3px; } .rt b { color: var(--a-text); } .rt .st { color: #e8b03c; }
+  .chips.sm { gap: 8px; } .chips.sm .chip { padding: 6px 12px; font-size: 13.5px; }
+  .avatar.lg { width: 60px; height: 60px; font-size: 20px; font-family: var(--display); font-weight: 600; }
+  .avatar.xl { width: 76px; height: 76px; font-size: 26px; font-family: var(--display); font-weight: 600; border-radius: 20px; }
+
+  /* scene 1: search */
+  .sbar { display: flex; align-items: center; gap: 12px; height: 66px; padding: 0 8px 0 24px; border-radius: 999px; border: 1.5px solid var(--a-line-strong);
+          background: var(--a-surface); margin-bottom: 22px; }
+  .sbar.focus { border-color: var(--a-accent); box-shadow: 0 0 0 4px rgba(47,122,90,0.14); }
+  .sicon { width: 22px; height: 22px; color: var(--a-text-3); flex-shrink: 0; }
+  .sq { flex: 1; font-size: 20px; }
+  .results { display: flex; flex-direction: column; gap: 14px; }
+  .res { display: grid; grid-template-columns: 60px 230px 1fr 132px; gap: 18px; align-items: center; padding: 18px 22px; opacity: 0; }
+  .res .nm { font-weight: 700; font-size: 17px; }
+  .res-line { font-size: 15px; line-height: 1.4; color: var(--a-text-2); margin-bottom: 10px; }
+  .res-end { display: flex; flex-direction: column; align-items: flex-end; gap: 14px; }
+
+  /* scene 2: profile and chat */
+  .two { display: grid; grid-template-columns: 390px 1fr; gap: 20px; height: 100%; }
+  .prof { padding: 24px 26px; display: flex; flex-direction: column; gap: 10px; }
+  .prof-head { display: flex; gap: 16px; align-items: center; margin-bottom: 4px; }
+  .pname { font-family: var(--display); font-weight: 600; font-size: 24px; }
+  .pline { font-size: 15.5px; line-height: 1.5; color: var(--a-text); margin: 0 0 4px; }
+  .prof .label { margin: 8px 0 2px; }
+  .pj { display: flex; gap: 12px; align-items: center; font-size: 14px; color: var(--a-text-3); margin-bottom: 8px; }
+  .pj b { display: block; color: var(--a-text); font-size: 15px; }
+  .pj-img { width: 48px; height: 48px; border-radius: 12px; flex-shrink: 0; display: grid; place-items: center; color: #fbf3e6; }
+  .pj-img svg { width: 24px; height: 24px; }
+  .rev { font-size: 15px; line-height: 1.5; color: var(--a-text); background: var(--a-surface-2); border: 1px solid var(--a-line); border-radius: 14px; padding: 12px 14px; }
+  .rev span { display: block; margin-top: 6px; font-size: 13.5px; color: var(--a-text-3); }
+  .chat { display: flex; flex-direction: column; overflow: hidden; }
+  .chat-head { display: flex; gap: 12px; align-items: center; padding: 16px 22px; border-bottom: 1px solid var(--a-line); }
+  .chat-head b { font-size: 17px; }
+  .msgs { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 12px; padding: 20px 22px; overflow: hidden; }
+  .msg { max-width: 76%; padding: 12px 16px; border-radius: 18px; font-size: 16.5px; line-height: 1.45; }
+  .msg.me { align-self: flex-end; background: var(--a-accent); color: #fff; border-bottom-right-radius: 6px; }
+  .msg.them { align-self: flex-start; background: var(--a-surface-2); border: 1px solid var(--a-line); border-bottom-left-radius: 6px; }
+  .typing { align-self: flex-start; display: flex; gap: 6px; padding: 15px 18px; border-radius: 18px; background: var(--a-surface-2); border: 1px solid var(--a-line); }
+  .typing i { width: 8px; height: 8px; border-radius: 50%; background: var(--a-text-3); display: block; }
+  .composer { display: flex; gap: 12px; align-items: center; padding: 14px 18px; border-top: 1px solid var(--a-line); }
+  .composer .input { flex: 1; min-height: 48px; padding: 11px 15px; font-size: 16.5px; }
+
+  /* scene 3: the plan */
+  .layer { position: absolute; inset: 34px 40px; }
+  .two.plan { grid-template-columns: 1fr 450px; }
+  .two.plan .msg { font-size: 15.5px; }
+  .builder { padding: 24px 24px; }
+  .builder h3 { font-family: var(--display); font-weight: 600; font-size: 25px; margin: 0 0 2px; }
+  .pstep { display: grid; grid-template-columns: 30px 1fr 78px; gap: 10px; align-items: center; margin-bottom: 10px; }
+  .pnum { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 14px; background: rgba(47,122,90,0.16); color: var(--a-accent-text); }
+  .pstep .input { min-height: 48px; padding: 11px 13px; font-size: 15.5px; }
+  .pwk { font-size: 13.5px; font-weight: 700; color: var(--a-text-2); text-align: right; opacity: 0; }
+  .builder .brk { margin-top: 2px; }
+  .plan-msg { align-self: flex-start; width: 600px; padding: 20px 22px; border-radius: 18px; border-bottom-left-radius: 6px; background: var(--a-surface-2); border: 1.5px solid var(--a-accent); }
+  .pm-title { font-family: var(--display); font-weight: 600; font-size: 22px; margin-bottom: 4px; }
+  .pm-step { display: flex; justify-content: space-between; gap: 16px; font-size: 15.5px; padding: 8px 0; border-bottom: 1px solid var(--a-line); }
+  .pm-step b { font-size: 13.5px; color: var(--a-text-2); white-space: nowrap; }
+  .pm-foot { display: flex; justify-content: space-between; align-items: center; margin: 12px 0 14px; font-size: 15px; color: var(--a-text-2); }
+  .pm-price { font-family: var(--display); font-weight: 600; font-size: 28px; color: var(--a-text); }
+  .pm-btns { display: flex; gap: 10px; align-items: center; }
+  .pk { font-size: 13.5px; font-weight: 600; color: var(--a-text-3); }
+  .pkgs { display: flex; flex-direction: column; gap: 8px; }
+  .pkg { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 12px;
+         border: 1px solid var(--a-line-strong); background: var(--a-surface-2); }
+  .pkg b { display: block; font-size: 15px; } .pkg .k { font-size: 13px; color: var(--a-text-3); }
+  .pkg .pr { font-family: var(--display); font-weight: 600; font-size: 19px; color: var(--a-accent-text); white-space: nowrap; }
+  .pkg.hl { border-color: var(--a-accent); box-shadow: 0 0 0 3px rgba(47,122,90,0.16); }
+  .orow { border: 1px solid var(--a-line-strong); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; background: var(--a-surface-2); }
+  .orow-h { display: flex; align-items: center; gap: 12px; }
+  .orow-h .nm { flex: 1; font-weight: 700; font-size: 16px; } .orow-h .nm span { display: block; font-weight: 500; font-size: 13px; color: var(--a-text-3); }
+  .orow-h .pr { font-family: var(--display); font-weight: 600; font-size: 19px; }
+  .ck { width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--a-line-strong); display: grid; place-items: center; color: #fff; font-size: 14px; font-weight: 800; flex-shrink: 0; }
+  .ck.on { background: var(--a-accent); border-color: var(--a-accent); }
+  .orow .steps { display: flex; flex-direction: column; gap: 6px; margin: 10px 0 0 36px; }
+  .orow .steps .input { min-height: 38px; padding: 7px 11px; font-size: 14.5px; }
+  .orow .input.pin { min-height: 36px; width: 96px; padding: 6px 10px; font-size: 17px; font-family: var(--display); font-weight: 600; text-align: right; }
+  .offers-msg { align-self: stretch; }
+  .offers-msg .lead { font-size: 15px; font-weight: 600; color: var(--a-text-2); margin: 0 0 18px; }
+  .ofs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .ofc { position: relative; padding: 18px 18px 16px; border-radius: 18px; background: var(--a-surface-2); border: 1.5px solid var(--a-line-strong); display: flex; flex-direction: column; gap: 8px; }
+  .ofc.best { border-color: var(--a-accent); }
+  .ofc .tag { font-size: 12.5px; font-weight: 700; color: var(--a-text-3); }
+  .ofc .rec-tag { position: absolute; top: -13px; left: 16px; padding: 3px 11px; border-radius: 999px; background: var(--a-accent); color: #fff; font-size: 12.5px; font-weight: 700; }
+  .ofc .ttl { font-family: var(--display); font-weight: 600; font-size: 21px; }
+  .ofc ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.45; color: var(--a-text-2); flex: 1; }
+  .ofc .pr { font-family: var(--display); font-weight: 600; font-size: 27px; }
+  .ofc .pr small { font-family: var(--body); font-size: 14px; font-weight: 600; color: var(--a-text-3); }
+  .ofc .btn { width: 100%; }
+  .mk-view { font-size: 14px; font-weight: 700; color: var(--a-text-2); }
+  .brk { border-top: 1px dashed var(--a-line-strong); margin: 6px 0 16px; padding-top: 12px; font-size: 15px; color: var(--a-text-2); opacity: 0; }
+  .brk div { display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .brk .tot { color: var(--a-text); font-weight: 700; font-size: 17px; }
+  .modal-bg { position: absolute; inset: 0; background: var(--a-scrim); opacity: 0; display: grid; place-items: center; }
+  .modal { width: 540px; padding: 30px 32px; background: var(--a-surface); border-radius: 22px; box-shadow: 0 30px 80px rgba(0,0,0,0.30); }
+  .modal h3 { font-family: var(--display); font-weight: 600; font-size: 28px; margin: 0 0 18px; }
+  .ln { display: flex; justify-content: space-between; align-items: baseline; font-size: 17px; padding: 9px 0; color: var(--a-text-2); }
+  .ln.tot { border-top: 1px solid var(--a-line-strong); margin-top: 6px; padding-top: 14px; color: var(--a-text); font-weight: 800; font-size: 20px; }
+  .ln s { color: var(--a-text-3); }
+  .hold { font-size: 14px; color: var(--a-text-3); margin: 10px 0 18px; line-height: 1.45; }
+  .spin { width: 18px; height: 18px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.35); border-top-color: #fff; display: inline-block; }
+  /* scene 4 */
+  .eng { display: grid; grid-template-columns: 1fr 380px; gap: 22px; }
+  .panel { padding: 24px 26px; position: relative; min-height: 470px; }
+  .panel h3 { font-family: var(--display); font-weight: 600; font-size: 24px; margin: 0 0 14px; display: flex; justify-content: space-between; align-items: center; }
+  .rate { display: flex; justify-content: space-between; align-items: center; font-size: 16px; padding: 7px 0; color: var(--a-text-2); }
+  .stars { display: flex; gap: 4px; } .star { width: 22px; height: 22px; }
+  .star { fill: var(--a-star-off); } .star.on { fill: #e8b03c; }
+  .money { font-family: var(--display); font-weight: 600; font-size: 40px; color: var(--a-text); }
+  .paid { position: absolute; inset: 0; display: grid; place-items: center; background: var(--a-overlay); opacity: 0; }
+  .paid .card { width: 560px; padding: 40px; text-align: center; }
+
+  /* cursor */
+  .cursor { position: absolute; left: 0; top: 0; width: 30px; height: 30px; z-index: 50; opacity: 0; pointer-events: none; }
+  .ring { position: absolute; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; border: 3px solid var(--accent); opacity: 0; z-index: 49; }
+
+  /* intro and outro */
+  .card-full { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; opacity: 0; }
+  .card-full h1 { font-family: var(--display); font-weight: 600; font-size: 104px; letter-spacing: -0.03em; margin: 26px 0 18px; line-height: 1; }
+  .card-full h1 .brandword { color: var(--accent-hi); }
+  .card-full h1 em { font-style: normal; color: var(--accent-hi); font-weight: 500; padding-right: 0.06em; }
+  .card-full p { font-size: 34px; color: var(--text-sub); margin: 0; }
+  .card-full .site { margin-top: 34px; font-size: 26px; color: var(--text); letter-spacing: 0.01em; }
+  .bigbrand { display: inline-flex; align-items: center; gap: 16px; font-family: var(--display); font-weight: 600; font-size: 48px; }
+  .bigbrand svg { width: 40px; height: 44px; }
+</style>
+</style>
+</head>
+<body>
+<div class="glow"></div>
+
+<!-- the sprout from the grassroots logo -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <g id="sprout">
+      <path fill="#3f9a6b" transform="translate(72 130)" d="M19 10.15C19 4.54431 14.7467 0 9.5 0C4.25329 0 0 4.54431 0 10.15C7.91804 91.2467 8.44249 120.691 0 134.85C0 140.456 4.25329 145 9.5 145C14.7467 145 19 140.456 19 134.85C16.2169 71.2734 12.3479 23.288 19 10.15Z"/>
+      <path fill="#3f9a6b" transform="translate(0 65)" d="M84 87C21 71.5333 -6.5625 42.5333 1.3125 0C56.4375 3.86667 84 32.8667 84 87Z"/>
+      <path fill="#5fbf8f" transform="translate(82 0)" d="M0 147C48.6 116.053 75.6 67.0526 81 0C27 5.1579 0 54.1579 0 147Z"/>
+    </g>
+    <path id="starpath" d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"/>
+  </defs>
+</svg>
+
+<div class="card-full" id="intro">
+  <div>
+    <div class="bigbrand"><svg viewBox="0 0 163 275"><use href="#sprout"/></svg>grassroots</div>
+    <h1>How <span class="brandword">Grassroots</span> works</h1>
+    <p>Four steps from a local business to a paid student</p>
+  </div>
+</div>
+
+<div class="side">
+  <div class="step" id="st0">
+    <svg viewBox="0 0 96 104"><line class="soil" x1="8" y1="40" x2="88" y2="40"/><g class="grow" data-origin="48 40"><ellipse class="seed" cx="48" cy="44" rx="7" ry="5"/><path class="root" d="M48 48 C47 58 45 66 41 74 M48 48 C49 58 51 66 55 74 M48 48 C48 58 48 68 48 80"/></g></svg>
+    <h2>Search for what you need</h2>
+    <p>A local business types what it needs help with, even roughly. Students whose strengths match show up first.</p>
+  </div>
+  <div class="step" id="st1">
+    <svg viewBox="0 0 96 104"><line class="soil" x1="8" y1="92" x2="88" y2="92"/><g class="grow" data-origin="48 92"><g transform="translate(28.4 26) scale(0.24)"><use href="#sprout"/></g></g></svg>
+    <h2>Message a student</h2>
+    <p>The business looks at a student's strengths, packages and past work, then sends a message. The student asks a few questions and helps figure out what's needed.</p>
+  </div>
+  <div class="step" id="st2">
+    <svg viewBox="0 0 96 104"><line class="soil" x1="8" y1="92" x2="88" y2="92"/><g class="grow" data-origin="48 92">
+      <path class="stem" d="M48 92 C48 70 48 46 48 26"/><path class="leaf" d="M48 74 C38 70 32 62 30 52 C40 53 46 61 48 74Z"/>
+      <path class="leaf leaf--deep" d="M48 60 C58 56 64 48 66 38 C56 39 50 47 48 60Z"/><path class="leaf" d="M48 44 C42 41 38 36 37 30 C43 31 47 36 48 44Z"/>
+      <ellipse class="bud" cx="48" cy="22" rx="6" ry="8"/><path class="sepal" d="M42 24 C44 28 52 28 54 24"/></g></svg>
+    <h2>Pick an offer</h2>
+    <p>The student sends a few offers, from their packages or a plan built for the business. Once the business picks one, Grassroots holds the payment, processed by Stripe, until the work is done.</p>
+  </div>
+  <div class="step" id="st3">
+    <svg viewBox="0 0 96 104"><line class="soil" x1="8" y1="92" x2="88" y2="92"/><g class="grow" data-origin="48 92">
+      <path class="stem" d="M48 92 C48 70 48 48 48 34"/><path class="leaf" d="M48 76 C38 72 32 64 30 54 C40 55 46 63 48 76Z"/>
+      <path class="leaf leaf--deep" d="M48 62 C58 58 64 50 66 40 C56 41 50 49 48 62Z"/>
+      <g transform="translate(48 24)"><ellipse class="petal" cx="0" cy="-11" rx="7" ry="10"/><ellipse class="petal" cx="0" cy="-11" rx="7" ry="10" transform="rotate(72)"/>
+      <ellipse class="petal petal--shade" cx="0" cy="-11" rx="7" ry="10" transform="rotate(144)"/><ellipse class="petal" cx="0" cy="-11" rx="7" ry="10" transform="rotate(216)"/>
+      <ellipse class="petal petal--shade" cx="0" cy="-11" rx="7" ry="10" transform="rotate(288)"/><circle class="center" r="5"/></g></g></svg>
+    <h2>Approve the work</h2>
+    <p>The student delivers the work and makes changes if needed. Once the business approves it, the student gets paid and both sides leave a review.</p>
+  </div>
+  <div class="dots" id="dots"><div class="dot">1</div><div class="dot">2</div><div class="dot">3</div><div class="dot">4</div></div>
+</div>
+
+<div class="win" id="win">
+  <div class="bar"><div class="lights"><i></i><i></i><i></i></div><div class="url" id="url"></div></div>
+  <div class="app" id="app">
+    <!-- business nav and student nav -->
+    <div class="nav-layer" id="nav-biz"><div class="nav"><div class="brand"><svg viewBox="0 0 163 275"><use href="#sprout"/></svg>grassroots</div>
+      <div class="navlinks"><span id="n-find">Find students</span><span id="n-msg">Messages</span><span id="n-proj">My projects</span><span class="avatar biz">SS</span></div></div></div>
+    <div class="nav-layer" id="nav-stu"><div class="nav"><div class="brand"><svg viewBox="0 0 163 275"><use href="#sprout"/></svg>grassroots</div>
+      <div class="navlinks"><span id="s-prof">My profile</span><span id="s-msg">Messages</span><span id="s-proj">My projects</span><span class="avatar maya">MR</span></div></div></div>
+
+    <!-- scene 1: search for what you need (business) -->
+    <div class="scene" id="sc0">
+      <div class="h1">Find a <em>student</em></div>
+      <div class="sub">Search for what you need, even roughly. Students who fit show up first.</div>
+      <div class="sbar" id="sbar">
+        <svg class="sicon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <div class="sq" id="f-search"></div>
+        <span class="btn green" id="b-find">Find students</span>
+      </div>
+      <div class="results">
+        <div class="card res" id="res-0">
+          <span class="avatar lg maya">MR</span>
+          <div><div class="nm">Maya Rodriguez</div><div class="sc">Marketing · State College</div><div class="rt"><span class="st">★</span> <b>4.9</b> (6 reviews)</div></div>
+          <div><div class="res-line">I make Instagram and TikTok content that gets local cafes and shops noticed.</div>
+            <div class="chips sm"><span class="chip on">Instagram</span><span class="chip on">Content creation</span><span class="chip">TikTok</span><span class="chip">Captions</span></div></div>
+          <div class="res-end"><span class="pill green">Best match</span><span class="pk">3 packages</span><span class="mk-view" id="v-maya">View profile →</span></div>
+        </div>
+        <div class="card res" id="res-1">
+          <span class="avatar lg" style="background:#2a6170">DS</span>
+          <div><div class="nm">Dev Shah</div><div class="sc">Photography · State College</div><div class="rt"><span class="st">★</span> <b>4.8</b> (5 reviews)</div></div>
+          <div><div class="res-line">Product and food photos that look good on a feed and on a menu.</div>
+            <div class="chips sm"><span class="chip on">Instagram</span><span class="chip">Product photos</span><span class="chip">Food photos</span><span class="chip">Lightroom</span></div></div>
+          <div class="res-end"><span class="pk">2 packages</span><span class="mk-view">View profile →</span></div>
+        </div>
+        <div class="card res" id="res-2">
+          <span class="avatar lg" style="background:#b9577a">AB</span>
+          <div><div class="nm">Aisha Bello</div><div class="sc">Graphic design · State College</div><div class="rt"><span class="st">★</span> <b>4.9</b> (7 reviews)</div></div>
+          <div><div class="res-line">Logos, menus and social graphics that look like they belong to you.</div>
+            <div class="chips sm"><span class="chip on">Social graphics</span><span class="chip">Branding</span><span class="chip">Menu design</span><span class="chip">Canva</span></div></div>
+          <div class="res-end"><span class="pk">4 packages</span><span class="mk-view">View profile →</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- scene 2: message a student (business) -->
+    <div class="scene" id="sc1">
+      <div class="two">
+        <div class="card prof">
+          <div class="prof-head"><span class="avatar xl maya">MR</span>
+            <div><div class="pname">Maya Rodriguez</div><div class="sc">Marketing · State College</div><div class="rt"><span class="st">★</span> <b>4.9</b> (6 reviews)</div></div></div>
+          <p class="pline">I make Instagram and TikTok content that gets local cafes and shops noticed.</p>
+          <div class="label">Strengths</div>
+          <div class="chips sm"><span class="chip">Instagram</span><span class="chip">Content creation</span><span class="chip">TikTok</span></div>
+          <div class="label">Packages</div>
+          <div class="pkgs">
+            <div class="pkg" id="pk1"><div><b>Profile refresh</b><span class="k">New bio, highlights and grid · One-time</span></div><span class="pr">$90</span></div>
+            <div class="pkg" id="pk2"><div><b>TikTok starter</b><span class="k">Six short videos · One-time</span></div><span class="pr">$180</span></div>
+            <div class="pkg" id="pk3"><div><b>Monthly posts</b><span class="k">Twelve posts a month · Monthly</span></div><span class="pr">$320/mo</span></div>
+          </div>
+          <div class="label">Past projects</div>
+          <div class="pj"><span class="pj-img" style="background:#b9577a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.6" fill="currentColor"/></svg></span><div><b>Instagram for Bloom Bakery</b>Twelve posts and new highlights · 5 stars</div></div>
+        </div>
+        <div class="card chat">
+          <div class="chat-head"><span class="avatar maya">MR</span><div><b>Maya Rodriguez</b><div class="sc">Usually replies within a few hours</div></div></div>
+          <div class="msgs">
+            <div class="msg me" id="m1">Hi Maya! We run a coffee shop near campus. Our Instagram is pretty quiet and we're not sure what we need.</div>
+            <div class="msg them" id="m2">Happy to help you figure it out. Who usually comes in, and how often do you post right now?</div>
+            <div class="msg me" id="m3">Mostly students and people from nearby offices. We post about once a month.</div>
+            <div class="msg them" id="m4">That helps a lot. I'll send you a few options to pick from.</div>
+            <div class="typing" id="dots1"><i></i><i></i><i></i></div>
+          </div>
+          <div class="composer"><div class="input" id="f-msg"></div><span class="btn green sm" id="b-send">Send</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- scene 3: agree on a plan (student builds it, business accepts) -->
+    <div class="scene" id="sc2" style="padding:0">
+      <div class="layer" id="plan-stu">
+        <div class="two plan">
+          <div class="card chat">
+            <div class="chat-head"><span class="avatar biz">SS</span><div><b>Side Street Coffee</b><div class="sc">Coffee shop near campus</div></div></div>
+            <div class="msgs">
+              <div class="msg them">Hi Maya! We run a coffee shop near campus. Our Instagram is pretty quiet and we're not sure what we need.</div>
+              <div class="msg me">Happy to help you figure it out. Who usually comes in, and how often do you post right now?</div>
+              <div class="msg them">Mostly students and people from nearby offices. We post about once a month.</div>
+              <div class="msg me">That helps a lot. I'll send you a few options to pick from.</div>
+            </div>
+          </div>
+          <div class="card builder">
+            <h3>Send offers</h3>
+            <div class="sub" style="margin-bottom:16px">For Side Street Coffee. Pick from your packages or build a plan.</div>
+            <div class="orow" id="o1"><div class="orow-h"><span class="ck" id="ck1"></span><div class="nm">Profile refresh<span>Your package · One-time</span></div><span class="pr">$90</span></div></div>
+            <div class="orow" id="o2"><div class="orow-h"><span class="ck" id="ck2"></span><div class="nm">Four-week plan<span>Built for Side Street Coffee</span></div><div class="input pin" id="f-price"></div></div>
+              <div class="steps"><div class="input" id="f-s1"></div><div class="input" id="f-s2"></div><div class="input" id="f-s3"></div></div></div>
+            <div class="orow" id="o3"><div class="orow-h"><span class="ck" id="ck3"></span><div class="nm">Monthly posts<span>Your package · Monthly</span></div><span class="pr">$320/mo</span></div></div>
+            <div class="muted" style="font-size:14px;margin:4px 0 14px">You keep 90% of whichever offer they pick.</div>
+            <span class="btn green" id="b-plan" style="width:100%">Send 3 offers</span>
+          </div>
+        </div>
+      </div>
+      <div class="layer" id="plan-biz" style="opacity:0">
+        <div class="card chat" style="height:100%">
+          <div class="chat-head"><span class="avatar maya">MR</span><div><b>Maya Rodriguez</b><div class="sc">Usually replies within a few hours</div></div></div>
+          <div class="msgs">
+            <div class="msg me">Mostly students and people from nearby offices. We post about once a month.</div>
+            <div class="msg them">That helps a lot. I'll send you a few options to pick from.</div>
+            <div class="offers-msg" id="offersmsg">
+              <div class="lead">Maya sent you 3 offers</div>
+              <div class="ofs">
+                <div class="ofc" id="of1"><span class="tag">Package · One-time</span><div class="ttl">Profile refresh</div><ul><li>New bio and highlights</li><li>A cleaner, consistent grid</li></ul><div class="pr">$90</div><span class="btn ghost sm">Choose</span></div>
+                <div class="ofc best" id="of2"><span class="rec-tag">Maya recommends</span><span class="tag">Built for you · Four weeks</span><div class="ttl">Four-week plan</div><ul><li>Refresh the profile and highlights</li><li>Eight posts: drinks, regulars, the team</li><li>A posting calendar to keep using</li></ul><div class="pr">$240</div><span class="btn green sm" id="b-acc">Choose</span></div>
+                <div class="ofc" id="of3"><span class="tag">Package · Monthly</span><div class="ttl">Monthly posts</div><ul><li>Twelve posts a month</li><li>Captions and a monthly check-in</li></ul><div class="pr">$320<small>/mo</small></div><span class="btn ghost sm">Choose</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-bg" id="modal"><div class="modal">
+        <h3>Accept and pay</h3>
+        <div class="ln"><span>Four-week plan from Maya</span><span>$240.00</span></div>
+        <div class="ln"><span>Platform fee · <s>10%</s> 5% launch rate, until March 1, 2027</span><span>$12.00</span></div>
+        <div class="ln tot"><span>Total</span><span>$252.00</span></div>
+        <div class="field" style="margin-top:16px"><div class="label">Card</div><div class="input">Visa ending in 4242</div></div>
+        <div class="hold">Grassroots holds the payment, processed by Stripe, until the work is done.</div>
+        <span class="btn green" id="b-pay" style="width:100%">Pay $252.00</span>
+      </div></div>
+      <div class="toast" id="toast2"><i>✓</i>Payment held. Maya can start the work.</div>
+    </div>
+
+    <!-- scene 4: approve the work (student, then business) -->
+    <div class="scene" id="sc3">
+      <div class="h1">Four-week plan</div>
+      <div class="sub">Side Street Coffee and Maya Rodriguez</div>
+      <div class="eng">
+        <div class="card panel">
+          <h3>Delivery &amp; payment <span class="pill blue" id="status">In progress</span></h3>
+          <div id="d-stu">
+            <div class="sub" style="margin-bottom:14px">Mark the work delivered when it's done.</div>
+            <div class="field"><div class="label">Link to the work</div><div class="input" id="f-link"></div></div>
+            <span class="btn green" id="b-deliver">Mark delivered</span>
+          </div>
+          <div id="d-biz" style="position:absolute;opacity:0;left:26px;right:26px;top:76px">
+            <div style="display:flex;gap:12px;align-items:center;margin-bottom:14px"><span class="btn sm ghost">Open the delivered work</span><span class="muted" style="font-size:14px">posts-and-calendar.pdf</span></div>
+            <div class="label">Rate Maya's work</div>
+            <div id="rates"></div>
+            <div style="display:flex;gap:12px;margin-top:14px"><span class="btn green" id="b-release">Approve and release</span></div>
+          </div>
+        </div>
+        <div class="card panel">
+          <h3>What Grassroots is holding</h3>
+          <div class="money">$240.00</div>
+          <div class="muted" style="font-size:15px;margin-top:6px;line-height:1.5">Released to Maya when the business approves, or automatically 14 days after delivery.</div>
+        </div>
+      </div>
+      <div class="toast" id="toast3"><i>✓</i>Delivered. Side Street Coffee has 14 days to review.</div>
+      <div class="paid" id="paid"><div class="card"><div class="check">✓</div>
+        <div class="h1" style="font-size:34px">Payment released</div>
+        <div class="money" style="margin:6px 0">$216.00</div>
+        <div class="sub" style="margin:0">Paid to Maya after the 10% fee. Both sides can now leave a review.</div></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="card-full" id="outro">
+  <div>
+    <div class="bigbrand"><svg viewBox="0 0 163 275"><use href="#sprout"/></svg>grassroots</div>
+    <h1 style="font-size:76px;max-width:1400px">Local businesses get a hand.<br/><span class="brandword">Students get paid experience.</span></h1>
+    <p class="site">grassroots-marketplace.com</p>
+  </div>
+</div>
+
+<svg class="cursor" id="cursor" viewBox="0 0 24 24"><path d="M4 2.5l15.5 9-6.6 1.6-3.4 6.6z" fill="#fff" stroke="#14201a" stroke-width="1.4" stroke-linejoin="round"/></svg>
+<div class="ring" id="ring"></div>
+
+<script>
+// Interactive version of the How it works walkthrough for the home page.
+// Each step plays once and holds; the page's Back and Next buttons (or the
+// step dots) move between steps. Same scenes as the video.
+document.documentElement.dataset.theme = new URLSearchParams(location.search).get("theme") === "light" ? "light" : "dark";
+let SC = 1; // stage scale: frame width / 1920
+// ── timing ──────────────────────────────────────────────
+const FPS = 30;
+const S = [3.8, 12.5, 28.5, 47.5, 64.5]; // step starts; S[4] = outro start
+const DURATION = 70;
+window.DURATION = DURATION; window.FPS = FPS;
+
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const ease = (p) => p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+const easeOut = (p) => 1 - Math.pow(1 - p, 3);
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const fade = (t, a, b, c, d) => Math.min(easeOut(seg(t, a, b)), 1 - ease(seg(t, c, d)));
+const $ = (id) => document.getElementById(id);
+
+// Typing: text appears over [a, b]. The caret shows while the field is focused.
+function typeInto(el, text, t, a, b, ph, focusUntil) {
+  const n = Math.round(text.length * clamp((t - a) / (b - a)));
+  const shown = t < a ? "" : text.slice(0, n);
+  const focused = t >= a - 0.25 && t < (focusUntil ?? b + 0.6);
+  el.classList.toggle("focus", focused);
+  const caret = focused && (Math.floor(t * 2.2) % 2 === 0 || t < b) ? '<span class="caret"></span>' : "";
+  el.innerHTML = shown ? escapeHtml(shown) + caret : (caret || "") + (ph ? `<span class="ph">${ph}</span>` : "");
+}
+function escapeHtml(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+// A message bubble that pops in at time a.
+function pop(el, t, a) {
+  el.style.display = t >= a ? "" : "none";
+  const p = easeOut(seg(t, a, a + 0.35));
+  el.style.opacity = p;
+  el.style.transform = `translateY(${(1 - p) * 14}px)`;
+}
+// Three dots while the other person is typing.
+function typingDots(el, t, a, b) {
+  const on = t >= a && t < b;
+  el.style.display = on ? "" : "none";
+  [...el.children].forEach((d, i) => { d.style.transform = `translateY(${-4 * Math.max(0, Math.sin((t * 7) - i * 0.9))}px)`; });
+}
+
+// Cursor path: [time, element id or [x, y] in page px, offset x, offset y].
+function at(id, fx = 0.5, fy = 0.5) {
+  const r = $(id).getBoundingClientRect();
+  return [(r.left + r.width * fx) / SC, (r.top + r.height * fy) / SC];
+}
+const PATH = [];      // filled per scene below: { t, pos: () => [x, y] }
+const CLICKS = [];    // click times
+function moveTo(tt, posFn) { PATH.push({ t: tt, pos: posFn }); }
+function click(tt) { CLICKS.push(tt); }
+
+// Scene 1 — search for what you need (business)
+const b0 = S[0];
+moveTo(b0 + 0.0, () => [1500, 900]);
+moveTo(b0 + 0.8, () => at("f-search", 0.15)); click(b0 + 0.95);
+moveTo(b0 + 2.6, () => at("f-search", 0.15));
+moveTo(b0 + 2.9, () => at("b-find")); click(b0 + 3.05);
+moveTo(b0 + 4.2, () => at("res-0", 0.5, 0.62));
+moveTo(b0 + 5.8, () => at("res-0", 0.56, 0.66));
+moveTo(b0 + 6.4, () => at("v-maya")); click(b0 + 6.7);
+moveTo(b0 + 8.7, () => at("v-maya", 0.4, 1.6));
+
+// Scene 2 — packages on the profile, then a message (business)
+const b1 = S[1];
+moveTo(b1 + 0.2, () => [1560, 880]);
+moveTo(b1 + 0.9, () => at("pk1", 0.8, 0.5));
+moveTo(b1 + 1.6, () => at("pk2", 0.8, 0.5));
+moveTo(b1 + 2.3, () => at("pk3", 0.8, 0.5));
+moveTo(b1 + 3.0, () => at("f-msg", 0.88, 0.75)); click(b1 + 3.15);
+moveTo(b1 + 6.4, () => at("f-msg", 0.88, 0.75));
+moveTo(b1 + 6.65, () => at("b-send")); click(b1 + 6.8);
+moveTo(b1 + 9.0, () => at("b-send", 0.4, 0.4));
+moveTo(b1 + 9.2, () => at("f-msg", 0.88, 0.75)); click(b1 + 9.3);
+moveTo(b1 + 11.5, () => at("f-msg", 0.88, 0.75));
+moveTo(b1 + 11.75, () => at("b-send")); click(b1 + 11.9);
+moveTo(b1 + 16.0, () => at("b-send", 0.3, -2.5));
+
+// Scene 3 — the student sends three offers, the business picks one
+const b2 = S[2];
+moveTo(b2 + 0.2, () => [1560, 900]);
+moveTo(b2 + 0.75, () => at("ck1")); click(b2 + 0.9);
+moveTo(b2 + 1.3, () => at("ck2")); click(b2 + 1.45);
+moveTo(b2 + 1.75, () => at("f-s1", 0.93, 0.8)); click(b2 + 1.8);
+moveTo(b2 + 2.85, () => at("f-s1", 0.93, 0.8));
+moveTo(b2 + 3.0, () => at("f-s2", 0.93, 0.8)); click(b2 + 3.0);
+moveTo(b2 + 4.1, () => at("f-s2", 0.93, 0.8));
+moveTo(b2 + 4.25, () => at("f-s3", 0.93, 0.8)); click(b2 + 4.3);
+moveTo(b2 + 5.15, () => at("f-s3", 0.93, 0.8));
+moveTo(b2 + 5.35, () => at("f-price", 0.3, 0.8)); click(b2 + 5.4);
+moveTo(b2 + 5.9, () => at("f-price", 0.3, 0.8));
+moveTo(b2 + 6.1, () => at("ck3")); click(b2 + 6.2);
+moveTo(b2 + 6.7, () => at("b-plan")); click(b2 + 6.9);
+moveTo(b2 + 7.6, () => at("b-plan", 0.5, 1.4));
+moveTo(b2 + 9.2, () => at("of1", 0.5, 0.55));
+moveTo(b2 + 10.3, () => at("of3", 0.5, 0.55));
+moveTo(b2 + 11.4, () => at("b-acc")); click(b2 + 11.7);
+moveTo(b2 + 12.3, () => at("b-acc", 0.9, 0.5));
+moveTo(b2 + 12.9, () => at("b-pay")); click(b2 + 13.2);
+moveTo(b2 + 14.3, () => at("b-pay"));
+moveTo(b2 + 15.5, () => [1660, 450]);
+moveTo(b2 + 19.0, () => [1680, 460]);
+
+// Scene 4 — approve the work (student, then business)
+const b3 = S[3];
+moveTo(b3 + 0.2, () => [1500, 900]);
+moveTo(b3 + 1.4, () => at("f-link", 0.3)); click(b3 + 1.6);
+moveTo(b3 + 3.6, () => at("f-link", 0.3));
+moveTo(b3 + 4.2, () => at("b-deliver")); click(b3 + 4.4);
+moveTo(b3 + 6.4, () => at("b-deliver", 0.5, 2.2));
+for (let i = 0; i < 5; i++) {
+  moveTo(b3 + 7.2 + i * 0.55, () => at("star-" + i));
+  click(b3 + 7.35 + i * 0.55);
+}
+moveTo(b3 + 10.3, () => at("star-4"));
+moveTo(b3 + 10.9, () => at("b-release")); click(b3 + 11.1);
+moveTo(b3 + 15.0, () => at("b-release", 0.7, 1.8));
+
+// rating rows (five dimensions on a student review)
+const DIMS = ["Work product", "Communication", "Timeliness", "Professionalism", "Value"];
+$("rates").innerHTML = DIMS.map((d, i) => `<div class="rate"><span>${d}</span><span class="stars">${
+  [0,1,2,3,4].map((s) => `<svg class="star" ${s === 4 ? `id="star-${i}"` : ""} viewBox="0 0 24 24"><use href="#starpath"/></svg>`).join("")
+}</span></div>`).join("");
+
+function cursorPos(t) {
+  let i = PATH.findIndex((k) => k.t > t);
+  if (i === -1) return PATH[PATH.length - 1].pos();
+  if (i === 0) return PATH[0].pos();
+  const a = PATH[i - 1], b = PATH[i];
+  const p = ease(seg(t, a.t, b.t));
+  const [x1, y1] = a.pos(), [x2, y2] = b.pos();
+  return [x1 + (x2 - x1) * p, y1 + (y2 - y1) * p];
+}
+
+const M1 = "Hi Maya! We run a coffee shop near campus. Our Instagram is pretty quiet and we're not sure what we need.";
+const M3 = "Mostly students and people from nearby offices. We post about once a month.";
+
+// ── render one moment ───────────────────────────────────
+window.render = function (t) {
+  // intro and outro cards
+  const inP = easeOut(seg(t, 0.05, 0.75)), outP = ease(seg(t, 2.5, 3.2));
+  $("intro").style.opacity = Math.min(inP, 1 - outP);
+  $("intro").style.transform = `translateY(${(1 - inP) * 18 - outP * 90}px) scale(${1 - 0.05 * outP})`;
+  const oP = easeOut(seg(t, S[4] + 0.35, S[4] + 1.35));
+  $("outro").style.opacity = oP;
+  $("outro").style.transform = `translateY(${(1 - oP) * 60}px)`;
+
+  // window and dots
+  const wIn = easeOut(seg(t, 3.0, 4.1)), wOut = ease(seg(t, S[4] - 0.45, S[4] + 0.35));
+  const winOn = Math.min(wIn, 1 - wOut);
+  $("win").style.opacity = winOn;
+  $("win").style.transform = `translateY(${(1 - wIn) * 120 - wOut * 70}px) scale(${0.93 + 0.07 * wIn - 0.03 * wOut})`;
+  $("dots").style.opacity = winOn;
+
+  const k = t < S[0] ? -1 : t >= S[4] ? 4 : S.findIndex((s, i) => t >= s && t < S[i + 1]);
+  [...$("dots").children].forEach((d, i) => { d.className = "dot" + (i === k ? " on" : i < k ? " done" : ""); });
+
+  // left text per step, plant grows from its soil line
+  for (let i = 0; i < 4; i++) {
+    const el = $("st" + i);
+    const a = i === 0 ? 3.3 : S[i] + 0.05;
+    const pin = easeOut(seg(t, a, a + 0.7)), pout = ease(seg(t, S[i + 1] - 0.4, S[i + 1]));
+    el.style.opacity = Math.min(pin, 1 - pout);
+    el.style.transform = `translateY(${(1 - pin) * 36 - pout * 28}px)`;
+    const g = el.querySelector(".grow");
+    const [ox, oy] = g.dataset.origin.split(" ").map(Number);
+    const sc = easeOut(seg(t, S[i] + 0.4, S[i] + 1.8));
+    g.setAttribute("transform", `translate(${ox} ${oy}) scale(${0.2 + 0.8 * sc} ${Math.max(0.001, sc)}) translate(${-ox} ${-oy})`);
+  }
+
+  // which app screen and nav
+  const sIn = (i) => i === 0 ? 1 : easeOut(seg(t, S[i] + 0.02, S[i] + 0.55));
+  const sOut = (i) => i === 3 ? 0 : ease(seg(t, S[i + 1] - 0.38, S[i + 1]));
+  const scene = (i) => Math.min(sIn(i), 1 - sOut(i));
+  for (let i = 0; i < 4; i++) {
+    const inP = sIn(i), outP = sOut(i);
+    $("sc" + i).style.opacity = Math.min(inP, 1 - outP);
+    $("sc" + i).style.transform = `translateX(${(1 - inP) * 40 - outP * 30}px)`;
+  }
+  // scene 3 switches from the student to the business at +7.45s,
+  // scene 4 at +5.6s
+  const p3Out = ease(seg(t, S[2] + 7.3, S[2] + 7.6)), p3In = easeOut(seg(t, S[2] + 7.6, S[2] + 8.0));
+  const swapOut = ease(seg(t, S[3] + 5.3, S[3] + 5.6)), swapIn = easeOut(seg(t, S[3] + 5.6, S[3] + 6.0));
+  const stuNav = Math.max(Math.min(sIn(2), 1 - p3Out), Math.min(sIn(3), 1 - swapOut));
+  const bizNav = Math.max(scene(0), scene(1), Math.min(p3In, 1 - sOut(2)), swapIn);
+  $("nav-stu").style.opacity = stuNav;
+  $("nav-biz").style.opacity = bizNav;
+  $("plan-stu").style.opacity = 1 - p3Out;
+  $("plan-biz").style.opacity = p3In;
+  const bizTab = k <= 0 ? "n-find" : k === 3 ? "n-proj" : "n-msg";
+  ["n-find", "n-msg", "n-proj"].forEach((id) => $(id).classList.toggle("cur", id === bizTab));
+  const stuTab = k === 3 ? "s-proj" : "s-msg";
+  ["s-prof", "s-msg", "s-proj"].forEach((id) => $(id).classList.toggle("cur", id === stuTab));
+  const r0 = t - S[0], r1 = t - S[1], r2 = t - S[2], r3 = t - S[3];
+  const URL = k <= 0 ? (r0 >= 5.1 ? "find?q=help+with+our+instagram" : "find")
+    : k === 1 ? "students/maya-rodriguez"
+    : k === 2 ? "messages"
+    : "projects/side-street-instagram";
+  $("url").innerHTML = "grassroots-marketplace.com/<b>" + URL + "</b>";
+
+  // ── scene 1: search for what you need
+  typeInto($("f-search"), "help with our instagram", r0, 1.1, 2.6, "What do you need help with?", 3.05);
+  $("sbar").classList.toggle("focus", r0 >= 0.9 && r0 < 3.05);
+  $("b-find").classList.toggle("press", r0 >= 3.05 && r0 < 3.3);
+  for (let i = 0; i < 3; i++) {
+    const p = easeOut(seg(r0, 3.3 + i * 0.15, 3.7 + i * 0.15));
+    $("res-" + i).style.opacity = p;
+    $("res-" + i).style.transform = `translateY(${(1 - p) * 18}px)`;
+  }
+  const hov = easeOut(seg(r0, 4.1, 4.5));
+  $("res-0").style.boxShadow = hov ? `0 0 0 ${3 * hov}px rgba(47,122,90,0.35), 0 14px 34px rgba(20,32,26,0.10)` : "";
+  $("v-maya").style.color = r0 >= 6.3 ? "var(--a-accent-text)" : "";
+
+  // ── scene 2: packages on the profile, then a message
+  [["pk1", 0.8, 1.55], ["pk2", 1.55, 2.25], ["pk3", 2.25, 2.95]].forEach(([id, a, b]) => $(id).classList.toggle("hl", r1 >= a && r1 < b));
+  if (r1 < 6.8) typeInto($("f-msg"), M1, r1, 3.3, 6.3, "Write a message", 6.8);
+  else if (r1 < 9.3) typeInto($("f-msg"), "", r1, 99, 100, "Write a message");
+  else if (r1 < 11.9) typeInto($("f-msg"), M3, r1, 9.45, 11.4, "Write a message", 11.9);
+  else typeInto($("f-msg"), "", r1, 99, 100, "Write a message");
+  $("b-send").classList.toggle("press", (r1 >= 6.8 && r1 < 7.05) || (r1 >= 11.9 && r1 < 12.15));
+  pop($("m1"), r1, 6.85);
+  pop($("m2"), r1, 8.6);
+  pop($("m3"), r1, 11.95);
+  pop($("m4"), r1, 13.6);
+  typingDots($("dots1"), r1, 7.3, 8.6);
+  if (r1 >= 12.4 && r1 < 13.6) typingDots($("dots1"), r1, 12.4, 13.6);
+
+  // ── scene 3: the student sends three offers, the business picks one
+  $("ck1").classList.toggle("on", r2 >= 0.9); $("ck1").textContent = r2 >= 0.9 ? "✓" : "";
+  $("ck2").classList.toggle("on", r2 >= 1.45); $("ck2").textContent = r2 >= 1.45 ? "✓" : "";
+  $("ck3").classList.toggle("on", r2 >= 6.2); $("ck3").textContent = r2 >= 6.2 ? "✓" : "";
+  typeInto($("f-s1"), "Refresh the profile and highlights", r2, 1.9, 2.8, "First step", 3.0);
+  typeInto($("f-s2"), "Eight posts: drinks, regulars, the team", r2, 3.1, 4.05, "Second step", 4.25);
+  typeInto($("f-s3"), "A posting calendar to keep using", r2, 4.35, 5.1, "Third step", 5.35);
+  typeInto($("f-price"), "$240", r2, 5.5, 5.8, "$0", 6.1);
+  $("b-plan").textContent = r2 >= 7.05 ? "Offers sent ✓" : "Send 3 offers";
+  $("b-plan").classList.toggle("press", r2 >= 6.9 && r2 < 7.15);
+  const om = easeOut(seg(r2, 7.9, 8.5));
+  $("offersmsg").style.opacity = om;
+  $("offersmsg").style.transform = `translateY(${(1 - om) * 18}px)`;
+  [["of1", 8.9, 9.9], ["of3", 10.0, 11.0], ["of2", 11.1, 99]].forEach(([id, a, b]) => {
+    const on = easeOut(seg(r2, a, a + 0.25)) * (1 - ease(seg(r2, b, b + 0.25)));
+    $(id).style.boxShadow = on ? `0 0 0 ${3 * on}px rgba(47,122,90,0.30), 0 14px 34px rgba(20,32,26,0.10)` : "";
+  });
+  $("b-acc").classList.toggle("press", r2 >= 11.7 && r2 < 11.95);
+  const modalOn = fade(r2, 11.9, 12.4, 14.7, 15.15);
+  $("modal").style.opacity = modalOn;
+  $("modal").firstElementChild.style.transform = `translateY(${(1 - easeOut(seg(r2, 11.9, 12.5))) * 30}px)`;
+  const paying = r2 >= 13.3 && r2 < 14.3, held = r2 >= 14.3;
+  $("b-pay").innerHTML = paying ? '<span class="spin" style="transform:rotate(' + Math.round(r2 * 400) + 'deg)"></span> Processing payment…' : held ? "Payment held ✓" : "Pay $252.00";
+  $("b-pay").classList.toggle("press", r2 >= 13.2 && r2 < 13.45);
+  const chosen = r2 >= 14.8;
+  $("b-acc").textContent = chosen ? "Chosen ✓" : "Choose";
+  $("of1").style.opacity = $("of3").style.opacity = 1 - 0.5 * easeOut(seg(r2, 14.8, 15.3));
+  $("toast2").style.opacity = fade(r2, 15.2, 15.6, 18.0, 18.5);
+
+  // ── scene 4: approve the work
+  typeInto($("f-link"), "drive.google.com/side-street-posts", r3, 1.8, 3.4, "Paste a link to the work", 4.0);
+  $("b-deliver").classList.toggle("press", r3 >= 4.4 && r3 < 4.65);
+  const delivered = r3 >= 4.6;
+  $("status").className = "pill " + (r3 >= 11.4 ? "green" : delivered ? "amber" : "blue");
+  $("status").textContent = r3 >= 11.4 ? "Released" : delivered ? "In review" : "In progress";
+  $("toast3").style.opacity = fade(r3, 4.8, 5.1, 5.6, 5.9);
+  $("d-stu").style.opacity = 1 - ease(seg(r3, 5.3, 5.6));
+  $("d-biz").style.opacity = easeOut(seg(r3, 5.6, 6.0));
+  for (let i = 0; i < 5; i++) {
+    const lit = r3 >= 7.35 + i * 0.55;
+    $("rates").children[i].querySelectorAll(".star").forEach((s) => s.classList.toggle("on", lit));
+  }
+  $("b-release").classList.toggle("press", r3 >= 11.1 && r3 < 11.35);
+  $("paid").style.opacity = easeOut(seg(r3, 11.6, 12.2));
+  $("paid").firstElementChild.style.transform = `scale(${0.96 + 0.04 * easeOut(seg(r3, 11.6, 12.3))})`;
+
+  // ── cursor and click ring
+  const inApp = t >= S[0] + 0.1 && t < S[4] - 0.3;
+  const [cx, cy] = cursorPos(t);
+  const cur = $("cursor");
+  cur.style.opacity = inApp ? fade(t, S[0] + 0.1, S[0] + 0.6, S[4] - 0.8, S[4] - 0.3) : 0;
+  const pressed = CLICKS.some((c) => t >= c && t < c + 0.15);
+  cur.style.transform = `translate(${cx - 4}px, ${cy - 3}px) scale(${pressed ? 0.85 : 1})`;
+  const last = CLICKS.filter((c) => c <= t).pop();
+  const ring = $("ring");
+  if (inApp && last != null && t - last < 0.5) {
+    const p = (t - last) / 0.5;
+    ring.style.opacity = 1 - p;
+    ring.style.transform = `translate(${cx}px, ${cy}px) scale(${0.4 + 0.8 * p})`;
+  } else ring.style.opacity = 0;
+};
+
+// ── step player ─────────────────────────────────────────
+// Each step plays from its start to a hold point just before it would
+// fade out, then waits. Going to the very next step plays straight
+// through the transition; any other jump starts that step fresh.
+const HOLD = [S[1] - 0.45, S[2] - 0.45, S[3] - 0.45, S[4] - 0.6];
+const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+let t = S[0], target = S[0], step = 0, raf = 0, last = 0, visible = false, started = false;
+const tour = window.tour = { onchange: null };
+const emit = () => tour.onchange?.({ step, done: t >= target });
+function frame(now) {
+  raf = 0;
+  if (!visible) return;
+  const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
+  last = now;
+  t = Math.min(target, t + dt);
+  window.render(t);
+  if (t < target) raf = requestAnimationFrame(frame); else emit();
+}
+function play() { if (!raf && visible && t < target) { last = 0; raf = requestAnimationFrame(frame); } }
+tour.go = (i) => {
+  i = Math.max(0, Math.min(3, i));
+  const through = started && i === step + 1 && t >= HOLD[step] - 0.01;
+  if (!through) t = !started ? 3.0 : S[i];
+  started = true; step = i; target = HOLD[i];
+  if (reducedMotion) t = target;
+  window.render(t); emit(); play();
+};
+tour.setVisible = (v) => {
+  visible = v;
+  if (v && !started) tour.go(0); else if (v) play();
+};
+tour.setTheme = (th) => { document.documentElement.dataset.theme = th === "light" ? "light" : "dark"; window.render(t); };
+[...$("dots").children].forEach((d, i) => d.addEventListener("click", () => tour.go(i)));
+function fit() { SC = window.innerWidth / 1920; document.body.style.transform = `scale(${SC})`; window.render(t); }
+window.addEventListener("resize", fit);
+window.ready = document.fonts.ready.then(() => { fit(); return true; });
+fit();
+</script>
+</body>
+</html>

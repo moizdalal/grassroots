@@ -438,28 +438,29 @@
     }
   }
 
-  /* ── marketplace peek: build cards + duplicate ─────────── */
+  /* ── student peek: build cards + duplicate ────────────── */
   const peekTrack = document.getElementById("ld-peek-track");
   const peekDataEl = document.getElementById("ld-peek-data");
   if (peekTrack && peekDataEl) {
     let listings = [];
     try { listings = JSON.parse(peekDataEl.textContent); } catch (e) {}
     const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    // Student cards: each opens that student in the directory sketch.
     const cardHTML = (l) => `
-      <a class="ld-peek-card" href="/marketplace" aria-label="${escapeHtml(l.title)}, ${escapeHtml(l.biz)}">
-        <span class="ld-peek-card__eyebrow">${escapeHtml(l.eyebrow)}</span>
-        <h3 class="ld-peek-card__title">${escapeHtml(l.title)}</h3>
-        <div class="ld-peek-card__row">
-          <span class="ld-peek-card__logo" aria-hidden="true">${escapeHtml(l.logo)}</span>
-          <div>
-            <div class="ld-peek-card__biz">${escapeHtml(l.biz)}</div>
-            <div class="ld-peek-card__budget">${escapeHtml(l.budget)}</div>
-            <div class="ld-peek-card__contract">${escapeHtml(l.contract)}</div>
+      <a class="ld-peek-card ld-stu" href="/student-profile-sketch.html#student-${escapeHtml(l.id)}" aria-label="${escapeHtml(l.name)}, ${escapeHtml(l.school)}">
+        <div class="ld-stu__head">
+          <span class="ld-stu__ava ld-stu__ava--${Number(l.tone) || 1}" aria-hidden="true">${escapeHtml(l.ini)}</span>
+          <div class="ld-stu__who">
+            <h3 class="ld-stu__name">${escapeHtml(l.name)}</h3>
+            <div class="ld-stu__school">${escapeHtml(l.school)}</div>
+            <div class="ld-stu__rating"><span aria-hidden="true">★</span> ${escapeHtml(l.rating)} <span>(${Number(l.reviews)} reviews)</span></div>
           </div>
         </div>
+        <p class="ld-stu__headline">${escapeHtml(l.headline)}</p>
         <div class="ld-peek-card__tags">
           ${l.tags.map((t) => `<span class="ld-peek-card__tag">${escapeHtml(t)}</span>`).join("")}
         </div>
+        <div class="ld-stu__foot"><span>From <b>${escapeHtml(l.from)}</b></span><span class="ld-stu__view">View profile →</span></div>
       </a>
     `;
     // The second copy only exists so the marquee loops seamlessly. Lite
