@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Student offers sketch</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" />
+    <link rel="stylesheet" href="/grassroots.css?v=2" />
+    <link rel="stylesheet" href="/field-office.css?v=2" />
+    <script src="/theme.js"></script>
+    <style>
+      /* ============================================================
+         Sketch: a student gets offers from businesses
+         ============================================================
+         Maya's offers. She can accept one, suggest a different price
+         or decline it. Sample businesses; nothing here saves. */
+      body.gr-body { background: var(--fo-bg); color: var(--fo-text); font-family: var(--font-body); margin: 0; }
+      .sk { max-width: 1180px; margin: 0 auto; padding: 32px 24px 96px; }
+      .sk-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 36px; }
+      .sk-brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 600; font-size: 1.35rem; color: var(--fo-text); text-decoration: none; }
+      .sk-brand svg { width: 18px; height: 22px; }
+      .sk-right { display: flex; align-items: center; gap: 12px; }
+      .me { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: #b5673a; color: #fff; font-weight: 700; font-size: 0.9rem; }
+      .sk-theme { border: 1px solid var(--fo-line-strong); background: transparent; color: var(--fo-text); border-radius: 999px; padding: 8px 14px; font: inherit; font-size: 0.9rem; cursor: pointer; }
+      .sk-theme:hover { border-color: var(--fo-accent); }
+
+      h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(2rem, 4vw, 2.8rem); letter-spacing: -0.02em; margin: 0 0 8px; }
+      .lead { color: var(--fo-text-2); font-size: 1.05rem; line-height: 1.6; margin: 0 0 28px; max-width: 62ch; }
+
+      .wrap { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 24px; align-items: start; }
+      .list { display: grid; gap: 10px; }
+      .item { display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 12px; align-items: center; padding: 14px; border-radius: 16px; border: 1.5px solid var(--fo-line-strong); background: transparent; color: var(--fo-text); font: inherit; text-align: left; cursor: pointer; }
+      .item:hover { border-color: color-mix(in srgb, var(--fo-accent) 60%, var(--fo-line-strong)); }
+      .item.on { border-color: var(--fo-accent); box-shadow: 0 0 0 3px var(--fo-accent-soft); }
+      .item b { display: block; font-size: 0.98rem; }
+      .item .what { font-size: 0.88rem; color: var(--fo-text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .item .meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; font-size: 0.86rem; }
+      .item .amt { font-weight: 700; color: var(--fo-text); }
+      .tile { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; font-weight: 800; font-size: 0.85rem; color: #fff; }
+      .tile.lg { width: 60px; height: 60px; border-radius: 16px; font-size: 1.05rem; }
+
+      .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; white-space: nowrap; }
+      .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+      .pill.new { background: color-mix(in srgb, var(--fo-accent) 16%, transparent); color: var(--fo-accent); }
+      .pill.wait { background: rgba(232, 142, 90, 0.16); color: #c06a35; }
+      .pill.done { background: color-mix(in srgb, var(--fo-accent) 16%, transparent); color: var(--fo-accent); }
+      .pill.no { background: color-mix(in srgb, var(--fo-text) 10%, transparent); color: var(--fo-text-2); }
+      :root:not([data-theme="light"]) .pill.wait { color: #f0a36f; }
+      :root:not([data-theme="light"]) .pill.new, :root:not([data-theme="light"]) .pill.done { color: #5fbf8f; }
+
+      .detail { padding: 28px; border-radius: 22px; border: 1px solid var(--fo-line-strong); background: var(--fo-surface); }
+      :root:not([data-theme="light"]) .detail { background: transparent; }
+      .biz { display: flex; gap: 14px; align-items: center; margin-bottom: 22px; }
+      .biz h2 { font-family: var(--font-display); font-weight: 600; font-size: 1.6rem; margin: 0; line-height: 1.15; }
+      .biz .where { color: var(--fo-text-2); margin-top: 3px; }
+      .biz .pill { margin-left: auto; align-self: flex-start; }
+
+      .box { border-radius: 16px; border: 1px solid var(--fo-line); padding: 18px 20px; margin-bottom: 16px; }
+      .box h3 { font-size: 0.92rem; font-weight: 700; color: var(--fo-text-2); margin: 0 0 8px; }
+      .box .ask { font-family: var(--font-display); font-weight: 600; font-size: 1.25rem; margin: 0 0 6px; }
+      .box p { margin: 0; line-height: 1.6; }
+      .note { font-size: 1.02rem; }
+      .note::before { content: "\201C"; }
+      .note::after { content: "\201D"; }
+      .by { margin-top: 8px !important; font-size: 0.88rem; color: var(--fo-text-3); }
+      .money { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+      .money div { display: flex; flex-direction: column; gap: 4px; }
+      .money span { font-size: 0.88rem; color: var(--fo-text-2); }
+      .money b { font-family: var(--font-display); font-weight: 600; font-size: 1.45rem; }
+      .money .keep b { color: var(--fo-accent); }
+      :root:not([data-theme="light"]) .money .keep b { color: #5fbf8f; }
+
+      .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+      .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 48px; padding: 0 22px; border-radius: 999px; font: inherit; font-weight: 700; font-size: 0.97rem; cursor: pointer; border: 0; }
+      .btn.primary { background: var(--fo-accent); color: var(--fo-accent-on); }
+      .btn.primary:hover { filter: brightness(1.08); }
+      .btn.ghost { background: transparent; color: var(--fo-text); border: 1.5px solid var(--fo-line-strong); }
+      .btn.ghost:hover { border-color: var(--fo-accent); color: var(--fo-accent); }
+      .btn.quiet { background: transparent; color: var(--fo-text-2); padding: 0 12px; }
+      .btn.quiet:hover { color: var(--fo-text); }
+      .msg { margin-left: auto; }
+
+      .counter { margin-top: 18px; padding: 18px 20px; border-radius: 16px; border: 1.5px solid var(--fo-accent); background: color-mix(in srgb, var(--fo-accent) 6%, transparent); }
+      .counter h3 { margin: 0 0 12px; font-size: 1.05rem; }
+      .fld { display: block; margin-bottom: 12px; }
+      .fld > span { display: block; font-size: 0.9rem; font-weight: 600; color: var(--fo-text-2); margin-bottom: 6px; }
+      .fld input, .fld textarea { width: 100%; box-sizing: border-box; border: 1.5px solid var(--fo-line-strong); border-radius: 12px; background: var(--fo-bg); color: var(--fo-text); font: inherit; padding: 11px 13px; outline: none; }
+      .fld input:focus, .fld textarea:focus { border-color: var(--fo-accent); box-shadow: 0 0 0 3px var(--fo-accent-soft); }
+      .fld textarea { min-height: 76px; resize: vertical; }
+      .keep-line { font-size: 0.9rem; color: var(--fo-text-2); margin-top: 6px; }
+      .row-end { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+
+      .status { margin-top: 18px; padding: 16px 18px; border-radius: 14px; display: flex; gap: 12px; align-items: flex-start; line-height: 1.55; }
+      .status.ok { background: color-mix(in srgb, var(--fo-accent) 12%, transparent); }
+      .status.wait { background: rgba(232, 142, 90, 0.12); }
+      .status.no { background: color-mix(in srgb, var(--fo-text) 6%, transparent); }
+      .status svg { flex-shrink: 0; width: 22px; height: 22px; margin-top: 1px; }
+      .status b { display: block; }
+
+      .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: var(--fo-text); color: var(--fo-bg); padding: 14px 20px; border-radius: 14px; font-weight: 600; opacity: 0; transition: opacity 0.25s ease; pointer-events: none; z-index: 40; max-width: calc(100% - 40px); }
+      .toast.on { opacity: 1; }
+      [hidden] { display: none !important; }
+
+      @media (max-width: 880px) {
+        .wrap { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 560px) {
+        .sk { padding: 20px 16px 72px; }
+        .detail { padding: 20px; }
+        .money { grid-template-columns: 1fr 1fr; }
+        .money .keep { grid-column: 1 / -1; }
+        .biz { flex-wrap: wrap; }
+        .msg { margin-left: 0; }
+        .actions .btn { flex: 1 1 auto; }
+      }
+    </style>
+  </head>
+  <body class="gr-body">
+    <div class="sk">
+      <div class="sk-top">
+        <a class="sk-brand" href="/student-profile-sketch.html#student-maya">
+          <svg viewBox="0 0 163 275" aria-hidden="true"><path fill="#3f9a6b" transform="translate(72 130)" d="M19 10.15C19 4.54431 14.7467 0 9.5 0C4.25329 0 0 4.54431 0 10.15C7.91804 91.2467 8.44249 120.691 0 134.85C0 140.456 4.25329 145 9.5 145C14.7467 145 19 140.456 19 134.85C16.2169 71.2734 12.3479 23.288 19 10.15Z"/><path fill="#3f9a6b" transform="translate(0 65)" d="M84 87C21 71.5333 -6.5625 42.5333 1.3125 0C56.4375 3.86667 84 32.8667 84 87Z"/><path fill="#5fbf8f" transform="translate(82 0)" d="M0 147C48.6 116.053 75.6 67.0526 81 0C27 5.1579 0 54.1579 0 147Z"/></svg>
+          grassroots
+        </a>
+        <div class="sk-right">
+          <button type="button" class="sk-theme" id="theme-btn">Switch theme</button>
+          <span class="me" title="Maya Rodriguez" aria-hidden="true">MR</span>
+        </div>
+      </div>
+
+      <h1>Your offers</h1>
+      <p class="lead">Businesses send you offers from your profile. You can accept one, suggest a different price, or decline it. Nothing is charged until you both agree.</p>
+
+      <div class="wrap">
+        <div class="list" id="list" role="list" aria-label="Offers"></div>
+        <section class="detail" id="detail" aria-live="polite"></section>
+      </div>
+    </div>
+    <div class="toast" id="toast" role="status"></div>
+
+    <script>
+      const OFFERS = [
+        { id: "ss", biz: "Side Street Coffee", where: "Café · Gainesville, FL", tile: "SS", color: "#b5673a", sent: "2 hours ago",
+          kind: "package", ask: "Social media starter", from: "Your package", price: 150, time: "About 2 weeks", monthly: false,
+          note: "We just added a winter menu and nobody knows about it. Our Instagram hasn't posted in months. Can you help us get it going again?", status: "new" },
+        { id: "et", biz: "Ember Tea Room", where: "Tea house · Savannah, GA", tile: "ET", color: "#7a5a9e", sent: "Yesterday",
+          kind: "custom", ask: "Not sure yet", from: "Their own words", price: 120, time: "Flexible", monthly: false,
+          note: "Honestly we're not sure what we need. It's quiet on weekdays, our Instagram is small, and people say they can't find us on Google. Could you take a look and tell us where to start?", status: "new" },
+        { id: "nb", biz: "North End Bikes", where: "Bike shop · Athens, GA", tile: "NB", color: "#2a6170", sent: "3 days ago",
+          kind: "package", ask: "Monthly social media", from: "Your package", price: 200, time: "Ongoing", monthly: true,
+          note: "Love your TikTok work. Could you do our monthly posts? We can do $200 a month to start.", status: "countered", counter: 250, counterNote: "I'd love to. My monthly package is $250, which covers 12 posts and a monthly check-in." },
+        { id: "rr", biz: "Rooster & Rye", where: "Bakery · Chapel Hill, NC", tile: "RR", color: "#6b4a33", sent: "Last week",
+          kind: "package", ask: "Social media starter", from: "Your package", price: 150, time: "About 2 weeks", monthly: false,
+          note: "Can you help us with posts for our second location opening?", status: "accepted" },
+      ];
+      let cur = OFFERS[0].id;
+      const $ = (id) => document.getElementById(id);
+      const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      const usd = (n) => "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
+      const per = (o) => (o.monthly ? " a month" : "");
+      // students see only the flat 10% fee
+      const keep = (n) => Math.round(n * 0.9 * 100) / 100;
+      const PILL = { new: ["new", "New offer"], countered: ["wait", "Waiting on them"], accepted: ["done", "Accepted"], declined: ["no", "Declined"] };
+      const ICON = {
+        ok: '<svg viewBox="0 0 22 22" fill="none" aria-hidden="true" style="color:var(--fo-accent)"><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.3l3 3 6-6.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        wait: '<svg viewBox="0 0 22 22" fill="none" aria-hidden="true" style="color:#c06a35"><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M11 6v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+        no: '<svg viewBox="0 0 22 22" fill="none" aria-hidden="true" style="color:var(--fo-text-2)"><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M7.5 7.5l7 7M14.5 7.5l-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+      };
+
+      function renderList() {
+        $("list").innerHTML = OFFERS.map((o) => {
+          const [cls, label] = PILL[o.status];
+          const amt = o.status === "countered" ? o.counter : o.price;
+          return `<button type="button" class="item${o.id === cur ? " on" : ""}" data-id="${o.id}" role="listitem">
+            <span class="tile" style="background:${o.color}" aria-hidden="true">${esc(o.tile)}</span>
+            <span><b>${esc(o.biz)}</b><span class="what">${esc(o.ask)} · ${esc(o.sent)}</span>
+              <span class="meta"><span class="amt">${usd(amt)}${per(o)}</span><span class="pill ${cls}">${label}</span></span></span>
+          </button>`;
+        }).join("");
+      }
+
+      function renderDetail() {
+        const o = OFFERS.find((x) => x.id === cur);
+        const [cls, label] = PILL[o.status];
+        let state = "";
+        if (o.status === "new") {
+          state = `<div class="actions" id="actions">
+              <button type="button" class="btn primary" data-act="accept">Accept ${usd(o.price)}${per(o)}</button>
+              <button type="button" class="btn ghost" data-act="counter">Suggest a different price</button>
+              <button type="button" class="btn quiet" data-act="decline">Decline</button>
+              <button type="button" class="btn ghost msg" data-act="message">Send a message</button>
+            </div>
+            <div class="counter" id="counter" hidden>
+              <h3>Suggest a different price</h3>
+              <label class="fld"><span>Your price${o.monthly ? " a month" : ""}</span><input id="c-price" inputmode="decimal" value="${usd(o.price)}" /><div class="keep-line" id="c-keep"></div></label>
+              <label class="fld"><span>A note for ${esc(o.biz)}</span><textarea id="c-note" placeholder="Explain what the new price covers, or what you'd change."></textarea></label>
+              <div class="row-end"><button type="button" class="btn quiet" data-act="cancel">Cancel</button><button type="button" class="btn primary" data-act="send">Send to ${esc(o.biz)}</button></div>
+            </div>`;
+        } else if (o.status === "countered") {
+          state = `<div class="status wait">${ICON.wait}<div><b>You suggested ${usd(o.counter)}${per(o)}</b>${o.counterNote ? `<span>${esc(o.counterNote)}</span><br/>` : ""}${esc(o.biz)} can accept it, suggest another price or decline. You'll get a notification either way.</div></div>`;
+        } else if (o.status === "accepted") {
+          state = `<div class="status ok">${ICON.ok}<div><b>You accepted this offer</b>${esc(o.biz)} pays ${usd(o.price)}${per(o)}, and Grassroots holds it until they approve your work. You can start once the payment is in.</div></div>
+            <div class="actions"><button type="button" class="btn primary" data-act="open">Open the project</button><button type="button" class="btn ghost" data-act="message">Send a message</button></div>`;
+        } else {
+          state = `<div class="status no">${ICON.no}<div><b>You declined this offer</b>${esc(o.biz)} can still find you and send a new offer later.</div></div>`;
+        }
+        $("detail").innerHTML = `
+          <div class="biz"><span class="tile lg" style="background:${o.color}" aria-hidden="true">${esc(o.tile)}</span>
+            <div><h2>${esc(o.biz)}</h2><div class="where">${esc(o.where)} · sent ${esc(o.sent.toLowerCase())}</div></div>
+            <span class="pill ${cls}">${label}</span></div>
+          <div class="box">
+            <p class="ask">${esc(o.kind === "package" ? o.ask : "Help figuring out where to start")}</p>
+            <p style="color:var(--fo-text-2);font-size:0.95rem">${o.kind === "package" ? "They picked one of your packages." : "They described what they need in their own words instead of picking a package."}</p></div>
+          <div class="box"><p class="note">${esc(o.note)}</p><p class="by">Their note to you</p></div>
+          <div class="box"><div class="money">
+            <div><span>They offered</span><b>${usd(o.price)}${o.monthly ? '<small style="font-family:var(--font-body);font-size:.85rem;font-weight:500"> a month</small>' : ""}</b></div>
+            <div><span>Timing</span><b style="font-size:1.15rem;padding-top:.25rem">${esc(o.time)}</b></div>
+            <div class="keep"><span>You'd keep</span><b>${usd(keep(o.price))}${o.monthly ? '<small style="font-family:var(--font-body);font-size:.85rem;font-weight:500"> a month</small>' : ""}</b><span>after the 10% fee</span></div>
+          </div></div>
+          ${state}`;
+        syncKeep();
+      }
+      function syncKeep() {
+        const el = $("c-price"), out = $("c-keep");
+        if (!el || !out) return;
+        const n = Number(String(el.value).replace(/[^0-9.]/g, ""));
+        out.textContent = n ? `You'd keep ${usd(keep(n))} after the 10% fee.` : "";
+      }
+      let tt;
+      function toast(m) { const t = $("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("on"), 3200); }
+
+      document.addEventListener("click", (e) => {
+        const item = e.target.closest(".item");
+        if (item) { cur = item.dataset.id; renderList(); renderDetail(); if (innerWidth <= 880) $("detail").scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+        const b = e.target.closest("[data-act]");
+        if (!b) return;
+        const o = OFFERS.find((x) => x.id === cur);
+        const act = b.dataset.act;
+        if (act === "accept") { o.status = "accepted"; renderList(); renderDetail(); toast(`Accepted. ${o.biz} gets a note to pay.`); }
+        else if (act === "counter") { $("counter").hidden = false; $("actions").hidden = true; $("c-price").focus(); }
+        else if (act === "cancel") { $("counter").hidden = true; $("actions").hidden = false; }
+        else if (act === "send") {
+          const n = Number(String($("c-price").value).replace(/[^0-9.]/g, ""));
+          if (!n || n < 10) { toast("Paid offers start at $10."); return; }
+          o.status = "countered"; o.counter = n; o.counterNote = $("c-note").value.trim(); renderList(); renderDetail(); toast(`Sent. ${o.biz} will see your price.`);
+        }
+        else if (act === "decline") { o.status = "declined"; renderList(); renderDetail(); toast("Declined."); }
+        else if (act === "message") toast(`In the real site, this opens a message to ${o.biz}.`);
+        else if (act === "open") toast("In the real site, this opens the project page.");
+      });
+      document.addEventListener("input", (e) => { if (e.target.id === "c-price") syncKeep(); });
+      $("theme-btn").addEventListener("click", () => {
+        const next = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", next);
+        try { localStorage.setItem("grassroots_theme", next); } catch (_) {}
+      });
+      renderList(); renderDetail();
+    </script>
+  </body>
+</html>
