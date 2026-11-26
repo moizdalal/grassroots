@@ -59,7 +59,7 @@
     <link rel="stylesheet" href="/grassroots.css?v=2" />
     <link rel="stylesheet" href="/field-office.css?v=2" />
     <link rel="stylesheet" href="/home/nav.css?v=7" />
-    <link rel="stylesheet" href="/home/index.css?v=56" />
+    <link rel="stylesheet" href="/home/index.css?v=57" />
     <script src="/theme.js?v=2"></script>
     <script src="/home/theme-default.js?v=2"></script>
     <script>
@@ -297,6 +297,20 @@
           <h2 class="ld-section__title" id="ld-how-title">How it works</h2>
         </div>
 
+        <!-- Step-by-step animation of the walkthrough (laptops and up). Each
+             step plays once and waits for Next. Phones and screen readers get
+             the step cards below instead. -->
+        <div class="ld-tour" id="ld-tour">
+          <div class="ld-tour__frame">
+            <iframe id="ld-tour-frame" src="/home/how-it-works-tour.html" title="How Grassroots works, step by step" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+          </div>
+          <div class="ld-tour__bar">
+            <button type="button" class="gr-btn gr-btn--ghost ld-tour__btn" id="ld-tour-back" disabled>← Back</button>
+            <p class="ld-tour__label" id="ld-tour-label">Step 1 of 4: <b>Search for what you need</b></p>
+            <button type="button" class="gr-btn gr-btn--primary ld-tour__btn" id="ld-tour-next">Next →</button>
+          </div>
+        </div>
+
         <ol class="ld-grow__row">
           <li class="ld-grow__step" style="--i: 0">
             <div class="ld-grow__art" aria-hidden="true">
@@ -325,8 +339,8 @@
               </svg>
             </div>
             <div class="ld-grow__card">
-              <h3 class="ld-grow__title">Pick a student</h3>
-              <p class="ld-grow__body">The business looks through each student's strengths, past projects and reviews, then sends an offer to the one who fits. Businesses that know exactly what they need can post a project instead.</p>
+              <h3 class="ld-grow__title">Message a student</h3>
+              <p class="ld-grow__body">The business looks at a student's strengths, packages and past work, then sends a message. The student asks a few questions and helps figure out what's needed.</p>
             </div>
           </li>
 
@@ -343,8 +357,8 @@
               </svg>
             </div>
             <div class="ld-grow__card">
-              <h3 class="ld-grow__title">Agree and get started</h3>
-              <p class="ld-grow__body">The student accepts the offer or suggests a different price, and helps shape what the work should be. Once both sides agree, Grassroots holds the payment, processed by Stripe, until the work is done.</p>
+              <h3 class="ld-grow__title">Pick an offer</h3>
+              <p class="ld-grow__body">The student sends a few offers, from their packages or a plan built for the business. Once the business picks one, Grassroots holds the payment, processed by Stripe, until the work is done.</p>
             </div>
           </li>
 
@@ -883,6 +897,38 @@
       // ── How it works: each growth stage row fades up once as it scrolls in ──
       // Rows only start hidden after this runs ("is-armed"), so they still
       // show if scripts fail; reduced motion skips the effect entirely.
+      // ── How it works animation: Back and Next step through it. It plays
+      // only while on screen and follows the site theme.
+      const tourFrame = document.getElementById("ld-tour-frame");
+      if (tourFrame) {
+        const NAMES = ["Search for what you need", "Message a student", "Pick an offer", "Approve the work"];
+        const back = document.getElementById("ld-tour-back");
+        const next = document.getElementById("ld-tour-next");
+        const label = document.getElementById("ld-tour-label");
+        const themeOf = () => document.documentElement.dataset.theme === "light" ? "light" : "dark";
+        let tour = null, state = { step: 0, done: false };
+        const update = (s) => {
+          state = s;
+          label.innerHTML = `Step ${s.step + 1} of 4: <b>${NAMES[s.step]}</b>`;
+          back.disabled = s.step === 0;
+          next.textContent = s.step === 3 ? "Watch again" : "Next →";
+        };
+        const tourIO = "IntersectionObserver" in window
+          ? new IntersectionObserver(([e]) => tour?.setVisible(e.isIntersecting), { threshold: 0.35 })
+          : null;
+        const hook = () => {
+          tour = tourFrame.contentWindow?.tour;
+          if (!tour) return;
+          tour.onchange = update;
+          tour.setTheme(themeOf());
+          if (tourIO) tourIO.observe(tourFrame); else tour.setVisible(true);
+        };
+        if (tourFrame.contentWindow?.tour) hook(); else tourFrame.addEventListener("load", hook);
+        next.addEventListener("click", () => tour?.go(state.step === 3 ? 0 : state.step + 1));
+        back.addEventListener("click", () => tour?.go(state.step - 1));
+        new MutationObserver(() => tour?.setTheme(themeOf())).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+      }
+
       const grow = document.getElementById("how-it-works");
       if (grow && grow.classList.contains("ld-grow") && !reduced && "IntersectionObserver" in window) {
         grow.classList.add("is-armed");

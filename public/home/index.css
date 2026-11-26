@@ -1478,6 +1478,21 @@
         }
         .ld-hero > .ld-hero__grid { width: 100%; }
       }
+      /* How it works animation: laptops and up. The step cards stay in the
+         page for phones and screen readers. */
+      .ld-tour { display: none; }
+      @media (min-width: 721px) {
+        .ld-tour { display: block; max-width: 1100px; margin: 0 auto; }
+        .ld-grow__row { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+      }
+      .ld-tour__frame { position: relative; aspect-ratio: 16 / 9; border-radius: 24px; overflow: hidden; border: 1px solid var(--fo-line); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35); }
+      [data-theme="light"] .ld-tour__frame { box-shadow: 0 24px 60px rgba(14, 51, 36, 0.14); }
+      .ld-tour__frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+      .ld-tour__bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; }
+      .ld-tour__label { margin: 0; font-size: 1.05rem; color: var(--fo-text-2); text-align: center; }
+      .ld-tour__label b { color: var(--fo-text); font-weight: 700; }
+      .ld-tour__btn { min-width: 132px; }
+      .ld-tour__btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
       /* Phones use a fixed 16px gutter instead of the .ld-shell clamp. */
       @media (max-width: 720px) { .ld-hero { padding-inline: 16px; } }
       /* Phones: keep "Local business meets" on one line, and stack the two
